@@ -985,23 +985,6 @@
             margin-top: 4px;
         }
 
-        .mix-btn {
-            flex: 1;
-            padding: 3px;
-            background: #2a4858;
-            border: 1px solid #4a6870;
-            color: #fff;
-            cursor: pointer;
-            border-radius: 3px;
-            font-size: 7px;
-            transition: all 0.2s;
-        }
-
-        .mix-btn.active {
-            background: #f39c12;
-            border-color: #e67e22;
-        }
-
         .effects-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1141,6 +1124,67 @@
             gap: 10px;
             margin-top: 20px;
         }
+
+        /* Tutorial System Styles */
+        .tutorial-highlight {
+            box-shadow: 0 0 20px #8fb3d3, 0 0 40px #8fb3d3, 0 0 60px #8fb3d3 !important;
+            border: 3px solid #8fb3d3 !important;
+            filter: brightness(1.5) contrast(1.2) !important;
+            position: relative !important;
+            z-index: 2100 !important;
+            background: rgba(143, 179, 211, 0.1) !important;
+        }
+
+        #tutorialOverlay {
+            backdrop-filter: blur(2px);
+        }
+
+        #tutorialBox {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        #tutorialButton, #randomDiceButton {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #tutorialButton:hover, #randomDiceButton:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        #randomDiceButton {
+            transition: transform 0.6s ease;
+        }
+
+        /* Presets Menu Styles */
+        #presetsMenu {
+            display: none;
+        }
+
+        #presetCategories button {
+            transition: all 0.2s ease;
+        }
+
+        #presetCategories button:hover {
+            background: #4a6870;
+            transform: translateY(-1px);
+        }
+
+        /* Add pulsing animation for tutorial and dice buttons */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(143, 179, 211, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(143, 179, 211, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(143, 179, 211, 0); }
+        }
+
+        #tutorialButton {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes diceRoll {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(720deg); }
+        }
     </style>
 </head>
 <body>
@@ -1156,6 +1200,11 @@
         <!-- Fretboard/Strings -->
         <div class="strum-area">
             <div class="extension-columns" id="extensionColumns"></div>
+        </div>
+
+        <!-- Middle Area for Presets -->
+        <div class="middle-area" style="height: 40px; background: rgba(26, 26, 46, 0.3); border: 1px dashed #4a6870; margin: 5px 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease;" title="Click here to open oscillator sound presets">
+            <span style="color: #8fb3d3; font-size: 14px; opacity: 0.7;">Click for Oscillator Sound Presets �️</span>
         </div>
 
         <!-- Custom Chord Palette Area -->
@@ -1174,7 +1223,7 @@
         <!-- Bottom Controls - Full Height Available -->
         <div class="control-panel" style="display: grid; grid-template-columns: 300px 200px 280px 1fr; gap: 15px; padding: 10px; height: calc(100vh - 90px - 28vh - 28vh); min-height: 35vh; font-size: 13px; overflow: visible;">
             <!-- Tuning & Quality & Columns -->
-            <div class="synth-section" style="padding: 8px;">
+            <div class="synth-section" id="tuningSelector" style="padding: 8px;">
                 <h4 style="font-size: 15px; margin-bottom: 8px;">Tuning</h4>
                 <div class="tuning-buttons" style="grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 10px;">
                     <div class="tuning-btn" data-tuning="5" style="font-size: 11px; padding: 4px;">5</div>
@@ -1198,9 +1247,9 @@
                 </div>
             </div>
 
-            <!-- Volume & ADSR -->
-            <div class="synth-section" style="padding: 8px;">
-                <h4 style="font-size: 15px; margin-bottom: 8px;">Vol/ADSR</h4>
+            <!-- Master Controls -->
+            <div class="synth-section" id="masterSection" style="padding: 8px;">
+                <h4 style="font-size: 15px; margin-bottom: 8px;">Master</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <div class="slider-container">
                         <label style="font-size: 11px;">Volume</label>
@@ -1212,31 +1261,11 @@
                         <input type="range" class="synth-slider" id="masterVolume" min="0" max="10" value="10" style="height: 20px;">
                         <div class="slider-value" id="masterVolumeValue" style="font-size: 10px;">100%</div>
                     </div>
-                    <div class="slider-container">
-                        <label style="font-size: 11px;">Attack</label>
-                        <input type="range" class="envelope-slider" id="attackSlider" min="3" max="1000" value="5" style="height: 20px;">
-                        <div class="slider-value" id="attackValue" style="font-size: 10px;">5ms</div>
-                    </div>
-                    <div class="slider-container">
-                        <label style="font-size: 11px;">Decay</label>
-                        <input type="range" class="envelope-slider" id="decaySlider" min="1" max="200" value="30" style="height: 20px;">
-                        <div class="slider-value" id="decayValue" style="font-size: 10px;">30ms</div>
-                    </div>
-                    <div class="slider-container">
-                        <label style="font-size: 11px;">Sustain</label>
-                        <input type="range" class="envelope-slider" id="sustainSlider" min="0" max="10" value="5" style="height: 20px;">
-                        <div class="slider-value" id="sustainValue" style="font-size: 10px;">50%</div>
-                    </div>
-                    <div class="slider-container">
-                        <label style="font-size: 11px;">Release</label>
-                        <input type="range" class="envelope-slider" id="releaseSlider" min="0" max="3000" value="1000" style="height: 20px;">
-                        <div class="slider-value" id="releaseValue" style="font-size: 10px;">1000ms</div>
-                    </div>
                 </div>
             </div>
 
             <!-- Effects: Reverb & Panning -->
-            <div class="synth-section" style="padding: 8px;">
+            <div class="synth-section" id="effectsSection" style="padding: 8px;">
                 <h4 style="font-size: 15px; margin-bottom: 8px; color: #9b59b6;">Effects</h4>
                 <div style="margin-bottom: 10px;">
                     <label style="font-size: 13px; color: #9b59b6;">Reverb</label>
@@ -1294,12 +1323,12 @@
             </div>
 
             <!-- Oscillators -->
-            <div class="synth-section" style="padding: 8px;">
+            <div class="synth-section" id="oscillatorsSection" style="padding: 8px;">
                 <h4 style="font-size: 15px; margin-bottom: 8px;">Oscillators</h4>
-                <div style="display: grid; grid-template-columns: 1fr 50px 1fr; gap: 8px; align-items: start;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <!-- OSC 1 -->
-                    <div>
-                        <h5 style="font-size: 12px; margin-bottom: 4px; color: #8fb3d3;">OSC 1</h5>
+                    <div style="border: 1px solid #4a6870; border-radius: 4px; padding: 8px; background: rgba(42, 72, 88, 0.2);">
+                        <h5 style="font-size: 12px; margin-bottom: 6px; color: #8fb3d3;">OSC 1</h5>
                         <div class="oscillator-controls" style="grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 6px;">
                             <div class="osc-btn active" data-wave="sine" data-osc="1" style="font-size: 9px; padding: 3px;">Sin</div>
                             <div class="osc-btn" data-wave="sawtooth" data-osc="1" style="font-size: 9px; padding: 3px;">Saw</div>
@@ -1307,7 +1336,7 @@
                             <div class="osc-btn" data-wave="triangle" data-osc="1" style="font-size: 9px; padding: 3px;">Tri</div>
                             <div class="osc-btn" data-wave="noise" data-osc="1" style="font-size: 9px; padding: 3px;">Nse</div>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 8px;">
                             <div class="slider-container">
                                 <label style="font-size: 9px;">Level</label>
                                 <input type="range" class="synth-slider" id="osc1Level" min="0" max="10" value="5" style="height: 20px;">
@@ -1325,26 +1354,39 @@
                             </div>
                             <div class="slider-container">
                                 <label style="font-size: 9px;">Coarse</label>
-                                <input type="range" class="synth-slider" id="osc1Coarse" min="-1200" max="1200" value="0" style="height: 20px;">
-                                <div class="slider-value" id="osc1CoarseValue" style="font-size: 9px;">0¢</div>
+                                <input type="range" class="synth-slider" id="osc1Coarse" min="-24" max="24" value="0" step="1" style="height: 20px;">
+                                <div class="slider-value" id="osc1CoarseValue" style="font-size: 9px;">0 steps</div>
+                            </div>
+                        </div>
+                        <!-- OSC 1 ADSR -->
+                        <h6 style="font-size: 10px; margin: 6px 0 4px 0; color: #f39c12;">ADSR 1</h6>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px;">
+                            <div class="slider-container">
+                                <label style="font-size: 8px;">Attack</label>
+                                <input type="range" class="envelope-slider" id="attackSlider" min="3" max="1000" value="5" style="height: 18px;">
+                                <div class="slider-value" id="attackValue" style="font-size: 8px;">5ms</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size: 8px;">Decay</label>
+                                <input type="range" class="envelope-slider" id="decaySlider" min="1" max="200" value="30" style="height: 18px;">
+                                <div class="slider-value" id="decayValue" style="font-size: 8px;">30ms</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size: 8px;">Sustain</label>
+                                <input type="range" class="envelope-slider" id="sustainSlider" min="0" max="10" value="5" style="height: 18px;">
+                                <div class="slider-value" id="sustainValue" style="font-size: 8px;">50%</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size: 8px;">Release</label>
+                                <input type="range" class="envelope-slider" id="releaseSlider" min="0" max="3000" value="1000" style="height: 18px;">
+                                <div class="slider-value" id="releaseValue" style="font-size: 8px;">1000ms</div>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Mix -->
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; border: 1px solid #f39c12; border-radius: 4px; background: rgba(243, 156, 18, 0.1);">
-                        <h5 style="font-size: 9px; margin-bottom: 4px; color: #f39c12;">MIX</h5>
-                        <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
-                            <div class="mix-btn active" data-mix="add" style="font-size: 9px; padding: 3px; text-align: center;">Add</div>
-                            <div class="mix-btn" data-mix="ring" style="font-size: 9px; padding: 3px; text-align: center;">Ring</div>
-                            <div class="mix-btn" data-mix="fm" style="font-size: 9px; padding: 3px; text-align: center;">FM</div>
-                            <div class="mix-btn" data-mix="am" style="font-size: 9px; padding: 3px; text-align: center;">AM</div>
-                        </div>
-                    </div>
-                    
                     <!-- OSC 2 -->
-                    <div>
-                        <h5 style="font-size: 12px; margin-bottom: 4px; color: #8fb3d3;">OSC 2</h5>
+                    <div style="border: 1px solid #4a6870; border-radius: 4px; padding: 8px; background: rgba(42, 72, 88, 0.2);">
+                        <h5 style="font-size: 12px; margin-bottom: 6px; color: #8fb3d3;">OSC 2</h5>
                         <div class="oscillator-controls" style="grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 6px;">
                             <div class="osc-btn active" data-wave="sine" data-osc="2" style="font-size: 9px; padding: 3px;">Sin</div>
                             <div class="osc-btn" data-wave="sawtooth" data-osc="2" style="font-size: 9px; padding: 3px;">Saw</div>
@@ -1352,7 +1394,7 @@
                             <div class="osc-btn" data-wave="triangle" data-osc="2" style="font-size: 9px; padding: 3px;">Tri</div>
                             <div class="osc-btn" data-wave="noise" data-osc="2" style="font-size: 9px; padding: 3px;">Nse</div>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 8px;">
                             <div class="slider-container">
                                 <label style="font-size: 9px;">Level</label>
                                 <input type="range" class="synth-slider" id="osc2Level" min="0" max="10" value="5" style="height: 20px;">
@@ -1370,35 +1412,34 @@
                             </div>
                             <div class="slider-container">
                                 <label style="font-size: 9px;">Coarse</label>
-                                <input type="range" class="synth-slider" id="osc2Coarse" min="-1200" max="1200" value="0" style="height: 20px;">
-                                <div class="slider-value" id="osc2CoarseValue" style="font-size: 9px;">0¢</div>
+                                <input type="range" class="synth-slider" id="osc2Coarse" min="-24" max="24" value="0" step="1" style="height: 20px;">
+                                <div class="slider-value" id="osc2CoarseValue" style="font-size: 9px;">0 steps</div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- OSC 2 ADSR - Readable Size -->
-                <h5 style="font-size: 12px; margin: 8px 0 4px 0; color: #8fb3d3;">OSC 2 ADSR</h5>
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
-                    <div class="slider-container">
-                        <label style="font-size: 9px;">Attack</label>
-                        <input type="range" class="envelope-slider" id="osc2AttackSlider" min="3" max="100" value="5" style="height: 20px;">
-                        <div class="slider-value" id="osc2AttackValue" style="font-size: 9px;">5ms</div>
-                    </div>
-                    <div class="slider-container">
-                        <label style="font-size: 9px;">Decay</label>
-                        <input type="range" class="envelope-slider" id="osc2DecaySlider" min="1" max="200" value="30" style="height: 20px;">
-                        <div class="slider-value" id="osc2DecayValue" style="font-size: 9px;">30ms</div>
-                    </div>
-                    <div class="slider-container">
-                        <label style="font-size: 9px;">Sustain</label>
-                        <input type="range" class="envelope-slider" id="osc2SustainSlider" min="0" max="10" value="5" style="height: 20px;">
-                        <div class="slider-value" id="osc2SustainValue" style="font-size: 9px;">50%</div>
-                    </div>
-                    <div class="slider-container">
-                        <label style="font-size: 9px;">Release</label>
-                        <input type="range" class="envelope-slider" id="osc2ReleaseSlider" min="0" max="3000" value="1000" style="height: 20px;">
-                        <div class="slider-value" id="osc2ReleaseValue" style="font-size: 9px;">1000ms</div>
+                        <!-- OSC 2 ADSR -->
+                        <h6 style="font-size: 10px; margin: 6px 0 4px 0; color: #f39c12;">ADSR 2</h6>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px;">
+                            <div class="slider-container">
+                                <label style="font-size: 8px;">Attack</label>
+                                <input type="range" class="envelope-slider" id="osc2AttackSlider" min="3" max="100" value="5" style="height: 18px;">
+                                <div class="slider-value" id="osc2AttackValue" style="font-size: 8px;">5ms</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size: 8px;">Decay</label>
+                                <input type="range" class="envelope-slider" id="osc2DecaySlider" min="1" max="200" value="30" style="height: 18px;">
+                                <div class="slider-value" id="osc2DecayValue" style="font-size: 8px;">30ms</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size: 8px;">Sustain</label>
+                                <input type="range" class="envelope-slider" id="osc2SustainSlider" min="0" max="10" value="5" style="height: 18px;">
+                                <div class="slider-value" id="osc2SustainValue" style="font-size: 8px;">50%</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size: 8px;">Release</label>
+                                <input type="range" class="envelope-slider" id="osc2ReleaseSlider" min="0" max="3000" value="1000" style="height: 18px;">
+                                <div class="slider-value" id="osc2ReleaseValue" style="font-size: 8px;">1000ms</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1555,8 +1596,41 @@
         </div>
     </div>
 
+    <!-- Tutorial Overlay -->
+    <div id="tutorialOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000;">
+        <div id="tutorialBox" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 2px solid #4a6870; border-radius: 10px; padding: 20px; max-width: 500px; z-index: 2001; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <h3 id="tutorialTitle" style="color: #8fb3d3; margin-top: 0;">Welcome to Xenmicord!</h3>
+            <p id="tutorialText" style="color: #fff; line-height: 1.5;">Click Next to start the interactive tutorial.</p>
+            <div style="margin-top: 15px; text-align: center; font-size: 12px; color: #8fb3d3; opacity: 0.7;">
+                Press ESC or click outside to exit tutorial
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button id="tutorialPrev" class="osc-btn" style="margin-right: 10px;">Previous</button>
+                <button id="tutorialNext" class="osc-btn">Next</button>
+                <button id="tutorialSkip" class="osc-btn" style="margin-left: 10px; background: #dc2626;">Skip Tutorial</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Button -->
+    <button id="tutorialButton" style="position: fixed; bottom: 20px; right: 20px; z-index: 1500; background: #4a6870; color: #fff; border: 2px solid #8fb3d3; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);" title="Start Tutorial">?</button>
+
+    <!-- Random Dice Button -->
+    <button id="randomDiceButton" style="position: fixed; bottom: 90px; right: 20px; z-index: 1500; background: #6366f1; color: #fff; border: 2px solid #8b5cf6; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);" title="Randomize Settings">🎲</button>
+
+    <!-- Presets Menu -->
+    <div id="presetsMenu" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; background: #1a1a2e; border: 2px solid #4a6870; border-radius: 10px; padding: 20px; z-index: 1400; max-height: 400px; overflow-y: auto;">
+        <h3 style="color: #8fb3d3; margin-top: 0; text-align: center;">Oscillator Sound Presets</h3>
+        <div id="presetCategories" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+            <!-- Preset categories will be populated by JavaScript -->
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button id="closePresetsMenu" class="osc-btn">Close</button>
+        </div>
+    </div>
+
     <script>
-        class MicrotonalOmnichord {I 
+        class MicrotonalOmnichord { 
             constructor() {
                 this.audioContext = null;
                 this.gainNode = null;
@@ -1595,7 +1669,7 @@
                     osc2: { type: 'sine', detune: -7, level: 5 * 0.125 / 10, octave: 0, coarse: 0 } // 50% slider = -18dB max
                 };
                 
-                this.mixMode = 'add';
+                // Mix mode functionality removed
                 
                 // Panning settings
                 this.panning = {
@@ -1791,15 +1865,20 @@
                 const volumeSlider = document.getElementById('volumeSlider');
                 if (volumeSlider) {
                     volumeSlider.addEventListener('input', (e) => {
-                        // Convert 0-10 scale to -18dB to 0dB (linear from 0.125 to 1.0)
-                        const sliderValue = e.target.value / 10; // 0-1
-                        this.volume = sliderValue * 0.356; // Max at -9dB (0.356 linear gain)
-                        if (this.gainNode) {
-                            this.gainNode.gain.value = this.volume * this.masterVolume;
-                        }
-                        const volumeValue = document.getElementById('volumeValue');
-                        if (volumeValue) {
-                            volumeValue.textContent = `${e.target.value * 10}%`;
+                        if (window.omnichord) {
+                            // Convert 0-10 scale to -18dB to 0dB (linear from 0.125 to 1.0)
+                            const sliderValue = e.target.value / 10; // 0-1
+                            window.omnichord.volume = sliderValue * 0.356; // Max at -9dB (0.356 linear gain)
+                            if (window.omnichord.gainNode) {
+                                window.omnichord.gainNode.gain.value = window.omnichord.volume * window.omnichord.masterVolume;
+                            }
+                            console.log('🔥 Volume changed to:', window.omnichord.volume);
+                            const volumeValue = document.getElementById('volumeValue');
+                            if (volumeValue) {
+                                volumeValue.textContent = `${e.target.value * 10}%`;
+                            }
+                        } else {
+                            console.error('🔥 omnichord instance not available for volume');
                         }
                     });
                 } else {
@@ -1811,6 +1890,7 @@
                 if (attackSlider) {
                     attackSlider.addEventListener('input', (e) => {
                         this.envelope.attack = Math.max(0.003, e.target.value / 1000); // 3ms minimum
+                        console.log('🔥 Attack changed to:', this.envelope.attack);
                         const attackValue = document.getElementById('attackValue');
                         if (attackValue) {
                             attackValue.textContent = `${e.target.value}ms`;
@@ -1824,6 +1904,7 @@
                 if (decaySlider) {
                     decaySlider.addEventListener('input', (e) => {
                         this.envelope.decay = Math.max(0.001, e.target.value / 1000); // 1ms minimum, 200ms max
+                        console.log('🔥 Decay changed to:', this.envelope.decay);
                         const decayValue = document.getElementById('decayValue');
                         if (decayValue) {
                             decayValue.textContent = `${e.target.value}ms`;
@@ -1837,6 +1918,7 @@
                 if (sustainSlider) {
                     sustainSlider.addEventListener('input', (e) => {
                         this.envelope.sustain = e.target.value / 10; // 0-10 scale to 0-1
+                        console.log('🔥 Sustain changed to:', this.envelope.sustain);
                         const sustainValue = document.getElementById('sustainValue');
                         if (sustainValue) {
                             sustainValue.textContent = `${e.target.value * 10}%`;
@@ -1997,7 +2079,7 @@
                             this.oscillators[`osc${num}`].coarse = parseInt(e.target.value);
                             const coarseValue = document.getElementById(`osc${num}CoarseValue`);
                             if (coarseValue) {
-                                coarseValue.textContent = `${e.target.value}¢`;
+                                coarseValue.textContent = `${e.target.value} steps`;
                             }
                         });
                     } else {
@@ -2005,14 +2087,7 @@
                     }
                 });
 
-                // Mix mode controls
-                document.querySelectorAll('.mix-btn[data-mix]').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        document.querySelectorAll('.mix-btn[data-mix]').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        this.mixMode = btn.dataset.mix;
-                    });
-                });
+                // Mix mode removed - oscillators will now simply add together
 
                 // Reverb controls
                 const reverbWetSlider = document.getElementById('reverbWet');
@@ -2113,8 +2188,12 @@
                 const panningModeSelect = document.getElementById('panningMode');
                 if (panningModeSelect) {
                     panningModeSelect.addEventListener('change', (e) => {
-                        this.panning.mode = e.target.value;
-                        console.log('Panning mode changed to:', this.panning.mode);
+                        if (window.omnichord && window.omnichord.panning) {
+                            window.omnichord.panning.mode = e.target.value;
+                            console.log('🔥 Panning mode changed to:', window.omnichord.panning.mode);
+                        } else {
+                            console.error('🔥 omnichord instance or panning not available');
+                        }
                     });
                 } else {
                     console.error('panningMode select not found');
@@ -2123,10 +2202,15 @@
                 const panningWidthSlider = document.getElementById('panningWidth');
                 if (panningWidthSlider) {
                     panningWidthSlider.addEventListener('input', (e) => {
-                        this.panning.width = e.target.value / 100; // 0-100% to 0-1
-                        const panningWidthValue = document.getElementById('panningWidthValue');
-                        if (panningWidthValue) {
-                            panningWidthValue.textContent = `${e.target.value}%`;
+                        if (window.omnichord && window.omnichord.panning) {
+                            window.omnichord.panning.width = e.target.value / 100; // 0-100% to 0-1
+                            console.log('🔥 Panning width changed to:', window.omnichord.panning.width);
+                            const panningWidthValue = document.getElementById('panningWidthValue');
+                            if (panningWidthValue) {
+                                panningWidthValue.textContent = `${e.target.value}%`;
+                            }
+                        } else {
+                            console.error('🔥 omnichord instance or panning not available');
                         }
                     });
                 } else {
@@ -2136,10 +2220,15 @@
                 const panningSpeedSlider = document.getElementById('panningSpeed');
                 if (panningSpeedSlider) {
                     panningSpeedSlider.addEventListener('input', (e) => {
-                        this.panning.speed = parseInt(e.target.value);
-                        const panningSpeedValue = document.getElementById('panningSpeedValue');
-                        if (panningSpeedValue) {
-                            panningSpeedValue.textContent = `${(e.target.value / 1000).toFixed(1)}s`;
+                        if (window.omnichord && window.omnichord.panning) {
+                            window.omnichord.panning.speed = parseInt(e.target.value);
+                            console.log('🔥 Panning speed changed to:', window.omnichord.panning.speed);
+                            const panningSpeedValue = document.getElementById('panningSpeedValue');
+                            if (panningSpeedValue) {
+                                panningSpeedValue.textContent = `${(e.target.value / 1000).toFixed(1)}s`;
+                            }
+                        } else {
+                            console.error('🔥 omnichord instance or panning not available');
                         }
                     });
                 } else {
@@ -2149,9 +2238,13 @@
                 const panningResetBtn = document.getElementById('panningReset');
                 if (panningResetBtn) {
                     panningResetBtn.addEventListener('click', () => {
-                        this.panning.rotationAngle = 0;
-                        this.panning.alternateState = false;
-                        console.log('Panning reset');
+                        if (window.omnichord && window.omnichord.panning) {
+                            window.omnichord.panning.rotationAngle = 0;
+                            window.omnichord.panning.alternateState = false;
+                            console.log('🔥 Panning reset');
+                        } else {
+                            console.error('🔥 omnichord instance or panning not available');
+                        }
                     });
                 } else {
                     console.error('panningReset button not found');
@@ -2316,6 +2409,10 @@
 
                 // Initialize custom chords storage
                 this.customChords = JSON.parse(localStorage.getItem('microtonalCustomChords')) || [];
+                
+                // Migrate old custom chords from 12-TET semitones to native tuning
+                this.migrateCustomChords();
+                
                 this.hiddenColumns = JSON.parse(localStorage.getItem('microtonalHiddenColumns')) || [];
                 this.favoriteChords = JSON.parse(localStorage.getItem('microtonalFavoriteChords')) || [];
                 this.paletteChords = JSON.parse(localStorage.getItem('microtonalPaletteChords')) || [];
@@ -2337,6 +2434,40 @@
                     this.generateExtensionColumns();
                     this.renderPaletteChords();
                 }, 100);
+            }
+
+            migrateCustomChords() {
+                // Migrate old custom chords that used 12-TET semitones to native tuning
+                let needsMigration = false;
+                
+                this.customChords.forEach(chord => {
+                    // Check if this chord needs migration (has intervals property instead of notes)
+                    if (chord.intervals && !chord.notes) {
+                        // Convert from 12-TET semitones to native tuning
+                        const originalTuning = this.currentTuning;
+                        this.currentTuning = chord.tuning || 12;
+                        
+                        chord.notes = chord.intervals.map(semitone => {
+                            // For chords saved in their original tuning, just use the intervals directly
+                            return semitone;
+                        });
+                        
+                        // Remove old intervals property
+                        delete chord.intervals;
+                        this.currentTuning = originalTuning;
+                        needsMigration = true;
+                        console.log(`Migrated custom chord: ${chord.name}`);
+                    } else if (!chord.notes && chord.intervals) {
+                        // Fallback: copy intervals to notes if notes missing
+                        chord.notes = [...chord.intervals];
+                        needsMigration = true;
+                    }
+                });
+                
+                if (needsMigration) {
+                    localStorage.setItem('microtonalCustomChords', JSON.stringify(this.customChords));
+                    console.log('Custom chords migrated to new format');
+                }
             }
 
             setupContextMenu() {
@@ -3251,6 +3382,11 @@
                         // Add strum functionality to the entire column
                         const addStrumming = (element) => {
                             element.addEventListener('mousedown', (e) => {
+                                // Check if this is a right-click on the header for context menu
+                                if (e.button === 2 && e.target.classList.contains('extension-header')) {
+                                    return; // Let the header's context menu handler take over
+                                }
+                                
                                 e.preventDefault();
                                 isStruming = true;
                                 strumStartY = e.clientY;
@@ -3521,8 +3657,8 @@
                         paletteColumn.appendChild(noteLabels);
                         paletteColumn.appendChild(removeBtn);
                         
-                        // Apply strumming ONLY to the strings container, NOT the header
-                        addStrumming(stringsContainer);
+                        // Apply strumming to the ENTIRE palette column for smooth top-to-bottom strums
+                        addStrumming(paletteColumn);
                         
                         chordPalette.appendChild(paletteColumn);
                     });
@@ -3552,11 +3688,10 @@
                 // Generate intervals for this chord using locked settings
                 let intervals;
                 if (chord.intervals) {
-                    // Custom chord with specific intervals
-                    intervals = chord.intervals.map(interval => {
-                        const translatedStep = this.translateSemitoneToTuning(interval);
-                        return (this.currentRoot + translatedStep) % this.currentTuning;
-                    });
+                    // Custom chord with specific intervals (already in native tuning)
+                    intervals = chord.intervals.map(interval => 
+                        (this.currentRoot + interval) % this.currentTuning
+                    );
                 } else {
                     // Standard chord with extensions
                     const chordIntervals = this.getChordIntervals(chord.extensions);
@@ -3828,7 +3963,7 @@
 
             previewNote(semitone) {
                 // Calculate frequency for the note (using C4 as base)
-                const baseFreq = 261.63; // C4
+                const baseFreq = 261.626; // C4
                 const frequency = baseFreq * Math.pow(2, semitone / 12);
                 
                 // Play the note briefly
@@ -3850,7 +3985,7 @@
                 }
                 
                 // Play all selected notes as a chord
-                const baseFreq = 261.63; // C4
+                const baseFreq = 261.626; // C4
                 selectedNotes.forEach(semitone => {
                     const frequency = baseFreq * Math.pow(2, semitone / 12);
                     this.playFrequency(frequency, 1.0); // 1 second duration
@@ -4426,7 +4561,7 @@
 
                 const customChord = { 
                     name, 
-                    intervals: selectedNotes,
+                    notes: selectedNotes,  // Store as 'notes' to match how it's accessed later
                     tuning: this.currentTuning,
                     gamelanMode: this.gamelanMode
                 };
@@ -4501,48 +4636,43 @@
                 const names12 = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
                 if (this.currentTuning === 12) return names12;
                 
-                // For small EDO systems, use simple numbering
+                // For small EDO systems, use C-rooted numbering
                 if (this.currentTuning <= 17) {
                     const names = [];
                     for (let i = 0; i < this.currentTuning; i++) {
-                        names.push(i.toString());
+                        names.push(`C+${i}`);
                     }
                     return names;
                 }
                 
-                // For microtonal tunings, create names based on 12-TET with accidentals
-                const baseNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-                const microAccidentals = ['', '¼#', '½#', '¾#', '#', '#¼#', '#½#', '#¾#', '##'];
+                // For microtonal tunings, create C-rooted names with degree notation
                 const names = [];
                 
                 for (let i = 0; i < this.currentTuning; i++) {
-                    // Map each step to nearest 12-TET note with microtonal accidental
+                    // Calculate cents from C (step 0 = C)
                     const centsFromC = (i * 1200) / this.currentTuning;
-                    const semitones = centsFromC / 100;
                     
-                    // Find nearest base note
-                    const baseNoteIndex = Math.floor(semitones / 1.71428571); // 12/7 semitones per base note
-                    const baseName = baseNotes[baseNoteIndex % 7];
+                    // Map to 12-TET equivalent for naming
+                    const semitonesFromC = centsFromC / 100;
+                    const nearestSemitone = Math.round(semitonesFromC) % 12;
                     
-                    // Calculate deviation in quarter-tones
-                    const targetSemitone = semitones;
-                    const baseSemitone = this.getBaseSemitone(baseNoteIndex % 7);
-                    const deviation = targetSemitone - baseSemitone;
+                    // Get base 12-TET name
+                    let baseName = names12[nearestSemitone];
                     
-                    // Convert to quarter-tone accidental
-                    const quarterTones = Math.round(deviation * 4);
-                    const accidentalIndex = Math.max(0, Math.min(8, quarterTones + 4));
+                    // Calculate cent deviation from nearest 12-TET note
+                    const exactSemitone = centsFromC / 100;
+                    const deviation = Math.round((exactSemitone - nearestSemitone) * 100);
                     
-                    names.push(baseName + microAccidentals[accidentalIndex]);
+                    // Add cent deviation if significant (more than 5 cents)
+                    if (Math.abs(deviation) > 5) {
+                        const sign = deviation > 0 ? '+' : '';
+                        baseName += `${sign}${deviation}¢`;
+                    }
+                    
+                    names.push(baseName);
                 }
                 
                 return names;
-            }
-
-            getBaseSemitone(noteIndex) {
-                // C=0, D=2, E=4, F=5, G=7, A=9, B=11
-                const semitones = [0, 2, 4, 5, 7, 9, 11];
-                return semitones[noteIndex];
             }
 
             getCentValue(step) {
@@ -4556,7 +4686,8 @@
 
             getFrequency(step, octave = 4) {
                 const cents = this.getCentValue(step);
-                const baseFreq = 440 * Math.pow(2, (octave - 4)); // A4 = 440Hz
+                // Use C4 as base frequency (261.626 Hz) since step 0 = C
+                const baseFreq = 261.626 * Math.pow(2, (octave - 4)); // C4 = 261.626Hz
                 return baseFreq * Math.pow(2, cents / 1200);
             }
 
@@ -4866,81 +4997,87 @@
                         let lastStrumY = 0;
                         
                         const addStrumming = (element) => {
+                            // Apply strumming to the entire column for smooth top-to-bottom strums
                             element.addEventListener('mousedown', (e) => {
-                                // If clicking on header, show context menu instead of strumming
+                                // Right-click on header = context menu, left-click on header = start strum
                                 if (e.target.classList.contains('extension-header') || e.target.closest('.extension-header')) {
-                                    console.log('Header clicked in strumming handler!');
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    
-                                    // Find the header element
-                                    const header = e.target.classList.contains('extension-header') ? 
-                                                 e.target : e.target.closest('.extension-header');
-                                    
-                                    // Find the parent column
-                                    const column = header.closest('.extension-column');
-                                    if (!column) return;
-                                    
-                                    // Get column data
-                                    const chordType = column.dataset.chordType;
-                                    let columnData = null;
-                                    
-                                    // Check if it's a custom chord
-                                    if (chordType && chordType.startsWith('custom_')) {
-                                        const customIndex = parseInt(chordType.replace('custom_', ''));
-                                        const customChord = this.customChords[customIndex];
-                                        if (customChord) {
-                                            columnData = {
-                                                name: customChord.name,
-                                                extensions: [],
-                                                quality: 'custom',
-                                                id: chordType,
-                                                isCustom: true,
-                                                originalName: customChord.name,
-                                                customIndex: customIndex,
-                                                intervals: customChord.notes
-                                            };
-                                        }
-                                    } else {
-                                        // Regular extension chord
-                                        const qualitySection = column.closest('.quality-section');
-                                        const allQualitySections = Array.from(document.querySelectorAll('.quality-section'));
-                                        const qualityIndex = allQualitySections.indexOf(qualitySection);
-                                        const qualities = ['major', 'neutral', 'minor'];
-                                        const quality = qualities[qualityIndex] || 'major';
+                                    if (e.button === 2) { // Right click - show context menu
+                                        console.log('Right-click on header - showing context menu');
+                                        e.preventDefault();
+                                        e.stopPropagation();
                                         
-                                        // Find the extension from the chord type ID
-                                        const chordIndex = parseInt(chordType);
-                                        const chordExt = this.chordExtensions[chordIndex];
+                                        // Find the header element
+                                        const header = e.target.classList.contains('extension-header') ? 
+                                                     e.target : e.target.closest('.extension-header');
                                         
-                                        if (chordExt) {
-                                            columnData = {
-                                                name: header.textContent,
-                                                extensions: chordExt.extensions || [],
-                                                quality: quality,
-                                                id: chordType,
-                                                isCustom: false,
-                                                originalName: chordExt.name,
-                                                extensionIndex: chordIndex
-                                            };
+                                        // Find the parent column
+                                        const column = header.closest('.extension-column');
+                                        if (!column) return;
+                                        
+                                        // Get column data
+                                        const chordType = column.dataset.chordType;
+                                        let columnData = null;
+                                        
+                                        // Check if it's a custom chord
+                                        if (chordType && chordType.startsWith('custom_')) {
+                                            const customIndex = parseInt(chordType.replace('custom_', ''));
+                                            const customChord = this.customChords[customIndex];
+                                            if (customChord) {
+                                                columnData = {
+                                                    name: customChord.name,
+                                                    extensions: [],
+                                                    quality: 'custom',
+                                                    id: chordType,
+                                                    isCustom: true,
+                                                    originalName: customChord.name,
+                                                    customIndex: customIndex,
+                                                    intervals: customChord.notes
+                                                };
+                                            }
+                                        } else {
+                                            // Regular extension chord
+                                            const qualitySection = column.closest('.quality-section');
+                                            const allQualitySections = Array.from(document.querySelectorAll('.quality-section'));
+                                            const qualityIndex = allQualitySections.indexOf(qualitySection);
+                                            const qualities = ['major', 'neutral', 'minor'];
+                                            const quality = qualities[qualityIndex] || 'major';
+                                            
+                                            // Find the extension from the chord type ID
+                                            const chordIndex = parseInt(chordType);
+                                            const chordExt = this.chordExtensions[chordIndex];
+                                            
+                                            if (chordExt) {
+                                                columnData = {
+                                                    name: header.textContent,
+                                                    extensions: chordExt.extensions || [],
+                                                    quality: quality,
+                                                    id: chordType,
+                                                    isCustom: false,
+                                                    originalName: chordExt.name,
+                                                    extensionIndex: chordIndex
+                                                };
+                                            }
                                         }
+                                        
+                                        if (columnData) {
+                                            this.showColumnContextMenu(e.clientX, e.clientY, columnData);
+                                        }
+                                        return;
                                     }
-                                    
-                                    if (columnData) {
-                                        console.log('Showing context menu from strumming handler:', columnData);
-                                        this.showColumnContextMenu(e.clientX, e.clientY, columnData);
-                                    }
-                                    return;
+                                    // Left click on header - continue with strumming (fall through)
                                 }
                                 
-                                e.preventDefault();
-                                isStruming = true;
-                                strumStartY = e.clientY;
-                                strumEndY = e.clientY;
-                                lastStrumY = e.clientY;
-                                lastStrumTime = performance.now();
-                                element.style.transform = 'scale(1.02)';
-                                element.style.borderColor = '#8fb3d3';
+                                // Left click anywhere (including header) - start strumming
+                                if (e.button === 0) { // Left click only
+                                    e.preventDefault();
+                                    isStruming = true;
+                                    strumStartY = e.clientY;
+                                    strumEndY = e.clientY;
+                                    lastStrumY = e.clientY;
+                                    lastStrumTime = performance.now();
+                                    element.style.transform = 'scale(1.02)';
+                                    element.style.borderColor = '#8fb3d3';
+                                }
                             });
                             
                             element.addEventListener('mousemove', (e) => {
@@ -4987,12 +5124,9 @@
                                 element.style.borderColor = qualityColor.border;
                             });
                             
-                            // Touch support for mobile with high-resolution tracking
+                            // Touch support for mobile - allow strumming from anywhere including headers
                             element.addEventListener('touchstart', (e) => {
-                                // Don't interfere with header touching
-                                if (e.target.classList.contains('extension-header') || e.target.closest('.extension-header')) {
-                                    return;
-                                }
+                                // Touch can start strumming from anywhere (including headers)
                                 e.preventDefault();
                                 isStruming = true;
                                 strumStartY = e.touches[0].clientY;
@@ -5004,10 +5138,6 @@
                             });
                             
                             element.addEventListener('touchmove', (e) => {
-                                // Don't interfere with header touching
-                                if (e.target.classList.contains('extension-header') || e.target.closest('.extension-header')) {
-                                    return;
-                                }
                                 if (isStruming) {
                                     const currentTime = performance.now();
                                     const currentY = e.touches[0].clientY;
@@ -5026,10 +5156,6 @@
                             });
                             
                             element.addEventListener('touchend', (e) => {
-                                // Don't interfere with header touching
-                                if (e.target.classList.contains('extension-header') || e.target.closest('.extension-header')) {
-                                    return;
-                                }
                                 if (isStruming && e.changedTouches.length > 0) {
                                     const finalY = e.changedTouches[0].clientY;
                                     if (Math.abs(finalY - lastStrumY) >= 2) {
@@ -5043,8 +5169,8 @@
                             });
                         };
                         
-                        // Apply strumming ONLY to the strings container, NOT the header
-                        addStrumming(stringsContainer);
+                        // Apply strumming to the ENTIRE column for smooth top-to-bottom strums
+                        addStrumming(column);
                         
                         qualitySection.appendChild(column);
                     });
@@ -5135,11 +5261,11 @@
                         const stringFreqs = [];
                         for (let octave = 2; octave <= 8; octave++) {
                             customChord.notes.forEach(note => {
-                                // Translate 12-TET semitone to current tuning's nearest neighbor
-                                const translatedStep = this.translateSemitoneToTuning(note);
-                                const step = (this.currentRoot + translatedStep) % this.currentTuning;
+                                // Use native tuning intervals directly (no translation needed)
+                                // Custom chords are now stored in native tuning format
+                                const step = (this.currentRoot + note) % this.currentTuning;
                                 const freq = this.getFrequency(step, octave);
-                                stringFreqs.push({ freq, step, octave, note: translatedStep });
+                                stringFreqs.push({ freq, step, octave, interval: note });
                             });
                         }
                         
@@ -5161,7 +5287,147 @@
                             stringsContainer.appendChild(string);
                         });
                         
+                        column.appendChild(header);
                         column.appendChild(stringsContainer);
+                        
+                        // Add the same high-resolution strumming as regular chords
+                        let isStruming = false;
+                        let strumStartY = 0;
+                        let strumEndY = 0;
+                        let lastStrumTime = 0;
+                        let lastStrumY = 0;
+                        
+                        const addStrumming = (element) => {
+                            // Apply strumming to the entire column for smooth top-to-bottom strums
+                            element.addEventListener('mousedown', (e) => {
+                                // Right-click on header = context menu, left-click on header = start strum
+                                if (e.target.classList.contains('extension-header') || e.target.closest('.extension-header')) {
+                                    if (e.button === 2) { // Right click - show context menu
+                                        console.log('Right-click on custom header - showing context menu');
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        
+                                        const columnData = {
+                                            name: customChord.name,
+                                            extensions: [],
+                                            quality: 'custom',
+                                            id: `custom_${customIndex}`,
+                                            isCustom: true,
+                                            originalName: customChord.name,
+                                            customIndex: customIndex,
+                                            intervals: customChord.notes
+                                        };
+                                        
+                                        this.showColumnContextMenu(e.clientX, e.clientY, columnData);
+                                        return;
+                                    }
+                                    // Left click on header - continue with strumming (fall through)
+                                }
+                                
+                                // Left click anywhere (including header) - start strumming
+                                if (e.button === 0) { // Left click only
+                                    e.preventDefault();
+                                    isStruming = true;
+                                    strumStartY = e.clientY;
+                                    strumEndY = e.clientY;
+                                    lastStrumY = e.clientY;
+                                    lastStrumTime = performance.now();
+                                    element.style.transform = 'scale(1.02)';
+                                    element.style.borderColor = '#a855f7';
+                                }
+                            });
+                            
+                            element.addEventListener('mousemove', (e) => {
+                                if (isStruming) {
+                                    const currentTime = performance.now();
+                                    const currentY = e.clientY;
+                                    const deltaY = Math.abs(currentY - lastStrumY);
+                                    const timeDelta = currentTime - lastStrumTime;
+                                    
+                                    // High-resolution tracking: trigger on 3px movement OR 16ms time (60fps)
+                                    if (deltaY >= 3 || timeDelta >= 16) {
+                                        strumEndY = currentY;
+                                        const chordData = { name: customChord.name, quality: 'custom' };
+                                        this.playChordStrum(column, chordData, lastStrumY, strumEndY);
+                                        lastStrumY = currentY;
+                                        lastStrumTime = currentTime;
+                                    }
+                                }
+                            });
+                            
+                            element.addEventListener('mouseup', (e) => {
+                                if (isStruming) {
+                                    strumEndY = e.clientY;
+                                    if (Math.abs(strumEndY - lastStrumY) >= 2) {
+                                        const chordData = { name: customChord.name, quality: 'custom' };
+                                        this.playChordStrum(column, chordData, lastStrumY, strumEndY);
+                                    }
+                                }
+                                isStruming = false;
+                                element.style.transform = 'scale(1)';
+                                element.style.borderColor = '#8b5cf6';
+                            });
+                            
+                            element.addEventListener('mouseleave', (e) => {
+                                if (isStruming) {
+                                    strumEndY = e.clientY;
+                                    if (Math.abs(strumEndY - lastStrumY) >= 2) {
+                                        const chordData = { name: customChord.name, quality: 'custom' };
+                                        this.playChordStrum(column, chordData, lastStrumY, strumEndY);
+                                    }
+                                }
+                                isStruming = false;
+                                element.style.transform = 'scale(1)';
+                                element.style.borderColor = '#8b5cf6';
+                            });
+                            
+                            // Touch support for mobile - allow strumming from anywhere including headers
+                            element.addEventListener('touchstart', (e) => {
+                                e.preventDefault();
+                                isStruming = true;
+                                strumStartY = e.touches[0].clientY;
+                                strumEndY = e.touches[0].clientY;
+                                lastStrumY = e.touches[0].clientY;
+                                lastStrumTime = performance.now();
+                                element.style.transform = 'scale(1.02)';
+                                element.style.borderColor = '#a855f7';
+                            });
+                            
+                            element.addEventListener('touchmove', (e) => {
+                                if (isStruming) {
+                                    const currentTime = performance.now();
+                                    const currentY = e.touches[0].clientY;
+                                    const deltaY = Math.abs(currentY - lastStrumY);
+                                    const timeDelta = currentTime - lastStrumTime;
+                                    
+                                    // High-resolution tracking for touch
+                                    if (deltaY >= 2 || timeDelta >= 16) {
+                                        strumEndY = currentY;
+                                        const chordData = { name: customChord.name, quality: 'custom' };
+                                        this.playChordStrum(column, chordData, lastStrumY, strumEndY);
+                                        lastStrumY = currentY;
+                                        lastStrumTime = currentTime;
+                                    }
+                                }
+                            });
+                            
+                            element.addEventListener('touchend', (e) => {
+                                if (isStruming && e.changedTouches.length > 0) {
+                                    const finalY = e.changedTouches[0].clientY;
+                                    if (Math.abs(finalY - lastStrumY) >= 2) {
+                                        const chordData = { name: customChord.name, quality: 'custom' };
+                                        this.playChordStrum(column, chordData, lastStrumY, finalY);
+                                    }
+                                }
+                                isStruming = false;
+                                element.style.transform = 'scale(1)';
+                                element.style.borderColor = '#8b5cf6';
+                            });
+                        };
+                        
+                        // Apply strumming to the ENTIRE column for smooth top-to-bottom strums
+                        addStrumming(column);
+                        
                         container.appendChild(column);
                     });
                 }
@@ -5501,7 +5767,7 @@
                 } else {
                     osc1 = this.audioContext.createOscillator();
                     osc1.type = this.oscillators.osc1.type;
-                    const totalDetune1 = this.oscillators.osc1.detune + this.oscillators.osc1.coarse;
+                    const totalDetune1 = this.oscillators.osc1.detune + (this.oscillators.osc1.coarse * (1200 / this.currentTuning));
                     const freq1 = frequency * Math.pow(2, this.oscillators.osc1.octave + (totalDetune1 / 1200));
                     osc1.frequency.setValueAtTime(freq1, this.audioContext.currentTime);
                 }
@@ -5512,7 +5778,7 @@
                 } else {
                     osc2 = this.audioContext.createOscillator();
                     osc2.type = this.oscillators.osc2.type;
-                    const totalDetune2 = this.oscillators.osc2.detune + this.oscillators.osc2.coarse;
+                    const totalDetune2 = this.oscillators.osc2.detune + (this.oscillators.osc2.coarse * (1200 / this.currentTuning));
                     const freq2 = frequency * Math.pow(2, this.oscillators.osc2.octave + (totalDetune2 / 1200));
                     osc2.frequency.setValueAtTime(freq2, this.audioContext.currentTime);
                 }
@@ -5529,29 +5795,10 @@
                 osc2.connect(osc2Gain);
                 osc2Gain.connect(osc2Envelope);
                 
-                // Connect based on mix mode
-                if (this.mixMode === 'add') {
-                    // Simple addition
-                    osc1Envelope.connect(finalMixer);
-                    osc2Envelope.connect(finalMixer);
-                } else if (this.mixMode === 'ring') {
-                    // Ring modulation - osc2 modulates osc1's amplitude
-                    const ringMod = this.audioContext.createGain();
-                    osc2Envelope.connect(ringMod.gain);
-                    osc1Envelope.connect(ringMod);
-                    ringMod.connect(finalMixer);
-                } else if (this.mixMode === 'fm') {
-                    // Frequency modulation - osc2 modulates osc1's frequency
-                    if (osc1.frequency) { // Only if osc1 is not noise
-                        osc2Gain.gain.value = 100; // FM amount
-                        osc2Envelope.connect(osc1.frequency);
-                    }
-                    osc1Envelope.connect(finalMixer);
-                } else {
-                    // Default to add
-                    osc1Envelope.connect(finalMixer);
-                    osc2Envelope.connect(finalMixer);
-                }
+                // Simple addition - both oscillators mixed
+                osc1Envelope.connect(finalMixer);
+                osc2Envelope.connect(finalMixer);
+                console.log('Both oscillators mixed');
                 
                 const currentTime = this.audioContext.currentTime;
                 
@@ -5667,6 +5914,8 @@
                     osc1.stop(currentTime + maxReleaseTime);
                     osc2.stop(currentTime + maxReleaseTime);
                     
+                    console.log('Note stopped with', maxReleaseTime, 'second release time');
+                    
                     // Clean up visual indicator
                     setTimeout(() => {
                         element.classList.remove('active');
@@ -5717,13 +5966,442 @@
                     el.classList.remove('active');
                 });
             }
+
+            // Tutorial System
+            initTutorial() {
+                this.tutorialStep = 0;
+                this.tutorialSteps = [
+                    {
+                        title: "Welcome to Xenmicord!",
+                        text: "This is a microtonal omnichord that lets you explore different tuning systems and create beautiful harmonic textures. Let's take a quick tour!",
+                        highlight: null
+                    },
+                    {
+                        title: "Tuning Systems",
+                        text: "These buttons let you switch between different tuning systems - from 5-tone scales to 53-tone equal temperament. Try the 'Gam' button for Gamelan sounds!",
+                        highlight: "#tuningSelector"
+                    },
+                    {
+                        title: "Master Controls",
+                        text: "Control the overall volume and mix of your sound here. The Master Volume affects everything.",
+                        highlight: "#masterSection"
+                    },
+                    {
+                        title: "Effects Section",
+                        text: "Add beautiful reverb and control stereo panning. The reverb creates spacious, atmospheric sounds.",
+                        highlight: "#effectsSection"
+                    },
+                    {
+                        title: "Oscillators",
+                        text: "These are your sound generators! Each oscillator has its own waveform (sine, saw, square, triangle), volume, coarse tuning, and ADSR envelope. Mix them for rich textures. Click the random dice to explore new sounds!",
+                        highlight: "#oscillatorsSection"
+                    },
+                    {
+                        title: "Main Fretboard",
+                        text: "This is where the magic happens! Each column represents a chord. Click and drag vertically to strum the strings. Try it now!",
+                        highlight: "#extensionColumns"
+                    },
+                    {
+                        title: "Custom Chords",
+                        text: "Right-click on any chord column header to access options. You can add custom chords, rename columns, hide unwanted chords, and more. Create your own chord structures!",
+                        highlight: "#extensionColumns"
+                    },
+                    {
+                        title: "Chord Palette",
+                        text: "Right-click on any chord column to add it to your palette. Your saved chords appear here for easy access and building progressions.",
+                        highlight: "#chordPalette"
+                    },
+                    {
+                        title: "Creative Tools",
+                        text: "The dice button (🎲) randomizes oscillator settings for creative inspiration. Click the middle area for sound presets. Experiment and have fun!",
+                        highlight: "#randomDiceButton"
+                    }
+                ];
+
+                document.getElementById('tutorialButton').addEventListener('click', () => {
+                    this.startTutorial();
+                });
+
+                document.getElementById('tutorialNext').addEventListener('click', () => {
+                    this.nextTutorialStep();
+                });
+
+                document.getElementById('tutorialPrev').addEventListener('click', () => {
+                    this.prevTutorialStep();
+                });
+
+                document.getElementById('tutorialSkip').addEventListener('click', () => {
+                    this.endTutorial();
+                });
+
+                // Initialize escape mechanisms
+                this.initTutorialEscapes();
+            }
+
+            startTutorial() {
+                this.tutorialStep = 0;
+                document.getElementById('tutorialOverlay').style.display = 'block';
+                this.showTutorialStep();
+                this.greyOutAll();
+                
+                // Add escape mechanisms
+                document.addEventListener('keydown', this.tutorialEscapeHandler);
+            }
+
+            showTutorialStep() {
+                const step = this.tutorialSteps[this.tutorialStep];
+                document.getElementById('tutorialTitle').textContent = step.title;
+                document.getElementById('tutorialText').textContent = step.text;
+
+                // Update button states
+                document.getElementById('tutorialPrev').style.display = this.tutorialStep > 0 ? 'inline-block' : 'none';
+                document.getElementById('tutorialNext').textContent = this.tutorialStep < this.tutorialSteps.length - 1 ? 'Next' : 'Finish';
+
+                // Position tutorial box
+                this.positionTutorialBox(step.highlight);
+
+                // Highlight current element
+                this.highlightElement(step.highlight);
+            }
+
+            positionTutorialBox(selector) {
+                const tutorialBox = document.getElementById('tutorialBox');
+                
+                if (selector) {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        const rect = element.getBoundingClientRect();
+                        const boxWidth = 400;
+                        const boxHeight = 250;
+                        
+                        // Try to position next to the element
+                        let left = rect.right + 20;
+                        let top = rect.top;
+                        
+                        // Keep box on screen
+                        if (left + boxWidth > window.innerWidth) {
+                            left = rect.left - boxWidth - 20;
+                        }
+                        if (left < 20) {
+                            left = 20;
+                        }
+                        
+                        if (top + boxHeight > window.innerHeight) {
+                            top = window.innerHeight - boxHeight - 20;
+                        }
+                        if (top < 20) {
+                            top = 20;
+                        }
+                        
+                        tutorialBox.style.left = `${left}px`;
+                        tutorialBox.style.top = `${top}px`;
+                        tutorialBox.style.transform = 'none';
+                    } else {
+                        // Center if element not found
+                        tutorialBox.style.left = '50%';
+                        tutorialBox.style.top = '50%';
+                        tutorialBox.style.transform = 'translate(-50%, -50%)';
+                    }
+                } else {
+                    // Center the box
+                    tutorialBox.style.left = '50%';
+                    tutorialBox.style.top = '50%';
+                    tutorialBox.style.transform = 'translate(-50%, -50%)';
+                }
+            }
+
+            highlightElement(selector) {
+                // Remove previous highlights
+                document.querySelectorAll('.tutorial-highlight').forEach(el => {
+                    el.classList.remove('tutorial-highlight');
+                    el.style.position = '';
+                    el.style.zIndex = '';
+                    el.style.filter = '';
+                });
+
+                if (selector) {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        element.classList.add('tutorial-highlight');
+                        element.style.position = 'relative';
+                        element.style.zIndex = '2100';
+                        element.style.filter = 'brightness(1.5) contrast(1.2)';
+                    }
+                }
+            }
+
+            greyOutAll() {
+                // Create overlay instead of using filter to avoid breaking highlighting
+                const overlay = document.createElement('div');
+                overlay.id = 'tutorialGreyOverlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    z-index: 1900;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(overlay);
+            }
+
+            ungreyAll() {
+                const overlay = document.getElementById('tutorialGreyOverlay');
+                if (overlay) {
+                    overlay.remove();
+                }
+                // Also remove any filters that might have been applied
+                document.body.style.filter = '';
+            }
+
+            nextTutorialStep() {
+                if (this.tutorialStep < this.tutorialSteps.length - 1) {
+                    this.tutorialStep++;
+                    this.showTutorialStep();
+                } else {
+                    this.endTutorial();
+                }
+            }
+
+            prevTutorialStep() {
+                if (this.tutorialStep > 0) {
+                    this.tutorialStep--;
+                    this.showTutorialStep();
+                }
+            }
+
+            endTutorial() {
+                document.getElementById('tutorialOverlay').style.display = 'none';
+                this.ungreyAll();
+                this.highlightElement(null);
+                
+                // Remove any event listeners that might interfere
+                document.removeEventListener('keydown', this.tutorialEscapeHandler);
+            }
+
+            // Add escape key handler and click-to-close functionality
+            initTutorialEscapes() {
+                // ESC key to close tutorial
+                this.tutorialEscapeHandler = (e) => {
+                    if (e.key === 'Escape') {
+                        this.endTutorial();
+                    }
+                };
+
+                // Click outside tutorial box to close
+                document.getElementById('tutorialOverlay').addEventListener('click', (e) => {
+                    if (e.target.id === 'tutorialOverlay') {
+                        this.endTutorial();
+                    }
+                });
+            }
+
+            // Random Dice System
+            initRandomDice() {
+                document.getElementById('randomDiceButton').addEventListener('click', () => {
+                    this.randomizeEverything();
+                });
+            }
+
+            randomizeEverything() {
+                // Animate the dice button
+                const diceBtn = document.getElementById('randomDiceButton');
+                diceBtn.style.transform = 'rotate(720deg)';
+                setTimeout(() => {
+                    diceBtn.style.transform = '';
+                }, 600);
+
+                // Focus purely on oscillator sound design - no tuning/chord changes
+                this.randomizeOscillator(1);
+                this.randomizeOscillator(2);
+
+                // Randomize effects for sonic variety
+                this.randomizeEffects();
+
+                console.log('🎲 Randomized oscillator sounds!');
+            }
+
+            randomizeOscillator(oscNum) {
+                const waveforms = ['sine', 'sawtooth', 'square', 'triangle'];
+                const randomWave = waveforms[Math.floor(Math.random() * waveforms.length)];
+                
+                // Set waveform by updating the buttons
+                const waveButtons = document.querySelectorAll(`[data-wave][data-osc="${oscNum}"]`);
+                waveButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.wave === randomWave) {
+                        btn.classList.add('active');
+                    }
+                });
+                this.oscillators[`osc${oscNum}`].type = randomWave;
+
+                // Skip volume, coarse, fine, octave randomization to maintain tuning
+                // Only randomize ADSR controls within their actual slider ranges
+                
+                // Use correct slider IDs - OSC1 has no prefix, OSC2 has "osc2" prefix
+                const attackSliderID = oscNum === 1 ? 'attackSlider' : 'osc2AttackSlider';
+                const decaySliderID = oscNum === 1 ? 'decaySlider' : 'osc2DecaySlider';
+                const sustainSliderID = oscNum === 1 ? 'sustainSlider' : 'osc2SustainSlider';
+                const releaseSliderID = oscNum === 1 ? 'releaseSlider' : 'osc2ReleaseSlider';
+                
+                const attackValueID = oscNum === 1 ? 'attackValue' : 'osc2AttackValue';
+                const decayValueID = oscNum === 1 ? 'decayValue' : 'osc2DecayValue';
+                const sustainValueID = oscNum === 1 ? 'sustainValue' : 'osc2SustainValue';
+                const releaseValueID = oscNum === 1 ? 'releaseValue' : 'osc2ReleaseValue';
+
+                const attackSlider = document.getElementById(attackSliderID);
+                const decaySlider = document.getElementById(decaySliderID);
+                const sustainSlider = document.getElementById(sustainSliderID);
+                const releaseSlider = document.getElementById(releaseSliderID);
+                
+                // Get the actual slider min/max values for proper randomization
+                let attackMin = 5; // default minimum
+                let attackMax = 1000; // default for OSC1
+                if (attackSlider) {
+                    attackMin = Math.max(5, parseInt(attackSlider.min)); // Ensure minimum 5ms
+                    attackMax = parseInt(attackSlider.max);
+                }
+                
+                // Randomize ADSR parameters within proper ranges
+                const attack = attackMin + Math.random() * (attackMax - attackMin); // Within slider range
+                const decay = Math.random() * 2500; // 0-2500ms  
+                const sustain = Math.random(); // 0-100%
+                const release = Math.random() * 4000; // 0-4000ms
+
+                if (attackSlider) {
+                    attackSlider.value = attack;
+                    const attackValue = document.getElementById(attackValueID);
+                    if (attackValue) attackValue.textContent = `${Math.round(attack)}ms`;
+                    // Update internal ADSR
+                    if (oscNum === 1 && this.envelope) {
+                        this.envelope.attack = attack / 1000;
+                    } else if (oscNum === 2 && this.osc2Envelope) {
+                        this.osc2Envelope.attack = attack / 1000;
+                    }
+                    console.log(`🎲 OSC${oscNum} Attack set to ${Math.round(attack)}ms`);
+                }
+                if (decaySlider) {
+                    decaySlider.value = decay;
+                    const decayValue = document.getElementById(decayValueID);
+                    if (decayValue) decayValue.textContent = `${Math.round(decay)}ms`;
+                    // Update internal ADSR
+                    if (oscNum === 1 && this.envelope) {
+                        this.envelope.decay = decay / 1000;
+                    } else if (oscNum === 2 && this.osc2Envelope) {
+                        this.osc2Envelope.decay = decay / 1000;
+                    }
+                    console.log(`🎲 OSC${oscNum} Decay set to ${Math.round(decay)}ms`);
+                }
+                if (sustainSlider) {
+                    sustainSlider.value = sustain * 100;
+                    const sustainValue = document.getElementById(sustainValueID);
+                    if (sustainValue) sustainValue.textContent = `${Math.round(sustain * 100)}%`;
+                    // Update internal ADSR
+                    if (oscNum === 1 && this.envelope) {
+                        this.envelope.sustain = sustain;
+                    } else if (oscNum === 2 && this.osc2Envelope) {
+                        this.osc2Envelope.sustain = sustain;
+                    }
+                    console.log(`🎲 OSC${oscNum} Sustain set to ${Math.round(sustain * 100)}%`);
+                }
+                if (releaseSlider) {
+                    releaseSlider.value = release;
+                    const releaseValue = document.getElementById(releaseValueID);
+                    if (releaseValue) releaseValue.textContent = `${Math.round(release)}ms`;
+                    // Update internal ADSR
+                    if (oscNum === 1 && this.envelope) {
+                        this.envelope.release = release / 1000;
+                    } else if (oscNum === 2 && this.osc2Envelope) {
+                        this.osc2Envelope.release = release / 1000;
+                    }
+                    console.log(`🎲 OSC${oscNum} Release set to ${Math.round(release)}ms`);
+                }
+
+                // Update ADSR values in the internal structure (backup)
+                if (this.adsrSettings && this.adsrSettings[`osc${oscNum}`]) {
+                    this.adsrSettings[`osc${oscNum}`].attack = attack / 1000;
+                    this.adsrSettings[`osc${oscNum}`].decay = decay / 1000;
+                    this.adsrSettings[`osc${oscNum}`].sustain = sustain;
+                    this.adsrSettings[`osc${oscNum}`].release = release / 1000;
+                }
+                
+                console.log(`🎲 Randomized OSC${oscNum}: ${randomWave} wave, A:${Math.round(attack)} D:${Math.round(decay)} S:${Math.round(sustain*100)}% R:${Math.round(release)}`);
+            }
+
+            randomizeEffects() {
+                // Random reverb settings with wider ranges
+                const reverbWet = Math.random() * 0.9; // 0-90% wet
+                const reverbDecay = 0.3 + Math.random() * 5.7; // 0.3-6 seconds
+                const reverbCut = 800 + Math.random() * 19200; // 800Hz-20kHz
+
+                const reverbWetSlider = document.getElementById('reverbWet');
+                const reverbDecaySlider = document.getElementById('reverbDecay');
+                const reverbCutSlider = document.getElementById('reverbFilterCutoff');
+
+                if (reverbWetSlider) {
+                    reverbWetSlider.value = reverbWet * 100;
+                    this.reverbWet = reverbWet;
+                    const reverbWetValue = document.getElementById('reverbWetValue');
+                    if (reverbWetValue) reverbWetValue.textContent = `${Math.round(reverbWet * 100)}%`;
+                }
+                if (reverbDecaySlider) {
+                    reverbDecaySlider.value = reverbDecay;
+                    if (this.reverb) this.reverb.decay = reverbDecay;
+                    const reverbDecayValue = document.getElementById('reverbDecayValue');
+                    if (reverbDecayValue) reverbDecayValue.textContent = `${reverbDecay.toFixed(1)}s`;
+                }
+                if (reverbCutSlider) {
+                    reverbCutSlider.value = reverbCut;
+                    if (this.reverbFilterNode) this.reverbFilterNode.frequency.value = reverbCut;
+                    const reverbCutValue = document.getElementById('reverbFilterCutoffValue');
+                    if (reverbCutValue) reverbCutValue.textContent = `${Math.round(reverbCut)}Hz`;
+                }
+
+                // Random panning mode and width
+                const panModes = ['center', 'random', 'frequency', 'rotating', 'alternating', 'wide'];
+                const panMode = panModes[Math.floor(Math.random() * panModes.length)];
+                const panWidth = 0.2 + Math.random() * 0.8; // 20-100% width
+                
+                const panSelector = document.getElementById('panningMode');
+                const panWidthSlider = document.getElementById('panningWidth');
+                
+                if (panSelector) {
+                    panSelector.value = panMode;
+                    this.panning.mode = panMode;
+                }
+                if (panWidthSlider) {
+                    panWidthSlider.value = panWidth * 100;
+                    this.panning.width = panWidth;
+                    const panWidthValue = document.getElementById('panningWidthValue');
+                    if (panWidthValue) panWidthValue.textContent = `${Math.round(panWidth * 100)}%`;
+                }
+                
+                console.log(`🎛️ Randomized effects: ${panMode} panning (${Math.round(panWidth * 100)}%), ${reverbDecay.toFixed(1)}s reverb`);
+            }
         }
+
+
+
+
+
+
+
+
+
+
+
 
         // Initialize the instrument when the page loads
         let omnichord;
         window.addEventListener('load', () => {
             omnichord = new MicrotonalOmnichord();
             window.omnichord = omnichord; // Make it globally accessible
+            
+            // Initialize new features
+            omnichord.initTutorial();
+            omnichord.initRandomDice();
         });
     </script>
 </body>
