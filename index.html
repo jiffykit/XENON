@@ -446,6 +446,7 @@
             flex: 1;
             display: flex;
             height: 100%;
+            min-height: 0; /* allow children to shrink vertically */
             gap: 0;
             padding: 0;
             justify-content: stretch;
@@ -468,6 +469,7 @@
             display: flex;
             flex-direction: column;
             flex: 1;
+            min-height: 0; /* allow strings to shrink when header grows */
             min-width: 0;
             width: 100%;
             cursor: grab;
@@ -491,17 +493,17 @@
         }
 
         .extension-header {
-            height: 40px;
-            min-height: 40px;
-            max-height: 40px;
+            height: auto; /* allow header to grow when buttons wrap */
+            min-height: 56px;
+            max-height: none;
             background: rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: bold;
             text-align: center;
-            padding: 8px 4px;
+            padding: 10px 6px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             cursor: pointer;
             position: relative;
@@ -511,6 +513,8 @@
             border-radius: 4px 4px 0 0;
             margin: 2px 2px 0 2px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            flex-wrap: wrap;
+            align-content: flex-start; /* stack rows from the top when wrapping */
         }
 
         .chord-name {
@@ -519,8 +523,8 @@
         }
 
         .lock-button {
-            width: 24px;
-            height: 24px;
+            width: 36px;
+            height: 36px;
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 4px;
@@ -529,9 +533,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 18px;
             transition: all 0.2s;
-            margin-left: 4px;
+            margin-left: 6px;
             flex-shrink: 0;
             z-index: 100;
             position: relative;
@@ -553,8 +557,8 @@
         }
 
         .piano-lock-button {
-            width: 28px;
-            height: 28px;
+            width: 40px;
+            height: 40px;
             background: #1a1a1a;
             border: 2px solid #333;
             border-radius: 6px;
@@ -563,9 +567,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 20px;
             transition: all 0.2s;
-            margin-left: 4px;
+            margin-left: 6px;
             flex-shrink: 0;
             z-index: 100;
             position: relative;
@@ -596,19 +600,19 @@
         }
 
         .chord-action-button {
-            width: 20px;
-            height: 20px;
+            width: 34px;
+            height: 34px;
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 3px;
+            border-radius: 6px;
             color: #fff;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            font-size: 16px;
             transition: all 0.2s;
-            margin-left: 2px;
+            margin-left: 6px;
             flex-shrink: 0;
         }
 
@@ -623,10 +627,7 @@
             border-color: rgba(33, 150, 243, 0.5);
         }
 
-        .chord-action-button.delete {
-            background: rgba(255, 82, 82, 0.2);
-            border-color: rgba(255, 82, 82, 0.5);
-        }
+    /* delete button styling removed; delete is via upward drag */
 
         .chord-action-button.duplicate {
             background: rgba(156, 39, 176, 0.2);
@@ -636,11 +637,13 @@
         .header-buttons {
             display: flex;
             align-items: center;
-            gap: 2px;
+            gap: 6px;
             margin-left: auto;
             pointer-events: auto;
             z-index: 99;
             position: relative;
+            flex-wrap: wrap;
+            row-gap: 6px;
         }
 
         .extension-header:hover {
@@ -669,12 +672,12 @@
         }
 
         .strings-column {
-            flex: 1;
+            flex: 1 1 auto;
             display: flex;
             flex-direction: column;
             padding: 1px;
             overflow: hidden; /* Prevent scrollbars */
-            height: 100%;
+            min-height: 0; /* allow shrinking when header grows */
             box-sizing: border-box;
         }
 
@@ -1264,6 +1267,19 @@
         @keyframes diceRoll {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(720deg); }
+        }
+
+        /* Drag & drop chord boxes */
+        .extension-column.dragging {
+            opacity: 0.98;
+            cursor: grabbing;
+        }
+        .extension-column.placeholder {
+            background: rgba(255,255,255,0.06);
+        }
+        .extension-column.delete-intent .extension-header {
+            background: #8b1e1e !important;
+            border-color: #ef4444 !important;
         }
     </style>
 </head>
@@ -2805,12 +2821,7 @@
                     editButton.title = 'Edit chord intervals';
                     editButton.style.display = 'flex';
                     
-                    const hideButton = document.createElement('button');
-                    hideButton.className = 'chord-action-button delete';
-                    hideButton.id = `delete-btn-${chordExt.id || chordExt.name.replace(/\s+/g, '_')}-${extensionIndex}`;
-                    hideButton.innerHTML = '🗑️';
-                    hideButton.title = 'Delete this chord';
-                    hideButton.style.display = 'flex';
+                    // Delete button removed — delete via upward drag
                     
                     const duplicateButton = document.createElement('button');
                     duplicateButton.className = 'chord-action-button duplicate';
@@ -2856,35 +2867,6 @@
                         this.editChordFromButton(chordDataForEdit, column);
                     });
                     
-                    hideButton.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        const chordDataForHide = {
-                            name: chordExt.name,
-                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
-                            isCustom: chordExt.isCustom || false,
-                            id: chordExt.id || `${chordExt.name}_${extensionIndex}`,
-                            originalChord: chordExt
-                        };
-                        
-                        this.hideChordFromButton(chordDataForHide, column);
-                    });
-                    
-                    hideButton.addEventListener('touchstart', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        const chordDataForHide = {
-                            name: chordExt.name,
-                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
-                            isCustom: chordExt.isCustom || false,
-                            id: chordExt.id || `${chordExt.name}_${extensionIndex}`,
-                            originalChord: chordExt
-                        };
-                        
-                        this.hideChordFromButton(chordDataForHide, column);
-                    });
                     
                     duplicateButton.addEventListener('click', (e) => {
                         e.preventDefault();
@@ -2918,7 +2900,6 @@
                     
                     // Add buttons to container
                     buttonsContainer.appendChild(editButton);
-                    buttonsContainer.appendChild(hideButton);
                     buttonsContainer.appendChild(duplicateButton);
                     buttonsContainer.appendChild(lockButton);
                     buttonsContainer.appendChild(pianoLockButton);
@@ -2975,6 +2956,10 @@
                         this.generateStringsForColumn(column, intervals, chordExt.isCustom);
                     }
                     
+                    // Ensure columns generated via the exact path are draggable
+                    if (this.attachColumnDragHandlers) {
+                        this.attachColumnDragHandlers(column);
+                    }
                     container.appendChild(column);
                 });
                 
@@ -5737,8 +5722,9 @@
                     
                     this.lockedChords.delete(columnElement);
                     
-                    // Update session data instead of localStorage
+                    // Update session data and saved locks
                     this.sessionData.lockedChords = Array.from(this.lockedChords.values());
+                    this.savedLockedChords = Array.from(this.lockedChords.values());
                     
                     // Update UI - change lock button to unlocked state (buttons remain visible)
                     const lockButton = columnElement.querySelector('.lock-button');
@@ -5803,7 +5789,7 @@
                 }
                 
                 // LOCK the chord
-                console.log('?? Locking chord directly in main grid with current root and settings:', chordData);
+                    console.log('?? Locking chord directly in main grid with current root and settings:', chordData);
                 
                 // Create a unique identifier for this specific chord + root combination
                 const currentRoot = this.currentRoot || 0;
@@ -5887,8 +5873,15 @@
                 if (!this.lockedChords) this.lockedChords = new Map();
                 this.lockedChords.set(columnElement, lockedChordData);
                 
-                // Store in session data instead of localStorage
+                // Store in session data and keep saved locks in sync
                 this.sessionData.lockedChords = Array.from(this.lockedChords.values());
+                this.savedLockedChords = Array.from(this.lockedChords.values());
+
+                // Mark chord model as locked so regeneration uses snapshot
+                if (chordData) {
+                    chordData.isLocked = true;
+                    chordData.lockedData = lockedChordData;
+                }
                 
                 // Update UI - change lock button to locked state and show locked root
                 const lockButton = columnElement.querySelector('.lock-button');
@@ -8623,6 +8616,16 @@
                 
                 const column = document.createElement('div');
                 column.className = 'extension-column';
+                // Provide stable identifiers so delete/reorder logic can map back to data
+                try {
+                    const absoluteIndex = (typeof chordExt.position === 'number')
+                        ? chordExt.position
+                        : (this.findChordIndex ? this.findChordIndex(chordExt) : (this.chordExtensions ? this.chordExtensions.indexOf(chordExt) : -1));
+                    if (absoluteIndex !== -1) column.dataset.originalPosition = String(absoluteIndex);
+                    const slug = (chordExt.id || (chordExt.name || '').toLowerCase().replace(/\s+/g, '_'));
+                    column.dataset.chordId = slug;
+                    column.dataset.chordType = slug;
+                } catch (_) { /* non-fatal */ }
                 column.style.flex = '1';
                 column.style.height = '100%';
                 column.style.border = 'none';
@@ -8651,12 +8654,7 @@
                 editButton.title = 'Edit chord intervals';
                 editButton.style.display = 'flex';
                 
-                const hideButton = document.createElement('button');
-                hideButton.className = 'chord-action-button delete';
-                hideButton.id = `hide-single-${chordExt.id || chordExt.name.replace(/\s+/g, '_')}-${Date.now()}`;
-                hideButton.innerHTML = '🗑️';
-                hideButton.title = 'Delete this chord';
-                hideButton.style.display = 'flex';
+                // Delete button removed — delete via upward drag
                 
                 const duplicateButton = document.createElement('button');
                 duplicateButton.className = 'chord-action-button duplicate';
@@ -8707,35 +8705,6 @@
                     this.editChordFromButton(chordDataForEdit, column);
                 });
                 
-                hideButton.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const chordDataForHide = {
-                        name: chordExt.name,
-                        intervals: chordExt.intervals || this.getBaseTriadForQuality(chordExt.name.toLowerCase()),
-                        isCustom: chordExt.isCustom || false,
-                        id: chordExt.id || `${chordExt.name}_single_${Date.now()}`,
-                        originalChord: chordExt
-                    };
-                    
-                    this.hideChordFromButton(chordDataForHide, column);
-                });
-                
-                hideButton.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const chordDataForHide = {
-                        name: chordExt.name,
-                        intervals: chordExt.intervals || this.getBaseTriadForQuality(chordExt.name.toLowerCase()),
-                        isCustom: chordExt.isCustom || false,
-                        id: chordExt.id || `${chordExt.name}_single_${Date.now()}`,
-                        originalChord: chordExt
-                    };
-                    
-                    this.hideChordFromButton(chordDataForHide, column);
-                });
                 
                 duplicateButton.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -8807,7 +8776,6 @@
                 
                 // Add buttons to container
                 buttonsContainer.appendChild(editButton);
-                buttonsContainer.appendChild(hideButton);
                 buttonsContainer.appendChild(duplicateButton);
                 buttonsContainer.appendChild(lockButton);
                 buttonsContainer.appendChild(pianoLockButton);
@@ -8876,6 +8844,11 @@
                 
                 // Add to container
                 container.appendChild(column);
+                
+                // Ensure new single-generated columns are draggable like others
+                if (this.attachColumnDragHandlers) {
+                    this.attachColumnDragHandlers(column);
+                }
                 
                 return column;
             }
@@ -9013,6 +8986,12 @@
                     const column = document.createElement('div');
                     column.className = 'extension-column';
                     column.dataset.chordType = chordIds[this.chordExtensions.indexOf(chordExt)];
+                    // Persist absolute index to support precise mapping for delete/reorder without DOM recreation
+                    try {
+                        const absoluteIndex = (typeof chordExt.position === 'number') ? chordExt.position : (this.findChordIndex ? this.findChordIndex(chordExt) : this.chordExtensions.indexOf(chordExt));
+                        column.dataset.originalPosition = String(absoluteIndex);
+                        column.dataset.chordId = chordExt.id || column.dataset.chordType;
+                    } catch (_) { /* non-fatal */ }
                     column.style.flex = '1'; // Each column takes equal width
                     column.style.height = '100%';
                     column.style.border = 'none';
@@ -9062,11 +9041,7 @@
                     // ALWAYS visible now
                     
                     // Create hide button (ALWAYS VISIBLE)
-                    const hideButton = document.createElement('button');
-                    hideButton.className = 'chord-action-button delete';
-                    hideButton.innerHTML = '🗑️';
-                    hideButton.title = 'Delete this chord';
-                    // ALWAYS visible now
+                    // Delete button removed — delete via upward drag
                     
                     // Create duplicate button (ALWAYS VISIBLE)
                     const duplicateButton = document.createElement('button');
@@ -9078,8 +9053,15 @@
                     // Create lock button
                     const lockButton = document.createElement('button');
                     lockButton.className = 'lock-button';
-                    lockButton.innerHTML = '🔓';
-                    lockButton.title = 'Lock complete sonic snapshot';
+                    if (chordExt.isLocked && chordExt.lockedData) {
+                        const rootName = this.getNoteNames()[chordExt.lockedData.lockedRoot] || chordExt.lockedData.lockedRoot;
+                        lockButton.innerHTML = '🔒';
+                        lockButton.classList.add('locked');
+                        lockButton.title = `LOCKED to ${rootName} root with all settings - click to unlock`;
+                    } else {
+                        lockButton.innerHTML = '🔓';
+                        lockButton.title = 'Lock complete sonic snapshot';
+                    }
                     
                     // Add button event listeners using per-chord handlers (no globals)
                     editButton.addEventListener('click', (e) => {
@@ -9108,31 +9090,6 @@
                         this.editChordFromButton(chordDataForEdit, column);
                     });
                     
-                    hideButton.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const chordDataForHide = {
-                            name: chordExt.name,
-                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
-                            isCustom: chordExt.isCustom || false,
-                            id: chordExt.id || `${chordExt.name}_${Date.now()}`,
-                            originalChord: chordExt
-                        };
-                        this.hideChordFromButton(chordDataForHide, column);
-                    });
-                    
-                    hideButton.addEventListener('touchstart', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const chordDataForHide = {
-                            name: chordExt.name,
-                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
-                            isCustom: chordExt.isCustom || false,
-                            id: chordExt.id || `${chordExt.name}_${Date.now()}`,
-                            originalChord: chordExt
-                        };
-                        this.hideChordFromButton(chordDataForHide, column);
-                    });
                     
                     duplicateButton.addEventListener('click', (e) => {
                         e.preventDefault();
@@ -9200,7 +9157,6 @@
                     
                     // Add buttons to container
                     buttonsContainer.appendChild(editButton);
-                    buttonsContainer.appendChild(hideButton);
                     buttonsContainer.appendChild(duplicateButton);
                     buttonsContainer.appendChild(lockButton);
                     buttonsContainer.appendChild(pianoLockButton);
@@ -9269,9 +9225,15 @@
                     
                     column.appendChild(header);
                     
-                    // Generate strings for this chord using its actual intervals
-                    this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+                    // Generate strings for this chord; prefer locked snapshot
+                    if (chordExt.isLocked && chordExt.lockedData) {
+                        this.generateStringsForColumnWithLockedSettings(column, chordExt.intervals, chordExt.lockedData);
+                    } else {
+                        this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+                    }
                     
+                    // Enable long-press drag reordering
+                    this.attachColumnDragHandlers(column);
                     container.appendChild(column);
                 });
                 
@@ -9406,6 +9368,14 @@
             generateStringsForColumn(column, intervals, isCustomChord = false) {
                 // Check if this column has locked settings
                 const lockedChord = this.lockedChords?.get(column);
+
+                // If exact frequencies were captured for this column, render snapshot and exit
+                if (lockedChord && Array.isArray(lockedChord.exactFrequencies) && lockedChord.exactFrequencies.length > 0) {
+                    const oldContainer = column.querySelector('.strings-column');
+                    if (oldContainer) oldContainer.remove();
+                    this.generateStringsWithExactFrequencies(column, lockedChord);
+                    return;
+                }
                 
                 // Use locked settings if available, otherwise use current settings
                 let currentRoot, currentTuning;
@@ -9711,6 +9681,237 @@
                 
                 return intervals;
             }
+
+            // Attach long-press drag and dwell-to-swap on a column (initiation on header or free space only)
+            attachColumnDragHandlers(column) {
+                try {
+                    const container = document.getElementById('extensionColumns');
+                    if (!container || !column) return;
+                    const header = column.querySelector('.extension-header');
+                    if (!header) return;
+
+                    const LONG_PRESS_MS = 200;
+                    const DWELL_MS = 200;
+                    const JITTER_PX = 6;
+                    const DELETE_THRESHOLD_PX = 5; // delete only if dragged to top of the viewport
+
+                    let pressTimer = null;
+                    let isDragging = false;
+                    let startX = 0, startY = 0;
+                    let grabOffsetX = 0, grabOffsetY = 0;
+                    let placeholder = null;
+                    let dwellTimer = null;
+                    let deleteIntent = false;
+                    let originalAbsIndex = null;
+                    let lastSwapTarget = null;
+                    let lastSwapTargetAbsIndex = null;
+
+                    const getPointer = (e) => (e.touches && e.touches[0]) || e;
+                    const canStartFrom = (target) => {
+                        // allow from header or empty space inside column; block buttons
+                        if (!target) return false;
+                        if (target.closest('.chord-action-button') || target.closest('.lock-button') || target.closest('.piano-lock-button')) return false;
+                        return target.closest('.extension-header') || target.closest('.extension-column');
+                    };
+
+                    const swapNodes = (a, b) => {
+                        if (!a || !b || a === b) return;
+                        const aMarker = document.createElement('div');
+                        const bMarker = document.createElement('div');
+                        const parent = a.parentNode;
+                        if (!parent || !b.parentNode) return;
+                        parent.insertBefore(aMarker, a);
+                        parent.insertBefore(bMarker, b);
+                        parent.replaceChild(b, aMarker);
+                        parent.replaceChild(a, bMarker);
+                    };
+
+                    const onPressStart = (e) => {
+                        if (!canStartFrom(e.target)) return;
+                        const p = getPointer(e);
+                        startX = p.clientX; startY = p.clientY;
+                        pressTimer = setTimeout(() => beginDrag(p), LONG_PRESS_MS);
+                    };
+
+                    const cancelPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+
+                    const maybeCancelOnMove = (e) => {
+                        if (!pressTimer) return;
+                        const p = getPointer(e);
+                        if (Math.abs(p.clientX - startX) > JITTER_PX || Math.abs(p.clientY - startY) > JITTER_PX) cancelPress();
+                    };
+
+                    const beginDrag = (p) => {
+                        isDragging = true;
+                        column.classList.add('dragging');
+                        const rect = column.getBoundingClientRect();
+                        grabOffsetX = p.clientX - rect.left;
+                        grabOffsetY = p.clientY - rect.top;
+                        column.style.width = rect.width + 'px';
+                        column.style.height = rect.height + 'px';
+                        column.style.position = 'fixed';
+                        column.style.zIndex = 9999;
+                        column.style.pointerEvents = 'none';
+                        column.style.transform = 'scale(1.03)';
+                        column.style.boxShadow = '0 12px 22px rgba(0,0,0,0.35)';
+
+                        // placeholder
+                        placeholder = document.createElement('div');
+                        placeholder.className = 'extension-column placeholder';
+                        placeholder.style.width = rect.width + 'px';
+                        placeholder.style.height = rect.height + 'px';
+                        placeholder.style.flex = '1';
+                        placeholder.style.border = '2px dashed rgba(255,255,255,0.3)';
+                        column.parentNode.insertBefore(placeholder, column);
+
+                        // Capture the absolute index for the dragged column (for data swap)
+                        try {
+                            if (this.getIndexFromColumn) {
+                                originalAbsIndex = this.getIndexFromColumn(column);
+                            } else if (column.dataset && column.dataset.originalPosition) {
+                                originalAbsIndex = parseInt(column.dataset.originalPosition, 10);
+                            } else {
+                                originalAbsIndex = Array.from(container.querySelectorAll('.extension-column')).indexOf(column);
+                            }
+                        } catch (_) { originalAbsIndex = null; }
+                        lastSwapTarget = null;
+                        lastSwapTargetAbsIndex = null;
+
+                        moveDrag(p);
+                        window.addEventListener('mousemove', onMove, { passive: false });
+                        window.addEventListener('touchmove', onMove, { passive: false });
+                        window.addEventListener('mouseup', onEnd);
+                        window.addEventListener('touchend', onEnd);
+                    };
+
+                    const moveDrag = (p) => {
+                        const x = p.clientX - grabOffsetX;
+                        const y = p.clientY - grabOffsetY;
+                        column.style.left = x + 'px';
+                        column.style.top = y + 'px';
+
+                        // delete intent near top
+                        // Only flag delete when pointer is near the very top of the viewport
+                        const shouldDelete = (p.clientY <= DELETE_THRESHOLD_PX);
+                        if (shouldDelete !== deleteIntent) {
+                            deleteIntent = shouldDelete;
+                            column.classList.toggle('delete-intent', deleteIntent);
+                        }
+
+                        // dwell swap logic: swap ONLY the dragged column's placeholder with the hovered column
+                        const siblings = Array.from(container.querySelectorAll('.extension-column'))
+                            .filter(el => el !== column && !el.classList.contains('placeholder'));
+                        let over = siblings.find(el => {
+                            const r = el.getBoundingClientRect();
+                            return p.clientX > r.left && p.clientX < r.right && p.clientY > r.top && p.clientY < r.bottom;
+                        });
+
+                        // Fallback using elementFromPoint for reliability across browsers
+                        if (!over) {
+                            const hit = document.elementFromPoint(p.clientX, p.clientY);
+                            const hitCol = hit && hit.closest ? hit.closest('.extension-column') : null;
+                            if (hitCol && hitCol !== column && !hitCol.classList.contains('placeholder')) {
+                                over = hitCol;
+                            }
+                        }
+
+                        if (over) {
+                            if (!dwellTimer) {
+                dwellTimer = setTimeout(() => {
+                                    if (!placeholder || !over.parentNode) return;
+                                    if (over !== lastSwapTarget) {
+                                        // Swap placeholder and the hovered column to reflect a simple two-box swap
+                                        swapNodes(placeholder, over);
+                                        lastSwapTarget = over;
+                                        try {
+                                            lastSwapTargetAbsIndex = this.getIndexFromColumn ? this.getIndexFromColumn(over) : (over.dataset && over.dataset.originalPosition ? parseInt(over.dataset.originalPosition, 10) : null);
+                                        } catch(_) { lastSwapTargetAbsIndex = null; }
+                    // Allow subsequent swaps by resetting the dwell timer state
+                    clearTimeout(dwellTimer);
+                    dwellTimer = null;
+                                    }
+                                }, DWELL_MS);
+                            }
+                        } else if (dwellTimer) {
+                            clearTimeout(dwellTimer); dwellTimer = null;
+                        }
+                    };
+
+                    const onMove = (e) => { if (!isDragging && pressTimer) { maybeCancelOnMove(e); return; } if (!isDragging) return; const p = getPointer(e); moveDrag(p); e.preventDefault(); };
+
+                    const onEnd = () => {
+                        cancelPress();
+                        window.removeEventListener('mousemove', onMove);
+                        window.removeEventListener('touchmove', onMove);
+                        window.removeEventListener('mouseup', onEnd);
+                        window.removeEventListener('touchend', onEnd);
+                        if (dwellTimer) { clearTimeout(dwellTimer); dwellTimer = null; }
+
+                        column.classList.remove('dragging');
+                        column.style.position = '';
+                        column.style.left = '';
+                        column.style.top = '';
+                        column.style.zIndex = '';
+                        column.style.pointerEvents = '';
+                        column.style.transform = '';
+                        column.style.boxShadow = '';
+                        column.style.width = '';
+                        column.style.height = '';
+
+                        if (deleteIntent) {
+                            deleteIntent = false;
+                            // remove column and update data (do not recreate nodes for others)
+                            const idx = this.getIndexFromColumn ? this.getIndexFromColumn(column) : Array.from(container.children).indexOf(column);
+                            if (idx > -1) {
+                                this.chordExtensions.splice(idx, 1);
+                                column.remove();
+                                this.normalizeChordPositions?.();
+                                this.saveChordConfiguration?.();
+                            }
+                            if (placeholder) placeholder.remove();
+                            return;
+                        }
+
+                        if (placeholder && placeholder.parentNode) {
+                            placeholder.parentNode.insertBefore(column, placeholder);
+                            placeholder.remove();
+                        }
+
+                        // Rebuild data order from DOM to reflect the final visual order (works for single swap or cascades)
+                        const orderedEls = Array.from(container.querySelectorAll('.extension-column'));
+                        if (Array.isArray(this.chordExtensions) && orderedEls.length) {
+                            const newArray = [];
+                            for (let i = 0; i < orderedEls.length; i++) {
+                                const el = orderedEls[i];
+                                const oldIdx = el.dataset && el.dataset.originalPosition ? parseInt(el.dataset.originalPosition, 10) : i;
+                                const model = this.chordExtensions[oldIdx] ?? this.chordExtensions[i];
+                                if (model) {
+                                    model.position = i;
+                                    newArray.push(model);
+                                    // Update dataset to new index for consistent future operations
+                                    try { el.dataset.originalPosition = String(i); } catch(_) {}
+                                }
+                            }
+                            if (newArray.length === this.chordExtensions.length) {
+                                this.chordExtensions = newArray;
+                                this.normalizeChordPositions?.();
+                                this.saveChordConfiguration?.();
+                                // Ensure the visible header names/lock states match the new underlying model order
+                                if (typeof this.syncColumnHeaderToModel === 'function') {
+                                    for (let i = 0; i < orderedEls.length; i++) {
+                                        try { this.syncColumnHeaderToModel(orderedEls[i], this.chordExtensions[i]); } catch(_) {}
+                                    }
+                                }
+                            }
+                        }
+                    };
+
+                    // Initiation only from header or free space
+                    header.addEventListener('mousedown', (e) => { if (e.button !== 0) return; onPressStart(e); });
+                    header.addEventListener('touchstart', (e) => { onPressStart(e); }, { passive: true });
+
+                } catch (err) { console.error('attachColumnDragHandlers error:', err); }
+            }
             
             getTuningStepsPerOctave() {
                 // Handle custom tuning objects
@@ -9739,6 +9940,46 @@
                     }
                 }
                 return this.currentTuning;
+            }
+
+            // Synchronize a column's header text and lock UI to the provided chord model
+            syncColumnHeaderToModel(column, chordModel) {
+                if (!column || !chordModel) return;
+                const chordNameEl = column.querySelector('.chord-name');
+                const lockBtn = column.querySelector('.lock-button');
+                if (!chordNameEl) return;
+
+                if (chordModel.isLocked && chordModel.lockedData) {
+                    const locked = chordModel.lockedData;
+                    const rootName = (this.getNoteNames()[locked.lockedRoot] || locked.lockedRoot);
+                    if (locked.chordName && /^[A-G][#b]?/.test(locked.chordName)) {
+                        chordNameEl.textContent = locked.chordName;
+                    } else if (locked.chordName) {
+                        chordNameEl.textContent = `${rootName}${locked.chordName}`;
+                    } else {
+                        chordNameEl.textContent = `${rootName}${chordModel.name || ''}`;
+                    }
+                    chordNameEl.style.color = '#4CAF50';
+                    chordNameEl.style.fontWeight = 'bold';
+                    chordNameEl.dataset.isLocked = 'true';
+                    chordNameEl.dataset.lockedName = chordNameEl.textContent;
+                    if (lockBtn) {
+                        lockBtn.innerHTML = '🔒';
+                        lockBtn.classList.add('locked');
+                        lockBtn.title = `LOCKED to ${rootName} root with all settings`;
+                    }
+                } else {
+                    chordNameEl.textContent = chordModel.name || '';
+                    chordNameEl.style.color = '';
+                    chordNameEl.style.fontWeight = '';
+                    chordNameEl.dataset.isLocked = '';
+                    chordNameEl.dataset.lockedName = '';
+                    if (lockBtn) {
+                        lockBtn.innerHTML = '🔓';
+                        lockBtn.classList.remove('locked');
+                        lockBtn.title = 'Lock complete sonic snapshot';
+                    }
+                }
             }
 
             addSimpleClickHandlers() {
