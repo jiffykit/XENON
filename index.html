@@ -623,9 +623,9 @@
             border-color: rgba(33, 150, 243, 0.5);
         }
 
-        .chord-action-button.hide {
-            background: rgba(255, 152, 0, 0.2);
-            border-color: rgba(255, 152, 0, 0.5);
+        .chord-action-button.delete {
+            background: rgba(255, 82, 82, 0.2);
+            border-color: rgba(255, 82, 82, 0.5);
         }
 
         .chord-action-button.duplicate {
@@ -1217,8 +1217,9 @@
             border: 3px solid #8fb3d3 !important;
             filter: brightness(1.5) contrast(1.2) !important;
             position: relative !important;
-            z-index: 2100 !important;
-            background: rgba(143, 179, 211, 0.1) !important;
+            z-index: 9500 !important;
+            background: rgba(143, 179, 211, 0.15) !important;
+            border-radius: 8px !important;
         }
 
         #tutorialOverlay {
@@ -1227,6 +1228,13 @@
 
         #tutorialBox {
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-height: 80vh;
+            overflow-y: auto;
+            position: fixed !important;
+            top: 50px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            z-index: 2010 !important;
         }
 
         #tutorialButton, #randomDiceButton {
@@ -1624,12 +1632,12 @@
     </div>
 
     <!-- Tutorial Overlay -->
-    <div id="tutorialOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000;">
-        <div id="tutorialBox" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 2px solid #4a6870; border-radius: 10px; padding: 20px; max-width: 500px; z-index: 2001; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    <div id="tutorialOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999;">
+        <div id="tutorialBox" style="position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 2px solid #4a6870; border-radius: 10px; padding: 20px; max-width: 600px; max-height: 70vh; overflow-y: auto; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
             <h3 id="tutorialTitle" style="color: #8fb3d3; margin-top: 0;">Welcome to Xenmicord!</h3>
             <p id="tutorialText" style="color: #fff; line-height: 1.5;">Click Next to start the interactive tutorial.</p>
-            <div style="margin-top: 15px; text-align: center; font-size: 12px; color: #8fb3d3; opacity: 0.7;">
-                Press ESC or click outside to exit tutorial
+            <div style="margin-top: 15px; text-align: center; font-size: 12px; color: #8fb3d3; opacity: 0.9; background: rgba(74, 104, 112, 0.2); padding: 8px; border-radius: 5px;">
+                💡 Press ESC, click outside, or use Skip Tutorial to exit anytime
             </div>
             <div style="margin-top: 20px; text-align: right;">
                 <button id="tutorialPrev" class="osc-btn" style="margin-right: 10px;">Previous</button>
@@ -1640,7 +1648,7 @@
     </div>
 
     <!-- Tutorial Button -->
-    <button id="tutorialButton" style="position: fixed; bottom: 20px; right: 20px; z-index: 1500; background: #4a6870; color: #fff; border: 2px solid #8fb3d3; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);" title="Start Tutorial">?</button>
+    <button id="tutorialButton" style="position: fixed; bottom: 20px; right: 20px; z-index: 9000; background: #4a6870; color: #fff; border: 2px solid #8fb3d3; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3); font-weight: bold;" title="Start Tutorial">?</button>
 
     <!-- Random Dice Button -->
     <button id="randomDiceButton" style="position: fixed; bottom: 90px; right: 20px; z-index: 1500; background: #6366f1; color: #fff; border: 2px solid #8b5cf6; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);" title="Randomize Settings">🎲</button>
@@ -1661,6 +1669,9 @@
                 this.triggeredStrings = new Set();
                 this.activeTouches = new Map();
                 this.gamelanMode = false;
+                // Editing flow flags
+                this.isEditingChord = false;
+                this.editingOriginalIndex = null;
                 
                 // ADSR envelope settings
                 this.envelope = {
@@ -2029,6 +2040,10 @@
             enterChordCreationMode() {
                 console.log('?? Entering chord creation mode');
                 this.chordCreationMode = true;
+                // When entering fresh creation mode (not from edit), clear edit flags
+                if (!this.isEditingChord) {
+                    this.editingOriginalIndex = null;
+                }
                 this.selectedIntervals = [0]; // Start with root always selected
                 this.previewInterval = null;
                 
@@ -2051,6 +2066,8 @@
             exitChordCreationMode() {
                 console.log('?? Exiting chord creation mode');
                 this.chordCreationMode = false;
+                this.isEditingChord = false;
+                this.editingOriginalIndex = null;
                 this.selectedIntervals = [0];
                 this.previewInterval = null;
                 
@@ -2552,8 +2569,9 @@
                     chordName = `${rootNote}${baseChordName}`;
                 }
                 
-                // Calculate position - new chords go to the end
-                const position = this.chordExtensions.length;
+                // Decide target position
+                const replacing = !!this.isEditingChord && typeof this.editingOriginalIndex === 'number' && this.editingOriginalIndex >= 0;
+                const position = replacing ? this.editingOriginalIndex : this.chordExtensions.length;
                 
                 // Create new chord extension with exact intervals and position tracking
                 const newChord = {
@@ -2576,8 +2594,15 @@
                     selectedIntervals: this.selectedIntervals
                 });
                 
-                // Add to chord extensions at the specific position
-                this.chordExtensions.push(newChord);
+                // Add to chord extensions: replace original index when editing, else append
+                if (replacing) {
+                    this.chordExtensions.splice(position, 0, newChord);
+                } else {
+                    this.chordExtensions.push(newChord);
+                }
+
+                // Normalize positions to keep exact ordering stable
+                this.normalizeChordPositions();
                 
                 // Save and regenerate without creating variants
                 this.saveChordConfiguration();
@@ -2586,11 +2611,22 @@
                 // Clear selection and exit chord creation mode
                 this.selectedIntervals = [];
                 this.isChordCreationMode = false;
+                this.isEditingChord = false;
+                this.editingOriginalIndex = null;
                 
                 // Restore normal root button functionality
                 this.restoreNormalRootButtons();
                 
                 console.log(`? Created chord: ${chordName} at position ${position} with intervals:`, this.selectedIntervals);
+            }
+
+            // Keep chord.position fields in sync with array order
+            normalizeChordPositions() {
+                if (!Array.isArray(this.chordExtensions)) return;
+                for (let i = 0; i < this.chordExtensions.length; i++) {
+                    const c = this.chordExtensions[i];
+                    if (c && c.position !== i) c.position = i;
+                }
             }
             
             regenerateColumnsWithoutVariants() {
@@ -2643,7 +2679,10 @@
                     const column = document.createElement('div');
                     column.className = 'extension-column';
                     column.dataset.chordType = chordIds[extensionIndex];
-                    column.dataset.originalPosition = chordExt.position !== undefined ? chordExt.position : extensionIndex;
+                    // Persist absolute index back to the original array for precise operations
+                    const absoluteIndex = (typeof chordExt.position === 'number') ? chordExt.position : (this.findChordIndex ? this.findChordIndex(chordExt) : extensionIndex);
+                    column.dataset.originalPosition = absoluteIndex;
+                    column.dataset.chordId = chordExt.id || chordIds[extensionIndex];
                     column.style.flex = '1'; // Each column takes equal width
                     column.style.height = '100%';
                     column.style.border = 'none';
@@ -2754,9 +2793,138 @@
                         }
                     });
                     
+                    // Create buttons container
+                    const buttonsContainer = document.createElement('div');
+                    buttonsContainer.className = 'header-buttons';
+                    
+                    // Create action buttons (always visible) with unique IDs
+                    const editButton = document.createElement('button');
+                    editButton.className = 'chord-action-button edit';
+                    editButton.id = `edit-btn-${chordExt.id || chordExt.name.replace(/\s+/g, '_')}-${extensionIndex}`;
+                    editButton.innerHTML = '✏️';
+                    editButton.title = 'Edit chord intervals';
+                    editButton.style.display = 'flex';
+                    
+                    const hideButton = document.createElement('button');
+                    hideButton.className = 'chord-action-button delete';
+                    hideButton.id = `delete-btn-${chordExt.id || chordExt.name.replace(/\s+/g, '_')}-${extensionIndex}`;
+                    hideButton.innerHTML = '🗑️';
+                    hideButton.title = 'Delete this chord';
+                    hideButton.style.display = 'flex';
+                    
+                    const duplicateButton = document.createElement('button');
+                    duplicateButton.className = 'chord-action-button duplicate';
+                    duplicateButton.id = `duplicate-btn-${chordExt.id || chordExt.name.replace(/\s+/g, '_')}-${extensionIndex}`;
+                    duplicateButton.innerHTML = '📋';
+                    duplicateButton.title = 'Duplicate and edit';
+                    duplicateButton.style.display = 'flex';
+                    
+                    // Add button event listeners with proper chord data closure
+                    editButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('🔧 Edit button clicked for chord:', chordExt.name, 'Button ID:', editButton.id);
+                        console.log('🔧 Full chordExt object:', chordExt);
+                        
+                        // Create a deep copy of chord data to ensure it's preserved
+                        const chordDataForEdit = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${extensionIndex}`,
+                            originalChord: chordExt
+                        };
+                        
+                        console.log('🔧 Complete chord data for editing:', chordDataForEdit);
+                        this.editChordFromButton(chordDataForEdit, column);
+                    });
+                    
+                    editButton.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('🔧 Edit button touched for chord:', chordExt.name, 'Button ID:', editButton.id);
+                        
+                        // Create a deep copy of chord data to ensure it's preserved
+                        const chordDataForEdit = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${extensionIndex}`,
+                            originalChord: chordExt
+                        };
+                        
+                        this.editChordFromButton(chordDataForEdit, column);
+                    });
+                    
+                    hideButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const chordDataForHide = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${extensionIndex}`,
+                            originalChord: chordExt
+                        };
+                        
+                        this.hideChordFromButton(chordDataForHide, column);
+                    });
+                    
+                    hideButton.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const chordDataForHide = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${extensionIndex}`,
+                            originalChord: chordExt
+                        };
+                        
+                        this.hideChordFromButton(chordDataForHide, column);
+                    });
+                    
+                    duplicateButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const chordDataForDupe = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${extensionIndex}`,
+                            originalChord: chordExt
+                        };
+                        
+                        this.duplicateChordFromButton(chordDataForDupe, column);
+                    });
+                    
+                    duplicateButton.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const chordDataForDupe = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${extensionIndex}`,
+                            originalChord: chordExt
+                        };
+                        
+                        this.duplicateChordFromButton(chordDataForDupe, column);
+                    });
+                    
+                    // Add buttons to container
+                    buttonsContainer.appendChild(editButton);
+                    buttonsContainer.appendChild(hideButton);
+                    buttonsContainer.appendChild(duplicateButton);
+                    buttonsContainer.appendChild(lockButton);
+                    buttonsContainer.appendChild(pianoLockButton);
+                    
                     header.appendChild(chordName);
-                    header.appendChild(lockButton);
-                    header.appendChild(pianoLockButton);
+                    header.appendChild(buttonsContainer);
                     
                     // Color coding based on chord type
                     let qualityColor;
@@ -5572,7 +5740,7 @@
                     // Update session data instead of localStorage
                     this.sessionData.lockedChords = Array.from(this.lockedChords.values());
                     
-                    // Update UI - change lock button to unlocked state and hide action buttons
+                    // Update UI - change lock button to unlocked state (buttons remain visible)
                     const lockButton = columnElement.querySelector('.lock-button');
                     if (lockButton) {
                         lockButton.innerHTML = '🔓';
@@ -5580,13 +5748,7 @@
                         lockButton.title = 'Lock chord with current root & settings';
                     }
                     
-                    // Hide action buttons when unlocked
-                    const editButton = columnElement.querySelector('.chord-action-button.edit');
-                    const hideButton = columnElement.querySelector('.chord-action-button.hide');
-                    const duplicateButton = columnElement.querySelector('.chord-action-button.duplicate');
-                    if (editButton) editButton.style.display = 'none';
-                    if (hideButton) hideButton.style.display = 'none';
-                    if (duplicateButton) duplicateButton.style.display = 'none';
+                    // Keep action buttons visible when unlocked - they should always be available
                     
                     // Reset the column header color to indicate unlocked
                     const header = columnElement.querySelector('.extension-header');
@@ -5728,7 +5890,7 @@
                 // Store in session data instead of localStorage
                 this.sessionData.lockedChords = Array.from(this.lockedChords.values());
                 
-                // Update UI - change lock button to locked state and show locked root + action buttons
+                // Update UI - change lock button to locked state and show locked root
                 const lockButton = columnElement.querySelector('.lock-button');
                 if (lockButton) {
                     lockButton.innerHTML = '🔒';
@@ -5736,9 +5898,9 @@
                     lockButton.title = `Locked to ${this.getNoteNames()[currentRoot] || currentRoot} root with all settings`;
                 }
                 
-                // Show action buttons when locked
+                // Action buttons remain visible (they should always be available)
                 const editButton = columnElement.querySelector('.chord-action-button.edit');
-                const hideButton = columnElement.querySelector('.chord-action-button.hide');
+                const hideButton = columnElement.querySelector('.chord-action-button.delete');
                 const duplicateButton = columnElement.querySelector('.chord-action-button.duplicate');
                 if (editButton) editButton.style.display = 'flex';
                 if (hideButton) hideButton.style.display = 'flex';
@@ -6444,7 +6606,9 @@
                 this.selectedIntervals = [...(lockedChord.intervals || [])];
                 
                 // Update the note selector to show these intervals
-                this.updateNoteSelector();
+                // Refresh interval selection UI and preview column in builder
+                this.updateIntervalButtons();
+                this.updatePreviewChordColumn();
                 
                 // Show the chord name input with current name
                 const modal = document.getElementById('chordBuilderModal');
@@ -6510,7 +6674,8 @@
                     // Find the new column and enter edit mode
                     this.enterChordCreationMode();
                     this.selectedIntervals = [...duplicateChord.intervals];
-                    this.updateNoteSelector();
+                    this.updateIntervalButtons();
+                    this.updatePreviewChordColumn();
                     
                     const modal = document.getElementById('chordBuilderModal');
                     if (modal) {
@@ -6525,6 +6690,130 @@
                 console.log('? Duplicated and editing chord:', duplicateChord.name);
             }
             
+            // Generic functions that work for ALL chords (not just locked ones)
+            editChordFromButton(chordData, columnElement) {
+                console.log('🔧 EDIT (copy→delete→edit) for:', chordData?.name);
+                if (!chordData || !chordData.name) {
+                    alert('Error: Invalid chord data for editing');
+                    return;
+                }
+                // Determine the exact index of the clicked chord
+                const idx = this.getIndexFromColumn(columnElement, chordData);
+                if (idx === -1) {
+                    alert('Error: Could not locate the selected chord for editing');
+                    return;
+                }
+                const original = this.chordExtensions[idx];
+                if (!original) {
+                    alert('Error: Selected chord no longer exists');
+                    return;
+                }
+                // Prepare intervals
+                const intervals = (original.intervals && original.intervals.length)
+                    ? [...original.intervals]
+                    : (chordData.intervals && chordData.intervals.length)
+                        ? [...chordData.intervals]
+                        : (this.getBaseTriadForQuality(this.stripRootFromName(chordData.name).toLowerCase()) || [0,4,7]);
+
+                // Remove original and set editing flags
+                this.chordExtensions.splice(idx, 1);
+                this.normalizeChordPositions();
+                this.isEditingChord = true;
+                this.editingOriginalIndex = idx;
+                console.log('🔧 Removed original at', idx, original, '— entering edit mode at same position');
+
+                // First refresh columns to reflect removal
+                this.generateExtensionColumns();
+
+                // Then enter builder with the copy data and show preview you can strum
+                this.enterChordCreationMode();
+                this.selectedIntervals = [...intervals];
+                this.updateIntervalButtons();
+                this.updatePreviewChordColumn();
+                setTimeout(() => {
+                    const nameInput = document.getElementById('chordNameInput');
+                    if (nameInput) nameInput.value = original.name;
+                }, 0);
+            }
+            
+            hideChordFromButton(chordData, columnElement) {
+                // Repurpose as Delete Chord
+                console.log('🗑️ DELETE for:', chordData?.name);
+                if (!chordData || !chordData.name) {
+                    alert('Error: Invalid chord data for delete');
+                    return;
+                }
+                if (!confirm(`Delete the chord "${chordData.name}"? This cannot be undone.`)) return;
+                const idx = this.getIndexFromColumn(columnElement, chordData);
+                if (idx !== -1) {
+                    this.chordExtensions.splice(idx, 1);
+                    this.normalizeChordPositions();
+                }
+                this.generateExtensionColumns();
+            }
+            
+            duplicateChordFromButton(chordData, columnElement) {
+                console.log('📋 DUPLICATE for:', chordData?.name);
+                if (!chordData || !chordData.name) {
+                    alert('Error: Invalid chord data for duplication');
+                    return;
+                }
+                // Find base chord and position
+                const idx = this.getIndexFromColumn(columnElement, chordData);
+                const base = (idx !== -1 && this.chordExtensions[idx]) ? this.chordExtensions[idx] : chordData;
+                const intervals = (base.intervals && base.intervals.length)
+                    ? [...base.intervals]
+                    : (this.getBaseTriadForQuality(this.stripRootFromName(base.name).toLowerCase()) || [0,4,7]);
+
+                // Open editor for a duplicate without inserting yet; on save insert after original
+                this.isEditingChord = true;
+                this.editingOriginalIndex = (idx !== -1) ? (idx + 1) : this.chordExtensions.length;
+                this.enterChordCreationMode();
+                this.selectedIntervals = [...intervals];
+                this.updateIntervalButtons();
+                this.updatePreviewChordColumn();
+                setTimeout(() => {
+                    const nameInput = document.getElementById('chordNameInput');
+                    if (nameInput) nameInput.value = `${base.name} Copy`;
+                }, 0);
+            }
+
+            // --- Helpers to robustly find the clicked chord in this.chordExtensions ---
+            findChordIndex(chordData) {
+                // Prefer exact id match
+                if (chordData && chordData.id) {
+                    const byId = this.chordExtensions.findIndex(ext => ext && ext.id === chordData.id);
+                    if (byId !== -1) return byId;
+                }
+                // Fallback: name + intervals match
+                const intervals = (chordData && (chordData.intervals || chordData.notes)) || [];
+                const key = JSON.stringify(intervals);
+                const byStruct = this.chordExtensions.findIndex(ext => {
+                    if (!ext) return false;
+                    if (ext.name !== chordData.name) return false;
+                    const extIntervals = ext.intervals || [];
+                    return JSON.stringify(extIntervals) === key;
+                });
+                if (byStruct !== -1) return byStruct;
+                // Last resort: position if present
+                if (typeof chordData.position === 'number') return chordData.position;
+                return -1;
+            }
+
+            getIndexFromColumn(columnElement, chordData) {
+                // First trust the dataset from the DOM column created with this chord
+                const ds = columnElement && columnElement.dataset ? columnElement.dataset : {};
+                if (ds && typeof ds.originalPosition !== 'undefined') {
+                    const idx = parseInt(ds.originalPosition, 10);
+                    if (!Number.isNaN(idx) && idx >= 0 && idx < this.chordExtensions.length) return idx;
+                }
+                // Then try to calculate from chordData
+                const fallbackIdx = this.findChordIndex(chordData);
+                if (fallbackIdx !== -1) return fallbackIdx;
+                // Give up gracefully
+                return -1;
+            }
+            
             findChordPosition(chordData) {
                 // Find the position of this chord in the chordExtensions array
                 for (let i = 0; i < this.chordExtensions.length; i++) {
@@ -6536,6 +6825,12 @@
                     }
                 }
                 return this.chordExtensions.length; // Default to end if not found
+            }
+
+            // Remove pitch-class prefix from chord names (e.g., "Csus4" -> "sus4")
+            stripRootFromName(name) {
+                if (!name) return '';
+                return String(name).replace(/^[A-G][#b]?\s*/, '').trim();
             }
             
             applyLockedChordSettings(lockedChord) {
@@ -6653,7 +6948,7 @@
                         
                         // Show action buttons for locked chords
                         const editButton = targetColumn.querySelector('.chord-action-button.edit');
-                        const hideButton = targetColumn.querySelector('.chord-action-button.hide');
+                        const hideButton = targetColumn.querySelector('.chord-action-button.delete');
                         const duplicateButton = targetColumn.querySelector('.chord-action-button.duplicate');
                         if (editButton) editButton.style.display = 'flex';
                         if (hideButton) hideButton.style.display = 'flex';
@@ -6883,7 +7178,8 @@
                 // Also update the chord creation mode if active
                 if (this.chordCreationMode) {
                     this.selectedIntervals = [...convertedIntervals];
-                    this.updateNoteSelector();
+                    this.updateIntervalButtons();
+                    this.updatePreviewChordColumn();
                 }
             }
 
@@ -8347,24 +8643,27 @@
                 const buttonsContainer = document.createElement('div');
                 buttonsContainer.className = 'header-buttons';
                 
-                // Create action buttons (initially hidden)
+                // Create action buttons (always visible) with unique IDs
                 const editButton = document.createElement('button');
                 editButton.className = 'chord-action-button edit';
+                editButton.id = `edit-single-${chordExt.id || chordExt.name.replace(/\s+/g, '_')}-${Date.now()}`;
                 editButton.innerHTML = '✏️';
                 editButton.title = 'Edit chord intervals';
-                editButton.style.display = 'none';
+                editButton.style.display = 'flex';
                 
                 const hideButton = document.createElement('button');
-                hideButton.className = 'chord-action-button hide';
-                hideButton.innerHTML = '👁️';
-                hideButton.title = 'Hide this chord';
-                hideButton.style.display = 'none';
+                hideButton.className = 'chord-action-button delete';
+                hideButton.id = `hide-single-${chordExt.id || chordExt.name.replace(/\s+/g, '_')}-${Date.now()}`;
+                hideButton.innerHTML = '🗑️';
+                hideButton.title = 'Delete this chord';
+                hideButton.style.display = 'flex';
                 
                 const duplicateButton = document.createElement('button');
                 duplicateButton.className = 'chord-action-button duplicate';
+                duplicateButton.id = `duplicate-single-${chordExt.id || chordExt.name.replace(/\s+/g, '_')}-${Date.now()}`;
                 duplicateButton.innerHTML = '📋';
                 duplicateButton.title = 'Duplicate and edit';
-                duplicateButton.style.display = 'none';
+                duplicateButton.style.display = 'flex';
                 
                 // Create lock button
                 const lockButton = document.createElement('button');
@@ -8372,41 +8671,100 @@
                 lockButton.innerHTML = '🔓';
                 lockButton.title = 'Lock complete sonic snapshot';
                 
-                // Add button event listeners
+                // Add button event listeners with proper chord data closure
                 editButton.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.editLockedChord(chordExt, column);
+                    console.log('🔧 Edit button clicked for chord:', chordExt.name, 'Button ID:', editButton.id);
+                    
+                    // Create a deep copy of chord data to ensure it's preserved
+                    const chordDataForEdit = {
+                        name: chordExt.name,
+                        intervals: chordExt.intervals || this.getBaseTriadForQuality(chordExt.name.toLowerCase()),
+                        isCustom: chordExt.isCustom || false,
+                        id: chordExt.id || `${chordExt.name}_single_${Date.now()}`,
+                        originalChord: chordExt
+                    };
+                    
+                    console.log('🔧 Complete chord data for editing:', chordDataForEdit);
+                    this.editChordFromButton(chordDataForEdit, column);
                 });
                 
                 editButton.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.editLockedChord(chordExt, column);
+                    console.log('🔧 Edit button touched for chord:', chordExt.name, 'Button ID:', editButton.id);
+                    
+                    // Create a deep copy of chord data to ensure it's preserved
+                    const chordDataForEdit = {
+                        name: chordExt.name,
+                        intervals: chordExt.intervals || this.getBaseTriadForQuality(chordExt.name.toLowerCase()),
+                        isCustom: chordExt.isCustom || false,
+                        id: chordExt.id || `${chordExt.name}_single_${Date.now()}`,
+                        originalChord: chordExt
+                    };
+                    
+                    this.editChordFromButton(chordDataForEdit, column);
                 });
                 
                 hideButton.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.hideLockedChord(chordExt, column);
+                    
+                    const chordDataForHide = {
+                        name: chordExt.name,
+                        intervals: chordExt.intervals || this.getBaseTriadForQuality(chordExt.name.toLowerCase()),
+                        isCustom: chordExt.isCustom || false,
+                        id: chordExt.id || `${chordExt.name}_single_${Date.now()}`,
+                        originalChord: chordExt
+                    };
+                    
+                    this.hideChordFromButton(chordDataForHide, column);
                 });
                 
                 hideButton.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.hideLockedChord(chordExt, column);
+                    
+                    const chordDataForHide = {
+                        name: chordExt.name,
+                        intervals: chordExt.intervals || this.getBaseTriadForQuality(chordExt.name.toLowerCase()),
+                        isCustom: chordExt.isCustom || false,
+                        id: chordExt.id || `${chordExt.name}_single_${Date.now()}`,
+                        originalChord: chordExt
+                    };
+                    
+                    this.hideChordFromButton(chordDataForHide, column);
                 });
                 
                 duplicateButton.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.duplicateLockedChord(chordExt, column);
+                    
+                    const chordDataForDupe = {
+                        name: chordExt.name,
+                        intervals: chordExt.intervals || this.getBaseTriadForQuality(chordExt.name.toLowerCase()),
+                        isCustom: chordExt.isCustom || false,
+                        id: chordExt.id || `${chordExt.name}_single_${Date.now()}`,
+                        originalChord: chordExt
+                    };
+                    
+                    this.duplicateChordFromButton(chordDataForDupe, column);
                 });
                 
                 duplicateButton.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.duplicateLockedChord(chordExt, column);
+                    
+                    const chordDataForDupe = {
+                        name: chordExt.name,
+                        intervals: chordExt.intervals || this.getBaseTriadForQuality(chordExt.name.toLowerCase()),
+                        isCustom: chordExt.isCustom || false,
+                        id: chordExt.id || `${chordExt.name}_single_${Date.now()}`,
+                        originalChord: chordExt
+                    };
+                    
+                    this.duplicateChordFromButton(chordDataForDupe, column);
                 });
                 
                 // Add lock button functionality
@@ -8696,26 +9054,26 @@
                     const buttonsContainer = document.createElement('div');
                     buttonsContainer.className = 'header-buttons';
                     
-                    // Create edit button (only for locked chords)
+                    // Create edit button (ALWAYS VISIBLE)
                     const editButton = document.createElement('button');
                     editButton.className = 'chord-action-button edit';
                     editButton.innerHTML = '✏️';
                     editButton.title = 'Edit chord intervals';
-                    editButton.style.display = 'none'; // Initially hidden
+                    // ALWAYS visible now
                     
-                    // Create hide button (only for locked chords)
+                    // Create hide button (ALWAYS VISIBLE)
                     const hideButton = document.createElement('button');
-                    hideButton.className = 'chord-action-button hide';
-                    hideButton.innerHTML = '👁️';
-                    hideButton.title = 'Hide this chord';
-                    hideButton.style.display = 'none'; // Initially hidden
+                    hideButton.className = 'chord-action-button delete';
+                    hideButton.innerHTML = '🗑️';
+                    hideButton.title = 'Delete this chord';
+                    // ALWAYS visible now
                     
-                    // Create duplicate button (only for locked chords)
+                    // Create duplicate button (ALWAYS VISIBLE)
                     const duplicateButton = document.createElement('button');
                     duplicateButton.className = 'chord-action-button duplicate';
                     duplicateButton.innerHTML = '📋';
                     duplicateButton.title = 'Duplicate and edit';
-                    duplicateButton.style.display = 'none'; // Initially hidden
+                    // ALWAYS visible now
                     
                     // Create lock button
                     const lockButton = document.createElement('button');
@@ -8723,41 +9081,83 @@
                     lockButton.innerHTML = '🔓';
                     lockButton.title = 'Lock complete sonic snapshot';
                     
-                    // Add button event listeners
+                    // Add button event listeners using per-chord handlers (no globals)
                     editButton.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        this.editLockedChord(chordExt, column);
+                        const chordDataForEdit = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${Date.now()}`,
+                            originalChord: chordExt
+                        };
+                        this.editChordFromButton(chordDataForEdit, column);
                     });
                     
                     editButton.addEventListener('touchstart', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        this.editLockedChord(chordExt, column);
+                        const chordDataForEdit = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${Date.now()}`,
+                            originalChord: chordExt
+                        };
+                        this.editChordFromButton(chordDataForEdit, column);
                     });
                     
                     hideButton.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        this.hideLockedChord(chordExt, column);
+                        const chordDataForHide = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${Date.now()}`,
+                            originalChord: chordExt
+                        };
+                        this.hideChordFromButton(chordDataForHide, column);
                     });
                     
                     hideButton.addEventListener('touchstart', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        this.hideLockedChord(chordExt, column);
+                        const chordDataForHide = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${Date.now()}`,
+                            originalChord: chordExt
+                        };
+                        this.hideChordFromButton(chordDataForHide, column);
                     });
                     
                     duplicateButton.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        this.duplicateLockedChord(chordExt, column);
+                        const chordDataForDupe = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${Date.now()}`,
+                            originalChord: chordExt
+                        };
+                        this.duplicateChordFromButton(chordDataForDupe, column);
                     });
                     
                     duplicateButton.addEventListener('touchstart', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        this.duplicateLockedChord(chordExt, column);
+                        const chordDataForDupe = {
+                            name: chordExt.name,
+                            intervals: chordExt.intervals || this.getBaseTriadForQuality(this.stripRootFromName(chordExt.name).toLowerCase()),
+                            isCustom: chordExt.isCustom || false,
+                            id: chordExt.id || `${chordExt.name}_${Date.now()}`,
+                            originalChord: chordExt
+                        };
+                        this.duplicateChordFromButton(chordDataForDupe, column);
                     });
                     
                     // Add lock button functionality
@@ -10042,48 +10442,53 @@
                 this.tutorialSteps = [
                     {
                         title: "Welcome to Xenmicord!",
-                        text: "This is a microtonal omnichord that lets you explore different tuning systems and create beautiful harmonic textures. Let's take a quick tour!",
+                        text: "This is a microtonal omnichord that lets you explore different tuning systems and create awesome harmonic textures. You start with a Major chord ready to play!",
                         highlight: null
                     },
                     {
-                        title: "Tuning Systems",
-                        text: "These buttons let you switch between different tuning systems - from 5-tone scales to 53-tone equal temperament. Try the 'Gam' button for Gamelan sounds!",
+                        title: "Initial Setup",
+                        text: "You can freely change the tuning system and root note before creating new chords. Enter the number of notes per octave (2/1) or use other ratios for things like Bohlen Pierce.",
                         highlight: "#tuningSelector"
                     },
                     {
+                        title: "Playing Chords",
+                        text: "The Major chord is ready to play! Click and drag vertically on the column to strum the strings. Each column represents a different chord type.",
+                        highlight: "#extensionColumns"
+                    },
+                    {
+                        title: "Creating New Chords",
+                        text: "Click 'New Chord' to enter chord creation mode. You'll build custom chords by selecting intervals on the top row of the screen.",
+                        highlight: "[data-action='newChord']"
+                    },
+                    {
+                        title: "Piano Lock System",
+                        text: "Click the piano icon (🎹) on any chord header to 'piano lock' it - this saves the current synthesizer settings (oscillators + effects) specifically for that chord. Each chord gets its own unique sound preset!",
+                        highlight: "#extensionColumns"
+                    },
+                    {
                         title: "Master Controls",
-                        text: "Control the overall volume and mix of your sound here. The Master Volume affects everything.",
+                        text: "Control the overall volume and mix of your sound here. The Master Volume affects everything, and you can adjust the overall stereo balance.",
                         highlight: "#masterSection"
                     },
                     {
                         title: "Effects Section",
-                        text: "Add beautiful reverb and control stereo panning. The reverb creates spacious, atmospheric sounds.",
+                        text: "Add reverb and control stereo panning. Piano-locked chords preserve their individual effect settings while still responding to master controls.",
                         highlight: "#effectsSection"
                     },
                     {
                         title: "Oscillators",
-                        text: "These are your sound generators! Each oscillator has its own waveform (sine, saw, square, triangle), volume, coarse tuning, and ADSR envelope. Mix them for rich textures. Click the random dice to explore new sounds!",
+                        text: "Each oscillator has waveform selection, volume, coarse tuning, and ADSR envelope controls. Piano-locked chords remember their oscillator settings. Use the dice button to randomize for inspiration!",
                         highlight: "#oscillatorsSection"
                     },
                     {
-                        title: "Main Fretboard",
-                        text: "This is where the magic happens! Each column represents a chord. Click and drag vertically to strum the strings. Try it now!",
+                        title: "Saving & Loading",
+                        text: "Use 'Save .OMG' to save your complete session - all chords, piano locks, and synthesizer presets. Loading an OMG file restores everything and leaves you ready to create more chords!",
+                        highlight: "#saveSessionBtn"
+                    },
+                    {
+                        title: "Advanced Features",
+                        text: "Each chord has edit, delete, and duplicate buttons for easy management. Your piano locks work across all root notes until manually unlocked with the padlock icon!",
                         highlight: "#extensionColumns"
-                    },
-                    {
-                        title: "Custom Chords",
-                        text: "Right-click on any chord column header to access options. You can add custom chords, rename columns, hide unwanted chords, and more. Create your own chord structures!",
-                        highlight: "#extensionColumns"
-                    },
-                    {
-                        title: "Chord Palette",
-                        text: "Right-click on any chord column to add it to your palette. Your saved chords appear here for easy access and building progressions.",
-                        highlight: "#chordPalette"
-                    },
-                    {
-                        title: "Creative Tools",
-                        text: "The dice button (??) randomizes oscillator settings for creative inspiration. Experiment and have fun!",
-                        highlight: "#randomDiceButton"
                     }
                 ];
 
@@ -10407,8 +10812,8 @@
                 
                 // Randomize ADSR parameters within proper ranges
                 const attack = attackMin + Math.random() * (attackMax - attackMin); // Within slider range
-                const decay = Math.random() * 2500; // 0-2500ms  
-                const sustain = Math.random(); // 0-100%
+                const decay = Math.random() * 1000; // 0-1000ms
+                const sustain = Math.random() * 0.5; // 0-50%
                 const release = Math.random() * 4000; // 0-4000ms
 
                 if (attackSlider) {
@@ -10554,5 +10959,4 @@
         });
     </script>
 </body>
-
 </html>
