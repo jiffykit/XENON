@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Microtonal Omnichord</title>
+    <!-- Retro font (Oswald) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root { --retro-font: 'Oswald','Arial Narrow','Helvetica Neue',Arial,sans-serif; }
         * {
             margin: 0;
             padding: 0;
@@ -15,7 +20,7 @@
         }
 
         body {
-            font-family: 'Courier New', monospace;
+            font-family: var(--retro-font) !important;
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             color: #fff;
             overflow: hidden;
@@ -30,16 +35,16 @@
         }
 
         .root-notes-area {
-            height: 90px;
+            height: 260px; /* sync with later override */
             background: rgba(0, 30, 60, 0.9);
             border-bottom: 2px solid #333;
             padding: 10px;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
         }
 
         .strum-area {
-            height: 56vh;
+            flex: 1 1 auto; /* fill remaining vertical space */
             position: relative;
             background: linear-gradient(180deg, #0f3460, #16537e);
             overflow: hidden;
@@ -47,6 +52,7 @@
             padding: 0;
             border: 2px solid #4a6870;
             gap: 0;
+            min-height: 200px;
         }
 
         .strum-area:hover {
@@ -262,13 +268,15 @@
         }
 
         .root-notes-area {
-            height: 12vh;
+            height: 260px; /* enlarged to fit circular keyboard + microtone lanes */
+            flex: 0 0 260px; /* lock vertical allocation */
             background: rgba(0, 20, 40, 0.9);
             border-bottom: 1px solid #333;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px;
+            align-items: flex-start; /* keep keyboard pinned to top to avoid jump when regenerating */
+            justify-content: center; /* center horizontally */
+            padding: 8px 8px 0 8px;
+            position: relative;
         }
 
         .clear-triads-container {
@@ -828,8 +836,10 @@
             grid-template-rows: 1fr;
             gap: 1px;
             flex: 1;
-            max-height: 50px;
             width: 100%;
+            max-height: none !important;
+            height: 100% !important;
+            position: relative;
         }
 
         .root-btn {
@@ -886,6 +896,123 @@
             color: #000;
             font-weight: bold;
         }
+
+        /* ================= Piano Keyboard Revamp (Top Row) ================ */
+        .piano-keyboard {
+            position: relative;
+            width: 66.666vw; /* fixed 2/3 viewport width */
+            max-width: 1500px; /* cap width on large screens */
+            height: 200px; /* fixed height */
+            margin: 12px auto 8px auto; /* centered near top */
+            user-select: none;
+            background: #4b0047; /* dark brown */
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.7);
+            overflow: hidden;
+            /* scaling removed */
+            padding-top: 4px; /* slight top padding so glow/outline never alters outer box */
+        }
+        /* Reserve vertical space inside for active glow so layout never shifts */
+        .piano-keyboard .white-key.root-btn,
+        .piano-keyboard .black-key.root-btn,
+        .piano-keyboard .edo-dot { will-change: transform; }
+        /* Neutralize any accidental layout influence from outlines */
+        .piano-keyboard .white-key.root-btn.active,
+        .piano-keyboard .black-key.root-btn.active,
+        .piano-keyboard .edo-dot.active { outline-offset: 0; }
+        /* Prevent reflow on hover/active transitions */
+        .piano-keyboard .white-key.root-btn,
+        .piano-keyboard .black-key.root-btn { position:absolute; }
+        /* Hardware accelerate transforms for smoother glow without jitter */
+    .piano-keyboard, .piano-keyboard * { backface-visibility:hidden; }
+        /* ===== Branding ===== */
+    .logo-inline { position:fixed; top:14px; left:20px; z-index:9500; font-family: var(--retro-font); font-weight:600; font-size:32px; letter-spacing:1px; line-height:1; display:flex; align-items:center; gap:6px; pointer-events:none; user-select:none; color:#ffffff; text-shadow:0 0 8px rgba(255,255,255,0.7), 0 0 16px rgba(120,180,255,0.4); animation: logoPulse 3.2s ease-in-out infinite; }
+    .logo-inline span { color:#fff; }
+    @keyframes logoPulse { 0%,100% { text-shadow:0 0 4px rgba(255,255,255,0.4),0 0 10px rgba(140,180,255,0.25); opacity:0.92; } 50% { text-shadow:0 0 10px rgba(255,255,255,0.9),0 0 24px rgba(140,180,255,0.55); opacity:1; } }
+        .piano-keyboard .by-fastfast { position:absolute; top:10px; right:16px; font-family: var(--retro-font); font-size:16px; font-weight:600; color:#ffffff; text-shadow:0 0 6px rgba(255,255,255,0.35), 0 0 12px rgba(120,140,255,0.45); opacity:0.95; pointer-events:none; user-select:none; }
+        @media (max-width: 900px){
+            .logo-inline { font-size:26px; }
+            .piano-keyboard .by-fastfast { font-size:13px; top:12px; }
+        }
+        /* Ensure retro font everywhere */
+        button, .root-btn, .extension-header, .control-panel, input, select, .edo-dot { font-family: var(--retro-font) !important; }
+        /* Base circle key */
+        .piano-keyboard .white-key.root-btn,
+        .piano-keyboard .black-key.root-btn {
+            position:absolute;
+            width:70px;
+            height:70px;
+            z-index:2; /* keep keys above micro dots so labels (like B) remain visible */
+            border-radius:50%;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:14px;
+            font-weight:bold;
+            cursor:pointer;
+            transform:translate(-50%, -50%);
+            transition:filter .15s, transform .1s;
+            box-shadow:0 4px 10px rgba(0,0,0,0.6), inset 0 -4px 6px rgba(0,0,0,0.4);
+        }
+        .piano-keyboard .white-key.root-btn {
+            background:radial-gradient(circle at 30% 30%, #ffffff, #d9d9d9 60%, #bdbdbd);
+            color:#222;
+            top:78%; /* bring upward so full circle visible */
+        }
+        .piano-keyboard .white-key.root-btn.disabled { filter:grayscale(60%) brightness(0.8); opacity:.6; }
+        .piano-keyboard .white-key.root-btn.active { outline:3px solid #ffd046; box-shadow:0 0 14px 4px rgba(255,208,70,0.7); }
+        .piano-keyboard .black-key.root-btn {
+            background:radial-gradient(circle at 30% 30%, #444, #111 65%, #000);
+            color:#eee;
+            top:26%; /* adjust for reduced height */
+            width:68px;
+            height:68px;
+        }
+        .piano-keyboard .black-key.root-btn.disabled { filter:grayscale(60%) brightness(0.6); opacity:.55; }
+        .piano-keyboard .black-key.root-btn.active { outline:3px solid #9d6bff; box-shadow:0 0 16px 4px rgba(157,107,255,0.8); }
+        .piano-keyboard .white-key.root-btn:active, .piano-keyboard .black-key.root-btn:active { transform:translate(-50%, -50%) scale(.94); }
+        .piano-keyboard .white-key.root-btn:hover, .piano-keyboard .black-key.root-btn:hover { filter:brightness(1.15); }
+
+        /* Legacy microtone overlay removal */
+        .piano-keyboard .microtone-key.root-btn { display:none; }
+        .piano-keyboard .microtone-key.root-btn span { pointer-events:none; }
+
+        /* 96-EDO microtone dot system */
+        .piano-keyboard .edo-dot {
+            position:absolute;
+            width:26px;
+            height:26px;
+            z-index:1; /* ensure dots don't obscure white/black key labels */
+            border-radius:50%;
+            transform:translateX(-50%);
+            box-shadow:0 1px 3px rgba(0,0,0,0.6), inset 0 0 3px rgba(255,255,255,0.4);
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:11px;
+            font-weight:bold;
+            color:#fff;
+            text-shadow:0 1px 2px rgba(0,0,0,0.9);
+            padding:2px;
+            box-sizing:border-box;
+        }
+        .piano-keyboard .edo-dot.blue { background:radial-gradient(circle at 30% 30%, #6fa9ff, #2563eb 60%, #1e3a8a); }
+        .piano-keyboard .edo-dot.green { background:radial-gradient(circle at 30% 30%, #5ef0b2, #0d9e6f 60%, #065f46); }
+        .piano-keyboard .edo-dot.red { background:radial-gradient(circle at 30% 30%, #ff9a9a, #dc2626 60%, #7f1d1d); }
+    .piano-keyboard .edo-dot.active { outline:2px solid #fff; box-shadow:0 0 10px 4px rgba(255,255,255,0.9); filter:brightness(1.2); }
+    .piano-keyboard .edo-dot.red.active { box-shadow:0 0 12px 5px rgba(220,38,38,0.9),0 0 6px 3px rgba(255,255,255,0.8); }
+    .piano-keyboard .edo-dot.green.active { box-shadow:0 0 12px 5px rgba(13,158,111,0.9),0 0 6px 3px rgba(255,255,255,0.8); }
+    .piano-keyboard .edo-dot.blue.active { box-shadow:0 0 12px 5px rgba(37,99,235,0.9),0 0 6px 3px rgba(255,255,255,0.8); }
+    /* Chord-builder selection glow (non-root) */
+    .piano-keyboard .edo-dot.selected { outline:3px solid #f39c12; box-shadow:0 0 14px 5px rgba(243,156,18,0.85),0 0 6px 3px rgba(255,255,255,0.5); filter:brightness(1.15); }
+        /* Vertical lanes (percent from top of keyboard height) */
+    /* Updated vertical lane centers to match reference image (from top to bottom: black, blue, green, red, white) */
+    .piano-keyboard .edo-lane-blue  { top:39%; }
+    .piano-keyboard .edo-lane-green { top:52%; }
+    .piano-keyboard .edo-lane-red   { top:65%; }
+
+        /* ================================================================== */
 
         /* Chord creation mode styles */
         .chord-creation-mode .root-notes-area {
@@ -1284,11 +1411,233 @@
     </style>
 </head>
 <body>
+    <!-- Global Logo (fixed on blue background) -->
+    <div class="logo-inline"><span class="omg">OMG</span><span class="nichord">- nichord</span></div>
+    <!-- Bottom control bar -->
+    <div id="bottomBar" style="position:fixed;bottom:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:0 18px;background:#081a28;border-top:2px solid #123447;z-index:600;font-family:var(--retro-font);">
+        <button class="panel-btn" data-panel="tuning">TUNING</button>
+        <button class="panel-btn" data-panel="osc">OSCILLATORS</button>
+        <button class="panel-btn" data-panel="fx">EFFECTS</button>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+            <label for="masterVolume" style="font-size:11px;color:#9db6c8;">MASTER</label>
+            <input type="range" id="masterVolume" min="0" max="10" value="10" style="width:140px; accent-color:#2d9c5d;">
+            <span id="masterVolumeValue" style="font-size:11px; color:#b7d4e6; width:38px; text-align:right;">100%</span>
+        </div>
+    </div>
+    <div id="panelHost" style="position:fixed;bottom:54px;left:12px;width:380px;max-height:55vh;background:#0b2536;border:2px solid #15506a;border-radius:10px;box-shadow:0 -6px 22px rgba(0,0,0,0.55);padding:18px 20px;display:none;overflow-y:auto;z-index:650;font-family:var(--retro-font);">
+        <!-- Control Panels migrated here -->
+        <div class="panel-content" data-panel="tuning" style="display:none; gap:15px; grid-template-columns:300px;">
+            <div class="synth-section" id="tuningSelector" style="padding:8px;">
+                <h4 style="font-size:15px; margin-bottom:8px;">EDO Configuration</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                    <div class="slider-container">
+                        <label style="font-size:11px;">Divisions</label>
+                        <input type="number" id="edoDivisions" min="5" max="200" value="12" style="width:100%; padding:4px; background:#2a4858; color:#fff; border:1px solid #4a6870; border-radius:4px; font-size:11px;">
+                    </div>
+                    <div class="slider-container">
+                        <label style="font-size:11px;">Interval Ratio</label>
+                        <select id="intervalRatio" style="width:100%; padding:4px; background:#2a4858; color:#fff; border:1px solid #4a6870; border-radius:4px; font-size:11px;">
+                            <option value="2/1">2/1 (Octave)</option>
+                            <option value="3/1">3/1 (Tritave)</option>
+                            <option value="5/4">5/4 (Major Third)</option>
+                            <option value="3/2">3/2 (Perfect Fifth)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <button id="createNewChordBtn" class="osc-btn" style="width:100%; font-size:14px; padding:12px; background:#2E8B57; border-color:#3CB371; margin-bottom:8px;">✨ Create New Chord</button>
+                    <button id="createBasicChordsBtn" class="osc-btn" style="width:100%; font-size:14px; padding:12px; background:#3498db; border-color:#2980b9;">🎵 Load Basic Chords</button>
+                    <button id="resetChordsBtn" class="osc-btn" style="width:100%; font-size:12px; padding:8px; background:#e74c3c; border-color:#c0392b; margin-top:5px;">🗑️ Clear Unlocked</button>
+                </div>
+                <div style="margin-bottom:10px; display:flex; gap:5px;">
+                    <button id="saveSessionBtn" class="osc-btn" style="flex:1; font-size:11px; padding:6px; background:#3498db; border-color:#2980b9;">💾 Save .OMG</button>
+                    <button id="loadSessionBtn" class="osc-btn" style="flex:1; font-size:11px; padding:6px; background:#9b59b6; border-color:#8e44ad;">📂 Load .OMG</button>
+                    <input type="file" id="loadSessionInput" accept=".omg" style="display:none;">
+                </div>
+            </div>
+        </div>
+    <!-- Master panel removed; single master slider now on bar -->
+        <div class="panel-content" data-panel="fx" style="display:none;">
+            <div class="synth-section" id="effectsSection" style="padding:8px;">
+                <h4 style="font-size:15px; margin-bottom:8px; color:#9b59b6;">Effects</h4>
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:13px; color:#9b59b6;">Reverb</label>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Wet</label>
+                            <input type="range" class="synth-slider" id="reverbWet" min="0" max="10" value="1" style="height:20px;">
+                            <div class="slider-value" id="reverbWetValue" style="font-size:9px;">10%</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Room</label>
+                            <input type="range" class="synth-slider" id="reverbRoom" min="0" max="10" value="5" style="height:20px;">
+                            <div class="slider-value" id="reverbRoomValue" style="font-size:9px;">50%</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Decay</label>
+                            <input type="range" class="synth-slider" id="reverbDecay" min="0" max="100" value="20" style="height:20px;">
+                            <div class="slider-value" id="reverbDecayValue" style="font-size:9px;">2.0s</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Cut</label>
+                            <input type="range" class="synth-slider" id="reverbFilterCutoff" min="200" max="20000" value="8000" style="height:20px;">
+                            <div class="slider-value" id="reverbFilterCutoffValue" style="font-size:9px;">8kHz</div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#e74c3c;">Panning</label>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Mode</label>
+                            <select id="panningMode" style="width:100%; padding:3px; background:#2a4858; color:#fff; border:1px solid #4a6870; border-radius:3px; font-size:10px; height:24px;">
+                                <option value="center">Center</option>
+                                <option value="frequency">Freq</option>
+                                <option value="random">Random</option>
+                                <option value="rotating">Rotate</option>
+                                <option value="alternating">Alt</option>
+                            </select>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Width</label>
+                            <input type="range" class="synth-slider" id="panningWidth" min="0" max="100" value="80" style="height:20px;">
+                            <div class="slider-value" id="panningWidthValue" style="font-size:9px;">80%</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Speed</label>
+                            <input type="range" class="synth-slider" id="panningSpeed" min="200" max="10000" value="2000" style="height:20px;">
+                            <div class="slider-value" id="panningSpeedValue" style="font-size:9px;">2.0s</div>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:center;">
+                            <div class="mix-btn" id="panningReset" style="font-size:9px; padding:4px; cursor:pointer;">Reset</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-content" data-panel="osc" style="display:none;">
+            <div class="synth-section" id="oscillatorsSection" style="padding:8px;">
+                <h4 style="font-size:15px; margin-bottom:8px;">Oscillators</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div style="border:1px solid #4a6870; border-radius:4px; padding:8px; background:rgba(42,72,88,0.2);">
+                        <h5 style="font-size:12px; margin-bottom:6px; color:#8fb3d3;">OSC 1</h5>
+                        <div class="oscillator-controls" style="grid-template-columns:repeat(5,1fr); gap:2px; margin-bottom:6px;">
+                            <div class="osc-btn active" data-wave="sine" data-osc="1" style="font-size:9px; padding:3px;">Sin</div>
+                            <div class="osc-btn" data-wave="sawtooth" data-osc="1" style="font-size:9px; padding:3px;">Saw</div>
+                            <div class="osc-btn" data-wave="square" data-osc="1" style="font-size:9px; padding:3px;">Sqr</div>
+                            <div class="osc-btn" data-wave="triangle" data-osc="1" style="font-size:9px; padding:3px;">Tri</div>
+                            <div class="osc-btn" data-wave="noise" data-osc="1" style="font-size:9px; padding:3px;">Nse</div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:8px;">
+                            <div class="slider-container">
+                                <label style="font-size:9px;">Level</label>
+                                <input type="range" class="synth-slider" id="osc1Level" min="0" max="10" value="5" style="height:20px;">
+                                <div class="slider-value" id="osc1LevelValue" style="font-size:9px;">50%</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:9px;">Detune</label>
+                                <input type="range" class="synth-slider" id="osc1Detune" min="-50" max="50" value="0" style="height:20px;">
+                                <div class="slider-value" id="osc1DetuneValue" style="font-size:9px;">0¢</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:9px;">Octave</label>
+                                <input type="range" class="synth-slider" id="osc1Octave" min="-3" max="3" value="0" style="height:20px;">
+                                <div class="slider-value" id="osc1OctaveValue" style="font-size:9px;">0</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:9px;">Coarse</label>
+                                <input type="range" class="synth-slider" id="osc1Coarse" min="-24" max="24" value="0" step="1" style="height:20px;">
+                                <div class="slider-value" id="osc1CoarseValue" style="font-size:9px;">0 steps</div>
+                            </div>
+                        </div>
+                        <h6 style="font-size:10px; margin:6px 0 4px 0; color:#f39c12;">ADSR 1</h6>
+                        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:3px;">
+                            <div class="slider-container">
+                                <label style="font-size:8px;">Attack</label>
+                                <input type="range" class="envelope-slider" id="attackSlider" min="3" max="1000" value="5" style="height:18px;">
+                                <div class="slider-value" id="attackValue" style="font-size:8px;">5ms</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:8px;">Decay</label>
+                                <input type="range" class="envelope-slider" id="decaySlider" min="1" max="200" value="30" style="height:18px;">
+                                <div class="slider-value" id="decayValue" style="font-size:8px;">30ms</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:8px;">Sustain</label>
+                                <input type="range" class="envelope-slider" id="sustainSlider" min="0" max="10" value="5" style="height:18px;">
+                                <div class="slider-value" id="sustainValue" style="font-size:8px;">50%</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:8px;">Release</label>
+                                <input type="range" class="envelope-slider" id="releaseSlider" min="0" max="3000" value="1000" style="height:18px;">
+                                <div class="slider-value" id="releaseValue" style="font-size:8px;">1000ms</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="border:1px solid #4a6870; border-radius:4px; padding:8px; background:rgba(42,72,88,0.2);">
+                        <h5 style="font-size:12px; margin-bottom:6px; color:#8fb3d3;">OSC 2</h5>
+                        <div class="oscillator-controls" style="grid-template-columns:repeat(5,1fr); gap:2px; margin-bottom:6px;">
+                            <div class="osc-btn active" data-wave="sine" data-osc="2" style="font-size:9px; padding:3px;">Sin</div>
+                            <div class="osc-btn" data-wave="sawtooth" data-osc="2" style="font-size:9px; padding:3px;">Saw</div>
+                            <div class="osc-btn" data-wave="square" data-osc="2" style="font-size:9px; padding:3px;">Sqr</div>
+                            <div class="osc-btn" data-wave="triangle" data-osc="2" style="font-size:9px; padding:3px;">Tri</div>
+                            <div class="osc-btn" data-wave="noise" data-osc="2" style="font-size:9px; padding:3px;">Nse</div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:8px;">
+                            <div class="slider-container">
+                                <label style="font-size:9px;">Level</label>
+                                <input type="range" class="synth-slider" id="osc2Level" min="0" max="10" value="5" style="height:20px;">
+                                <div class="slider-value" id="osc2LevelValue" style="font-size:9px;">50%</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:9px;">Detune</label>
+                                <input type="range" class="synth-slider" id="osc2Detune" min="-50" max="50" value="-7" style="height:20px;">
+                                <div class="slider-value" id="osc2DetuneValue" style="font-size:9px;">-7¢</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:9px;">Octave</label>
+                                <input type="range" class="synth-slider" id="osc2Octave" min="-3" max="3" value="0" style="height:20px;">
+                                <div class="slider-value" id="osc2OctaveValue" style="font-size:9px;">0</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:9px;">Coarse</label>
+                                <input type="range" class="synth-slider" id="osc2Coarse" min="-24" max="24" value="0" step="1" style="height:20px;">
+                                <div class="slider-value" id="osc2CoarseValue" style="font-size:9px;">0 steps</div>
+                            </div>
+                        </div>
+                        <h6 style="font-size:10px; margin:6px 0 4px 0; color:#f39c12;">ADSR 2</h6>
+                        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:3px;">
+                            <div class="slider-container">
+                                <label style="font-size:8px;">Attack</label>
+                                <input type="range" class="envelope-slider" id="osc2AttackSlider" min="3" max="100" value="5" style="height:18px;">
+                                <div class="slider-value" id="osc2AttackValue" style="font-size:8px;">5ms</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:8px;">Decay</label>
+                                <input type="range" class="envelope-slider" id="osc2DecaySlider" min="1" max="200" value="30" style="height:18px;">
+                                <div class="slider-value" id="osc2DecayValue" style="font-size:8px;">30ms</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:8px;">Sustain</label>
+                                <input type="range" class="envelope-slider" id="osc2SustainSlider" min="0" max="10" value="5" style="height:18px;">
+                                <div class="slider-value" id="osc2SustainValue" style="font-size:8px;">50%</div>
+                            </div>
+                            <div class="slider-container">
+                                <label style="font-size:8px;">Release</label>
+                                <input type="range" class="envelope-slider" id="osc2ReleaseSlider" min="0" max="3000" value="1000" style="height:18px;">
+                                <div class="slider-value" id="osc2ReleaseValue" style="font-size:8px;">1000ms</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="instrument">
         <!-- Root Notes at Top -->
         <div class="root-notes-area">
             <div class="root-notes-selector">
-                <div class="section-title">OMG-nichord</div>
+                <!-- Logo moved inside keyboard -->
                 <div class="root-chord-grid" id="rootGrid"></div>
             </div>
         </div>
@@ -1298,238 +1647,7 @@
             <div class="extension-columns" id="extensionColumns"></div>
         </div>
 
-        <!-- Bottom Controls - Full Height Available -->
-        <div class="control-panel" style="display: grid; grid-template-columns: 300px 200px 280px 1fr; gap: 15px; padding: 10px; height: calc(100vh - 90px - 56vh); min-height: 35vh; font-size: 13px; overflow: visible;">
-            <!-- Tuning & Chord Presets -->
-            <div class="synth-section" id="tuningSelector" style="padding: 8px;">
-                <h4 style="font-size: 15px; margin-bottom: 8px;">EDO Configuration</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                    <div class="slider-container">
-                        <label style="font-size: 11px;">Divisions</label>
-                        <input type="number" id="edoDivisions" min="5" max="200" value="12" style="width: 100%; padding: 4px; background: #2a4858; color: #fff; border: 1px solid #4a6870; border-radius: 4px; font-size: 11px;">
-                    </div>
-                    <div class="slider-container">
-                        <label style="font-size: 11px;">Interval Ratio</label>
-                        <select id="intervalRatio" style="width: 100%; padding: 4px; background: #2a4858; color: #fff; border: 1px solid #4a6870; border-radius: 4px; font-size: 11px;">
-                            <option value="2/1">2/1 (Octave)</option>
-                            <option value="3/1">3/1 (Tritave)</option>
-                            <option value="5/4">5/4 (Major Third)</option>
-                            <option value="3/2">3/2 (Perfect Fifth)</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="margin-bottom: 10px;">
-                    <button id="createNewChordBtn" class="osc-btn" style="width: 100%; font-size: 14px; padding: 12px; background: #2E8B57; border-color: #3CB371; margin-bottom: 8px;">✨ Create New Chord</button>
-                    <button id="createBasicChordsBtn" class="osc-btn" style="width: 100%; font-size: 14px; padding: 12px; background: #3498db; border-color: #2980b9;">🎵 Load Basic Chords</button>
-                    <button id="resetChordsBtn" class="osc-btn" style="width: 100%; font-size: 12px; padding: 8px; background: #e74c3c; border-color: #c0392b; margin-top: 5px;">🗑️ Clear Unlocked</button>
-                </div>
-                <div style="margin-bottom: 10px; display: flex; gap: 5px;">
-                    <button id="saveSessionBtn" class="osc-btn" style="flex: 1; font-size: 11px; padding: 6px; background: #3498db; border-color: #2980b9;">💾 Save .OMG</button>
-                    <button id="loadSessionBtn" class="osc-btn" style="flex: 1; font-size: 11px; padding: 6px; background: #9b59b6; border-color: #8e44ad;">📂 Load .OMG</button>
-                    <input type="file" id="loadSessionInput" accept=".omg" style="display: none;">
-                </div>
-                <div style="display: flex; gap: 4px; align-items: center;">
-                    <!-- Custom Patterns button removed - only one chord creation method now -->
-                </div>
-            </div>
-
-            <!-- Master Controls -->
-            <div class="synth-section" id="masterSection" style="padding: 8px;">
-                <h4 style="font-size: 15px; margin-bottom: 8px;">Master</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div class="slider-container">
-                        <label style="font-size: 11px;">Volume</label>
-                        <input type="range" class="synth-slider" id="volumeSlider" min="0" max="10" value="10" style="height: 20px;">
-                        <div class="slider-value" id="volumeValue" style="font-size: 10px;">100%</div>
-                    </div>
-                    <div class="slider-container">
-                        <label style="font-size: 11px;">Master</label>
-                        <input type="range" class="synth-slider" id="masterVolume" min="0" max="10" value="10" style="height: 20px;">
-                        <div class="slider-value" id="masterVolumeValue" style="font-size: 10px;">100%</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Effects: Reverb & Panning -->
-            <div class="synth-section" id="effectsSection" style="padding: 8px;">
-                <h4 style="font-size: 15px; margin-bottom: 8px; color: #9b59b6;">Effects</h4>
-                <div style="margin-bottom: 10px;">
-                    <label style="font-size: 13px; color: #9b59b6;">Reverb</label>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                        <div class="slider-container">
-                            <label style="font-size: 10px;">Wet</label>
-                            <input type="range" class="synth-slider" id="reverbWet" min="0" max="10" value="1" style="height: 20px;">
-                            <div class="slider-value" id="reverbWetValue" style="font-size: 9px;">10%</div>
-                        </div>
-                        <div class="slider-container">
-                            <label style="font-size: 10px;">Room</label>
-                            <input type="range" class="synth-slider" id="reverbRoom" min="0" max="10" value="5" style="height: 20px;">
-                            <div class="slider-value" id="reverbRoomValue" style="font-size: 9px;">50%</div>
-                        </div>
-                        <div class="slider-container">
-                            <label style="font-size: 10px;">Decay</label>
-                            <input type="range" class="synth-slider" id="reverbDecay" min="0" max="100" value="20" style="height: 20px;">
-                            <div class="slider-value" id="reverbDecayValue" style="font-size: 9px;">2.0s</div>
-                        </div>
-                        <div class="slider-container">
-                            <label style="font-size: 10px;">Cut</label>
-                            <input type="range" class="synth-slider" id="reverbFilterCutoff" min="200" max="20000" value="8000" style="height: 20px;">
-                            <div class="slider-value" id="reverbFilterCutoffValue" style="font-size: 9px;">8kHz</div>
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <label style="font-size: 13px; color: #e74c3c;">Panning</label>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                        <div class="slider-container">
-                            <label style="font-size: 10px;">Mode</label>
-                            <select id="panningMode" style="width: 100%; padding: 3px; background: #2a4858; color: #fff; border: 1px solid #4a6870; border-radius: 3px; font-size: 10px; height: 24px;">
-                                <option value="center">Center</option>
-                                <option value="frequency">Freq</option>
-                                <option value="random">Random</option>
-                                <option value="rotating">Rotate</option>
-                                <option value="alternating">Alt</option>
-                            </select>
-                        </div>
-                        <div class="slider-container">
-                            <label style="font-size: 10px;">Width</label>
-                            <input type="range" class="synth-slider" id="panningWidth" min="0" max="100" value="80" style="height: 20px;">
-                            <div class="slider-value" id="panningWidthValue" style="font-size: 9px;">80%</div>
-                        </div>
-                        <div class="slider-container">
-                            <label style="font-size: 10px;">Speed</label>
-                            <input type="range" class="synth-slider" id="panningSpeed" min="200" max="10000" value="2000" style="height: 20px;">
-                            <div class="slider-value" id="panningSpeedValue" style="font-size: 9px;">2.0s</div>
-                        </div>
-                        <div style="display: flex; align-items: center; justify-content: center;">
-                            <div class="mix-btn" id="panningReset" style="font-size: 9px; padding: 4px; cursor: pointer;">Reset</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Oscillators -->
-            <div class="synth-section" id="oscillatorsSection" style="padding: 8px;">
-                <h4 style="font-size: 15px; margin-bottom: 8px;">Oscillators</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <!-- OSC 1 -->
-                    <div style="border: 1px solid #4a6870; border-radius: 4px; padding: 8px; background: rgba(42, 72, 88, 0.2);">
-                        <h5 style="font-size: 12px; margin-bottom: 6px; color: #8fb3d3;">OSC 1</h5>
-                        <div class="oscillator-controls" style="grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 6px;">
-                            <div class="osc-btn active" data-wave="sine" data-osc="1" style="font-size: 9px; padding: 3px;">Sin</div>
-                            <div class="osc-btn" data-wave="sawtooth" data-osc="1" style="font-size: 9px; padding: 3px;">Saw</div>
-                            <div class="osc-btn" data-wave="square" data-osc="1" style="font-size: 9px; padding: 3px;">Sqr</div>
-                            <div class="osc-btn" data-wave="triangle" data-osc="1" style="font-size: 9px; padding: 3px;">Tri</div>
-                            <div class="osc-btn" data-wave="noise" data-osc="1" style="font-size: 9px; padding: 3px;">Nse</div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 8px;">
-                            <div class="slider-container">
-                                <label style="font-size: 9px;">Level</label>
-                                <input type="range" class="synth-slider" id="osc1Level" min="0" max="10" value="5" style="height: 20px;">
-                                <div class="slider-value" id="osc1LevelValue" style="font-size: 9px;">50%</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 9px;">Detune</label>
-                                <input type="range" class="synth-slider" id="osc1Detune" min="-50" max="50" value="0" style="height: 20px;">
-                                <div class="slider-value" id="osc1DetuneValue" style="font-size: 9px;">0�</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 9px;">Octave</label>
-                                <input type="range" class="synth-slider" id="osc1Octave" min="-3" max="3" value="0" style="height: 20px;">
-                                <div class="slider-value" id="osc1OctaveValue" style="font-size: 9px;">0</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 9px;">Coarse</label>
-                                <input type="range" class="synth-slider" id="osc1Coarse" min="-24" max="24" value="0" step="1" style="height: 20px;">
-                                <div class="slider-value" id="osc1CoarseValue" style="font-size: 9px;">0 steps</div>
-                            </div>
-                        </div>
-                        <!-- OSC 1 ADSR -->
-                        <h6 style="font-size: 10px; margin: 6px 0 4px 0; color: #f39c12;">ADSR 1</h6>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px;">
-                            <div class="slider-container">
-                                <label style="font-size: 8px;">Attack</label>
-                                <input type="range" class="envelope-slider" id="attackSlider" min="3" max="1000" value="5" style="height: 18px;">
-                                <div class="slider-value" id="attackValue" style="font-size: 8px;">5ms</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 8px;">Decay</label>
-                                <input type="range" class="envelope-slider" id="decaySlider" min="1" max="200" value="30" style="height: 18px;">
-                                <div class="slider-value" id="decayValue" style="font-size: 8px;">30ms</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 8px;">Sustain</label>
-                                <input type="range" class="envelope-slider" id="sustainSlider" min="0" max="10" value="5" style="height: 18px;">
-                                <div class="slider-value" id="sustainValue" style="font-size: 8px;">50%</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 8px;">Release</label>
-                                <input type="range" class="envelope-slider" id="releaseSlider" min="0" max="3000" value="1000" style="height: 18px;">
-                                <div class="slider-value" id="releaseValue" style="font-size: 8px;">1000ms</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- OSC 2 -->
-                    <div style="border: 1px solid #4a6870; border-radius: 4px; padding: 8px; background: rgba(42, 72, 88, 0.2);">
-                        <h5 style="font-size: 12px; margin-bottom: 6px; color: #8fb3d3;">OSC 2</h5>
-                        <div class="oscillator-controls" style="grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 6px;">
-                            <div class="osc-btn active" data-wave="sine" data-osc="2" style="font-size: 9px; padding: 3px;">Sin</div>
-                            <div class="osc-btn" data-wave="sawtooth" data-osc="2" style="font-size: 9px; padding: 3px;">Saw</div>
-                            <div class="osc-btn" data-wave="square" data-osc="2" style="font-size: 9px; padding: 3px;">Sqr</div>
-                            <div class="osc-btn" data-wave="triangle" data-osc="2" style="font-size: 9px; padding: 3px;">Tri</div>
-                            <div class="osc-btn" data-wave="noise" data-osc="2" style="font-size: 9px; padding: 3px;">Nse</div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 8px;">
-                            <div class="slider-container">
-                                <label style="font-size: 9px;">Level</label>
-                                <input type="range" class="synth-slider" id="osc2Level" min="0" max="10" value="5" style="height: 20px;">
-                                <div class="slider-value" id="osc2LevelValue" style="font-size: 9px;">50%</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 9px;">Detune</label>
-                                <input type="range" class="synth-slider" id="osc2Detune" min="-50" max="50" value="-7" style="height: 20px;">
-                                <div class="slider-value" id="osc2DetuneValue" style="font-size: 9px;">-7�</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 9px;">Octave</label>
-                                <input type="range" class="synth-slider" id="osc2Octave" min="-3" max="3" value="0" style="height: 20px;">
-                                <div class="slider-value" id="osc2OctaveValue" style="font-size: 9px;">0</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 9px;">Coarse</label>
-                                <input type="range" class="synth-slider" id="osc2Coarse" min="-24" max="24" value="0" step="1" style="height: 20px;">
-                                <div class="slider-value" id="osc2CoarseValue" style="font-size: 9px;">0 steps</div>
-                            </div>
-                        </div>
-                        <!-- OSC 2 ADSR -->
-                        <h6 style="font-size: 10px; margin: 6px 0 4px 0; color: #f39c12;">ADSR 2</h6>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px;">
-                            <div class="slider-container">
-                                <label style="font-size: 8px;">Attack</label>
-                                <input type="range" class="envelope-slider" id="osc2AttackSlider" min="3" max="100" value="5" style="height: 18px;">
-                                <div class="slider-value" id="osc2AttackValue" style="font-size: 8px;">5ms</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 8px;">Decay</label>
-                                <input type="range" class="envelope-slider" id="osc2DecaySlider" min="1" max="200" value="30" style="height: 18px;">
-                                <div class="slider-value" id="osc2DecayValue" style="font-size: 8px;">30ms</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 8px;">Sustain</label>
-                                <input type="range" class="envelope-slider" id="osc2SustainSlider" min="0" max="10" value="5" style="height: 18px;">
-                                <div class="slider-value" id="osc2SustainValue" style="font-size: 8px;">50%</div>
-                            </div>
-                            <div class="slider-container">
-                                <label style="font-size: 8px;">Release</label>
-                                <input type="range" class="envelope-slider" id="osc2ReleaseSlider" min="0" max="3000" value="1000" style="height: 18px;">
-                                <div class="slider-value" id="osc2ReleaseValue" style="font-size: 8px;">1000ms</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- (Old control panel removed; controls moved into panelHost) -->
 
     <!-- Unified Chord Builder Modal -->
     <div id="chordBuilderModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
@@ -1567,7 +1685,7 @@
             <!-- Preview Section -->
             <div style="margin: 20px 0; padding: 15px; border: 2px solid #8e44ad; border-radius: 8px; background: rgba(142, 68, 173, 0.1);">
                 <h4 style="margin: 0 0 10px 0; color: #8e44ad;">🎧 Chord Preview</h4>
-                <div id="chordPreviewDisplay" style="font-family: monospace; font-size: 14px; color: #8fb3d3; min-height: 40px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 4px;">
+                <div id="chordPreviewDisplay" style="font-family: var(--retro-font); font-size: 14px; color: #8fb3d3; min-height: 40px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 4px;">
                     No intervals selected
                 </div>
             </div>
@@ -1638,7 +1756,7 @@
             </div>
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; color: #8fb3d3;">Selected Intervals:</label>
-                <div id="selectedIntervalsDisplay" style="background: #2a4858; padding: 10px; border-radius: 6px; color: #fff; font-family: monospace;"></div>
+                <div id="selectedIntervalsDisplay" style="background: #2a4858; padding: 10px; border-radius: 6px; color: #fff; font-family: var(--retro-font);"></div>
             </div>
             <div style="display: flex; gap: 10px; justify-content: center;">
                 <button class="osc-btn" id="cancelChordName" style="background: #666; border-color: #888;">Cancel</button>
@@ -1650,7 +1768,7 @@
     <!-- Tutorial Overlay -->
     <div id="tutorialOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999;">
         <div id="tutorialBox" style="position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 2px solid #4a6870; border-radius: 10px; padding: 20px; max-width: 600px; max-height: 70vh; overflow-y: auto; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-            <h3 id="tutorialTitle" style="color: #8fb3d3; margin-top: 0;">Welcome to Xenmicord!</h3>
+            <h3 id="tutorialTitle" style="color: #8fb3d3; margin-top: 0;">Welcome to OMG-nichord!</h3>
             <p id="tutorialText" style="color: #fff; line-height: 1.5;">Click Next to start the interactive tutorial.</p>
             <div style="margin-top: 15px; text-align: center; font-size: 12px; color: #8fb3d3; opacity: 0.9; background: rgba(74, 104, 112, 0.2); padding: 8px; border-radius: 5px;">
                 💡 Press ESC, click outside, or use Skip Tutorial to exit anytime
@@ -1663,11 +1781,9 @@
         </div>
     </div>
 
-    <!-- Tutorial Button -->
-    <button id="tutorialButton" style="position: fixed; bottom: 20px; right: 20px; z-index: 9000; background: #4a6870; color: #fff; border: 2px solid #8fb3d3; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3); font-weight: bold;" title="Start Tutorial">?</button>
-
-    <!-- Random Dice Button -->
-    <button id="randomDiceButton" style="position: fixed; bottom: 90px; right: 20px; z-index: 1500; background: #6366f1; color: #fff; border: 2px solid #8b5cf6; border-radius: 50%; width: 60px; height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);" title="Randomize Settings">🎲</button>
+    <!-- Tutorial & Random Dice Buttons (moved top-right) -->
+    <button id="tutorialButton" style="position: fixed; top: 12px; right: 14px; z-index: 9000; background: #4a6870; color: #fff; border: 2px solid #8fb3d3; border-radius: 50%; width: 56px; height: 56px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.4); font-weight: bold;" title="Start Tutorial">?</button>
+    <button id="randomDiceButton" style="position: fixed; top: 82px; right: 14px; z-index: 9000; background: #6366f1; color: #fff; border: 2px solid #8b5cf6; border-radius: 50%; width: 56px; height: 56px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.45);" title="Randomize Settings">🎲</button>
 
     <script>
         class MicrotonalOmnichord { 
@@ -1924,26 +2040,30 @@
             
             // Create basic chord set for beginners
             createBasicChordSet() {
+                // User-requested basic chord set (only these, no others)
                 const basicChords = [
-                    // Essential 6 chord types only
-                    { name: '', symbol: '', intervals: [0, 4, 7], description: 'Major triad' },
-                    { name: 'm', symbol: 'm', intervals: [0, 3, 7], description: 'Minor triad' },
-                    { name: '7', symbol: '7', intervals: [0, 4, 7, 10], description: 'Dominant 7th' },
-                    { name: 'M7', symbol: 'Δ7', intervals: [0, 4, 7, 11], description: 'Major 7th' },
-                    { name: '9', symbol: '9', intervals: [0, 4, 7, 10, 14], description: 'Dominant 9th' },
-                    { name: '11', symbol: '11', intervals: [0, 4, 7, 10, 14, 17], description: 'Dominant 11th' }
+                    { name: 'Major',        symbol: '',   intervals: [0,4,7],          description: 'Major triad' },
+                    { name: 'Minor',        symbol: 'm',  intervals: [0,3,7],          description: 'Minor triad' },
+                    { name: '7th',          symbol: '7',  intervals: [0,4,7,10],       description: 'Dominant 7th' },
+                    { name: 'minor 7th',    symbol: 'm7', intervals: [0,3,7,10],       description: 'Minor 7th' },
+                    { name: 'Major 7th',    symbol: 'M7', intervals: [0,4,7,11],       description: 'Major 7th' },
+                    { name: '6th',          symbol: '6',  intervals: [0,4,7,9],        description: 'Major 6th' },
+                    { name: '9th',          symbol: '9',  intervals: [0,4,7,10,14],    description: 'Dominant 9th' },
+                    { name: 'sus4',         symbol: 'sus4', intervals:[0,5,7],         description: 'Suspended 4th' },
+                    { name: 'sus2',         symbol: 'sus2', intervals:[0,2,7],         description: 'Suspended 2nd' },
+                    { name: 'Diminished',   symbol: 'dim', intervals:[0,3,6],          description: 'Diminished triad' },
+                    { name: 'Augmented',    symbol: 'aug', intervals:[0,4,8],          description: 'Augmented triad' }
                 ];
-                
-                // Clear existing chords and add basic set (ONE chord per type, no variants)
+
                 this.chordExtensions = basicChords.map(chord => ({
-                    name: chord.symbol || 'Major', // Use symbol for display, fallback to 'Major' for empty symbol
+                    name: chord.name,
                     intervals: chord.intervals,
                     description: chord.description,
                     symbol: chord.symbol,
-                    isCustom: false // Mark as standard chord types
+                    isCustom: false
                 }));
-                
-                console.log('✓ Created essential basic chord set:', this.chordExtensions.length, 'chords');
+
+                console.log('✓ Created requested basic chord set:', this.chordExtensions.length, 'chords');
                 this.updateChordDisplay();
                 this.generateExtensionColumns();
             }
@@ -2060,7 +2180,8 @@
                 if (!this.isEditingChord) {
                     this.editingOriginalIndex = null;
                 }
-                this.selectedIntervals = [0]; // Start with root always selected
+                // Always ensure root (0) present
+                this.selectedIntervals = [0];
                 this.previewInterval = null;
                 
                 // Change UI to creation mode
@@ -2107,23 +2228,22 @@
             }
             
             setupIntervalSelection() {
-                // Update root button event listeners for interval selection
-                document.querySelectorAll('.root-btn').forEach((btn, index) => {
-                    // Remove old listeners
-                    const newBtn = btn.cloneNode(true);
-                    btn.parentNode.replaceChild(newBtn, btn);
-                    
-                    // Add new interval selection listeners
-                    newBtn.addEventListener('click', () => this.toggleInterval(index));
-                    newBtn.addEventListener('mouseenter', () => this.previewIntervals([index]));
-                    newBtn.addEventListener('mouseleave', () => this.clearPreview());
-                    
-                    // Update button state
-                    newBtn.classList.remove('active', 'selected', 'preview');
-                    // In chord creation mode, button indices directly represent microtonal steps
-                    if (this.selectedIntervals.includes(index)) {
-                        newBtn.classList.add('selected');
-                    }
+                // Target all elements with data-step (keys + micro dots)
+                const interactive = document.querySelectorAll('#rootGrid [data-step]');
+                interactive.forEach(el => {
+                    const step = parseInt(el.dataset.step,10);
+                    // Replace node to remove previous listeners (root selection)
+                    const clone = el.cloneNode(true);
+                    el.parentNode.replaceChild(clone, el);
+                    clone.classList.remove('preview');
+                    // Maintain root highlight separately (active) but allow selection highlighting (selected)
+                    if (this.selectedIntervals.includes(step)) clone.classList.add('selected'); else clone.classList.remove('selected');
+                    clone.addEventListener('click', (e)=>{
+                        e.stopPropagation();
+                        this.toggleInterval(step);
+                    });
+                    clone.addEventListener('mouseenter', ()=> this.previewInterval(step));
+                    clone.addEventListener('mouseleave', ()=> this.clearPreview());
                 });
             }
             
@@ -2146,6 +2266,11 @@
                 
                 // Update button states
                 this.updateIntervalButtons();
+
+                // Safety: ensure root still exists
+                if(!this.selectedIntervals.includes(0)){
+                    this.selectedIntervals.unshift(0);
+                }
                 
                 // Update the preview chord column immediately
                 this.updatePreviewChordColumn();
@@ -2172,14 +2297,14 @@
             }
             
             updateIntervalButtons() {
-                document.querySelectorAll('.root-btn').forEach((btn, index) => {
-                    btn.classList.remove('selected', 'preview');
-                    
-                    // In chord creation mode, button indices directly represent microtonal steps
-                    if (this.selectedIntervals.includes(index)) {
-                        btn.classList.add('selected');
-                    } else if (this.previewInterval === index) {
-                        btn.classList.add('preview');
+                const all = document.querySelectorAll('#rootGrid [data-step]');
+                all.forEach(el=>{
+                    const step = parseInt(el.dataset.step,10);
+                    el.classList.remove('selected','preview');
+                    if (this.selectedIntervals.includes(step)) {
+                        el.classList.add('selected');
+                    } else if (this.previewInterval === step) {
+                        el.classList.add('preview');
                     }
                 });
             }
@@ -2392,13 +2517,14 @@
                 // Sort by frequency to ensure proper ordering
                 stringFreqs.sort((a, b) => a.freq - b.freq);
                 
-                // Calculate string sizing to match main columns
-                const availableHeight = 500; // Standard height
+                // Calculate string sizing to MATCH main column behavior (fill height uniformly)
+                const previewColumn = document.getElementById('previewChordColumn');
+                const availableHeight = (previewColumn ? previewColumn.offsetHeight : 500);
                 const headerHeight = 40;
-                const stringsHeight = availableHeight - headerHeight - 2;
-                const numStrings = stringFreqs.length;
+                const stringsHeight = availableHeight - headerHeight - 2; // minimal padding
+                const numStrings = stringFreqs.length || 1;
                 const stringHeight = Math.max(1, Math.floor(stringsHeight / numStrings) - 0.5);
-                const stringMargin = 0.2;
+                const stringMargin = 0.2; // minimal margin for tight packing
                 
                 // Style the container exactly like main columns
                 container.style.cssText = `
@@ -2510,6 +2636,8 @@
                     
                     container.appendChild(stringElement);
                 });
+                // Ensure all generated octave strings fit within visible area (rescale heights if needed)
+                this.ensureStringsFullyVisible(container);
             }
             
             playPreviewString(stringElement, frequency, interval) {
@@ -3849,11 +3977,6 @@
                 // Construct final note name: [Note][Accidental(s)][Arrows]
                 let finalName = noteLetter + accidental + arrows;
                 
-                // For debugging/reference, add step number in brackets for non-12EDO
-                if (this.currentTuning !== 12) {
-                    finalName += `[${step}]`;
-                }
-                
                 return finalName;
             }
             
@@ -4289,29 +4412,7 @@
                     });
                 });
 
-                // Volume control with value display and dB conversion
-                const volumeSlider = document.getElementById('volumeSlider');
-                if (volumeSlider) {
-                    volumeSlider.addEventListener('input', (e) => {
-                        if (window.omnichord) {
-                            // Convert 0-10 scale to -18dB to 0dB (linear from 0.125 to 1.0)
-                            const sliderValue = e.target.value / 10; // 0-1
-                            window.omnichord.volume = sliderValue * 0.356; // Max at -9dB (0.356 linear gain)
-                            if (window.omnichord.gainNode) {
-                                window.omnichord.gainNode.gain.value = window.omnichord.volume * window.omnichord.masterVolume;
-                            }
-                            console.log('?? Volume changed to:', window.omnichord.volume);
-                            const volumeValue = document.getElementById('volumeValue');
-                            if (volumeValue) {
-                                volumeValue.textContent = `${e.target.value * 10}%`;
-                            }
-                        } else {
-                            console.error('?? omnichord instance not available for volume');
-                        }
-                    });
-                } else {
-                    console.error('volumeSlider not found');
-                }
+                // Removed standalone volumeSlider (merged into master volume UI)
 
                 // ADSR controls with value displays and proper limits
                 const attackSlider = document.getElementById('attackSlider');
@@ -8141,6 +8242,7 @@
 
             // Chord Name Context Menu Methods
             hideChord() {
+                this.pushState();
                 console.log('?? hideChord called, currentEditingChord:', this.currentEditingChord);
                 
                 if (!this.currentEditingChord) {
@@ -8159,6 +8261,7 @@
             }
 
             duplicateChord() {
+                this.pushState();
                 console.log('?? duplicateChord called, currentEditingChord:', this.currentEditingChord);
                 
                 if (!this.currentEditingChord) {
@@ -8299,31 +8402,257 @@
 
             generateRootButtons() {
                 const rootGrid = document.getElementById('rootGrid');
-                rootGrid.innerHTML = '';
-                
-                const noteNames = this.getNoteNames();
-                
-                for (let i = 0; i < this.currentTuning; i++) {
-                    const btn = document.createElement('div');
-                    btn.className = 'root-btn';
-                    if (i === this.currentRoot) btn.classList.add('active');
-                    btn.textContent = noteNames[i] || i;
-                    btn.dataset.root = i;
-                    
-                    btn.addEventListener('click', () => {
-                        console.log('?? Root button clicked, changing from', this.currentRoot, 'to', i);
-                        
-                        document.querySelectorAll('#rootGrid .root-btn').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        this.currentRoot = i;
-                        
-                        // Simple approach: regenerate all strings while preserving locked chord settings
-                        this.regenerateAllColumnsPreservingLocks();
-                        this.updateChordDisplay();
-                    });
-                    
-                    rootGrid.appendChild(btn);
+                if (!rootGrid) return;
+                // Reuse existing keyboard element to avoid layout shift flicker
+                let keyboard = rootGrid.querySelector('.piano-keyboard');
+                if (!keyboard) {
+                    // First-time creation
+                    keyboard = document.createElement('div');
+                    keyboard.className = 'piano-keyboard';
+                    const by = document.createElement('div');
+                    by.className = 'by-fastfast';
+                    by.textContent = 'By FASTFAST';
+                    keyboard.appendChild(by);
+                    rootGrid.appendChild(keyboard);
+                } else {
+                    // Clear dynamic children (keys + dots) only
+                    keyboard.querySelectorAll('.white-key.root-btn, .black-key.root-btn, .edo-dot').forEach(el=> el.remove());
+                    // Ensure attribution present
+                    if (!keyboard.querySelector('.by-fastfast')) {
+                        const by = document.createElement('div');
+                        by.className = 'by-fastfast';
+                        by.textContent = 'By FASTFAST';
+                        keyboard.appendChild(by);
+                    }
                 }
+
+                // Fallback to legacy buttons in gamelan mode (7-tone pelog)
+                if (this.gamelanMode) {
+                    const noteNames = this.getNoteNames();
+                    for (let i = 0; i < this.currentTuning; i++) {
+                        const b = document.createElement('div');
+                        b.className = 'root-btn';
+                        b.textContent = noteNames[i] || i;
+                        if (i === this.currentRoot) b.classList.add('active');
+                        b.addEventListener('click',()=>{
+                            document.querySelectorAll('#rootGrid .root-btn').forEach(x=>x.classList.remove('active'));
+                            b.classList.add('active');
+                            this.currentRoot = i;
+                            this.regenerateAllColumnsPreservingLocks();
+                        });
+                        rootGrid.appendChild(b);
+                    }
+                    return;
+                }
+
+                // Piano layout definitions
+                const whiteOrder = [0,2,4,5,7,9,11]; // semitone numbers for C D E F G A B
+                const whiteLabels = ['C','D','E','F','G','A','B'];
+                const blackMap = { 1:'C#',3:'D#',6:'F#',8:'G#',10:'A#' };
+                const blackPositionsRelativeToWhite = {1:0,3:1,6:3,8:4,10:5}; // index of white to left
+
+                // Precompute cent positions of all current tuning steps (0..currentTuning-1)
+                const stepCents = Array.from({length:this.currentTuning},(_,i)=> this.getCentValue(i));
+
+                // Map each tuning step to nearest 12TET semitone (0..11)
+                const semitoneCenters = Array.from({length:12},(_,i)=> i*100);
+                const stepToSemitone = stepCents.map(c=>{
+                    let best=0; let mind=Infinity;
+                    for (let s=0;s<12;s++){const d=Math.abs(c-semitoneCenters[s]); if(d<mind){mind=d;best=s;}}
+                    return {cent:c, step: c/ (1200/ this.currentTuning), idx:best, dist:mind};
+                });
+
+                // For deciding which standard keys (white/black) are represented by an EDO step
+                const threshold = 35; // cents tolerance to claim a semitone
+                const semitoneHasStep = new Array(12).fill(false);
+                stepToSemitone.forEach(o=>{ if(o.dist<=threshold) semitoneHasStep[o.idx]=true; });
+
+                // keyboard already prepared above
+                // Dynamic width scaling for higher EDO counts
+                this.adjustKeyboardWidth(keyboard);
+
+                // Function to select a root by actual tuning step index
+                const selectRoot = (targetStep)=>{
+                    document.querySelectorAll('#rootGrid .root-btn, #rootGrid .edo-dot').forEach(x=>x.classList.remove('active'));
+                    this.currentRoot = targetStep;
+                    // find element with data-step
+                    const els = keyboard.querySelectorAll(`[data-step='${targetStep}']`);
+                    els.forEach(el=> el.classList.add('active'));
+                    this.regenerateAllColumnsPreservingLocks();
+                    this.updateChordDisplay();
+                    if (this.chordCreationMode) {
+                        // Keep preview column in sync with new root
+                        this.updatePreviewChordColumn();
+                    }
+                };
+
+                // Pick representative step for each claimed semitone (closest)
+                const semitoneToStep = new Array(12).fill(null);
+                for (let s=0;s<12;s++){
+                    let best=null; let mind=Infinity;
+                    stepToSemitone.forEach(o=>{ if(o.idx===s && o.dist < mind){ mind=o.dist; best=o; }});
+                    semitoneToStep[s]=best; // may be null
+                }
+
+                // Horizontal positions for 7 white circles equally spaced across width
+                const whiteCenters = whiteOrder.map((_,i)=> ( (i+0.5)/7 )*100 );
+                whiteOrder.forEach((semi,i)=>{
+                    const rep = semitoneToStep[semi];
+                    const el = document.createElement('div');
+                    el.className='white-key root-btn';
+                    // Always interactive: fallback to nearest step even if not within threshold
+                    let stepIndex = rep? Math.round(rep.step) : this.findNearestStepForSemitone(semi, stepCents);
+                    el.dataset.step = stepIndex;
+                    if(stepIndex===this.currentRoot) el.classList.add('active');
+                    el.dataset.semitone=semi;
+                    el.style.left = whiteCenters[i] + '%';
+                    // Replace label with microtonal note name for that step
+                    el.textContent = this.getMicrotonalNoteName(stepIndex % this.currentTuning);
+                    el.addEventListener('click',()=> selectRoot(stepIndex));
+                    keyboard.appendChild(el);
+                });
+
+                // Black key centers between specific white centers
+                const blackCenters = {1:(whiteCenters[0]+whiteCenters[1])/2,3:(whiteCenters[1]+whiteCenters[2])/2,6:(whiteCenters[3]+whiteCenters[4])/2,8:(whiteCenters[4]+whiteCenters[5])/2,10:(whiteCenters[5]+whiteCenters[6])/2};
+                Object.entries(blackMap).forEach(([semi,label])=>{
+                    const s=parseInt(semi,10);
+                    const rep = semitoneToStep[s];
+                    const el=document.createElement('div');
+                    el.className='black-key root-btn';
+                    let stepIndex = rep? Math.round(rep.step) : this.findNearestStepForSemitone(s, stepCents);
+                    el.dataset.step = stepIndex;
+                    if(stepIndex===this.currentRoot) el.classList.add('active');
+                    el.dataset.semitone=s;
+                    el.style.left = blackCenters[s] + '%';
+                    el.textContent=this.getMicrotonalNoteName(stepIndex % this.currentTuning);
+                    el.addEventListener('click',()=> selectRoot(stepIndex));
+                    keyboard.appendChild(el);
+                });
+
+                // Gap-based microtone layout: for each semitone gap place up to one blue (<50), one green (~50), one red (>50) actual EDO steps.
+                const semiCenters = {}; // semitone -> percent center (0..100)
+                whiteOrder.forEach((s,i)=>{ semiCenters[s]=whiteCenters[i]; });
+                Object.entries(blackCenters).forEach(([s,p])=>{ semiCenters[parseInt(s,10)]=p; });
+                // NOTE: removed previous wrappedC>100 approach; we now constrain the B–C gap to end at 100%
+                // so no element ever receives a left position >100 (which previously pushed B off-screen after re-spacing)
+                const firstC = whiteCenters[0];
+                const addMicroDot = (pct,color,targetCent,label)=>{
+                    if (pct < firstC) pct = firstC; // clamp so nothing before first C
+                    if (pct > 100) pct = 99.5; // hard clamp to stay on screen
+                    const d=document.createElement('div');
+                    d.className=`edo-dot edo-lane-${color} ${color}`;
+                    d.style.left=pct+'%';
+                    // nearest tuning step
+                    let bestStep=0; let bestDist=Infinity;
+                    stepCents.forEach((c,i)=>{ const base=c%1200; const dist=Math.abs(base-targetCent); if(dist<bestDist){bestDist=dist;bestStep=i;} });
+                    d.dataset.step=bestStep;
+                    if (bestStep===this.currentRoot) d.classList.add('active');
+                    // Assign microtonal note name as visible text
+                    d.textContent = this.getMicrotonalNoteName(bestStep % this.currentTuning);
+                    d.title=`${d.textContent} (${color})`; // concise tooltip
+                    d.addEventListener('click',()=> selectRoot(bestStep));
+                    keyboard.appendChild(d);
+                };
+                // ================== ALGORITHMIC MICROTONAL COLOR ORDERING ==================
+                // Goal: purely algorithmic (no special-case 48 only) ordering of internal microtones.
+                // For any semitone gap that contains internal steps (excluding those claimed by the end semitone centers):
+                //   White -> Black gap (W-B):   assign in ascending order: Red (near white) , Green (middle), Blue (near black)
+                //   Black -> White gap (B-W):   assign in ascending order: Blue (near black), Green (middle), Red (near white)
+                //   Natural gaps (E–F s=4->5 and B–C s=11->0): place a single Green (midpoint). If multiple internal steps, choose the one nearest 50¢;
+                //   for B–C bias midpoint toward B (~42%) when only one internal microtone exists.
+                // If fewer than 3 internal steps in a chromatic gap, endpoints get priority colors; middle is Green when present.
+                // If more than 3 internal steps, only the first, a middle representative, and last are kept to avoid clutter.
+                const whiteSemis = new Set([0,2,4,5,7,9,11]);
+                const blackSemis = new Set([1,3,6,8,10]);
+                // Build set of step indices already used for keys so we don't recolor them
+                const claimedSteps = new Set();
+                semitoneToStep.forEach(rep=>{ if(rep) claimedSteps.add(Math.round(rep.step)); });
+
+                for(let s=0;s<12;s++){
+                    const nextSemi = (s===11)? 0 : s+1;
+                    const leftPct = semiCenters[s];
+                    // Constrain final B–C gap to end-of-range (100%) instead of artificial wrappedC (>100)
+                    let rightPct;
+                    if (s===11) {
+                        rightPct = 100; // end of visible octave span
+                    } else {
+                        rightPct = semiCenters[nextSemi];
+                    }
+                    if(leftPct==null || rightPct==null) continue;
+                    let spanPct = rightPct-leftPct;
+                    if (spanPct<=0) continue; // safety; prevents negative or zero spans
+
+                    // Determine gap type
+                    const isNaturalGap = (s===4 && nextSemi===5) || (s===11 && nextSemi===0);
+                    const gapType = isNaturalGap ? 'NAT' : (whiteSemis.has(s) && blackSemis.has(nextSemi) ? 'WB' : (blackSemis.has(s) && whiteSemis.has(nextSemi) ? 'BW' : 'OTHER'));
+                    const gapStartCent = s*100; const gapEndCent = (s+1)*100; // cents
+
+                    // Gather internal candidate steps (exclude endpoints and claimed key steps)
+                    const candidates = [];
+                    stepCents.forEach((c,i)=>{
+                        const cent = c % 1200;
+                        if (cent>gapStartCent && cent<gapEndCent) {
+                            if (claimedSteps.has(i)) return; // skip key representative
+                            const offset = cent - gapStartCent; // 0..100
+                            candidates.push({cent,offset,step:i});
+                        }
+                    });
+                    if(!candidates.length) continue;
+                    candidates.sort((a,b)=> a.offset - b.offset); // ascending by position in gap
+
+                    if (gapType==='NAT') {
+                        // Single neutral microtone (green). Choose nearest to 50¢ (bias to 42% for B–C when only one)
+                        let chosen;
+                        if (candidates.length===1) { chosen = candidates[0]; }
+                        else { chosen = candidates.slice().sort((a,b)=> Math.abs(a.offset-50)-Math.abs(b.offset-50))[0]; }
+                        let frac = chosen.offset/100;
+                        if (s===11 && candidates.length===1) { // B–C bias toward B
+                            frac = Math.min(frac, 0.42);
+                        }
+                        let pct = leftPct + spanPct*frac; if (pct>100) pct-=100;
+                        addMicroDot(pct,'green',chosen.cent,`Between ${s}-${nextSemi}`);
+                        continue;
+                    }
+                    if (gapType==='OTHER') {
+                        // Fallback: use original tri-color heuristic (treat as WB style)
+                        const first = candidates[0];
+                        const last = candidates[candidates.length-1];
+                        const mid = candidates[Math.floor(candidates.length/2)];
+                        const chosen = [first, mid, last];
+                        const colors = ['red','green','blue'];
+                        chosen.forEach((obj,idx)=>{
+                            if(!obj) return;
+                            let pct = leftPct + spanPct*(obj.offset/100); if (pct>100) pct-=100;
+                            addMicroDot(pct, colors[idx], obj.cent, `Between ${s}-${nextSemi}`);
+                        });
+                        continue;
+                    }
+                    // Chromatic gaps with a black key boundary (WB or BW)
+                    let core = candidates;
+                    if (core.length>3) { // reduce to first/middle/last
+                        core = [core[0], core[Math.floor(core.length/2)], core[core.length-1]];
+                    }
+                    // Assign colors based on direction
+                    let colorOrder; // array parallel to sorted offsets
+                    if (gapType==='WB') { // white -> black
+                        if (core.length===1) colorOrder=['green'];
+                        else if (core.length===2) colorOrder=['red','blue'];
+                        else colorOrder=['red','green','blue'];
+                    } else { // 'BW'
+                        if (core.length===1) colorOrder=['green'];
+                        else if (core.length===2) colorOrder=['blue','red'];
+                        else colorOrder=['blue','green','red'];
+                    }
+                    core.forEach((obj,idx)=>{
+                        let pct = leftPct + spanPct*(obj.offset/100);
+                        addMicroDot(pct, colorOrder[idx], obj.cent, `Between ${s}-${nextSemi}`);
+                    });
+                }
+        // After constructing all keys and dots, resize to fit
+                this.resizeKeyboardKeys(keyboard, whiteCenters);
+                this.adjustForDotOverlap(keyboard);
+                this.enforceEquidistantCenters(keyboard);
+                this.resizeDotsToKeySize(keyboard);
             }
 
             getNoteNames() {
@@ -8354,6 +8683,139 @@
                 const result = (step * 1200) / currentTuning;
                 console.log('equal temperament cents result:', result);
                 return result;
+            }
+
+            // Find nearest EDO step (index) whose cent value is closest to a given 12-TET semitone center
+            findNearestStepForSemitone(semitone, stepCents){
+                const targetCent = semitone * 100;
+                let bestIdx = 0; let bestDist = Infinity;
+                stepCents.forEach((c,i)=>{
+                    const dist = Math.abs((c%1200) - targetCent);
+                    if(dist < bestDist){ bestDist = dist; bestIdx = i; }
+                });
+                return bestIdx;
+            }
+
+            // Dynamically resize circular keys to avoid overflow and keep everything after first C
+            resizeKeyboardKeys(keyboard, whiteCenters){
+                if(!keyboard || !whiteCenters || whiteCenters.length < 2) return;
+                const kbWidth = (keyboard.clientWidth || 1000);
+                const edo = this.currentTuning || 12;
+                const densityFactor = edo/12;
+                let diameter = 70 / densityFactor;
+                const spacingPct = whiteCenters[1]-whiteCenters[0];
+                const spacingPx = (spacingPct/100) * kbWidth;
+                diameter = Math.min(diameter, spacingPx * 0.85);
+                const minReadable = edo >= 72 ? 12 : 16;
+                if (diameter < minReadable) diameter = minReadable;
+                this.currentKeyDiameter = diameter;
+                const renderD = diameter;
+                keyboard.querySelectorAll('.white-key.root-btn').forEach(el=>{
+                    el.style.width = renderD + 'px';
+                    el.style.height = renderD + 'px';
+                });
+                keyboard.querySelectorAll('.black-key.root-btn').forEach(el=>{
+                    el.style.width = renderD + 'px';
+                    el.style.height = renderD + 'px';
+                });
+                keyboard.querySelectorAll('.edo-dot').forEach(el=>{
+                    const dotD = renderD * 0.55;
+                    el.style.width = dotD + 'px';
+                    el.style.height = dotD + 'px';
+                });
+            }
+
+            // Widen keyboard proportionally with EDO so higher divisions have more horizontal space
+            adjustKeyboardWidth(keyboard){
+                // Legacy function retained for compatibility; intentionally does nothing now.
+                if(!keyboard) return;
+            }
+
+            // Detect dot/key overlaps; shrink keys globally until all dots clear or min size reached
+            adjustForDotOverlap(keyboard){
+                if(!keyboard) return;
+                const kbWidth = keyboard.clientWidth || 1000;
+                const percentPerPx = 100 / kbWidth;
+                const padPx = 2;
+                const dotRadiusPx = 10; // 20px diameter per CSS
+                let diameter = this.currentKeyDiameter || 70;
+                const minDiameter = 34;
+                const dots = Array.from(keyboard.querySelectorAll('.edo-dot'));
+                if(!dots.length) return;
+                const getOverlapExists = ()=>{
+                    const keyCenters = [];
+                    keyboard.querySelectorAll('.white-key.root-btn, .black-key.root-btn').forEach(k=>{
+                        const leftPct = parseFloat(k.style.left);
+                        keyCenters.push(leftPct);
+                    });
+                    const keyRadiusPct = (diameter/2) * percentPerPx;
+                    const dotRadiusPct = dotRadiusPx * percentPerPx;
+                    const padPct = padPx * percentPerPx;
+                    for(const d of dots){
+                        const dPct = parseFloat(d.style.left);
+                        for(const kc of keyCenters){
+                            if (Math.abs(dPct - kc) < (keyRadiusPct + dotRadiusPct + padPct)){
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                };
+                let guard=0;
+                while(getOverlapExists() && diameter>minDiameter && guard<20){
+                    guard++;
+                    diameter -= 3; // shrink step
+                    this.currentKeyDiameter = diameter;
+                    // Use the same scale logic as in resizeKeyboardKeys
+                    const renderD = diameter;
+                    keyboard.querySelectorAll('.white-key.root-btn').forEach(el=>{
+                        el.style.width = renderD + 'px';
+                        el.style.height = renderD + 'px';
+                    });
+                    keyboard.querySelectorAll('.black-key.root-btn').forEach(el=>{
+                        el.style.width = renderD + 'px';
+                        el.style.height = renderD + 'px';
+                    });
+                }
+             }
+
+            // Reposition all key & dot centers to be perfectly equidistant while preserving ordering
+            enforceEquidistantCenters(keyboard){
+                if(!keyboard) return;
+                const all = Array.from(keyboard.querySelectorAll('.white-key.root-btn, .black-key.root-btn, .edo-dot'));
+                if(all.length < 2) return;
+                // Sort by current left
+                all.sort((a,b)=> parseFloat(a.style.left) - parseFloat(b.style.left));
+                // Determine first C (white key with label starting C) to lock at current position
+                const firstCEl = all.find(el=> el.classList.contains('white-key') && /C/.test(el.textContent));
+                const firstLeft = firstCEl ? parseFloat(firstCEl.style.left) : parseFloat(all[0].style.left);
+                const lastEl = all[all.length-1];
+                const lastLeft = parseFloat(lastEl.style.left);
+                if (lastLeft <= firstLeft) return;
+                // If any element already exceeds 100%, abort normalization (shouldn't happen after earlier clamps)
+                if (all.some(el=> parseFloat(el.style.left) > 100)) return;
+                const span = lastLeft - firstLeft;
+                const uniformGap = span / (all.length - 1);
+                all.forEach((el,idx)=>{
+                    if (el===firstCEl || el===lastEl) return; // lock ends
+                    const newLeft = firstLeft + idx*uniformGap;
+                    // Safety clamp
+                    el.style.left = Math.min(99.5, Math.max(firstLeft, newLeft)) + '%';
+                });
+            }
+
+            // Make colored micro dots same diameter as (reduced) black/white keys for easier tapping
+            resizeDotsToKeySize(keyboard){
+                if(!keyboard) return;
+                const diameter = (this.currentKeyDiameter || 70) * 0.97; // match black key size
+                keyboard.querySelectorAll('.edo-dot').forEach(dot=>{
+                    dot.style.width = diameter + 'px';
+                    dot.style.height = diameter + 'px';
+                    dot.style.lineHeight = diameter + 'px';
+                    // Adjust font size relative to diameter
+                    const fs = Math.max(10, Math.min(14, diameter * 0.22));
+                    dot.style.fontSize = fs + 'px';
+                });
             }
 
             getFrequency(step, octave = 4, tuning = null) {
@@ -9531,8 +9993,29 @@
                     
                     stringsContainer.appendChild(stringElement);
                 });
+                // Post-fit adjustment to guarantee no hidden octaves
+                this.ensureStringsFullyVisible(stringsContainer);
                 
                 column.appendChild(stringsContainer);
+            }
+
+            // Shrink string heights uniformly if overflow would hide octaves
+            ensureStringsFullyVisible(parent){
+                if(!parent) return;
+                const strings = Array.from(parent.querySelectorAll('.string'));
+                if(!strings.length) return;
+                // small timeout ensures layout values are settled if heights were zero initially
+                const adjust = ()=>{
+                    const visibleH = parent.clientHeight;
+                    if(visibleH<=0) return;
+                    const total = strings.reduce((sum,s)=> sum + s.offsetHeight, 0);
+                    if(total <= visibleH) return; // fits already
+                    const target = Math.max(1, Math.floor((visibleH - (strings.length*0.4)) / strings.length));
+                    strings.forEach(s=>{ s.style.height = target + 'px'; });
+                };
+                // Run twice (immediate + next frame) to catch late layout
+                adjust();
+                requestAnimationFrame(adjust);
             }
             
             adjustColorBrightness(hexColor, percent) {
@@ -10682,7 +11165,7 @@
                 this.tutorialStep = 0;
                 this.tutorialSteps = [
                     {
-                        title: "Welcome to Xenmicord!",
+                        title: "Welcome to OMG-nichord.",
                         text: "This is a microtonal omnichord that lets you explore different tuning systems and create awesome harmonic textures. You start with a Major chord ready to play!",
                         highlight: null
                     },
@@ -11174,6 +11657,16 @@
         window.addEventListener('load', () => {
             omnichord = new MicrotonalOmnichord();
             window.omnichord = omnichord; // Make it globally accessible
+
+            // Also expose adjustKeyboardForLogo for resize events
+            window.PianoApp = window.PianoApp || {};
+            window.PianoApp.adjustKeyboardForLogo = () => {
+                if (omnichord && typeof omnichord.adjustKeyboardForLogo === 'function') {
+                    omnichord.adjustKeyboardForLogo();
+                }
+            };
+            // Initial adjustment on load
+            if (window.PianoApp.adjustKeyboardForLogo) window.PianoApp.adjustKeyboardForLogo();
             
             // Initialize new features
             omnichord.initTutorial();
@@ -11198,6 +11691,27 @@
                 return e.returnValue;
             }
         });
+             // Bottom bar panel toggling (uses existing migrated panel-content elements)
+             (function(){
+                 const bar=document.getElementById('bottomBar');
+                 const host=document.getElementById('panelHost');
+                 if(!bar||!host) return;
+                 const panels=[...host.querySelectorAll('.panel-content')];
+                 let open=null;
+                 function show(id){
+                     panels.forEach(p=>{p.style.display = (p.dataset.panel===id)?'grid':'none';});
+                     host.style.display='block';
+                 }
+                 function close(){ host.style.display='none'; panels.forEach(p=>p.style.display='none'); open=null; bar.querySelectorAll('.panel-btn').forEach(b=>b.classList.remove('active')); }
+                 bar.addEventListener('click',e=>{
+                     const btn=e.target.closest('.panel-btn'); if(!btn) return;
+                     const id=btn.dataset.panel;
+                     if(open===id){ close(); return; }
+                     open=id; show(id); bar.querySelectorAll('.panel-btn').forEach(b=>b.classList.toggle('active',b===btn));
+                 });
+                 window.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+                 window.addEventListener('click',e=>{ if(open && !host.contains(e.target) && !bar.contains(e.target)) close(); });
+             })();
     </script>
 </body>
 </html>
