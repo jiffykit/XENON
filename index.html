@@ -2734,19 +2734,37 @@
                     headerAccentColor = (!c || c.toLowerCase() === '#000000') ? '#333333' : c;
                 } catch {}
                 
+                // Preserve existing chord metadata if editing in place
+                let preserved = {};
+                if (replacing && this.chordExtensions[position]) {
+                    const oldChord = this.chordExtensions[position];
+                    preserved = {
+                        id: oldChord.id,
+                        createdAt: oldChord.createdAt,
+                        headerColor: oldChord.headerColor,
+                        originalTuning: oldChord.originalTuning,
+                        originalGamelanMode: oldChord.originalGamelanMode,
+                        lastTuning: oldChord.lastTuning
+                    };
+                }
+
                 // Create new chord extension with exact intervals and position tracking
                 const newChord = {
                     name: chordName,
                     extensions: [],
                     intervals: [...this.selectedIntervals],
                     isCustom: true,
-                    id: 'custom_' + Date.now(),
-                    createdAt: Date.now(),
+                    id: preserved.id || ('custom_' + Date.now()),
+                    createdAt: preserved.createdAt || Date.now(),
                     position: position, // Track exact position in array
                     // Keep the original root for reference but don't auto-lock
                     originalRoot: this.currentRoot,
+                    // Track tuning metadata to support future remaps between EDOs
+                    originalTuning: preserved.originalTuning || this.currentTuning,
+                    originalGamelanMode: preserved.originalGamelanMode ?? this.gamelanMode,
+                    lastTuning: this.currentTuning,
                     // Persist a header color so saved chords can keep distinct colors
-                    headerColor: headerAccentColor
+                    headerColor: preserved.headerColor || headerAccentColor
                 };
                 
                 console.log('🔧 finalizePreviewChord - saving chord:', {
@@ -2759,7 +2777,8 @@
                 
                 // Add to chord extensions: replace original index when editing, else append
                 if (replacing) {
-                    this.chordExtensions.splice(position, 0, newChord);
+                    // Replace in place to preserve column position and identity
+                    this.chordExtensions.splice(position, 1, newChord);
                 } else {
                     this.chordExtensions.push(newChord);
                 }
@@ -2794,7 +2813,6 @@
             
             regenerateColumnsWithoutVariants() {
                 // Regenerate only the exact chords without creating maj/min/neu variants
-                console.log('?? Regenerating columns without variants');
                 this.generateExactChordColumns();
                 this.updateChordDisplay();
             }
@@ -4229,12 +4247,23 @@
                 
                 document.getElementById('chordBuilderModal').style.display = 'none';
                 this.currentEditingChord = null;
+                // Autosave on tap-out: if we were editing via selectedIntervals, commit in place
+                if (this.isChordCreationMode && this.selectedIntervals && this.selectedIntervals.length > 1) {
+                    const pendingName = this.generateChordName(this.selectedIntervals);
+                    this.finalizePreviewChord(pendingName);
+                }
+                this.isChordCreationMode = false;
             }
             
             updateTuningSystem(divisions) {
+                const previousTuning = this.currentTuning;
                 this.currentTuning = divisions;
                 this.gamelanMode = false;
                 this.generateRootButtons();
+                // Remap custom chords to nearest neighbors in new tuning
+                try {
+                    this.remapCustomChordsToNearestNeighbors(previousTuning, this.currentTuning);
+                } catch (e) { console.warn('Remap skipped:', e); }
                 this.preserveLockedChordsAndRegenerate();
                 
                 // Update note selector if chord builder is open
@@ -4245,6 +4274,32 @@
                 console.log(`Updated to ${divisions}-EDO tuning system`);
                 // Auto-close the TUNING popup/panel after applying
                 if (typeof this.closeBottomPanel === 'function') this.closeBottomPanel();
+            }
+
+            // Remap custom-chord intervals from an old EDO to the nearest neighbors in a new EDO
+            remapCustomChordsToNearestNeighbors(fromEdo, toEdo) {
+                if (!Array.isArray(this.chordExtensions) || !fromEdo || !toEdo || fromEdo === toEdo) return;
+                // Helper: map a step value in fromEdo to nearest step in toEdo by preserving cents
+                const mapStep = (step) => {
+                    // Preserve pitch-class modulo octave while keeping absolute step differences minimal
+                    // Convert to cents relative to octave and round to nearest destination step
+                    const cents = (step / fromEdo) * 1200;
+                    const mapped = Math.round((cents / 1200) * toEdo);
+                    return ((mapped % toEdo) + toEdo) % toEdo;
+                };
+                this.chordExtensions = this.chordExtensions.map(ch => {
+                    if (ch && ch.isCustom && Array.isArray(ch.intervals)) {
+                        const mappedIntervals = ch.intervals.map(mapStep);
+                        // Keep root at 0 explicitly
+                        if (!mappedIntervals.includes(0)) mappedIntervals.unshift(0);
+                        return {
+                            ...ch,
+                            intervals: [...new Set(mappedIntervals)].sort((a,b)=>a-b),
+                            lastTuning: toEdo
+                        };
+                    }
+                    return ch;
+                });
             }
             
             updateIntervalRatio(ratioString) {
@@ -5148,7 +5203,6 @@
                 
                 // Touch start
                 element.addEventListener('touchstart', (e) => {
-                    console.log('Touch start on element:', element.className, 'type:', type);
                     const touch = e.touches[0];
                     touchData.startTime = Date.now();
                     touchData.isLongPress = false;
@@ -5166,7 +5220,6 @@
                         this.touchGestures.chordNameLongPressDelay : this.touchGestures.longPressDelay;
                     
                     touchData.longPressTimer = setTimeout(() => {
-                        console.log('Long press triggered on:', element.className);
                         touchData.isLongPress = true;
                         element.classList.remove('touch-pressed');
                         element.classList.add('touch-long-press');
@@ -5205,8 +5258,6 @@
                 
                 // Touch end
                 element.addEventListener('touchend', (e) => {
-                    console.log('Touch end on element:', element.className, 'type:', type);
-                    
                     // Clear long press timer
                     if (touchData.longPressTimer) {
                         clearTimeout(touchData.longPressTimer);
@@ -5221,7 +5272,6 @@
                         const delay = (type === 'chord' && element.classList.contains('extension-header')) ? 
                             this.touchGestures.chordNameLongPressDelay : this.touchGestures.longPressDelay;
                         if (Date.now() - touchData.startTime < delay) {
-                            console.log('Handling normal tap for:', element.className, 'type:', type);
                             this.handleNormalTap(element, type);
                         }
                     }
@@ -5255,15 +5305,10 @@
                 if (element.dataset.clickGestureAdded) return;
                 element.dataset.clickGestureAdded = 'true';
                 
-                console.log('Adding click gesture to element:', element.className, 'type:', type);
-                
                 // Add click event listener for regular mouse clicks (using capture phase for higher priority)
                 element.addEventListener('click', (e) => {
-                    console.log('Click detected on element:', element.className, 'type:', type);
-                    
                     // Show context menu for chord headers or extension columns
                     if (type === 'chord' && (element.classList.contains('extension-header') || element.classList.contains('extension-column'))) {
-                        console.log('Showing context menu for chord element');
                         e.preventDefault();
                         e.stopPropagation();
                         e.stopImmediatePropagation();
@@ -5271,27 +5316,20 @@
                         this.handleClick(element, type, e.clientX, e.clientY);
                         return false; // Ensure event stops here
                     } else if (type === 'palette') {
-                        console.log('Showing context menu for palette chord');
                         e.preventDefault();
                         e.stopPropagation();
                         e.stopImmediatePropagation();
                         // Show context menu for palette chords
                         this.handleClick(element, type, e.clientX, e.clientY);
                         return false; // Ensure event stops here
-                    } else {
-                        console.log('Not showing context menu for:', type, element.className);
                     }
                     // For root buttons (type === 'root'), let the normal click behavior happen
                 }, true); // Use capture phase
                 
                 // Also add a mousedown listener for long-press support
                 element.addEventListener('mousedown', (e) => {
-                    console.log('Mousedown detected on element:', element.className, 'type:', type);
-                    
                     // Only handle left click (button 0)
                     if (e.button === 0 && type === 'chord' && (element.classList.contains('extension-header') || element.classList.contains('extension-column'))) {
-                        console.log('Left mousedown on chord element, preparing context menu');
-                        
                         // For chord name buttons (extension-header), use 200ms delay
                         if (element.classList.contains('extension-header')) {
                             element.dataset.mouseDownTime = Date.now();
@@ -5300,7 +5338,6 @@
                             
                             // Start timer for 200ms long press
                             element.dataset.mouseLongPressTimer = setTimeout(() => {
-                                console.log('Mouse long press triggered on chord name button');
                                 element.dataset.isMouseLongPress = 'true';
                                 this.handleLongPress(element, type, e.clientX, e.clientY);
                             }, this.touchGestures.chordNameLongPressDelay);
@@ -5346,7 +5383,6 @@
                                 delete element.dataset.isMouseLongPress;
                             } else if (holdTime < this.touchGestures.chordNameLongPressDelay) {
                                 // Short click - treat as normal tap
-                                console.log('Short click on chord name button - normal tap behavior');
                                 this.handleNormalTap(element, type);
                             }
                             
@@ -5356,7 +5392,6 @@
                             delete element.dataset.mouseDownY;
                         } else if (element.dataset.showContextMenuOnMouseup === 'true') {
                             // Regular behavior for other chord elements
-                            console.log('Mouseup detected, showing context menu');
                             delete element.dataset.showContextMenuOnMouseup;
                             e.preventDefault();
                             e.stopPropagation();
@@ -5369,18 +5404,13 @@
             }
             
             handleClick(element, type, x, y) {
-                console.log('handleClick called with:', type, element, 'at position:', x, y);
-                
                 // Show appropriate context menu based on element type
                 if (type === 'chord' && (element.classList.contains('extension-header') || element.classList.contains('extension-column'))) {
-                    console.log('Processing chord element click');
                     // Handle extension headers and columns
                     const column = element.classList.contains('extension-column') ? element : element.closest('.extension-column');
                     if (column) {
-                        console.log('Found parent column:', column);
                         // Extract the same data as the contextmenu handler would
                         const chordType = column.dataset.chordType;
-                        console.log('Chord type:', chordType);
                         // Find the extension index and quality from the structure
                         let columnData = null;
                         
@@ -5427,7 +5457,6 @@
                         }
                         
                         if (columnData) {
-                            console.log('Showing context menu for column data:', columnData);
                             // Context menu removed - no action taken
                         } else {
                             console.error('Failed to create columnData');
@@ -5436,18 +5465,15 @@
                         console.error('Could not find parent column');
                     }
                 } else if (type === 'palette') {
-                    console.log('Processing palette click');
                     const chordData = this.getPaletteChordDataFromElement(element);
                     // Context menu removed - no action taken
                 } else {
-                    console.log('Unhandled click type:', type);
+                    // Unhandled click type - no action
                 }
                 // Don't handle 'root' type clicks here - let them work normally
             }
             
             handleLongPress(element, type, x, y) {
-                console.log('Long press detected on', type, element);
-                
                 // Show appropriate context menu based on element type
                 if (type === 'chord') {
                     // Check if this is an extension header (chord name button)
@@ -5459,7 +5485,6 @@
                             const chordData = this.getChordDataFromColumn(column, element);
                             
                             if (chordData) {
-                                console.log('Showing chord name context menu for:', chordData);
                                 // Context menu removed - no action taken
                             }
                         }
@@ -5473,16 +5498,12 @@
                     // Context menu removed - no action taken
                 } else if (type === 'root') {
                     // Root chords could have their own context menu
-                    console.log('Root chord long press - could implement root chord options');
                 }
             }
             
             handleNormalTap(element, type) {
-                console.log('handleNormalTap called with:', element.className, 'type:', type);
-                
                 // Handle normal tap based on element type - only show context menu for chord headers and palette
                 if (type === 'chord' && element.classList.contains('extension-header')) {
-                    console.log('Showing chord name context menu for chord header tap');
                     // Show chord name context menu for chord headers
                     const rect = element.getBoundingClientRect();
                     const x = rect.left + rect.width / 2;
@@ -5496,14 +5517,12 @@
                         }
                     }
                 } else if (type === 'palette') {
-                    console.log('Showing context menu for palette chord tap');
                     // Show context menu for palette chords
                     const rect = element.getBoundingClientRect();
                     const x = rect.left + rect.width / 2;
                     const y = rect.top + rect.height / 2;
                     this.handleClick(element, type, x, y);
                 } else if (type === 'root') {
-                    console.log('Processing root button tap');
                     // For root buttons, perform normal click behavior
                     const rootBtn = element.closest('.root-btn');
                     if (rootBtn) {
@@ -5511,7 +5530,7 @@
                         rootBtn.click();
                     }
                 } else {
-                    console.log('No action for tap on:', element.className, 'type:', type);
+                    // No action for this tap target
                 }
             }
             
@@ -6539,27 +6558,69 @@
                     return intervalNames[interval12TET] || `${interval12TET} semitones`;
                 }
                 
-                // 🎵 TRIADS (3-note chords) - adjusted for current tuning
-                if (numNotes === 3) {
-                    if (hasIntervals(0, 4, 7)) return 'Major'; // Major triad - full name
-                    if (hasIntervals(0, 3, 7)) return 'm'; // Minor
-                    if (hasIntervals(0, 3, 6)) return '°'; // Diminished
-                    if (hasIntervals(0, 4, 8)) return '+'; // Augmented
-                    if (hasIntervals(0, 2, 7)) return 'sus2'; // Suspended 2nd
-                    if (hasIntervals(0, 5, 7)) return 'sus4'; // Suspended 4th
+                // Normalize to pitch classes (ignore octaves)
+                const edo = this.currentTuning || 12;
+                const pitchClasses = [...new Set(uniqueIntervals.map(i => ((i % edo) + edo) % edo))].sort((a,b)=>a-b);
+
+                // Helper to map EDO steps to rounded 12-TET semitones for pattern matching
+                const to12 = step => Math.round((step * 12) / edo);
+
+                // Inversion-invariant matcher: check all possible roots (each pitch class)
+                const matchInversions = (targetSets) => {
+                    // targetSets: array of {set:[...12-semis], name:string}
+                    const results = [];
+                    for (const rootPc of pitchClasses) {
+                        const rel = pitchClasses.map(pc => (pc - rootPc + edo) % edo);
+                        const rel12 = [...new Set(rel.map(to12))].sort((a,b)=>a-b);
+                        for (const t of targetSets) {
+                            if (t.set.length !== rel12.length) continue;
+                            let ok = true;
+                            for (let i=0;i<t.set.length;i++) if (t.set[i] !== rel12[i]) { ok=false; break; }
+                            if (ok) results.push(t.name);
+                        }
+                    }
+                    return results;
+                };
+
+                // 🎵 TRIADS (3-note chords) - inversion-invariant
+                if (pitchClasses.length === 3) {
+                    const triadTargets = [
+                        { set:[0,4,7], name:'Major' },
+                        { set:[0,3,7], name:'m' },
+                        { set:[0,3,6], name:'°' },
+                        { set:[0,4,8], name:'+' },
+                        { set:[0,2,7], name:'sus2' },
+                        { set:[0,5,7], name:'sus4' },
+                    ];
+                    const hits = matchInversions(triadTargets);
+                    if (hits.length) {
+                        // Simple priority for suspensions over diminished/aug if ambiguous
+                        const order = ['Major','m','sus4','sus2','°','+'];
+                        const pick = order.find(n => hits.includes(n)) || hits[0];
+                        return pick;
+                    }
                 }
-                
-                // 🎵 TETRADS (4-note chords) - adjusted for current tuning
-                if (numNotes === 4) {
-                    if (hasIntervals(0, 4, 7, 9)) return '6'; // Major 6th
-                    if (hasIntervals(0, 3, 7, 9)) return 'm6'; // Minor 6th
-                    if (hasIntervals(0, 4, 7, 10)) return '7'; // Dominant 7th
-                    if (hasIntervals(0, 4, 7, 11)) return 'Δ7'; // Major 7th
-                    if (hasIntervals(0, 3, 7, 10)) return 'm7'; // Minor 7th
-                    if (hasIntervals(0, 3, 7, 11)) return 'mΔ7'; // Minor/Major 7th
-                    if (hasIntervals(0, 3, 6, 10)) return 'ø7'; // Half-Diminished 7th
-                    if (hasIntervals(0, 3, 6, 9)) return '°7'; // Fully Diminished 7th
-                    if (hasIntervals(0, 5, 7, 10)) return '7sus4'; // Dominant 7sus4
+
+                // 🎵 TETRADS (4-note chords) - inversion-invariant with 6/m6 preference over 7/m7
+                if (pitchClasses.length === 4) {
+                    const tetradTargets = [
+                        { set:[0,4,7,9],  name:'6'   },
+                        { set:[0,3,7,9],  name:'m6'  },
+                        { set:[0,4,7,11], name:'Δ7'  },
+                        { set:[0,4,7,10], name:'7'   },
+                        { set:[0,3,7,10], name:'m7'  },
+                        { set:[0,3,7,11], name:'mΔ7' },
+                        { set:[0,3,6,10], name:'ø7'  },
+                        { set:[0,3,6,9],  name:'°7'  },
+                        { set:[0,5,7,10], name:'7sus4' },
+                    ];
+                    const hits = matchInversions(tetradTargets);
+                    if (hits.length) {
+                        // Preference order: 6/m6 > Δ7 > 7/m7 > others
+                        const order = ['6','m6','Δ7','7','m7','mΔ7','ø7','°7','7sus4'];
+                        const pick = order.find(n => hits.includes(n)) || hits[0];
+                        return pick;
+                    }
                 }
                 
                 // 🎵 5-NOTE CHORDS - adjusted for current tuning
@@ -11736,4 +11797,5 @@
     </script>
 </body>
 </html>
+
 
