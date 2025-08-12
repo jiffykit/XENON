@@ -683,7 +683,7 @@
             flex: 1 1 auto;
             display: flex;
             flex-direction: column;
-            padding: 1px;
+            padding: 0; /* no inner gaps */
             overflow: hidden; /* Prevent scrollbars */
             min-height: 0; /* allow shrinking when header grows */
             box-sizing: border-box;
@@ -702,31 +702,42 @@
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        /* Hit area fills the lane from string to string (no gaps) */
         .string {
-            height: 1px;
-            background: linear-gradient(90deg, #34495e, #95a5a6, #34495e);
-            border-radius: 0.5px;
             position: relative;
             cursor: pointer;
-            transition: all 0.05s;
-            box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.3);
-            margin: 0.2px 0;
-            flex-shrink: 0;
-            overflow: hidden;
+            display: flex;
+            align-items: center; /* center the visible core */
+            justify-content: stretch;
+            flex: 1 1 0;
+            margin: 0; /* no gaps */
+            padding: 0; /* keep tight */
+            overflow: visible; /* allow glow to bloom */
         }
 
-        .string:hover {
+        /* The actual visible 4px neon line lives inside the hit area */
+        .string-core {
+            position: relative;
+            width: 100%;
+            height: 4px; /* visual thickness */
+            border-radius: 2px;
+            transition: transform 0.08s ease, box-shadow 0.1s ease, opacity 0.1s ease, filter 0.1s ease;
+            transform-origin: center;
+            will-change: transform;
+            pointer-events: none; /* events on the hit area (.string) */
+        }
+
+        .string:hover .string-core {
             transform: scaleY(1.2);
-            box-shadow: 0 0 10px rgba(149, 165, 166, 0.5);
+            filter: brightness(1.05);
         }
 
-        .string.active {
-            background: linear-gradient(90deg, #e74c3c, #f39c12, #e74c3c);
-            transform: scaleY(1.3);
-            box-shadow: 0 0 15px rgba(231, 76, 60, 0.7);
+        .string.active .string-core {
+            transform: scaleY(1.25);
+            filter: brightness(1.15);
         }
 
-        .string-wave {
+    .string-wave {
             position: absolute;
             top: 0;
             left: 0;
@@ -746,7 +757,7 @@
             animation: wave-flow 1s linear infinite;
         }
 
-        .string.active .string-wave {
+    .string.active .string-wave {
             opacity: 1;
         }
 
@@ -757,6 +768,19 @@
             100% {
                 background-position-x: 20px;
             }
+        }
+
+        /* Subtle vertical vibration tied to frequency (period set via --vib-period) */
+        @keyframes vibrate-y {
+            0% { transform: translateY(0) scaleY(1); }
+            25% { transform: translateY(-1px) scaleY(1.07); }
+            50% { transform: translateY(0) scaleY(1); }
+            75% { transform: translateY(1px) scaleY(1.07); }
+            100% { transform: translateY(0) scaleY(1); }
+        }
+
+        .string-core.vibrating {
+            animation: vibrate-y var(--vib-period, 60ms) ease-in-out infinite;
         }
 
         .note-labels {
@@ -1768,7 +1792,7 @@
     <!-- Tutorial Overlay -->
     <div id="tutorialOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999;">
         <div id="tutorialBox" style="position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 2px solid #4a6870; border-radius: 10px; padding: 20px; max-width: 600px; max-height: 70vh; overflow-y: auto; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-            <h3 id="tutorialTitle" style="color: #8fb3d3; margin-top: 0;">Welcome to OMG-nichord!</h3>
+            <h3 id="tutorialTitle" style="color: #8fb3d3; margin-top: 0;">Welcome to Xenmicord!</h3>
             <p id="tutorialText" style="color: #fff; line-height: 1.5;">Click Next to start the interactive tutorial.</p>
             <div style="margin-top: 15px; text-align: center; font-size: 12px; color: #8fb3d3; opacity: 0.9; background: rgba(74, 104, 112, 0.2); padding: 8px; border-radius: 5px;">
                 💡 Press ESC, click outside, or use Skip Tutorial to exit anytime
@@ -1956,6 +1980,24 @@
                 this.updateChordDisplay();
                 this.setupSonicChords();
                 this.initChordBuilder();
+            }
+
+            // Compute a subtle vibration period in ms for a given frequency and step index
+            // Uses audio period (1/f) clamped to sensible range and snaps roots to wavelength series 1,2,4,8,16,32,64,128 as slower pulses
+            computeVibrationPeriod(freq, stepIndex = 0) {
+                const baseMs = Math.max(12, Math.min(90, 1000 / Math.max(1, freq))); // 12–90ms
+                // Treat exact roots (interval 0) specially if the EDO step index equals currentRoot
+                // We can't know the interval reliably here in all contexts; as a proxy: if stepIndex % currentTuning == currentRoot treat as root
+                try {
+                    const isRootish = ((stepIndex % this.currentTuning) === (this.currentRoot % this.currentTuning));
+                    if (isRootish) {
+                        // Map to one of 1..128 multipliers but cap to a gentle 32x to avoid too slow visuals
+                        const multipliers = [1,2,4,8,16,32];
+                        const idx = Math.min(multipliers.length - 1, Math.floor((freq || 1) / 110));
+                        return Math.round(baseMs * multipliers[idx]);
+                    }
+                } catch {}
+                return Math.round(baseMs);
             }
 
             // Initialize standard chord types with proper musical symbols
@@ -2197,6 +2239,7 @@
                 createBtn.style.borderColor = '#c0392b';
                 
                 // Update root button behavior for interval selection
+                if (typeof this.closeBottomPanel === 'function') this.closeBottomPanel();
                 this.setupIntervalSelection();
             }
             
@@ -2538,128 +2581,85 @@
                 `;
                 
                 stringFreqs.forEach((stringData, stringIndex) => {
-                    const stringElement = document.createElement('div');
-                    stringElement.className = 'string';
-                    stringElement.dataset.index = stringIndex;
-                    stringElement.dataset.column = 'preview';
-                    stringElement.dataset.frequency = stringData.freq;
-                    stringElement.dataset.noteIndex = stringData.step;
-                    
-                    // Get interval color based on musical function - SAME AS MAIN COLUMNS
+                    const stringEl = document.createElement('div');
+                    stringEl.className = 'string';
+                    stringEl.dataset.index = stringIndex;
+                    stringEl.dataset.column = 'preview';
+                    stringEl.dataset.frequency = stringData.freq;
+                    stringEl.dataset.noteIndex = stringData.step;
+
+                    // Interval color and glow
                     const intervalColor = this.getIntervalColor(stringData.interval);
                     const baseColor = intervalColor.color;
-                    
-                    // Create metallic appearance with colored hue over silver base - SAME AS MAIN COLUMNS
-                    const octaveVariation = (stringData.octave - 4) * 3;
-                    let metalColor;
-                    
-                    if (baseColor !== '#FFFFFF') {
-                        // For colored intervals, create a metallic silver base with colored tint
-                        const rgb = this.hexToRgb(baseColor);
-                        if (rgb) {
-                            // Blend the interval color with metallic silver (192, 192, 192)
-                            const metalR = Math.round((rgb.r * 0.4) + (192 * 0.6));
-                            const metalG = Math.round((rgb.g * 0.4) + (192 * 0.6));
-                            const metalB = Math.round((rgb.b * 0.4) + (192 * 0.6));
-                            
-                            // Apply octave brightness variation
-                            const brightness = 1 + (octaveVariation / 100);
-                            const finalR = Math.min(255, Math.max(0, Math.round(metalR * brightness)));
-                            const finalG = Math.min(255, Math.max(0, Math.round(metalG * brightness)));
-                            const finalB = Math.min(255, Math.max(0, Math.round(metalB * brightness)));
-                            
-                            metalColor = `rgb(${finalR}, ${finalG}, ${finalB})`;
-                        } else {
-                            metalColor = '#C0C0C0'; // Fallback silver
-                        }
-                    } else {
-                        // For root notes, use pure metallic silver with brightness variation
-                        const brightness = 1 + (octaveVariation / 100);
-                        const silverValue = Math.min(255, Math.max(160, Math.round(192 * brightness)));
-                        metalColor = `rgb(${silverValue}, ${silverValue}, ${silverValue})`;
-                    }
-                    
-                    // EXACT same metallic styling as main columns
-                    stringElement.style.cssText = `
-                        background: linear-gradient(135deg, ${metalColor} 0%, rgba(255,255,255,0.3) 25%, ${metalColor} 50%, rgba(0,0,0,0.1) 75%, ${metalColor} 100%);
-                        opacity: 0.95;
-                        height: ${stringHeight}px;
-                        margin: ${stringMargin}px 0;
-                        border-radius: 2px;
-                        cursor: pointer;
-                        transition: all 0.15s ease;
-                        position: relative;
-                        border: 1px solid rgba(255, 255, 255, 0.4);
-                        border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-                        flex-shrink: 0;
-                        min-height: 1px;
-                        box-shadow: 
-                            inset 0 1px 2px rgba(255,255,255,0.4),
-                            inset 0 -1px 2px rgba(0,0,0,0.2),
-                            0 1px 3px rgba(0,0,0,0.3);
-                    `;
-                    
-                    stringElement.title = `${intervalColor.name} - ${noteNames[stringData.step] || `Note ${stringData.step}`} - Oct${stringData.octave} - ${stringData.freq.toFixed(1)}Hz`;
-                    
-                    // Enhanced metallic hover effects - SAME AS MAIN COLUMNS
-                    stringElement.addEventListener('mouseenter', () => {
-                        stringElement.style.opacity = '1';
-                        stringElement.style.transform = 'scaleY(1.1)';
-                        stringElement.style.boxShadow = `
-                            inset 0 1px 3px rgba(255,255,255,0.6),
-                            inset 0 -1px 3px rgba(0,0,0,0.3),
-                            0 0 6px ${baseColor},
-                            0 2px 4px rgba(0,0,0,0.4)
-                        `;
+                    const glowColor = (baseColor && baseColor.toLowerCase() === '#000000') ? '#555555' : baseColor;
+                    stringEl.dataset.glowColor = glowColor;
+
+                    // Visible core
+                    const core = document.createElement('div');
+                    core.className = 'string-core';
+                    core.style.background = baseColor;
+                    core.style.boxShadow = `0 0 4px ${glowColor}, 0 0 10px ${glowColor}AA, 0 0 18px ${glowColor}66`;
+
+                    // Tooltip
+                    stringEl.title = `${intervalColor.name} - ${noteNames[stringData.step] || `Note ${stringData.step}`} - Oct${stringData.octave} - ${stringData.freq.toFixed(1)}Hz`;
+
+                    // Hover effects
+                    stringEl.addEventListener('mouseenter', () => {
+                        core.style.transform = 'scaleY(1.25)';
+                        core.style.boxShadow = `0 0 6px ${glowColor}, 0 0 14px ${glowColor}CC, 0 0 28px ${glowColor}88`;
                     });
-                    
-                    stringElement.addEventListener('mouseleave', () => {
-                        stringElement.style.opacity = '0.95';
-                        stringElement.style.transform = 'scaleY(1)';
-                        stringElement.style.boxShadow = `
-                            inset 0 1px 2px rgba(255,255,255,0.4),
-                            inset 0 -1px 2px rgba(0,0,0,0.2),
-                            0 1px 3px rgba(0,0,0,0.3)
-                        `;
+                    stringEl.addEventListener('mouseleave', () => {
+                        core.style.transform = 'scaleY(1)';
+                        core.style.boxShadow = `0 0 4px ${glowColor}, 0 0 10px ${glowColor}AA, 0 0 18px ${glowColor}66`;
                     });
-                    
-                    // Add click handlers for immediate playback
-                    stringElement.addEventListener('mousedown', (e) => {
+
+                    // Click handlers
+                    stringEl.addEventListener('mousedown', (e) => {
                         e.preventDefault();
-                        this.playPreviewString(stringElement, stringData.freq, stringData.interval);
+                        this.playPreviewString(stringEl, stringData.freq, stringData.interval);
                     });
-                    
-                    stringElement.addEventListener('touchstart', (e) => {
+                    stringEl.addEventListener('touchstart', (e) => {
                         e.preventDefault();
-                        this.playPreviewString(stringElement, stringData.freq, stringData.interval);
+                        this.playPreviewString(stringEl, stringData.freq, stringData.interval);
                     });
-                    
-                    container.appendChild(stringElement);
+
+                    // Attach core and row
+                    stringEl.appendChild(core);
+                    container.appendChild(stringEl);
+
+                    // Precompute vibration period and store on core
+                    const period = this.computeVibrationPeriod(stringData.freq, stringData.step);
+                    core.style.setProperty('--vib-period', period + 'ms');
                 });
                 // Ensure all generated octave strings fit within visible area (rescale heights if needed)
                 this.ensureStringsFullyVisible(container);
             }
             
             playPreviewString(stringElement, frequency, interval) {
-                // Get the proper interval color for feedback
-                const intervalColor = this.getIntervalColor(interval);
-                const baseColor = intervalColor.color;
-                
-                // Add active visual state with proper color
-                stringElement.style.opacity = '1';
-                stringElement.style.transform = 'scaleY(1.5)';
-                stringElement.style.boxShadow = `0 0 12px ${baseColor}`;
-                stringElement.style.filter = 'brightness(1.3)';
-                
+                // Neon active feedback using per-string glow color
+                const glow = stringElement.dataset.glowColor || this.getIntervalColor(interval).color || '#FFFFFF';
+                const core = stringElement.querySelector('.string-core');
+                if (core) {
+                    core.style.transform = 'scaleY(1.3)';
+                    core.style.boxShadow = `0 0 6px ${glow}, 0 0 16px ${glow}B3, 0 0 24px ${glow}80`;
+                    core.style.filter = 'brightness(1.15)';
+                    // Start vibration briefly for preview
+                    const period = this.computeVibrationPeriod(frequency, parseInt(stringElement.dataset.noteIndex||'0',10));
+                    core.style.setProperty('--vib-period', period + 'ms');
+                    core.classList.add('vibrating');
+                    setTimeout(()=> core.classList.remove('vibrating'), 220);
+                }
+
                 // Play the note using the same system as main strings
                 this.playStringNote(frequency, interval);
-                
+
                 // Reset visual state after a delay
                 setTimeout(() => {
-                    stringElement.style.opacity = '0.9';
-                    stringElement.style.transform = 'scaleY(1)';
-                    stringElement.style.boxShadow = 'inset 0 0 2px rgba(0,0,0,0.3)';
-                    stringElement.style.filter = 'brightness(1)';
+                    if (core) {
+                        core.style.transform = 'scaleY(1)';
+                        core.style.boxShadow = `0 0 4px ${glow}, 0 0 10px ${glow}AA, 0 0 18px ${glow}66`;
+                        core.style.filter = 'brightness(1)';
+                    }
                 }, 200);
             }
             
@@ -2716,6 +2716,14 @@
                 // Decide target position
                 const replacing = !!this.isEditingChord && typeof this.editingOriginalIndex === 'number' && this.editingOriginalIndex >= 0;
                 const position = replacing ? this.editingOriginalIndex : this.chordExtensions.length;
+
+                // Decide a persistent header accent color for this chord (per-chord color)
+                // Use the current root neon color as the chord's header accent, with a safe fallback
+                let headerAccentColor = '#14b8a6';
+                try {
+                    const c = this.getIntervalColor(0)?.color;
+                    headerAccentColor = (!c || c.toLowerCase() === '#000000') ? '#333333' : c;
+                } catch {}
                 
                 // Create new chord extension with exact intervals and position tracking
                 const newChord = {
@@ -2727,7 +2735,9 @@
                     createdAt: Date.now(),
                     position: position, // Track exact position in array
                     // Keep the original root for reference but don't auto-lock
-                    originalRoot: this.currentRoot
+                    originalRoot: this.currentRoot,
+                    // Persist a header color so saved chords can keep distinct colors
+                    headerColor: headerAccentColor
                 };
                 
                 console.log('🔧 finalizePreviewChord - saving chord:', {
@@ -3055,6 +3065,19 @@
                     header.style.borderColor = qualityColor.border;
                     header.style.color = 'white';
                     header.style.border = `1px solid ${qualityColor.border}`;
+
+                    // Then apply root-based accent per chromatic palette (locked uses locked root)
+                    try {
+                        const isLocked = !!chordExt.isLocked && !!chordExt.lockedData;
+                        const rootStep = isLocked ? (chordExt.lockedData.lockedRoot ?? 0) : (this.currentRoot ?? 0);
+                        const semi = this.stepToSemitone(rootStep, this.currentTuning || 12);
+                        const accent = this.getChromaticColorForSemitone(semi);
+                        const text = this.pickTextColor(accent);
+                        header.style.background = accent;
+                        header.style.borderBottom = `2px solid ${accent}`;
+                        header.style.boxShadow = `0 0 10px ${accent}55`;
+                        header.style.color = text;
+                    } catch {}
                     
                     // Add context menu handlers - REMOVED for clean interface
                     header.addEventListener('click', (e) => {
@@ -3070,6 +3093,19 @@
                         // Context menus removed - no action taken
                     });
                     
+                    // Color the header per fixed chromatic palette: unlocked follows current root; locked uses locked root
+                    try {
+                        const isLocked = !!chordExt.isLocked && !!chordExt.lockedData;
+                        const rootStep = isLocked ? (chordExt.lockedData.lockedRoot ?? 0) : (this.currentRoot ?? 0);
+                        const semi = this.stepToSemitone(rootStep, this.currentTuning || 12);
+                        const accent = this.getChromaticColorForSemitone(semi);
+                        const text = this.pickTextColor(accent);
+                        header.style.background = accent;
+                        header.style.borderBottom = `2px solid ${accent}`;
+                        header.style.boxShadow = `0 0 10px ${accent}55`;
+                        header.style.color = text;
+                    } catch {}
+
                     column.appendChild(header);
                     
                     // Generate chord intervals and strings
@@ -3396,6 +3432,7 @@
                     
                     this.saveSimpleCustomChord(chordName, selectedNotes);
                     modal.remove();
+                    if (typeof this.closeBottomPanel === 'function') this.closeBottomPanel();
                 });
                 
                 // Cancel
@@ -4197,6 +4234,8 @@
                 }
                 
                 console.log(`Updated to ${divisions}-EDO tuning system`);
+                // Auto-close the TUNING popup/panel after applying
+                if (typeof this.closeBottomPanel === 'function') this.closeBottomPanel();
             }
             
             updateIntervalRatio(ratioString) {
@@ -4206,6 +4245,8 @@
                 
                 // Regenerate tuning if needed
                 this.preserveLockedChordsAndRegenerate();
+                // Auto-close the TUNING popup/panel after applying
+                if (typeof this.closeBottomPanel === 'function') this.closeBottomPanel();
             }
             
             addChordColumn(chordData) {
@@ -6348,90 +6389,45 @@
                     column.removeChild(oldContainer);
                 }
                 
-                // Calculate string sizing to fill full height of column
-                const availableHeight = 500; // Standard height
-                const numStrings = lockedData.exactFrequencies.length;
-                const stringHeight = Math.max(1, Math.floor(availableHeight / numStrings) - 0.5);
-                const stringMargin = 0.2;
-                
                 // Create strings using exact frequencies
                 lockedData.exactFrequencies.forEach((freq, index) => {
                     const stringElement = document.createElement('div');
                     stringElement.className = 'string';
-                    
+
                     // Store exact frequency for playback - CRITICAL
                     stringElement.dataset.frequency = freq;
-                    
+
                     // Estimate note and octave for display and color calculation
                     const noteInfo = this.estimateNoteFromFrequency(freq);
                     stringElement.dataset.note = noteInfo.note;
                     stringElement.dataset.octave = noteInfo.octave;
-                    
+
                     // Calculate interval from the locked root to get proper color
                     const intervalFromRoot = (noteInfo.note - lockedData.lockedRoot + lockedData.lockedTuning) % lockedData.lockedTuning;
                     const intervalColor = this.getIntervalColor(intervalFromRoot);
                     const baseColor = intervalColor.color;
-                    
-                    // Create metallic appearance with colored hue over silver base - SAME AS MAIN COLUMNS
-                    const octaveVariation = (noteInfo.octave - 4) * 3;
-                    let metalColor;
-                    
-                    if (baseColor !== '#FFFFFF') {
-                        // For colored intervals, create a metallic silver base with colored tint
-                        const rgb = this.hexToRgb(baseColor);
-                        if (rgb) {
-                            // Blend the interval color with metallic silver (192, 192, 192)
-                            const metalR = Math.round((rgb.r * 0.4) + (192 * 0.6));
-                            const metalG = Math.round((rgb.g * 0.4) + (192 * 0.6));
-                            const metalB = Math.round((rgb.b * 0.4) + (192 * 0.6));
-                            
-                            // Apply octave brightness variation
-                            const brightness = 1 + (octaveVariation / 100);
-                            const finalR = Math.min(255, Math.max(0, Math.round(metalR * brightness)));
-                            const finalG = Math.min(255, Math.max(0, Math.round(metalG * brightness)));
-                            const finalB = Math.min(255, Math.max(0, Math.round(metalB * brightness)));
-                            
-                            metalColor = `rgb(${finalR}, ${finalG}, ${finalB})`;
-                        } else {
-                            metalColor = '#C0C0C0'; // Fallback silver
-                        }
-                    } else {
-                        // For root notes, use pure metallic silver with brightness variation
-                        const brightness = 1 + (octaveVariation / 100);
-                        const silverValue = Math.min(255, Math.max(160, Math.round(192 * brightness)));
-                        metalColor = `rgb(${silverValue}, ${silverValue}, ${silverValue})`;
-                    }
-                    
-                    // Add note name display inside the string
+                    const glowColor = (baseColor && baseColor.toLowerCase() === '#000000') ? '#555555' : baseColor;
+                    stringElement.dataset.glowColor = glowColor;
+
+                    // Visible core
+                    const core = document.createElement('div');
+                    core.className = 'string-core';
+                    core.style.background = baseColor;
+                    core.style.boxShadow = `0 0 4px ${glowColor}, 0 0 10px ${glowColor}AA, 0 0 18px ${glowColor}66`;
+
+                    // Tooltip with exact frequency
                     const noteDisplay = this.getNoteNames()[noteInfo.note] || noteInfo.note;
-                    stringElement.innerHTML = `<span class="note-name">${noteDisplay}${noteInfo.octave}</span>`;
-                    
-                    // Apply EXACT same metallic styling as main columns
-                    stringElement.style.cssText = `
-                        background: linear-gradient(135deg, ${metalColor} 0%, rgba(255,255,255,0.3) 25%, ${metalColor} 50%, rgba(0,0,0,0.1) 75%, ${metalColor} 100%);
-                        opacity: 0.95;
-                        height: ${stringHeight}px;
-                        margin: ${stringMargin}px 0;
-                        border-radius: 2px;
-                        cursor: pointer;
-                        transition: all 0.15s ease;
-                        position: relative;
-                        border: 1px solid rgba(255, 255, 255, 0.4);
-                        border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-                        flex-shrink: 0;
-                        min-height: 1px;
-                        box-shadow: 
-                            inset 0 1px 2px rgba(255,255,255,0.4),
-                            inset 0 -1px 2px rgba(0,0,0,0.2),
-                            0 1px 3px rgba(0,0,0,0.3);
-                    `;
-                    
-                    // Set tooltip with exact frequency
                     stringElement.title = `${noteDisplay}${noteInfo.octave} - LOCKED: ${freq.toFixed(2)}Hz`;
-                    
-                    // Add click handlers for playback
+
+                    // Precompute vibration period
+                    const period = this.computeVibrationPeriod(freq, noteInfo.note);
+                    core.style.setProperty('--vib-period', period + 'ms');
+
+                    // Click handlers for playback
                     this.addStringPlaybackHandlers(stringElement, freq);
-                    
+
+                    // Attach
+                    stringElement.appendChild(core);
                     stringsContainer.appendChild(stringElement);
                 });
                 
@@ -6456,20 +6452,25 @@
                 stringElement.addEventListener('mousedown', (e) => {
                     e.preventDefault();
                     this.playStringNote(frequency, 0); // Use exact frequency
-                    
-                    // Visual feedback
-                    stringElement.style.opacity = '1';
-                    stringElement.style.transform = 'scaleY(1.5)';
-                    stringElement.style.boxShadow = `0 0 12px #fff`;
-                    stringElement.style.filter = 'brightness(1.3)';
-                    
-                    // Reset visual state after a delay
-                    setTimeout(() => {
-                        stringElement.style.opacity = '0.95';
-                        stringElement.style.transform = 'scaleY(1)';
-                        stringElement.style.boxShadow = 'inset 0 0 2px rgba(0,0,0,0.3)';
-                        stringElement.style.filter = 'brightness(1)';
-                    }, 200);
+
+                    // Visual feedback on core
+                    const glow = stringElement.dataset.glowColor || '#FFFFFF';
+                    const core = stringElement.querySelector('.string-core');
+                    if (core) {
+                        core.style.transform = 'scaleY(1.3)';
+                        core.style.boxShadow = `0 0 6px ${glow}, 0 0 16px ${glow}B3, 0 0 24px ${glow}80`;
+                        core.style.filter = 'brightness(1.15)';
+                        const stepIndex = parseInt(stringElement.dataset.noteIndex||'0',10);
+                        const period = this.computeVibrationPeriod(frequency, stepIndex);
+                        core.style.setProperty('--vib-period', period + 'ms');
+                        core.classList.add('vibrating');
+                        setTimeout(() => core.classList.remove('vibrating'), 220);
+                        setTimeout(() => {
+                            core.style.transform = 'scaleY(1)';
+                            core.style.boxShadow = `0 0 4px ${glow}, 0 0 10px ${glow}AA, 0 0 18px ${glow}66`;
+                            core.style.filter = 'brightness(1)';
+                        }, 200);
+                    }
                 });
                 
                 // Touch support
@@ -8478,6 +8479,23 @@
                     // find element with data-step
                     const els = keyboard.querySelectorAll(`[data-step='${targetStep}']`);
                     els.forEach(el=> el.classList.add('active'));
+                    // Update chord header colors in-place for unlocked chords
+                    try {
+                        document.querySelectorAll('.extension-column').forEach(col=>{
+                            const header = col.querySelector('.extension-header');
+                            if (!header) return;
+                            // Decide if this column is locked
+                            const isLocked = col.querySelector('.lock-button')?.classList.contains('locked');
+                            if (isLocked) return; // keep locked header color tied to locked root
+                            const semi = this.stepToSemitone(this.currentRoot ?? 0, this.currentTuning || 12);
+                            const accent = this.getChromaticColorForSemitone(semi);
+                            const text = this.pickTextColor(accent);
+                            header.style.background = accent;
+                            header.style.borderBottom = `2px solid ${accent}`;
+                            header.style.boxShadow = `0 0 10px ${accent}55`;
+                            header.style.color = text;
+                        });
+                    } catch {}
                     this.regenerateAllColumnsPreservingLocks();
                     this.updateChordDisplay();
                     if (this.chordCreationMode) {
@@ -9743,68 +9761,83 @@
             }
             
             getIntervalColor(interval) {
-                // Color coding for musical intervals with microtonal gradient support
+                // Neon color coding for musical intervals with microtonal gradient support
                 const normalizedInterval = ((interval % 12) + 12) % 12;
-                
-                // Define base colors for chromatic intervals
+
+                // Requested palette mapping (0-11):
+                // 0 White, 1 Deep Violet, 2 Bright Orange, 3 Blue, 4 Red,
+                // 5 Cyan, 6 Black, 7 Green, 8 Magenta, 9 Bright Yellow,
+                // 10 Dark Blue, 11 Lime Green
                 const chromaticColors = [
-                    { interval: 0, color: '#FFFFFF', name: 'Root' },           // White for root
-                    { interval: 1, color: '#9932CC', name: '♭9' },            // Purple for sharp 9th
-                    { interval: 2, color: '#FFA500', name: '2/9' },           // Orange for major 2nd/9th
-                    { interval: 3, color: '#0000FF', name: '♭3' },            // Blue for minor third
-                    { interval: 4, color: '#FF0000', name: '3' },             // Red for major third
-                    { interval: 5, color: '#FFFF00', name: '4/11' },          // Yellow for perfect 4th/11th
-                    { interval: 6, color: '#444444', name: '♭5/♯11' },        // Dark grey for tritone
-                    { interval: 7, color: '#006600', name: '5' },             // Dark green for perfect fifth
-                    { interval: 8, color: '#D2691E', name: '♭6/♯5' },         // Sepia brown for minor 6th
-                    { interval: 9, color: '#FF0077', name: '6/13' },          // Magenta for major 6th
-                    { interval: 10, color: '#FFC0CB', name: '♭7' },           // Pink for minor 7th
-                    { interval: 11, color: '#006400', name: '7' },            // Dark green for major 7th
+                    { interval: 0, color: '#FFFFFF', name: 'Root' },           // White
+                    { interval: 1, color: '#6A0DAD', name: 'm2/♭9' },          // Deep Violet
+                    { interval: 2, color: '#FFA500', name: 'M2/9' },           // Bright Orange
+                    { interval: 3, color: '#0000FF', name: 'm3' },             // Blue
+                    { interval: 4, color: '#FF0000', name: 'M3' },             // Red
+                    { interval: 5, color: '#00FFFF', name: 'P4/11' },          // Cyan
+                    { interval: 6, color: '#000000', name: 'TT' },             // Black (tritone)
+                    { interval: 7, color: '#00FF00', name: 'P5' },             // Green
+                    { interval: 8, color: '#FF00FF', name: 'm6/♯5' },          // Magenta
+                    { interval: 9, color: '#FFFF00', name: 'M6/13' },          // Bright Yellow
+                    { interval: 10, color: '#00008B', name: 'm7' },            // Dark Blue
+                    { interval: 11, color: '#32CD32', name: 'M7' },            // Lime Green
                 ];
-                
-                // Check for exact chromatic matches first
+
+                // Exact chromatic matches
                 for (let i = 0; i < chromaticColors.length; i++) {
                     const chromatic = chromaticColors[i];
                     if (Math.abs(normalizedInterval - chromatic.interval) < 0.05) {
                         return { color: chromatic.color, name: chromatic.name };
                     }
                 }
-                
-                // Handle microtonal intervals with gradients
+
+                // Microtonal interpolation between adjacent chromatic steps
                 for (let i = 0; i < chromaticColors.length; i++) {
                     const current = chromaticColors[i];
                     const next = chromaticColors[(i + 1) % chromaticColors.length];
-                    
+
                     let lowerBound = current.interval;
                     let upperBound = next.interval;
-                    
-                    // Handle wrap-around case (11 to 0)
-                    if (next.interval < current.interval) {
-                        upperBound = next.interval + 12;
-                    }
-                    
-                    // Check if interval falls between current and next chromatic interval
+                    if (next.interval < current.interval) upperBound = next.interval + 12; // wrap
+
                     let testInterval = normalizedInterval;
-                    if (upperBound > 12 && normalizedInterval < 6) {
-                        testInterval = normalizedInterval + 12;
-                    }
-                    
+                    if (upperBound > 12 && normalizedInterval < 6) testInterval = normalizedInterval + 12;
+
                     if (testInterval > lowerBound + 0.05 && testInterval < upperBound - 0.05) {
-                        // Calculate gradient position (0 to 1)
                         const position = (testInterval - lowerBound) / (upperBound - lowerBound);
-                        
-                        // Create gradient color between current and next
                         const gradientColor = this.interpolateColors(current.color, next.color, position);
                         const cents = Math.round((normalizedInterval - Math.floor(normalizedInterval)) * 100);
-                        const baseName = current.name.split('/')[0]; // Get base name without alternatives
+                        const baseName = current.name.split('/')[0];
                         const gradientName = `${baseName}+${cents}¢`;
-                        
                         return { color: gradientColor, name: gradientName };
                     }
                 }
-                
-                // Fallback for edge cases
+
                 return { color: '#CCCCCC', name: 'Unknown' };
+            }
+
+            // Map an EDO step to nearest 12-TET semitone index (0..11)
+            stepToSemitone(step, edo) {
+                if (edo <= 0) return 0;
+                const semi = Math.round((step * 12) / edo) % 12;
+                return ((semi % 12) + 12) % 12;
+            }
+
+            // Fixed chromatic palette (0..11) → hex
+            getChromaticColorForSemitone(semi) {
+                const idx = ((semi % 12) + 12) % 12;
+                const palette = ['#FFFFFF','#6A0DAD','#FFA500','#0000FF','#FF0000','#00FFFF','#000000','#00FF00','#FF00FF','#FFFF00','#00008B','#32CD32'];
+                return palette[idx] || '#CCCCCC';
+            }
+
+            // Simple contrast helper for header text
+            pickTextColor(bgHex, light = '#FFFFFF', dark = '#000000') {
+                const h = (bgHex || '#000000').replace('#','');
+                const r = parseInt(h.substring(0,2),16) || 0;
+                const g = parseInt(h.substring(2,4),16) || 0;
+                const b = parseInt(h.substring(4,6),16) || 0;
+                const brightness = (r*299 + g*587 + b*114) / 1000;
+                return brightness > 150 ? dark : light;
             }
             
             interpolateColors(color1, color2, factor) {
@@ -9907,91 +9940,44 @@
                 `;
                 
                 stringFreqs.forEach((stringData, stringIndex) => {
-                    const stringElement = document.createElement('div');
-                    stringElement.className = 'string';
-                    stringElement.dataset.index = stringIndex;
-                    stringElement.dataset.column = column.dataset.chordType || 'unknown';
-                    stringElement.dataset.frequency = stringData.freq;
-                    stringElement.dataset.noteIndex = stringData.step;
-                    
-                    // Get interval color based on musical function
+                    const row = document.createElement('div');
+                    row.className = 'string';
+                    row.dataset.index = stringIndex;
+                    row.dataset.column = column.dataset.chordType || 'unknown';
+                    row.dataset.frequency = stringData.freq;
+                    row.dataset.noteIndex = stringData.step;
+
+                    // Colors
                     const intervalColor = this.getIntervalColor(stringData.interval);
                     const baseColor = intervalColor.color;
-                    
-                    // Create metallic appearance with colored hue over silver base
-                    const octaveVariation = (stringData.octave - 4) * 3; // Subtle brightness variation
-                    let metalColor;
-                    
-                    if (baseColor !== '#FFFFFF') {
-                        // For colored intervals, create a metallic silver base with colored tint
-                        const rgb = this.hexToRgb(baseColor);
-                        if (rgb) {
-                            // Blend the interval color with metallic silver (192, 192, 192)
-                            const metalR = Math.round((rgb.r * 0.4) + (192 * 0.6));
-                            const metalG = Math.round((rgb.g * 0.4) + (192 * 0.6));
-                            const metalB = Math.round((rgb.b * 0.4) + (192 * 0.6));
-                            
-                            // Apply octave brightness variation
-                            const brightness = 1 + (octaveVariation / 100);
-                            const finalR = Math.min(255, Math.max(0, Math.round(metalR * brightness)));
-                            const finalG = Math.min(255, Math.max(0, Math.round(metalG * brightness)));
-                            const finalB = Math.min(255, Math.max(0, Math.round(metalB * brightness)));
-                            
-                            metalColor = `rgb(${finalR}, ${finalG}, ${finalB})`;
-                        } else {
-                            metalColor = '#C0C0C0'; // Fallback silver
-                        }
-                    } else {
-                        // For root notes, use pure metallic silver with brightness variation
-                        const brightness = 1 + (octaveVariation / 100);
-                        const silverValue = Math.min(255, Math.max(160, Math.round(192 * brightness)));
-                        metalColor = `rgb(${silverValue}, ${silverValue}, ${silverValue})`;
-                    }
-                    
-                    stringElement.style.cssText = `
-                        background: linear-gradient(135deg, ${metalColor} 0%, rgba(255,255,255,0.3) 25%, ${metalColor} 50%, rgba(0,0,0,0.1) 75%, ${metalColor} 100%);
-                        opacity: 0.95;
-                        height: ${stringHeight}px;
-                        margin: ${stringMargin}px 0;
-                        border-radius: 2px;
-                        cursor: pointer;
-                        transition: all 0.15s ease;
-                        position: relative;
-                        border: 1px solid rgba(255, 255, 255, 0.4);
-                        border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-                        flex-shrink: 0;
-                        min-height: 1px;
-                        box-shadow: 
-                            inset 0 1px 2px rgba(255,255,255,0.4),
-                            inset 0 -1px 2px rgba(0,0,0,0.2),
-                            0 1px 3px rgba(0,0,0,0.3);
-                    `;
-                    
-                    stringElement.title = `${intervalColor.name} - ${noteNames[stringData.step] || `Note ${stringData.step}`} - Oct${stringData.octave} - ${stringData.freq.toFixed(1)}Hz`;
-                    
-                    // Enhanced metallic hover effects
-                    stringElement.addEventListener('mouseenter', () => {
-                        stringElement.style.opacity = '1';
-                        stringElement.style.transform = 'scaleY(1.1)';
-                        stringElement.style.boxShadow = `
-                            inset 0 1px 3px rgba(255,255,255,0.6),
-                            inset 0 -1px 3px rgba(0,0,0,0.3),
-                            0 0 6px ${baseColor},
-                            0 2px 4px rgba(0,0,0,0.4)
-                        `;
+                    const glowColor = (baseColor && baseColor.toLowerCase() === '#000000') ? '#555555' : baseColor;
+                    row.dataset.glowColor = glowColor;
+
+                    // Visible core
+                    const core = document.createElement('div');
+                    core.className = 'string-core';
+                    core.style.background = baseColor;
+                    core.style.boxShadow = `0 0 4px ${glowColor}, 0 0 10px ${glowColor}AA, 0 0 18px ${glowColor}66`;
+
+                    row.title = `${intervalColor.name} - ${noteNames[stringData.step] || `Note ${stringData.step}`} - Oct${stringData.octave} - ${stringData.freq.toFixed(1)}Hz`;
+
+                    // Hover effects on core
+                    row.addEventListener('mouseenter', () => {
+                        core.style.transform = 'scaleY(1.25)';
+                        core.style.boxShadow = `0 0 6px ${glowColor}, 0 0 14px ${glowColor}CC, 0 0 28px ${glowColor}88`;
                     });
-                    
-                    stringElement.addEventListener('mouseleave', () => {
-                        stringElement.style.opacity = '0.95';
-                        stringElement.style.transform = 'scaleY(1)';
-                        stringElement.style.boxShadow = `
-                            inset 0 1px 2px rgba(255,255,255,0.4),
-                            inset 0 -1px 2px rgba(0,0,0,0.2),
-                            0 1px 3px rgba(0,0,0,0.3)
-                        `;
+                    row.addEventListener('mouseleave', () => {
+                        core.style.transform = 'scaleY(1)';
+                        core.style.boxShadow = `0 0 4px ${glowColor}, 0 0 10px ${glowColor}AA, 0 0 18px ${glowColor}66`;
                     });
-                    
-                    stringsContainer.appendChild(stringElement);
+
+                    // Attach core
+                    row.appendChild(core);
+                    stringsContainer.appendChild(row);
+
+                    // Precompute vibration period and store on core
+                    const period = this.computeVibrationPeriod(stringData.freq, stringData.step);
+                    core.style.setProperty('--vib-period', period + 'ms');
                 });
                 // Post-fit adjustment to guarantee no hidden octaves
                 this.ensureStringsFullyVisible(stringsContainer);
@@ -10799,14 +10785,16 @@
                         if (frequency && !isNaN(frequency)) {
                             this.playFrequency(frequency, string);
                             
-                            // Minimal visual feedback for speed
-                            string.style.transform = 'scale(1.05)';
-                            string.style.boxShadow = '0 0 5px rgba(255, 255, 255, 0.4)';
-                            
-                            setTimeout(() => {
-                                string.style.transform = 'scale(1)';
-                                string.style.boxShadow = 'none';
-                            }, 100);
+                            // Minimal visual feedback for speed on core only
+                            const core = string.querySelector('.string-core');
+                            if (core) {
+                                core.style.transform = 'scaleY(1.15)';
+                                core.style.filter = 'brightness(1.12)';
+                                setTimeout(() => {
+                                    core.style.transform = 'scaleY(1)';
+                                    core.style.filter = 'brightness(1)';
+                                }, 90);
+                            }
                         }
                     }, index * strumDelay);
                 });
@@ -11072,7 +11060,16 @@
                     releaseTimeout,
                     startTime: currentTime
                 });
-                element.classList.add('active');
+                if (element) {
+                    element.classList.add('active');
+                    const core = element.querySelector('.string-core');
+                    if (core) {
+                        const stepIndex = parseInt(element.dataset.noteIndex||'0',10);
+                        const period = this.computeVibrationPeriod(frequency, stepIndex);
+                        core.style.setProperty('--vib-period', period + 'ms');
+                        core.classList.add('vibrating');
+                    }
+                }
             }
 
             stopFrequency(frequency, element) {
@@ -11111,11 +11108,19 @@
                     
                     // Clean up visual indicator
                     setTimeout(() => {
-                        element.classList.remove('active');
+                        if (element) {
+                            element.classList.remove('active');
+                            const core = element.querySelector('.string-core');
+                            if (core) core.classList.remove('vibrating');
+                        }
                     }, maxReleaseTime * 1000 + 50);
                 } catch (error) {
                     console.warn('Error stopping oscillator:', error);
-                    element.classList.remove('active');
+                    if (element) {
+                        element.classList.remove('active');
+                        const core = element.querySelector('.string-core');
+                        if (core) core.classList.remove('vibrating');
+                    }
                 }
             }
 
@@ -11165,7 +11170,7 @@
                 this.tutorialStep = 0;
                 this.tutorialSteps = [
                     {
-                        title: "Welcome to OMG-nichord.",
+                        title: "Welcome to Xenmicord!",
                         text: "This is a microtonal omnichord that lets you explore different tuning systems and create awesome harmonic textures. You start with a Major chord ready to play!",
                         highlight: null
                     },
@@ -11703,6 +11708,13 @@
                      host.style.display='block';
                  }
                  function close(){ host.style.display='none'; panels.forEach(p=>p.style.display='none'); open=null; bar.querySelectorAll('.panel-btn').forEach(b=>b.classList.remove('active')); }
+                 // Expose programmatic closer on the main controller if available
+                 if (window.omnichord) {
+                     window.omnichord.closeBottomPanel = close;
+                 } else {
+                     // If not yet initialized, defer until DOMContentLoaded listeners create it
+                     document.addEventListener('omnichord-ready', ()=>{ if (window.omnichord) window.omnichord.closeBottomPanel = close; }, { once:true });
+                 }
                  bar.addEventListener('click',e=>{
                      const btn=e.target.closest('.panel-btn'); if(!btn) return;
                      const id=btn.dataset.panel;
