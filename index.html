@@ -1796,14 +1796,14 @@
     <div id="textChordModal" style="display:none; position:fixed; inset:0; background: rgba(0,0,0,0.85); z-index: 1000;">
         <div style="position:absolute; top:50%; left:50%; transform: translate(-50%, -50%); background:#0f1f2c; border:2px solid #15506a; border-radius:12px; width:min(1000px, 94vw); max-height:90vh; overflow:auto; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,0.6);">
             <div style="display:flex; align-items:center; gap:10px; justify-content:space-between; margin-bottom:10px;">
-                <h3 style="margin:0; color:#8fb3d3;">Sequence Mode — Type or Paste Chords</h3>
+                <h3 style="margin:0; color:#8fb3d3;">Type or Paste your chord sequence</h3>
                 <div style="display:flex; gap:8px;">
                     <button class="osc-btn" id="parseTextChordsBtn" style="background:#3498db; border-color:#2980b9;">Create Sequence</button>
                     <button class="osc-btn" id="closeTextChordModalBtn" style="background:#666; border-color:#888;">Close</button>
                 </div>
             </div>
             <div style="font-size:12px; color:#9db6c8; margin-bottom:8px; line-height:1.4;">
-                Tips: Use b or - for flats (Bb = B♭; Bb-7 → B♭ with a ♭7). Use dim for diminished, aug or + for augmented. C+ is C aug. Mixed lyrics are fine—we’ll extract chords and dedupe.
+                Tips: Use b or - for flats (Bb = B♭; Bb-7 → B♭ with a ♭7). Use dim for diminished, aug or + for augmented. C+ is C aug. Pasting lyrics are fine — we’ll attempt extract chords from it.
             </div>
             <textarea id="textChordInput" placeholder="Type or paste a chord sequence (e.g., F/G Dm/C G/Bb C/E). We’ll extract chords and auto-create locked columns in order." style="width:100%; min-height:180px; background:#102a3a; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; line-height:1.5; resize:vertical;"></textarea>
             <div style="margin-top:14px; display:flex; align-items:center; gap:10px;">
@@ -12231,5 +12231,6 @@
     </script>
 </body>
 </html>
+
 
 
