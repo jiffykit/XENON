@@ -1439,9 +1439,12 @@
     <div class="logo-inline"><span class="omg">OMG</span><span class="nichord">- nichord</span></div>
     <!-- Bottom control bar -->
     <div id="bottomBar" style="position:fixed;bottom:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:0 18px;background:#081a28;border-top:2px solid #123447;z-index:600;font-family:var(--retro-font);">
+        <!-- New global create chord button (moved out of TUNING panel) -->
+        <button id="createNewChordBtn" class="panel-btn" title="Add a new custom chord" style="font-weight:bold;padding:6px 10px;">+</button>
         <button class="panel-btn" data-panel="tuning">TUNING</button>
         <button class="panel-btn" data-panel="osc">OSCILLATORS</button>
         <button class="panel-btn" data-panel="fx">EFFECTS</button>
+        <button id="openTextChordParserBtn" class="panel-btn" title="Type or paste a chord sequence" style="margin-left:6px;">SEQUENCE</button>
         <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
             <label for="masterVolume" style="font-size:11px;color:#9db6c8;">MASTER</label>
             <input type="range" id="masterVolume" min="0" max="10" value="10" style="width:140px; accent-color:#2d9c5d;">
@@ -1469,7 +1472,7 @@
                     </div>
                 </div>
                 <div style="margin-bottom:10px;">
-                    <button id="createNewChordBtn" class="osc-btn" style="width:100%; font-size:14px; padding:12px; background:#2E8B57; border-color:#3CB371; margin-bottom:8px;">New Chord</button>
+                    <!-- New chord button moved to bottom bar; tuning panel focuses only on tuning. -->
                     <button id="createBasicChordsBtn" class="osc-btn" style="width:100%; font-size:14px; padding:12px; background:#3498db; border-color:#2980b9;">Load Basic Chords</button>
                     <button id="resetChordsBtn" class="osc-btn" style="width:100%; font-size:12px; padding:8px; background:#e74c3c; border-color:#c0392b; margin-top:5px;">Clear Unlocked</button>
                 </div>
@@ -1789,6 +1792,31 @@
         </div>
     </div>
 
+    <!-- Text -> Chords Parser Modal -->
+    <div id="textChordModal" style="display:none; position:fixed; inset:0; background: rgba(0,0,0,0.85); z-index: 1000;">
+        <div style="position:absolute; top:50%; left:50%; transform: translate(-50%, -50%); background:#0f1f2c; border:2px solid #15506a; border-radius:12px; width:min(1000px, 94vw); max-height:90vh; overflow:auto; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,0.6);">
+            <div style="display:flex; align-items:center; gap:10px; justify-content:space-between; margin-bottom:10px;">
+                <h3 style="margin:0; color:#8fb3d3;">Sequence Mode — Type or Paste Chords</h3>
+                <div style="display:flex; gap:8px;">
+                    <button class="osc-btn" id="parseTextChordsBtn" style="background:#3498db; border-color:#2980b9;">Create Sequence</button>
+                    <button class="osc-btn" id="closeTextChordModalBtn" style="background:#666; border-color:#888;">Close</button>
+                </div>
+            </div>
+            <div style="font-size:12px; color:#9db6c8; margin-bottom:8px; line-height:1.4;">
+                Tips: Use b or - for flats (Bb = B♭; Bb-7 → B♭ with a ♭7). Use dim for diminished, aug or + for augmented. C+ is C aug. Mixed lyrics are fine—we’ll extract chords and dedupe.
+            </div>
+            <textarea id="textChordInput" placeholder="Type or paste a chord sequence (e.g., F/G Dm/C G/Bb C/E). We’ll extract chords and auto-create locked columns in order." style="width:100%; min-height:180px; background:#102a3a; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; line-height:1.5; resize:vertical;"></textarea>
+            <div style="margin-top:14px; display:flex; align-items:center; gap:10px;">
+                <div style="font-size:12px; color:#8fb3d3;">Unique chords found:</div>
+                <div id="textChordCount" style="font-size:12px; color:#f0f6ff;">0</div>
+                <div style="margin-left:auto; display:flex; gap:8px;">
+                    <button class="osc-btn" id="copyChordsListBtn" title="Copy chord list">Copy</button>
+                </div>
+            </div>
+            <div id="textChordResults" style="margin-top:10px; display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:8px;"></div>
+        </div>
+    </div>
+
     <!-- Tutorial Overlay -->
     <div id="tutorialOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999;">
         <div id="tutorialBox" style="position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 2px solid #4a6870; border-radius: 10px; padding: 20px; max-width: 600px; max-height: 70vh; overflow-y: auto; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
@@ -1989,6 +2017,9 @@
                 this.updateChordDisplay();
                 this.setupSonicChords();
                 this.initChordBuilder();
+
+                // Text → Chords parser wiring
+                this.initTextChordParser();
             }
 
             // Compute a subtle vibration period in ms for a given frequency and step index
@@ -2271,9 +2302,9 @@
                 
                 // Restore create button
                 const createBtn = document.getElementById('createNewChordBtn');
-                createBtn.textContent = 'New Chord';
-                createBtn.style.background = '#2E8B57';
-                createBtn.style.borderColor = '#3CB371';
+                createBtn.textContent = '+';
+                createBtn.style.background = '';
+                createBtn.style.borderColor = '';
                 
                 // Restore normal root button behavior
                 this.restoreNormalRootButtons();
@@ -3272,6 +3303,385 @@
             restoreNormalRootButtons() {
                 // Restore original root button functionality
                 this.generateRootButtons();
+            }
+
+            // ================== TEXT → CHORDS PARSER ==================
+            initTextChordParser() {
+                const openBtn = document.getElementById('openTextChordParserBtn');
+                const modal = document.getElementById('textChordModal');
+                const closeBtn = document.getElementById('closeTextChordModalBtn');
+                const parseBtn = document.getElementById('parseTextChordsBtn');
+                const copyBtn = document.getElementById('copyChordsListBtn');
+                if (openBtn) openBtn.addEventListener('click', ()=> { if(modal) modal.style.display='block'; });
+                if (closeBtn) closeBtn.addEventListener('click', ()=> { if(modal) modal.style.display='none'; });
+                if (parseBtn) parseBtn.addEventListener('click', ()=> this.runTextChordParsing());
+                if (copyBtn) copyBtn.addEventListener('click', ()=> this.copyParsedChordsToClipboard());
+                // Dismiss on backdrop click
+                if (modal) modal.addEventListener('click', (e)=>{ if(e.target===modal) modal.style.display='none'; });
+            }
+
+            runTextChordParsing() {
+                const input = document.getElementById('textChordInput');
+                const resultsGrid = document.getElementById('textChordResults');
+                const countEl = document.getElementById('textChordCount');
+                if (!input || !resultsGrid || !countEl) return;
+                const text = input.value || '';
+                const unique = this.extractUniqueChordsFromText(text);
+                // Render
+                resultsGrid.innerHTML = '';
+                unique.forEach(ch => {
+                    const card = document.createElement('div');
+                    card.style.cssText = 'padding:10px; border:1px solid #2b5567; border-radius:8px; background:#102a3a; color:#e8f5ff; font-family:var(--retro-font); display:flex; align-items:center; justify-content:center; min-height:46px;';
+                    card.textContent = ch;
+                    resultsGrid.appendChild(card);
+                });
+                countEl.textContent = String(unique.length);
+                this._lastParsedChordsList = unique;
+
+                // Auto-create columns immediately, as requested (no review)
+                if (unique.length) {
+                    this.autoCreateColumnsFromText(unique);
+                    // Close modal after creation
+                    const modal = document.getElementById('textChordModal');
+                    if (modal) modal.style.display = 'none';
+                }
+            }
+
+            copyParsedChordsToClipboard() {
+                const list = (this._lastParsedChordsList || []).join(', ');
+                if (!navigator.clipboard) {
+                    // Fallback
+                    const ta = document.createElement('textarea');
+                    ta.value = list; document.body.appendChild(ta); ta.select();
+                    try { document.execCommand('copy'); } catch {}
+                    ta.remove();
+                    return;
+                }
+                navigator.clipboard.writeText(list).catch(()=>{});
+            }
+
+            // Create chord columns from a list of normalized chord strings, then lock each to its own root
+            autoCreateColumnsFromText(chordList) {
+                // Replace the current grid with this sequence
+                this.chordExtensions = [];
+                const beforeLen = 0;
+                const created = [];
+                for (const chordStr of chordList) {
+                    const added = this.addChordFromName(chordStr);
+                    if (added) created.push(added);
+                }
+                // Render new chords
+                this.normalizeChordPositions();
+                if (typeof this.generateExactChordColumns === 'function') {
+                    this.generateExactChordColumns();
+                } else if (typeof this.generateExtensionColumns === 'function') {
+                    this.generateExtensionColumns();
+                }
+
+                // Lock each new chord to its parsed root (including micro marks ^/v when present)
+                const stepCents = Array.from({length: this.currentTuning}, (_,i)=> this.getCentValue(i, this.currentTuning));
+                const container = document.getElementById('extensionColumns');
+                const priorRoot = this.currentRoot;
+                for (const data of created) {
+                    const { chord, position, rootSemitone, rootStep } = data;
+                    if (rootSemitone == null && rootStep == null) continue;
+                    const lockedRoot = (rootStep != null) ? rootStep : this.findNearestStepForSemitone(rootSemitone, stepCents);
+                    const column = container.querySelector(`.extension-column[data-original-position="${position}"]`);
+                    if (!column) continue;
+                    try {
+                        // Temporarily switch root for this chord
+                        const prevRoot = this.currentRoot;
+                        this.currentRoot = lockedRoot;
+                        // Recompute this column's string frequencies at this root so capture is correct
+                        const strings = column.querySelectorAll('.string');
+                        strings.forEach(string => {
+                            // Prefer persisted EDO step and octave when available
+                            const edoStep = parseInt(string.dataset.edoStep);
+                            const octave = parseInt(string.dataset.octave);
+                            const hasPersisted = !isNaN(edoStep) && !isNaN(octave);
+                            let frequency;
+                            let stepForName;
+                            if (hasPersisted) {
+                                // Absolute step in current tuning = lockedRoot + relative edoStep
+                                const tuningSize = this.currentTuning;
+                                const absStep = ((lockedRoot + edoStep) % tuningSize + tuningSize) % tuningSize;
+                                stepForName = absStep;
+                                frequency = this.getFrequency(absStep, octave, this.currentTuning);
+                            } else {
+                                // Fallback to interval-based recompute
+                                const interval = parseInt(string.dataset.interval);
+                                if (isNaN(interval)) return;
+                                stepForName = (this.currentRoot + interval) % this.currentTuning;
+                                frequency = this.getFrequency(interval, this.currentRoot, this.currentTuning);
+                            }
+
+                            string.dataset.frequency = frequency;
+                            // Keep existing inner structure (core div) and just update tooltip and vibration period
+                            const noteName = this.getNoteNames()[stepForName] || this.getIntervalNoteName(parseInt(string.dataset.interval)||0);
+                            string.title = `${noteName} (${hasPersisted ? `step ${stepForName}` : `interval ${string.dataset.interval}`} , ${frequency.toFixed(1)}Hz)`;
+                            const core = string.querySelector('.string-core');
+                            if (core) {
+                                const period = this.computeVibrationPeriod(frequency, stepForName);
+                                core.style.setProperty('--vib-period', period + 'ms');
+                            }
+                        });
+                        // Lock and snapshot exact state for this chord
+                        this.lockSonicChord(chord, column);
+                        // Restore global root for subsequent chords
+                        this.currentRoot = prevRoot;
+                    } catch (_) {}
+                }
+                this.currentRoot = priorRoot;
+            }
+
+            // Map chord name to a chordExtensions entry with computed intervals. Returns {chord, position, rootSemitone, rootStep}
+            addChordFromName(chordName) {
+                const norm = this.normalizeChordToken(chordName);
+                if (!norm) return null;
+                const rootMatch = norm.match(/^([A-G])([#b]?)([\^v]*)/);
+                const rootSemitone = rootMatch ? this.rootToSemitone(rootMatch[1], rootMatch[2]||'') : null;
+                // Compute root step in current EDO including micro marks (^ up, v down). Multiple marks accumulate.
+                let rootStep = null;
+                if (rootSemitone != null) {
+                    const baseStep = Math.round((rootSemitone * this.currentTuning) / 12);
+                    const microMarks = (rootMatch && rootMatch[3]) ? rootMatch[3] : '';
+                    const ups = (microMarks.match(/\^/g) || []).length;
+                    const downs = (microMarks.match(/v/g) || []).length;
+                    rootStep = ((baseStep + ups - downs) % this.currentTuning + this.currentTuning) % this.currentTuning;
+                }
+                const quality = norm.replace(/^([A-G][#b]?[\^v]*)/, '');
+                // Exclude slash bass from stacked-interval parsing; it will be added explicitly below
+                const tailForIntervals = quality.replace(/\/[A-G](?:#|b)?/, '');
+                let intervals = this.parseChordQualityToIntervals(tailForIntervals);
+
+                // Slash chord handling: if tail contains "/<bass>", add that bass pitch as an extra interval
+                // Example: G/F -> add b7 (F relative to G)
+                const slash = quality.match(/\/([A-G](?:#|b)?)/);
+                if (slash && rootSemitone != null) {
+                    const bassLetter = slash[1][0];
+                    const bassAcc = slash[1].length > 1 ? slash[1][1] : '';
+                    const bassSemi = this.rootToSemitone(bassLetter, bassAcc);
+                    // Interval difference bass relative to root in 12-TET (0..11)
+                    const diffSemi = ((bassSemi - rootSemitone) % 12 + 12) % 12;
+                    // Map to current EDO
+                    const mapped = Math.round((diffSemi * this.currentTuning) / 12);
+                    if (!intervals.includes(mapped)) {
+                        intervals = [...intervals, mapped].sort((a,b)=>a-b);
+                    }
+                }
+                const newChord = {
+                    name: norm,
+                    intervals,
+                    isCustom: true,
+                    id: 'import_' + Date.now() + '_' + Math.floor(Math.random()*1e6),
+                    createdAt: Date.now(),
+                    position: this.chordExtensions.length,
+                    originalRoot: 0,
+                    originalTuning: this.currentTuning,
+                    originalGamelanMode: this.gamelanMode,
+                    lastTuning: this.currentTuning,
+                    headerColor: this.getIntervalColor(0)?.color || '#14b8a6'
+                };
+                this.chordExtensions.push(newChord);
+                return { chord: newChord, position: newChord.position, rootSemitone, rootStep };
+            }
+
+            // Convert chord quality/extensions tail to interval steps in current EDO
+            parseChordQualityToIntervals(tail) {
+                // Defaults to major triad if unspecified
+                const map = (semi)=> Math.round((semi * this.currentTuning) / 12);
+                const add = (set, semi)=> set.add(map(semi));
+                const set = new Set([0]);
+                let third = 4; // major
+                let fifth = 7;
+                let hasThird = true;
+
+                const t = (tail || '').trim();
+                const has = (pat)=> new RegExp(pat).test(t);
+
+                // quality
+                if (/^m(?!aj)/.test(t)) third = 3; // 'm' but not 'maj'
+                if (/^°/.test(t)) { third = 3; fifth = 6; }
+                if (/^\+/.test(t)) { third = 4; fifth = 8; }
+                if (/sus2/.test(t)) { hasThird = false; }
+                if (/sus4/.test(t)) { hasThird = false; }
+
+                // base triad
+                if (hasThird) add(set, third);
+                add(set, fifth);
+                if (/sus2/.test(t)) add(set, 2);
+                if (/sus4/.test(t)) add(set, 5);
+
+                // seventh family
+                if (/Δ7|M7/.test(t)) add(set, 11);
+                else if (/ø7/.test(t)) { add(set, 10); add(set, 6); third = 3; }
+                else if (/°7/.test(t)) { add(set, 9); third = 3; fifth = 6; }
+                else if (/m7/.test(t)) { add(set, 10); third = 3; }
+                else if (/7(?![0-9])/.test(t)) { add(set, 10); }
+
+                // 6th
+                if (/(?:^|[^0-9])6(?![0-9])/.test(t)) add(set, 9);
+
+                // Detect explicit extensions; they do NOT imply a 7th
+                const has7  = /(?:^|[^0-9])7(?![0-9])/.test(t);
+                const has9  = /(?:^|[^0-9])9(?![0-9])/.test(t);
+                const has11 = /(?:^|[^0-9])11(?![0-9])/.test(t);
+                const has13 = /(?:^|[^0-9])13(?![0-9])/.test(t);
+                if (has13) { add(set, 14); add(set, 17); add(set, 21); }
+                else if (has11) { add(set, 14); add(set, 17); }
+                else if (has9) { add(set, 14); }
+                if (has7) { add(set, 10); }
+
+                // add tones
+                if (/add9/.test(t)) add(set, 14);
+                if (/add11/.test(t)) add(set, 17);
+                if (/add13/.test(t)) add(set, 21);
+
+                // alterations
+                if (/♭5|b5|\-5/.test(t)) { set.delete(map(7)); add(set, 6); }
+                if (/♯5|#5/.test(t)) { set.delete(map(7)); add(set, 8); }
+                if (/♭9|b9|\-9/.test(t)) add(set, 13);
+                if (/♯9|#9/.test(t)) add(set, 15);
+                if (/♯11|#11/.test(t)) add(set, 18);
+
+                // Return sorted unique
+                return Array.from(set).sort((a,b)=>a-b);
+            }
+
+            rootToSemitone(letter, acc) {
+                const base = {C:0,D:2,E:4,F:5,G:7,A:9,B:11}[letter] ?? 0;
+                if (acc === '#') return (base + 1) % 12;
+                if (acc === 'b') return (base + 11) % 12;
+                return base;
+            }
+
+            // Core parser: returns normalized chord strings including root (e.g., Bb7, Caug)
+            extractUniqueChordsFromText(text) {
+                if (!text) return [];
+                const lines = String(text).split(/\r?\n/);
+                const seen = new Set();
+                const out = [];
+
+                const pushNorm = (raw)=>{
+                    const norm = this.normalizeChordToken(raw);
+                    if (!norm) return;
+                    const key = norm.toLowerCase();
+                    if (!seen.has(key)) { seen.add(key); out.push(norm); }
+                };
+
+                for (const line of lines) {
+                    const s = line.trim();
+                    if (!s) continue;
+
+                    // First, grab all chord-like matches with positions
+                    const matches = this.scanChordMatches(s);
+                    // Accept all matches; dedupe later
+                    for (const m of matches) pushNorm(m.raw);
+                }
+
+                return out;
+            }
+
+            // Return array of { raw, start, end } chord-like matches within a string
+            scanChordMatches(s) {
+                const text = String(s).replace(/♭/g,'b').replace(/♯/g,'#');
+                // Match a chord token up to the next whitespace or punctuation; do NOT consume spaces across tokens
+                // Match compact slash chords like G/F but not spaced G / F (space breaks tokens)
+                const re = /\b([A-G])(?:#|b|\-)?(?:[\^v]+)?(?:add|maj|min|dim|aug|mM|sus|m|M|\+|°|ø)?[A-Za-z0-9#bø°\+\-\^v]*(?:\/(?:[A-G](?:#|b)?))?/g;
+                const found = [];
+                let m;
+                while ((m = re.exec(text)) !== null) {
+                    const raw = m[0].trim();
+                    // Keep single-letter roots (e.g., G) — treat as valid chords
+                    found.push({ raw, start: m.index, end: m.index + m[0].length });
+                }
+                return found;
+            }
+
+            // Tokenize candidates allowing: flats as b or '-', sharps as #, unicode ♭/♯, letters A–G, and common quality tails
+            tokenizePossibleChords(text) {
+                return this.scanChordMatches(text).map(x=>x.raw);
+            }
+
+            // Normalize one token to a canonical chord string
+            normalizeChordToken(rawToken) {
+                if (!rawToken) return null;
+                let t = rawToken.trim();
+                // Standardize unicode and spaces
+                t = t.replace(/♭/g,'b').replace(/♯/g,'#');
+                // Important: do NOT remove all spaces blindly; we must distinguish "G / F" (two chords) from "G/F" (slash chord)
+                // We'll collapse spaces except when a slash is present with spaces around it; in that case, keep spaces so scanner splits tokens
+                if (/\/[A-G]/.test(t)) {
+                    // Already a compact slash chord like G/F – remove other spaces
+                    t = t.replace(/\s+/g,'');
+                } else {
+                    // Keep spaces, they help tokenization stage treat G / F as separate tokens
+                    t = t.replace(/\s{2,}/g,' ').trim();
+                }
+
+                // Root parse: letter + optional accidental (#, b, -) and optional micro marks (^ up, v down)
+                const mRoot = t.match(/^([A-G])([#b\-]?)([\^v]*)(.*)$/);
+                if (!mRoot) return null;
+                const letter = mRoot[1];
+                const acc = mRoot[2] === '-' ? 'b' : (mRoot[2] || '');
+                const micro = mRoot[3] || '';
+                let tail = mRoot[4] || '';
+
+                // Guard: ignore bare two-letter words that look like lyrics (e.g., "Bu", "Ea")
+                // Criteria: exactly two chars, second is a lowercase vowel, and no chord markers like m, M, digits, +, °, ø, #, b, or /
+                if (!acc && !micro && /^[A-G][aeiou]$/.test(t) && !/[mM0-9+°ø#b/]/.test(t)) {
+                    return null;
+                }
+
+                // Convert common synonyms/variants in the tail
+                // min/maj shorthand
+                tail = tail.replace(/^min/i,'m');
+                tail = tail.replace(/^maj/i,'M');
+                // diminished
+                tail = tail.replace(/^dim/i,'°'); // use ° as canonical dim triad
+                // half-diminished
+                tail = tail.replace(/^ø/i,'ø');
+                // augmented
+                if (/^aug/i.test(tail) || /^\+/i.test(tail)) {
+                    tail = tail.replace(/^aug/i,'+');
+                    // Ensure + remains
+                    if (!/^\+/.test(tail)) tail = '+' + tail;
+                }
+                // handle c+ etc: if tail starts with '+', keep as augmented triad unless specific tensions follow
+                // sus synonyms already OK
+
+                // Flats and sharps on extensions, allow b or -
+                tail = tail.replace(/\-([0-9]+)/g,'b$1'); //  -7 -> b7
+                tail = tail.replace(/b11/g,'♭11').replace(/b9/g,'♭9').replace(/b5/g,'♭5').replace(/b13/g,'♭13');
+                tail = tail.replace(/#([0-9]+)/g,'♯$1');
+
+                // Support simple slash chords bass note like /G or /Gb (compact only, no spaces)
+                // Uppercase only the letter, keep accidental case
+                tail = tail.replace(/\/([A-G])((?:#|b)?)$/g, (_, L, acc)=> '/' + L.toUpperCase() + acc);
+
+                // Clean trailing punctuation or lyrics fragments after a closing bracket/paren or comma/semicolon
+                tail = tail.replace(/[\],;:]+.*$/,'');
+                // Keep valid tail characters, including A–G for slash bass notes (e.g., /G, /Bb)
+                tail = tail.replace(/[^A-GmM°ø+suad0-9♭♯/#^vb]+.*$/,'');
+
+                // If tail empty, it's a bare triad: major by default -> ''
+                // If tail equals 'min' was converted to 'm' above.
+
+                // Special: 'dim' used with 7 -> °7; 'm7b5' normalize to ø7
+                // m7b5 or m7-5 → ø7
+                if (/^m7(?:♭|b|\-)?5$/i.test(tail)) tail = 'ø7';
+                if (/^dim7$/i.test(tail)) tail = '°7';
+                if (/^dim$/i.test(tail)) tail = '°';
+
+                // Compose root + tail (allow bare single-letter chords e.g., G)
+                const root = letter + acc + micro;
+                let chord = root + tail;
+
+                // Cosmetic: convert 'Bbb' accidents or double signs not handled here; keep simple
+                // Normalize 'M7' to 'Δ7' for display consistency
+                chord = chord.replace(/M7/g,'Δ7').replace(/M9/g,'Δ9').replace(/M11/g,'Δ11').replace(/M13/g,'Δ13');
+
+                return chord;
             }
             
             // ============= CHORD BUILDER SETUP =============
@@ -5967,7 +6377,9 @@
                 
                 // Capture ALL current settings directly from UI controls
                 const rootName = this.getNoteNames()[currentRoot] || currentRoot;
-                const fullChordName = `${rootName}${chordData.name}`; // Full name with root for locked storage
+                // Avoid duplicating root if chordData.name already starts with a root (e.g., "C", "Bb7")
+                const nameHasRoot = /^[A-G][#b]?/.test(chordData.name || '');
+                const fullChordName = nameHasRoot ? (chordData.name || String(rootName)) : `${rootName}${chordData.name}`; // Full display name
                 
                 const lockedChordData = {
                     // Chord identification
@@ -6074,9 +6486,10 @@
                 const chordName = header.querySelector('.chord-name');
                 if (chordName) {
                     const rootName = this.getNoteNames()[currentRoot] || currentRoot;
-                    chordName.style.color = '#4CAF50'; // Green text to indicate locked
-                    // Update the displayed name to show the locked root with proper spacing
-                    chordName.textContent = `🔒 ${rootName}${chordData.name}`;
+                    chordName.style.color = '#4CAF50';
+                    const alreadyHasRoot = /^[A-G][#b]?/.test(chordData.name || '');
+                    const displayName = alreadyHasRoot ? chordData.name : `${rootName}${chordData.name}`;
+                    chordName.textContent = `🔒 ${displayName}`;
                     chordName.title = `Locked to ${rootName} with all synth settings`;
                 }
                 
@@ -10016,6 +10429,19 @@
                     row.dataset.column = column.dataset.chordType || 'unknown';
                     row.dataset.frequency = stringData.freq;
                     row.dataset.noteIndex = stringData.step;
+                    // Persist the interval for later recalculation (e.g., during auto-lock recompute)
+                    row.dataset.interval = stringData.interval;
+                    // Also persist octave and relative EDO step (interval mapped in current tuning)
+                    // EDO step is the interval in current tuning independent of the current root
+                    try {
+                        const tuningSize = currentTuning || this.getTuningStepsPerOctave();
+                        const rootForCalc = currentRoot ?? this.currentRoot ?? 0;
+                        const relStep = ((stringData.step - rootForCalc) % tuningSize + tuningSize) % tuningSize;
+                        row.dataset.edoStep = String(relStep);
+                    } catch (_) {
+                        // Fallback: omit if cannot compute
+                    }
+                    row.dataset.octave = String(stringData.octave);
 
                     // Colors
                     const intervalColor = this.getIntervalColor(stringData.interval);
@@ -11240,7 +11666,7 @@
                 this.tutorialStep = 0;
                 this.tutorialSteps = [
                     {
-                        title: "Welcome to Xenmicord!",
+                        title: "Welcome to OMGnichord",
                         text: "This is a microtonal omnichord that lets you explore different tuning systems and create awesome harmonic textures. You start with a Major chord ready to play!",
                         highlight: null
                     },
@@ -11755,6 +12181,14 @@
                         omnichord.saveNewChord();
                     }
                 });
+            }
+
+            // Start in SEQUENCE mode: open the sequence modal and focus the input
+            const seqModal = document.getElementById('textChordModal');
+            const seqInput = document.getElementById('textChordInput');
+            if (seqModal) {
+                seqModal.style.display = 'block';
+                setTimeout(()=>{ if (seqInput) seqInput.focus(); }, 0);
             }
         });
         
