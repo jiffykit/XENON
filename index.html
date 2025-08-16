@@ -622,12 +622,27 @@
             transition: all 0.2s;
             margin-left: 6px;
             flex-shrink: 0;
+            pointer-events: auto;
+            touch-action: manipulation;
         }
 
         .chord-action-button:hover {
             background: rgba(255, 255, 255, 0.2);
             border-color: rgba(255, 255, 255, 0.5);
             transform: scale(1.1);
+        }
+
+        /* High-contrast styling for per-chord transpose arrows */
+        .chord-action-button.transpose-up,
+        .chord-action-button.transpose-down {
+            background: rgba(17, 24, 39, 0.85); /* slate-900 */
+            border-color: rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+        }
+        .chord-action-button.transpose-up:hover,
+        .chord-action-button.transpose-down:hover {
+            background: rgba(31, 41, 55, 0.95); /* slate-800 */
+            border-color: rgba(255, 255, 255, 0.55);
         }
 
         .chord-action-button.edit {
@@ -1794,9 +1809,18 @@
     <!-- Text -> Chords Parser Modal -->
     <div id="textChordModal" style="display:none; position:fixed; inset:0; background: rgba(0,0,0,0.85); z-index: 1000;">
         <div style="position:absolute; top:50%; left:50%; transform: translate(-50%, -50%); background:#0f1f2c; border:2px solid #15506a; border-radius:12px; width:min(1000px, 94vw); max-height:90vh; overflow:auto; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,0.6);">
-            <div style="display:flex; align-items:center; gap:10px; justify-content:space-between; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:10px; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap;">
                 <h3 style="margin:0; color:#8fb3d3;">Type or Paste your chord sequence</h3>
-                <div style="display:flex; gap:8px;">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <label style="display:flex; align-items:center; gap:6px; color:#8fb3d3; font-size:12px;">
+                        <input id="seqRepeat" type="checkbox" style="transform:translateY(1px)"> Repeat unique sections
+                    </label>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <label for="seqPresetSelect" style="color:#8fb3d3; font-size:12px;">Preset</label>
+                        <select id="seqPresetSelect" style="background:#0d2938; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:6px 8px; min-width:180px;"></select>
+                        <button class="osc-btn" id="seqPresetInsertBtn" title="Insert preset into editor" style="background:#2563eb; border-color:#1d4ed8;">Insert</button>
+                        <button class="osc-btn" id="seqPresetAddBtn" title="Save current text as preset" style="background:#10b981; border-color:#059669;">＋</button>
+                    </div>
                     <button class="osc-btn" id="parseTextChordsBtn" style="background:#3498db; border-color:#2980b9;">Create Sequence</button>
                     <button class="osc-btn" id="loadBasicChordsInSequence" style="background:#7c3aed; border-color:#6d28d9;">Basic Chords</button>
                     <button class="osc-btn" id="closeTextChordModalBtn" style="background:#666; border-color:#888;">Close</button>
@@ -1805,7 +1829,7 @@
             <div style="font-size:12px; color:#9db6c8; margin-bottom:8px; line-height:1.4;">
                 Tips: Use b or - for flats (Bb = B♭; Bb-7 → B♭ with a ♭7). Use dim for diminished, aug or + for augmented. C+ is C aug. Pasting lyrics are fine — we’ll attempt extract chords from it.
             </div>
-            <textarea id="textChordInput" placeholder="Type or paste a chord sequence (e.g., F/G Dm/C G/Bb C/E). We’ll extract chords and auto-create locked columns in order." style="width:100%; min-height:180px; background:#102a3a; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; line-height:1.5; resize:vertical;"></textarea>
+            <textarea id="textChordInput" placeholder="Type/paste chords or Roman numerals (e.g., I–bVII–bVI–bVII or IV△7–V7–iii7). Uses current root as key. Example: in C, II = D, ii = Dm, but 'II' with 'maj7' tail is Dmaj7." style="width:100%; min-height:180px; background:#102a3a; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; line-height:1.5; resize:vertical;"></textarea>
             <div style="margin-top:14px; display:flex; align-items:center; gap:10px;">
                 <div style="font-size:12px; color:#8fb3d3;">Unique chords found:</div>
                 <div id="textChordCount" style="font-size:12px; color:#f0f6ff;">0</div>
@@ -2893,10 +2917,9 @@
                     return posA - posB;
                 });
                 
-                // Map chord extensions to identifiers for hiding
+                // Map chord extensions to per-instance identifiers for hiding
                 const chordIds = sortedExtensions.map((chord, index) => {
-                    const id = chord.name.toLowerCase().replace(/\s+/g, '_');
-                    return id;
+                    return (chord.id || (chord.name + '_' + index)).toLowerCase().replace(/\s+/g, '_');
                 });
                 
                 // Filter visible chord extensions (maintain original order)
@@ -2908,6 +2931,19 @@
                 
                 console.log('Creating exact chord columns:', visibleExtensions.length);
                 
+                // Layout: if >16, split into 2 rows. We'll create a wrapper for rows and append columns to row containers.
+                const useTwoRows = visibleExtensions.length > 16;
+                let rowTop, rowBottom;
+                if (useTwoRows) {
+                    container.style.flexDirection = 'column';
+                    rowTop = document.createElement('div');
+                    rowBottom = document.createElement('div');
+                    Object.assign(rowTop.style, { display:'flex', gap:'0px', width:'100%', height:'50%' });
+                    Object.assign(rowBottom.style, { display:'flex', gap:'0px', width:'100%', height:'50%' });
+                    container.appendChild(rowTop);
+                    container.appendChild(rowBottom);
+                }
+
                 // Create ONE column per chord extension (no variants) - maintain exact order
                 visibleExtensions.forEach((chordExt, extensionIndex) => {
                     const column = document.createElement('div');
@@ -2917,6 +2953,10 @@
                     const absoluteIndex = (typeof chordExt.position === 'number') ? chordExt.position : (this.findChordIndex ? this.findChordIndex(chordExt) : extensionIndex);
                     column.dataset.originalPosition = absoluteIndex;
                     column.dataset.chordId = chordExt.id || chordIds[extensionIndex];
+                    // Assign a unique DOM instance id for this box if missing
+                    if (!column.dataset.instanceId) {
+                        column.dataset.instanceId = `${column.dataset.chordId}__${Date.now()}_${Math.floor(Math.random()*1e6)}`;
+                    }
                     column.style.flex = '1'; // Each column takes equal width
                     column.style.height = '100%';
                     column.style.border = 'none';
@@ -3117,11 +3157,92 @@
                     });
                     
                     // Add buttons to container
+                    // Per-column transpose controls
+                    const upBtn = document.createElement('button');
+                    upBtn.className = 'chord-action-button transpose-up';
+                    upBtn.title = 'Transpose this chord up one step';
+                    upBtn.textContent = '▲';
+                    const downBtn = document.createElement('button');
+                    downBtn.className = 'chord-action-button transpose-down';
+                    downBtn.title = 'Transpose this chord down one step';
+                    downBtn.textContent = '▼';
+                    // Prevent double-fire on touch (touchstart + synthetic click)
+                    let _pressGuard = false;
+                    const norm = (v, m)=> ((v % m) + m) % m;
+                    const applyLocalTranspose = (delta)=>{
+                        if (_pressGuard) return; // avoid accidental double-fire on first tap
+                        _pressGuard = true;
+                        const edoNow = (chordExt.lockedData?.lockedTuning) || this.currentTuning || 12;
+                        // Normalize both model and DOM dataset to 0..edo-1
+                        chordExt.localTranspose = norm((chordExt.localTranspose||0) + delta, edoNow);
+                        // Persist per-column for locked rendering paths
+                        const prev = (+column.dataset.localTranspose || 0);
+                        column.dataset.localTranspose = String(norm(prev + delta, edoNow));
+
+                        // Update header label root token; for locked chords base on locked root, else parse current label
+                        const lockedData = chordExt.lockedData || this.lockedChords?.get(column);
+                        if (lockedData && typeof lockedData.lockedRoot === 'number') {
+                            const edo = lockedData.lockedTuning || edoNow;
+                            const base = lockedData.lockedRoot;
+                            const step = ((base + (chordExt.localTranspose||0)) % edo + edo) % edo;
+                            const newRoot = this.getRootNameForStep(step, edo);
+                            // Get the chord tail without leading root from locked name
+                            const rest = (lockedData.chordName || '').replace(/^[A-G][#b]?\s*/, '');
+                            chordName.textContent = `${newRoot}${rest}`;
+                            chordName.dataset.lockedName = chordName.textContent;
+                            // Clear any exact snapshot so local transpose takes effect in audio
+                            if (lockedData.exactFrequencies && lockedData.exactFrequencies.length) {
+                                lockedData.exactFrequencies = [];
+                            }
+                            // Also clear the central map's snapshot if present (preset-derived locks)
+                            try {
+                                const mapLocked = this.lockedChords?.get(column);
+                                if (mapLocked && Array.isArray(mapLocked.exactFrequencies) && mapLocked.exactFrequencies.length) {
+                                    mapLocked.exactFrequencies = [];
+                                }
+                            } catch (_) {}
+                            // Regenerate strings using locked settings + local transpose
+                            const oldContainer = column.querySelector('.strings-column');
+                            if (oldContainer) oldContainer.remove();
+                            this.generateStringsForColumnWithLockedSettings(column, chordExt.intervals || [0], lockedData);
+                        } else {
+                            // Unlocked: shift from CURRENT displayed root by delta only
+                            const label = (chordName.dataset.lockedName || chordName.textContent || '').trim();
+                            const m = label.match(/^([A-G])([#b]?)([\^v]*)(.*)$/);
+                            if (m) {
+                                const rest = m[4]||'';
+                                const rootSemi = this.rootToSemitone(m[1], m[2]||'');
+                                const edo = this.getTuningStepsPerOctave();
+                                const step0 = Math.round((rootSemi * edo)/12);
+                                const ups = (m[3].match(/\^/g) || []).length;
+                                const downs = (m[3].match(/v/g) || []).length;
+                                const currentStep = ((step0 + ups - downs) % edo + edo) % edo;
+                                const nextStep = ((currentStep + delta) % edo + edo) % edo;
+                                const newRoot = this.getRootNameForStep(nextStep, edo);
+                                chordName.textContent = `${newRoot}${rest}`;
+                            }
+                            // Regenerate strings for this column only
+                            const oldContainer = column.querySelector('.strings-column');
+                            if (oldContainer) oldContainer.remove();
+                            this.generateStringsForColumn(column, chordExt.intervals || [0], chordExt.isCustom||false);
+                        }
+                        // release guard on next microtask to collapse duplicate events
+                        Promise.resolve().then(()=>{ _pressGuard = false; });
+                    };
+                    const onPointer = (delta)=> (e)=>{ e.preventDefault(); e.stopPropagation(); applyLocalTranspose(delta); };
+                    upBtn.addEventListener('pointerdown', onPointer(+1));
+                    downBtn.addEventListener('pointerdown', onPointer(-1));
+
                     buttonsContainer.appendChild(editButton);
                     buttonsContainer.appendChild(duplicateButton);
+                    buttonsContainer.appendChild(upBtn);
+                    buttonsContainer.appendChild(downBtn);
                     buttonsContainer.appendChild(lockButton);
                     buttonsContainer.appendChild(pianoLockButton);
                     
+                    // Initialize per-column local transpose from model (default 0)
+                    column.dataset.localTranspose = String(chordExt.localTranspose || 0);
+
                     header.appendChild(chordName);
                     header.appendChild(buttonsContainer);
                     
@@ -3151,8 +3272,10 @@
                         const isLocked = !!chordExt.isLocked && !!chordExt.lockedData;
                         let rootStep;
                         if (isLocked) {
-                            rootStep = chordExt.lockedData.lockedRoot ?? 0;
-                        } else {
+                            const edo = chordExt.lockedData.lockedTuning || this.currentTuning || 12;
+                            const localDelta = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
+                            rootStep = ((chordExt.lockedData.lockedRoot ?? 0) + localDelta + edo) % edo;
+            } else {
                             const label = (chordName.dataset.lockedName || chordName.textContent || '').trim();
                             const m = label.match(/^([A-G])([#b]?)([\^v]*)/);
                             if (m) {
@@ -3160,8 +3283,7 @@
                                 let step = Math.round((semi * (this.currentTuning||12)) / 12);
                                 const ups = (m[3].match(/\^/g) || []).length;
                                 const downs = (m[3].match(/v/g) || []).length;
-                                step = ((step + ups - downs) % (this.currentTuning||12) + (this.currentTuning||12)) % (this.currentTuning||12);
-                                rootStep = step;
+                rootStep = ((step + ups - downs) % (this.currentTuning||12) + (this.currentTuning||12)) % (this.currentTuning||12);
                             } else {
                                 rootStep = this.currentRoot ?? 0;
                             }
@@ -3177,9 +3299,14 @@
                     
                     // Add context menu handlers - REMOVED for clean interface
                     header.addEventListener('click', (e) => {
-                        // Don't interfere with lock button clicks
-                        if (e.target.classList.contains('lock-button')) {
-                            return; // Let the lock button handle its own click
+                        // Don't interfere with header action buttons
+                        if (
+                            e.target.classList.contains('lock-button') ||
+                            e.target.classList.contains('chord-action-button') ||
+                            e.target.classList.contains('piano-lock-button') ||
+                            (e.target.tagName === 'BUTTON')
+                        ) {
+                            return; // Let the buttons handle their own clicks
                         }
                         
                         console.log('?? Chord header clicked:', chordExt.name);
@@ -3194,8 +3321,10 @@
                         const isLocked = !!chordExt.isLocked && !!chordExt.lockedData;
                         let rootStep;
                         if (isLocked) {
-                            rootStep = chordExt.lockedData.lockedRoot ?? 0;
-                        } else {
+                            const edo = chordExt.lockedData.lockedTuning || this.currentTuning || 12;
+                            const localDelta = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
+                            rootStep = ((chordExt.lockedData.lockedRoot ?? 0) + localDelta + edo) % edo;
+            } else {
                             const label = (chordName.dataset.lockedName || chordName.textContent || '').trim();
                             const m = label.match(/^([A-G])([#b]?)([\^v]*)/);
                             if (m) {
@@ -3203,8 +3332,7 @@
                                 let step = Math.round((semi * (this.currentTuning||12)) / 12);
                                 const ups = (m[3].match(/\^/g) || []).length;
                                 const downs = (m[3].match(/v/g) || []).length;
-                                step = ((step + ups - downs) % (this.currentTuning||12) + (this.currentTuning||12)) % (this.currentTuning||12);
-                                rootStep = step;
+                rootStep = ((step + ups - downs) % (this.currentTuning||12) + (this.currentTuning||12)) % (this.currentTuning||12);
                             } else {
                                 rootStep = this.currentRoot ?? 0;
                             }
@@ -3226,6 +3354,20 @@
                     // If this chord is locked, generate strings using its locked settings
                     if (chordExt.isLocked && chordExt.lockedData) {
                         console.log('?? Generating strings with locked settings for:', chordExt.name);
+                        // Update header to effective root (locked root + local transpose)
+                        try {
+                            const edo = chordExt.lockedData.lockedTuning || this.currentTuning || 12;
+                            const localDelta = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
+                            const effRoot = ((chordExt.lockedData.lockedRoot ?? 0) + localDelta + edo) % edo;
+                            const effRootName = this.getRootNameForStep(effRoot, edo);
+                            const header = column.querySelector('.extension-header');
+                            const nameEl = header?.querySelector('.chord-name');
+                            if (nameEl) {
+                                const rest = (chordExt.lockedData.chordName || '').replace(/^[A-G][#b]?\s*/, '');
+                                nameEl.textContent = `${effRootName}${rest}`;
+                                nameEl.dataset.lockedName = nameEl.textContent;
+                            }
+                        } catch {}
                         this.generateStringsForColumnWithLockedSettings(column, intervals, chordExt.lockedData);
                     } else {
                         // Regular chord - use current global settings
@@ -3236,7 +3378,16 @@
                     if (this.attachColumnDragHandlers) {
                         this.attachColumnDragHandlers(column);
                     }
-                    container.appendChild(column);
+                    if (useTwoRows) {
+                        const half = Math.ceil(visibleExtensions.length / 2);
+                        const targetRow = extensionIndex < half ? rowTop : rowBottom;
+                        targetRow.appendChild(column);
+                        // If strings exist already, scale their container height to half
+                        const sc = column.querySelector('.strings-column');
+                        if (sc) sc.style.height = 'calc(100% - 42px)';
+                    } else {
+                        container.appendChild(column);
+                    }
                 });
                 
                 // Add click handlers and restore locked chord states after rendering
@@ -3269,10 +3420,11 @@
                     masterVolume: this.masterVolume
                 };
                 
-                // Temporarily apply locked settings for string generation
-                const edo = this.currentTuning || lockedData.lockedTuning || 12;
-                const delta = (this.transposeDelta || 0) % edo;
-                this.currentRoot = ((lockedData.lockedRoot ?? 0) + (this._transposing ? delta : 0) + edo) % edo;
+                // Temporarily apply locked settings for string generation (with per-column local transpose in conjunction)
+                const edo = lockedData.lockedTuning || this.currentTuning || 12;
+                const globalDelta = (this.transposeDelta || 0) % edo;
+                const localDelta = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
+                this.currentRoot = ((lockedData.lockedRoot ?? 0) + (this._transposing ? globalDelta : 0) + localDelta + edo) % edo;
                 this.currentTuning = lockedData.lockedTuning;
                 this.gamelanMode = lockedData.lockedGamelanMode;
                 this.volume = lockedData.lockedVolume.main;
@@ -3281,17 +3433,18 @@
                 // Generate strings with locked settings
                 this.generateStringsForColumn(column, intervals, lockedData.isCustom);
                 
-                // Store the locked root in the column's data attribute for reference during playback
-                column.dataset.lockedRoot = lockedData.lockedRoot;
+                // Store the display/effective root in the column's data attribute for reference during playback
+                column.dataset.lockedRoot = String(this.currentRoot);
                 
                 // Add a visual indicator that this column is locked to a specific root
                 const header = column.querySelector('.extension-header');
                 if (header) {
-                    const rootName = this.getNoteNames()[lockedData.lockedRoot] || lockedData.lockedRoot;
+                    const rootName = this.getRootNameForStep(this.currentRoot, lockedData.lockedTuning || this.currentTuning || 12);
                     const chordName = header.querySelector('.chord-name');
                     if (chordName) {
                         // Update the header to show it's locked to a specific root
-                        chordName.textContent = `${rootName}${lockedData.chordName.replace(/^[A-G][#b]?\s*/, '')}`;
+                        chordName.textContent = `${rootName}${(lockedData.chordName||'').replace(/^[A-G][#b]?\s*/, '')}`;
+                        chordName.dataset.lockedName = chordName.textContent;
                         chordName.style.color = '#ffcc00'; // Make it gold to indicate locked root
                         chordName.title = `LOCKED: ${rootName} root, ${lockedData.lockedTuning}TET tuning`;
                     }
@@ -3311,7 +3464,7 @@
                 if (lockButton) {
                     lockButton.innerHTML = '🔒';
                     lockButton.classList.add('locked');
-                    lockButton.title = `Locked to ${this.getNoteNames()[lockedData.lockedRoot] || lockedData.lockedRoot} root with all settings`;
+                    lockButton.title = `Locked to ${this.getNoteNames()[this.currentRoot] || this.currentRoot} root with all settings`;
                 }
             }
             
@@ -3388,7 +3541,7 @@
                     const ups = (dir.match(/\^/g) || []).length;
                     const downs = (dir.match(/v/g) || []).length;
                     step = ((step + ups - downs + n) % edo + edo) % edo;
-                    const newRoot = this.getMicrotonalNoteName(step);
+                    const newRoot = this.getRootNameForStep(step, edo);
                     // Preserve lock icon if present originally
                     const prefix = /^🔒/.test(labelRaw) ? '🔒 ' : '';
                     nameEl.textContent = `${prefix}${newRoot}${rest}`;
@@ -3400,29 +3553,40 @@
                 } finally {
                     this._transposing = false;
                 }
-                // For locked columns with exactFrequencies, update only labels to reflect transposed root name
+                // Ensure locked columns show the correct transposed root name and refreshed header colors
                 try {
                     const cols = document.querySelectorAll('.extension-column');
                     cols.forEach(col => {
-                        const header = col.querySelector('.extension-header .chord-name');
-                        if (!header) return;
-                        const txt = header.textContent || '';
-                        const hasLock = /^🔒/.test(txt);
-                        if (!hasLock) return; // already handled above for unlocked
-                        // Re-run the same label rename logic here to ensure locked labels reflect new root token
-                        const raw = txt.replace(/^🔒\s*/, '');
-                        const m = raw.match(/^([A-G])([#b]?)([\^v]*)(.*)$/);
-                        if (!m) return;
-                        const base = m[1]; const acc = m[2]||''; const dir = m[3]||''; const rest = m[4]||'';
-                        const semi = this.rootToSemitone(base, acc);
-                        let step = Math.round((semi * edo) / 12);
-                        const ups = (dir.match(/\^/g) || []).length;
-                        const downs = (dir.match(/v/g) || []).length;
-                        step = ((step + ups - downs) % edo + edo) % edo;
-                        const newRoot = this.getMicrotonalNoteName(step);
-                        header.textContent = `🔒 ${newRoot}${rest}`;
+                        // Only adjust locked columns here
+                        const lockedChord = this.lockedChords && this.lockedChords.get(col);
+                        if (!lockedChord) return;
+                        const hdr = col.querySelector('.extension-header');
+                        const nameEl = hdr && hdr.querySelector('.chord-name');
+                        if (!nameEl) return;
+                        const labelRaw = (nameEl.dataset.lockedName || nameEl.textContent || '').trim();
+                        const withoutLock = labelRaw.replace(/^🔒\s*/, '');
+                        // Extract the trailing quality/suffix to preserve (everything after the root token)
+                        let rest = '';
+                        const m = withoutLock.match(/^([A-G])([#b]?)([\^v]*)(.*)$/);
+                        if (m) rest = m[4] || '';
+                        const edoNow = this.getTuningStepsPerOctave();
+                        const localDelta = ((+col.dataset.localTranspose || 0) % edoNow + edoNow) % edoNow;
+                        const effStep = (((lockedChord.lockedRoot ?? 0) + localDelta + (this.transposeDelta || 0)) % edoNow + edoNow) % edoNow;
+                        const newRoot = this.getRootNameForStep(effStep, edoNow);
+                        nameEl.textContent = `🔒 ${newRoot}${rest}`;
+                        nameEl.dataset.lockedName = nameEl.textContent;
+                        // Refresh header accent color based on effective root
+                        try {
+                            const semi = this.stepToSemitone(effStep, edoNow);
+                            const accent = this.getChromaticColorForSemitone(semi);
+                            const text = this.pickTextColor(accent);
+                            hdr.style.background = accent;
+                            hdr.style.borderBottom = `2px solid ${accent}`;
+                            hdr.style.boxShadow = `0 0 10px ${accent}55`;
+                            hdr.style.color = text;
+                        } catch (_) {}
                     });
-                } catch {}
+                } catch (_) {}
                 // Update on-screen delta indicator if present
                 const deltaEl = document.getElementById('transposeDelta');
                 if (deltaEl) deltaEl.textContent = String(this.transposeDelta);
@@ -3436,6 +3600,9 @@
                 const parseBtn = document.getElementById('parseTextChordsBtn');
                 const basicBtn = document.getElementById('loadBasicChordsInSequence');
                 const copyBtn = document.getElementById('copyChordsListBtn');
+                const presetSelect = document.getElementById('seqPresetSelect');
+                const presetInsertBtn = document.getElementById('seqPresetInsertBtn');
+                const presetAddBtn = document.getElementById('seqPresetAddBtn');
                 if (openBtn) openBtn.addEventListener('click', ()=> { if(modal) modal.style.display='block'; });
                 if (closeBtn) closeBtn.addEventListener('click', ()=> { if(modal) modal.style.display='none'; });
                 if (parseBtn) parseBtn.addEventListener('click', ()=> this.runTextChordParsing());
@@ -3443,6 +3610,39 @@
                 if (copyBtn) copyBtn.addEventListener('click', ()=> this.copyParsedChordsToClipboard());
                 // Dismiss on backdrop click
                 if (modal) modal.addEventListener('click', (e)=>{ if(e.target===modal) modal.style.display='none'; });
+
+                // Load presets into dropdown
+                if (presetSelect) {
+                    const presets = this.getSequencePresets();
+                    this.populateSeqPresetDropdown(presetSelect, presets);
+                }
+                if (presetInsertBtn) {
+                    presetInsertBtn.addEventListener('click', ()=>{
+                        const ta = document.getElementById('textChordInput');
+                        const sel = document.getElementById('seqPresetSelect');
+                        if (!ta || !sel) return;
+                        let val = sel.value || '';
+                        if (!val) return;
+                        // Strip trailing bracketed preset name e.g., "I–V–vi–IV (50s Changes)" -> "I–V–vi–IV"
+                        val = val.replace(/\s*\([^)]*\)\s*$/, '');
+                        // Replace hyphens and dashes with spaces: I-IV-V -> I IV V
+                        val = val.replace(/[–—-]+/g, ' ');
+                        // Collapse whitespace
+                        val = val.replace(/\s+/g, ' ').trim();
+                        ta.value = val;
+                    });
+                }
+                if (presetAddBtn) {
+                    presetAddBtn.addEventListener('click', ()=>{
+                        const ta = document.getElementById('textChordInput');
+                        if (!ta) return;
+                        const text = (ta.value || '').trim();
+                        if (!text) return;
+                        this.saveSequencePreset(text);
+                        const sel = document.getElementById('seqPresetSelect');
+                        if (sel) this.populateSeqPresetDropdown(sel, this.getSequencePresets());
+                    });
+                }
             }
 
             runTextChordParsing() {
@@ -3451,7 +3651,14 @@
                 const countEl = document.getElementById('textChordCount');
                 if (!input || !resultsGrid || !countEl) return;
                 const text = input.value || '';
-                const unique = this.extractUniqueChordsFromText(text);
+                // If input is a Roman sequence (not mixed with standard chords), convert using current key
+                const material = this.isRomanSequence(text) ? this.convertRomanNumeralSequenceToChords(text) : text;
+                // Try to detect blocks (unique repeating sections) – split by line; otherwise fallback to linear extraction
+                const blocks = this.extractUniqueBlocks(material);
+                const repeat = !!document.getElementById('seqRepeat')?.checked;
+                // Preserve duplicates in linear mode so sequences render exact counts
+                const linear = this.extractChordsFromTextPreserveOrder(material);
+                const unique = (repeat && blocks.length > 1) ? blocks.flatMap(b=>b) : linear;
                 // Render
                 resultsGrid.innerHTML = '';
                 unique.forEach(ch => {
@@ -3470,6 +3677,163 @@
                     const modal = document.getElementById('textChordModal');
                     if (modal) modal.style.display = 'none';
                 }
+            }
+
+            // Heuristic: consider this text a Roman sequence only if most tokens are Roman numerals (with optional degree accidentals and extensions)
+            isRomanSequence(text) {
+                if (!text) return false;
+                const tokens = [];
+                String(text).split(/\r?\n/).forEach(line => {
+                    line.split(/[\s\|]+|[–—-]/g).map(s=>s.trim()).filter(Boolean).forEach(t=>tokens.push(t));
+                });
+                if (tokens.length === 0) return false;
+                // Roman token: optional leading b/#, then roman (I,II,III,IV,V,VI,VII in any case), optional extension tail
+                const romanRe = /^(?:b+|#+)?(?:i{1,3}|iv|v|vi{0,3}|I{1,3}|IV|V|VI{0,3})(?:maj7|M7|Δ7|m7|7|9|11|13|maj9|M9|Δ9|add(?:9|11|13)|[#b](?:5|9|11|13))?$/;
+                let romanCount = 0;
+                for (const tok of tokens) {
+                    if (romanRe.test(tok)) romanCount++;
+                }
+                if (romanCount === 0) return false;
+                // Require a majority to avoid mixing modes
+                return romanCount / tokens.length >= 0.6;
+            }
+
+            // Detect unique repeating blocks from multi-line input; returns array of arrays (each block => list of chords).
+            extractUniqueBlocks(text) {
+                if (!text) return [];
+                const lines = String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+                const out = [];
+                const seen = new Set();
+                for (const line of lines) {
+                    const tokens = this.extractUniqueChordsFromText(line);
+                    if (!tokens.length) continue;
+                    const key = tokens.join(' ');
+                    if (!seen.has(key)) { seen.add(key); out.push(tokens); }
+                }
+                return out;
+            }
+
+            // New: Extract chords in order (no dedupe), across lines, preserving repeats
+            extractChordsFromTextPreserveOrder(text) {
+                if (!text) return [];
+                const lines = String(text).split(/\r?\n/);
+                const out = [];
+                for (const line of lines) {
+                    const s = line.trim();
+                    if (!s) continue;
+                    const matches = this.scanChordMatches(s);
+                    for (const m of matches) {
+                        const norm = this.normalizeChordToken(m.raw);
+                        if (norm) out.push(norm);
+                    }
+                }
+                return out;
+            }
+
+            // Presets management in localStorage
+            getSequencePresets() {
+                const key = 'omni_seq_presets_v1';
+                let list = [];
+                try { list = JSON.parse(localStorage.getItem(key)) || []; } catch(_) { list = []; }
+                if (!Array.isArray(list) || !list.length) {
+                    list = this.getDefaultSequencePresets();
+                    try { localStorage.setItem(key, JSON.stringify(list)); } catch(_) {}
+                }
+                return list;
+            }
+            saveSequencePreset(text) {
+                const key = 'omni_seq_presets_v1';
+                const list = this.getSequencePresets();
+                let v = String(text || '').trim();
+                if (!v) return;
+                // If user didn't include a bracketed name, append a simple one
+                if (!/\([^)]*\)\s*$/.test(v)) v = v + ' (Saved)';
+                if (!list.includes(v)) list.unshift(v);
+                try { localStorage.setItem(key, JSON.stringify(list.slice(0,50))); } catch(_) {}
+            }
+            populateSeqPresetDropdown(selectEl, list) {
+                if (!selectEl) return;
+                selectEl.innerHTML = '';
+                list.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v; opt.textContent = v.length > 80 ? v.slice(0,77)+'…' : v;
+                    selectEl.appendChild(opt);
+                });
+            }
+            getDefaultSequencePresets() {
+                // A compact but comprehensive starter set
+                return [
+                    'I–V–vi–IV (50s Changes)',
+                    'ii–V–I (ii–V–I Turnaround)',
+                    'I–vi–IV–V (Doo-Wop)',
+                    'I–IV–V–IV (Pop Rock)',
+                    'I–IV–vi–V (Pop Variant)',
+                    'I–V–I–V (Folk Alternation)',
+                    'I–bVII–bVI–bVII (Modal Backstep)',
+                    'iv–bVII–I (Minor Lift)',
+                    'I–V–ii–IV (Pop/J-Pop)',
+                    'I–V–♭VII–IV (Rock Mixolydian)',
+                    'iiø7–V7–i (Minor ii–V–i)',
+                    'IV△7–V7–iii7 (Backdoor to iii)',
+                    'I△7–vi7–ii7–V7 (Rhythm Changes A)',
+                    'I–V–vi–iii–IV–I–IV–V (Canon-esque)',
+                    'I–bIII–IV – I–bIII–IV – I–bIII–IV–bVI (Andalusian Cycle)'
+                ];
+            }
+
+            // Convert Roman numeral sequence to concrete chord names in current key
+            convertRomanNumeralSequenceToChords(text) {
+                const edo = this.currentTuning || 12;
+                const keyStep = this.currentRoot || 0; // tonic
+                const tokens = [];
+                const lines = String(text).split(/\r?\n/);
+                const pushLine = (s)=>{
+                    // split on spaces, hyphens, en/em dashes, pipes
+                    const parts = s.split(/[\s\|]+|[–—-]/g).map(x=>x.trim()).filter(Boolean);
+                    for (const p of parts) tokens.push(p);
+                };
+                lines.forEach(pushLine);
+                const mapped = tokens.map(tok=> this.mapRomanTokenToChord(tok, keyStep, edo)).filter(Boolean);
+                return mapped.join(' ');
+            }
+
+            // Map one roman token (like bVII, ii, Vmaj7, iii7, bVI#11) to a chord name in current key
+            mapRomanTokenToChord(tok, keyStep, edo) {
+                // Normalize unicode flats/sharps
+                let t = String(tok).replace(/♭/g,'b').replace(/♯/g,'#');
+                // Extract accidental prefix for degree (b/# before the roman)
+                const accMatch = t.match(/^(b+|#+)?/);
+                const acc = (accMatch && accMatch[0]) || '';
+                let rest = t.slice(acc.length);
+                // Choose the longest matching roman token first to avoid splitting 'iv' into 'i'+'v'
+                const romans = ['vii','vi','iv','iii','ii','v','i','VII','VI','IV','III','II','V','I'];
+                let roman = null;
+                for (const cand of romans) {
+                    if (rest.startsWith(cand)) { roman = cand; break; }
+                }
+                if (!roman) return null;
+                const tail = rest.slice(roman.length).trim();
+                const isMinor = roman === roman.toLowerCase();
+                // Map roman to diatonic degree in 12-TET steps (Ionian)
+                const romanSteps = { i:0, ii:2, iii:4, iv:5, v:7, vi:9, vii:11 };
+                const baseSemi = romanSteps[roman.toLowerCase()];
+                if (baseSemi == null) return null;
+                let semi = baseSemi;
+                // Apply accidentals to degree
+                for (const ch of acc) semi += (ch === 'b' ? -1 : 1);
+                // Wrap
+                semi = ((semi % 12) + 12) % 12;
+                // Convert to EDO step offset from tonic
+                const degreeStep = Math.round((semi * edo) / 12);
+                const rootStep = ((keyStep + degreeStep) % edo + edo) % edo;
+                const preferAccidental = acc && /b/.test(acc) ? 'flat' : (acc && /#/.test(acc) ? 'sharp' : undefined);
+                const rootName = this.getMicrotonalNoteName(rootStep, preferAccidental ? { preferAccidental } : {});
+                // Determine basic quality from case
+                const quality = isMinor ? 'm' : '';
+                // Preserve any explicit tail like maj7, 7, 9, 13, #11 etc.; also map △ to maj
+                const canonicalTail = tail.replace(/△/g,'maj');
+                const chord = `${rootName}${quality}${canonicalTail}`.trim();
+                return this.normalizeChordToken(chord) || chord;
             }
 
             copyParsedChordsToClipboard() {
@@ -3605,7 +3969,8 @@
                     originalTuning: this.currentTuning,
                     originalGamelanMode: this.gamelanMode,
                     lastTuning: this.currentTuning,
-                    headerColor: this.getIntervalColor(0)?.color || '#14b8a6'
+                    headerColor: this.getIntervalColor(0)?.color || '#14b8a6',
+                    localTranspose: 0
                 };
                 this.chordExtensions.push(newChord);
                 return { chord: newChord, position: newChord.position, rootSemitone, rootStep };
@@ -3699,6 +4064,52 @@
                 if (/♯9|#9/.test(t)) add(set, 15);
                 if (/♯11|#11/.test(t)) add(set, 18);
 
+                // Microtonal '^' (raise) and 'v' (lower) modifiers on extensions
+                // Helper: add a degree with optional microstep offset in current EDO
+                const EDO = this.currentTuning;
+                const degToSemi = {2:2,3:3,4:5,5:7,6:9,7:10,9:14,11:17,13:21};
+                const addMicroDegree = (deg, microSteps=0)=>{
+                    const semi = degToSemi[deg];
+                    if (semi == null) return;
+                    const base = map(semi);
+                    let target = base + microSteps;
+                    // wrap within EDO for safety
+                    target = ((target % EDO) + EDO) % EDO;
+                    set.add(target);
+                };
+                const microShiftOf = (s)=> ((s.match(/\^/g)||[]).length - (s.match(/v/g)||[]).length);
+
+                // addv7/add^9/addv11/add^13 etc.
+                const addMicroRe = /add([\^v]+)(2|3|4|5|6|7|9|11|13)/g;
+                let mm;
+                while ((mm = addMicroRe.exec(t)) !== null) {
+                    const shift = microShiftOf(mm[1]);
+                    const deg = parseInt(mm[2],10);
+                    addMicroDegree(deg, shift);
+                }
+
+                // Bare micro-marked degrees like v7, ^9, v13
+                const bareMicroRe = /(?:^|[^A-Za-z])([\^v]+)(2|3|4|5|6|7|9|11|13)(?![0-9])/g;
+                while ((mm = bareMicroRe.exec(t)) !== null) {
+                    const shift = microShiftOf(mm[1]);
+                    const deg = parseInt(mm[2],10);
+                    if (deg === 9) {
+                        if (!hasMaj7) add(set, 10); // implied 7
+                        addMicroDegree(9, shift);
+                    } else if (deg === 11) {
+                        if (!hasMaj7) add(set, 10);
+                        add(set, 14); // implied 9
+                        addMicroDegree(11, shift);
+                    } else if (deg === 13) {
+                        if (!hasMaj7) add(set, 10);
+                        add(set, 14); // 9
+                        add(set, hasSharp11 ? 18 : 17); // respect #11 if also present
+                        addMicroDegree(13, shift);
+                    } else {
+                        addMicroDegree(deg, shift);
+                    }
+                }
+
                 // Return sorted unique
                 return Array.from(set).sort((a,b)=>a-b);
             }
@@ -3783,8 +4194,8 @@
                 let tail = mRoot[4] || '';
                 // Normalize spacing before interpreting quality/extensions
                 tail = tail.trim();
-                // Normalize common spaced variants like "Maj 7", "Maj 9" → "M7", "M9"
-                tail = tail.replace(/^maj\s*(?=(?:7|9|11|13)\b)/i, 'M');
+                // Normalize common spaced variants like "Maj 7", "Maj 9" → "maj7", "maj9"
+                tail = tail.replace(/^maj\s*(?=(?:7|9|11|13)\b)/i, 'maj');
                 tail = tail.replace(/^M\s*(7|9|11|13)/, 'M$1');
 
                 // Guard: ignore bare two-letter words that look like lyrics (e.g., "Bu", "Ea")
@@ -3842,8 +4253,8 @@
                 let chord = root + tail;
 
                 // Cosmetic: convert 'Bbb' accidents or double signs not handled here; keep simple
-                // Normalize 'M7' to 'Δ7' for display consistency
-                chord = chord.replace(/M7/g,'Δ7').replace(/M9/g,'Δ9').replace(/M11/g,'Δ11').replace(/M13/g,'Δ13');
+                // Display: prefer 'maj' wording over Δ or bare 'M'
+                chord = chord.replace(/Δ(7|9|11|13)/g,'maj$1').replace(/M(7|9|11|13)/g,'maj$1');
 
                 return chord;
             }
@@ -4484,7 +4895,7 @@
                 return Math.round(exactStep) % this.currentTuning;
             }
             
-            getMicrotonalNoteName(step) {
+            getMicrotonalNoteName(step, opts = {}) {
                 // Base note letters
                 const baseLetters = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
                 
@@ -4517,13 +4928,34 @@
                 let closestDiatonic = 0;
                 let minDistance = Infinity;
                 let diatonicIndex = 0;
-                
                 for (let i = 0; i < diatonicSteps.length; i++) {
                     const distance = Math.abs(semitonePosition - diatonicSteps[i]);
                     if (distance < minDistance) {
                         minDistance = distance;
                         closestDiatonic = diatonicSteps[i];
                         diatonicIndex = i;
+                    }
+                }
+
+                // Optional preference: if caller prefers flats or sharps for enharmonic choices,
+                // bias the diatonic anchor toward upper (flat) or lower (sharp) choice when not exact.
+                const prefer = opts.preferAccidental;
+                if (prefer === 'flat' || prefer === 'sharp') {
+                    // Compute nearest lower and upper diatonic indices
+                    let lowerIdx = 0, upperIdx = diatonicSteps.length - 1;
+                    for (let i = 0; i < diatonicSteps.length; i++) {
+                        if (diatonicSteps[i] <= semitonePosition) lowerIdx = i;
+                        if (diatonicSteps[i] >= semitonePosition) { upperIdx = i; break; }
+                    }
+                    const isExact = diatonicSteps[lowerIdx] === semitonePosition || diatonicSteps[upperIdx] === semitonePosition;
+                    if (!isExact) {
+                        if (prefer === 'flat') {
+                            diatonicIndex = upperIdx; // e.g., choose B then flat for 10 → Bb
+                            closestDiatonic = diatonicSteps[diatonicIndex];
+                        } else if (prefer === 'sharp') {
+                            diatonicIndex = lowerIdx; // e.g., choose A then sharp for 10 → A#
+                            closestDiatonic = diatonicSteps[diatonicIndex];
+                        }
                     }
                 }
                 
@@ -4616,6 +5048,37 @@
                 let finalName = noteLetter + accidental + arrows;
                 
                 return finalName;
+            }
+
+            // Return a concise root name for a given EDO step, using:
+            // - 12 EDO: standard sharps (C, C#, D, ...)
+            // - 24 EDO: arrow notation for quarter steps relative to nearest even step (C, C^, C#, C#^, D, ...), wrapping so step 23 -> Cv
+            // - other EDOs: fall back to rich getMicrotonalNoteName()
+            getRootNameForStep(step, edo = (this.currentTuning || 12)) {
+                const norm = (n, m) => ((n % m) + m) % m;
+                const s = norm(step|0, edo|0 || 12);
+                const sharpNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+                if (edo === 12) {
+                    return sharpNames[s % 12];
+                }
+                if (edo === 24) {
+                    // Choose nearest even anchor (12-TET lattice), then append ^ for +1 or v for -1 quarter-step
+                    let anchor = Math.round(s / 2) * 2; // 0..24
+                    anchor = norm(anchor, 24);
+                    let delta = s - anchor; // usually -1,0,+1 but handle wrap-around
+                    if (delta > 12) delta -= 24;
+                    if (delta < -12) delta += 24;
+                    const semi = (anchor / 2) % 12;
+                    const base = sharpNames[semi];
+                    if (delta === 0) return base;
+                    if (delta === 1) return base + '^';
+                    if (delta === -1) return base + 'v';
+                    // Fallback (shouldn't happen): compose from micro name
+                    return this.getMicrotonalNoteName(s);
+                }
+                // Default: keep the richer musical symbols
+                return this.getMicrotonalNoteName(s);
             }
             
             getDiatonicNoteColor(step) {
@@ -4713,11 +5176,16 @@
                     return;
                 }
                 
+                // Prefix the display name with current root (only if no root letter at start)
+                const rootName = this.getMicrotonalNoteName(this.currentRoot || 0);
+                const prefixedName = /^[A-G][#b]?/.test(name) ? name : `${rootName}${name}`;
                 const newChord = {
-                    name: name,
+                    name: prefixedName,
                     intervals: selectedIntervals,
                     isCustom: true,
-                    id: Date.now() // Unique ID
+                    id: Date.now(), // Unique ID
+                    root: this.currentRoot || 0,
+                    tuning: this.currentTuning || 12
                 };
                 
                 if (this.currentEditingChord) {
@@ -4918,15 +5386,17 @@
                     }
                 ];
                 
-                qualities.forEach(quality => {
+        qualities.forEach(quality => {
                     const qualityChord = {
-                        name: `${chordData.name}${quality.suffix}`,
+            name: `${chordData.name}${quality.suffix}`,
                         originalName: chordData.name,
                         intervals: quality.intervals,
                         quality: quality.name,
                         isCustom: true,
                         color: quality.color,
-                        baseIntervals: chordData.intervals
+            baseIntervals: chordData.intervals,
+            root: chordData.root ?? this.currentRoot ?? 0,
+            tuning: chordData.tuning ?? this.currentTuning ?? 12
                     };
                     
                     // Add to chord extensions for the 3-column layout
@@ -4963,13 +5433,15 @@
                 if (this.currentEditingChord.isCustom) {
                     const index = this.customChords.findIndex(c => c.id === this.currentEditingChord.id);
                     if (index !== -1) {
-                        this.customChords[index] = { ...newChordData, id: this.currentEditingChord.id };
+                        const prev = this.customChords[index] || {};
+                        this.customChords[index] = { ...prev, ...newChordData, id: this.currentEditingChord.id, root: prev.root ?? this.currentRoot, tuning: prev.tuning ?? this.currentTuning };
                         // localStorage removed - no longer saving custom chords
                     }
                 } else {
                     const index = this.chordExtensions.findIndex(c => c.name === this.currentEditingChord.name);
                     if (index !== -1) {
-                        this.chordExtensions[index] = newChordData;
+                        const prev = this.chordExtensions[index] || {};
+                        this.chordExtensions[index] = { ...prev, ...newChordData, root: prev.root ?? this.currentRoot, tuning: prev.tuning ?? this.currentTuning };
                         this.saveChordConfiguration(); // Use consistent save method
                     }
                 }
@@ -7702,12 +8174,15 @@
                         if (hideButton) hideButton.style.display = 'flex';
                         if (duplicateButton) duplicateButton.style.display = 'flex';
                         
-                        // Update visual styling and show locked root in name
+                        // Update visual styling and show locked root in name (respect per-column local transpose)
                         const chordNameElement = targetColumn.querySelector('.chord-name');
                         if (chordNameElement) {
                             chordNameElement.style.color = '#4CAF50';
                             chordNameElement.style.fontWeight = 'bold';
-                            const rootName = this.getNoteNames()[lockedChord.lockedRoot] || lockedChord.lockedRoot;
+                            const edo = lockedChord.lockedTuning || this.currentTuning || 12;
+                            const localDelta = ((+targetColumn.dataset.localTranspose || 0) % edo + edo) % edo;
+                            const effRoot = ((lockedChord.lockedRoot ?? 0) + localDelta + edo) % edo;
+                            const rootName = this.getRootNameForStep(effRoot, edo);
                             
                             // ALWAYS show the locked root in the chord name
                             if (lockedChord.chordName.match(/^[A-G][#b]?/)) {
@@ -7720,7 +8195,7 @@
                             
                             chordNameElement.title = `?? LOCKED: ${rootName} root, ${lockedChord.lockedTuning}TET, ${lockedChord.lockedOsc1.type}/${lockedChord.lockedOsc2.type} waves`;
                             
-                            // Make sure this chord name never changes by marking it
+                            // Mark the effective locked label so future ops parse the correct root
                             chordNameElement.dataset.isLocked = 'true';
                             chordNameElement.dataset.lockedName = chordNameElement.textContent;
                         }
@@ -9979,10 +10454,13 @@
                 
                 // Add context menu handlers
                 header.addEventListener('click', (e) => {
-                    // Don't interfere with action button clicks
-                    if (e.target.classList.contains('lock-button') || 
+                    // Don't interfere with header action buttons
+                    if (
+                        e.target.classList.contains('lock-button') ||
+                        e.target.classList.contains('piano-lock-button') ||
                         e.target.classList.contains('chord-action-button') ||
-                        e.target.classList.contains('piano-lock-button')) {
+                        e.target.tagName === 'BUTTON'
+                    ) {
                         return; // Let the buttons handle their own clicks
                     }
                     
@@ -10129,9 +10607,9 @@
                     this.hiddenColumns = [];
                 }
                 
-                // Map chord extensions to identifiers for hiding
+                // Map chord extensions to identifiers for hiding (per-instance)
                 const chordIds = this.chordExtensions.map((chord, index) => {
-                    const id = chord.name.toLowerCase().replace(/\s+/g, '_');
+                    const id = (chord.id || (chord.name + '_' + index)).toLowerCase().replace(/\s+/g, '_');
                     console.log(`Mapping chord ${index}: "${chord.name}" -> ID: "${id}"`);
                     return id;
                 });
@@ -10162,6 +10640,19 @@
                     return;
                 }
                 
+                // Layout: split into two rows if many columns
+                const useTwoRows = visibleExtensions.length > 16;
+                let rowTop, rowBottom;
+                if (useTwoRows) {
+                    container.style.flexDirection = 'column';
+                    rowTop = document.createElement('div');
+                    rowBottom = document.createElement('div');
+                    Object.assign(rowTop.style, { display:'flex', gap:'0px', width:'100%', height:'50%' });
+                    Object.assign(rowBottom.style, { display:'flex', gap:'0px', width:'100%', height:'50%' });
+                    container.appendChild(rowTop);
+                    container.appendChild(rowBottom);
+                }
+
                 // Always use simple layout - one column per chord type (no more variants)
                 console.log('Creating modern chord layout - each chord gets its own column');
                 visibleExtensions.forEach((chordExt, extensionIndex) => {
@@ -10173,6 +10664,9 @@
                         const absoluteIndex = (typeof chordExt.position === 'number') ? chordExt.position : (this.findChordIndex ? this.findChordIndex(chordExt) : this.chordExtensions.indexOf(chordExt));
                         column.dataset.originalPosition = String(absoluteIndex);
                         column.dataset.chordId = chordExt.id || column.dataset.chordType;
+                        if (!column.dataset.instanceId) {
+                            column.dataset.instanceId = `${column.dataset.chordId}__${Date.now()}_${Math.floor(Math.random()*1e6)}`;
+                        }
                     } catch (_) { /* non-fatal */ }
                     column.style.flex = '1'; // Each column takes equal width
                     column.style.height = '100%';
@@ -10231,6 +10725,111 @@
                     duplicateButton.innerHTML = '📋';
                     duplicateButton.title = 'Duplicate and edit';
                     // ALWAYS visible now
+
+                    // Per-column transpose controls
+                    const upBtn = document.createElement('button');
+                    upBtn.className = 'chord-action-button transpose-up';
+                    upBtn.title = 'Transpose this chord up one step';
+                    upBtn.textContent = '▲';
+                    const downBtn = document.createElement('button');
+                    downBtn.className = 'chord-action-button transpose-down';
+                    downBtn.title = 'Transpose this chord down one step';
+                    downBtn.textContent = '▼';
+                    // Prevent double-fire on touch; normalize modulo
+                    let _pressGuard = false;
+                    const norm = (v, m)=> ((v % m) + m) % m;
+                    const applyLocalTranspose = (delta)=>{
+                        if (_pressGuard) return; // collapse duplicate pointer sequences
+                        _pressGuard = true;
+                        const edoNow = (chordExt.lockedData?.lockedTuning) || this.currentTuning || 12;
+                        chordExt.localTranspose = norm((chordExt.localTranspose||0) + delta, edoNow);
+                        const prev = (+column.dataset.localTranspose || 0);
+                        column.dataset.localTranspose = String(norm(prev + delta, edoNow));
+
+                        const lockedData = chordExt.lockedData || this.lockedChords?.get(column);
+                        if (lockedData && typeof lockedData.lockedRoot === 'number') {
+                            const edo = lockedData.lockedTuning || edoNow;
+                            const base = lockedData.lockedRoot;
+                            const step = ((base + (chordExt.localTranspose||0)) % edo + edo) % edo;
+                            const newRoot = this.getRootNameForStep(step, edo);
+                            const rest = (lockedData.chordName || '').replace(/^[A-G][#b]?\s*/, '');
+                            chordName.textContent = `${newRoot}${rest}`;
+                            chordName.dataset.lockedName = chordName.textContent;
+                            // Clear any exact snapshot so transpose can take effect
+                            if (lockedData.exactFrequencies && lockedData.exactFrequencies.length) {
+                                lockedData.exactFrequencies = [];
+                            }
+                            // Also clear the central map's snapshot if present (preset-derived locks)
+                            try {
+                                const mapLocked = this.lockedChords?.get(column);
+                                if (mapLocked && Array.isArray(mapLocked.exactFrequencies) && mapLocked.exactFrequencies.length) {
+                                    mapLocked.exactFrequencies = [];
+                                }
+                            } catch (_) {}
+                            const oldContainer = column.querySelector('.strings-column');
+                            if (oldContainer) oldContainer.remove();
+                            this.generateStringsForColumnWithLockedSettings(column, chordExt.intervals || [0], lockedData);
+                            // Refresh header accent to match new effective root
+                            try {
+                                const hdr = column.querySelector('.extension-header');
+                                const tuningSize = lockedData.lockedTuning || this.currentTuning || 12;
+                                const semi = this.stepToSemitone(step, tuningSize);
+                                const accent = this.getChromaticColorForSemitone(semi);
+                                const text = this.pickTextColor(accent);
+                                hdr.style.background = accent;
+                                hdr.style.borderBottom = `2px solid ${accent}`;
+                                hdr.style.boxShadow = `0 0 10px ${accent}55`;
+                                hdr.style.color = text;
+                            } catch {}
+                        } else {
+                            // Unlocked: compute from CURRENT displayed step + delta only (no cumulative add)
+                            const label = (chordName.dataset.lockedName || chordName.textContent || '').trim();
+                            const m = label.match(/^([A-G])([#b]?)([\^v]*)(.*)$/);
+                            if (m) {
+                                const rest = m[4]||'';
+                                const rootSemi = this.rootToSemitone(m[1], m[2]||'');
+                                const edo = this.getTuningStepsPerOctave();
+                                const step0 = Math.round((rootSemi * edo)/12);
+                                const ups = (m[3].match(/\^/g) || []).length;
+                                const downs = (m[3].match(/v/g) || []).length;
+                                const currentStep = ((step0 + ups - downs) % edo + edo) % edo;
+                                const nextStep = ((currentStep + delta) % edo + edo) % edo;
+                                const newRoot = this.getRootNameForStep(nextStep, edo);
+                                chordName.textContent = `${newRoot}${rest}`;
+                            }
+                            const oldContainer = column.querySelector('.strings-column');
+                            if (oldContainer) oldContainer.remove();
+                            this.generateStringsForColumn(column, chordExt.intervals || [0], chordExt.isCustom||false);
+                            // Refresh header accent to match new effective root
+                            try {
+                                const hdr = column.querySelector('.extension-header');
+                                const nameEl = hdr?.querySelector('.chord-name');
+                                const label = nameEl ? (nameEl.dataset.lockedName || nameEl.textContent || '').trim() : '';
+                                const m = label.match(/^([A-G])([#b]?)([\^v]*)/);
+                                if (m) {
+                                    const semi = this.rootToSemitone(m[1], m[2]||'');
+                                    const edo = this.getTuningStepsPerOctave();
+                                    const step0 = Math.round((semi * edo)/12);
+                                    const ups = (m[3].match(/\^/g) || []).length;
+                                    const downs = (m[3].match(/v/g) || []).length;
+                                    const stepEff = ((step0 + ups - downs) % edo + edo) % edo;
+                                    const accent = this.getChromaticColorForSemitone(this.stepToSemitone(stepEff, edo));
+                                    const text = this.pickTextColor(accent);
+                                    hdr.style.background = accent;
+                                    hdr.style.borderBottom = `2px solid ${accent}`;
+                                    hdr.style.boxShadow = `0 0 10px ${accent}55`;
+                                    hdr.style.color = text;
+                                }
+                            } catch {}
+                        }
+                        Promise.resolve().then(()=>{ _pressGuard = false; });
+                    };
+                    const onPointer = (delta)=> (e)=>{ e.preventDefault(); e.stopPropagation(); applyLocalTranspose(delta); };
+                    upBtn.addEventListener('pointerdown', onPointer(+1));
+                    downBtn.addEventListener('pointerdown', onPointer(-1));
+
+                    // Ensure per-column local transpose is initialized
+                    if (!column.dataset.localTranspose) column.dataset.localTranspose = '0';
 
                     // Create revoice button (ALWAYS VISIBLE)
                     const revoiceButton = document.createElement('button');
@@ -10305,6 +10904,8 @@
                         this.duplicateChordFromButton(chordDataForDupe, column);
                     });
                     
+                    // pointerdown covers mouse/touch/pen without double fires
+
                     // Add lock button functionality
                     lockButton.addEventListener('click', (e) => {
                         e.preventDefault();
@@ -10368,6 +10969,8 @@
                     buttonsContainer.appendChild(editButton);
                     buttonsContainer.appendChild(duplicateButton);
                     buttonsContainer.appendChild(revoiceButton);
+                    buttonsContainer.appendChild(upBtn);
+                    buttonsContainer.appendChild(downBtn);
                     buttonsContainer.appendChild(lockButton);
                     buttonsContainer.appendChild(pianoLockButton);
                     
@@ -10388,10 +10991,13 @@
                     
                     // Add context menu handlers
                     header.addEventListener('click', (e) => {
-                        // Don't interfere with action button clicks
-                        if (e.target.classList.contains('lock-button') || 
+                        // Don't interfere with header action buttons
+                        if (
+                            e.target.classList.contains('lock-button') ||
+                            e.target.classList.contains('piano-lock-button') ||
                             e.target.classList.contains('chord-action-button') ||
-                            e.target.classList.contains('piano-lock-button')) {
+                            e.target.tagName === 'BUTTON'
+                        ) {
                             return; // Let the buttons handle their own clicks
                         }
                         
@@ -10422,9 +11028,13 @@
                     
                     // Header click handler (simplified)
                     header.addEventListener('click', (e) => {
-                        // Don't interfere with action button clicks
-                        if (e.target.classList.contains('lock-button') || 
-                            e.target.classList.contains('chord-action-button')) {
+                        // Don't interfere with header action buttons
+                        if (
+                            e.target.classList.contains('lock-button') ||
+                            e.target.classList.contains('piano-lock-button') ||
+                            e.target.classList.contains('chord-action-button') ||
+                            e.target.tagName === 'BUTTON'
+                        ) {
                             return; // Let the buttons handle their own clicks
                         }
                         
@@ -10448,7 +11058,15 @@
                     
                     // Enable long-press drag reordering
                     this.attachColumnDragHandlers(column);
-                    container.appendChild(column);
+                    if (useTwoRows) {
+                        const half = Math.ceil(visibleExtensions.length / 2);
+                        const targetRow = extensionIndex < half ? rowTop : rowBottom;
+                        targetRow.appendChild(column);
+                        const sc = column.querySelector('.strings-column');
+                        if (sc) sc.style.height = 'calc(100% - 42px)';
+                    } else {
+                        container.appendChild(column);
+                    }
                 });
                 
                 // Add click handlers after rendering
@@ -10599,7 +11217,9 @@
                 const lockedChord = this.lockedChords?.get(column);
 
                 // If exact frequencies were captured for this column, render snapshot and exit
-                if (lockedChord && Array.isArray(lockedChord.exactFrequencies) && lockedChord.exactFrequencies.length > 0 && !this._transposing) {
+                // But skip snapshot if a local per-column transpose is active, so arrows take effect
+                const hasLocalTranspose = ((+column.dataset.localTranspose || 0) !== 0);
+                if (lockedChord && Array.isArray(lockedChord.exactFrequencies) && lockedChord.exactFrequencies.length > 0 && !this._transposing && !hasLocalTranspose) {
                     const oldContainer = column.querySelector('.strings-column');
                     if (oldContainer) oldContainer.remove();
                     this.generateStringsWithExactFrequencies(column, lockedChord);
@@ -10609,27 +11229,24 @@
                 // Use locked settings if available, otherwise use current settings
                 let currentRoot, currentTuning;
                 if (lockedChord) {
-                    const edo = this.currentTuning || lockedChord.lockedTuning || 12;
-                    const delta = (this.transposeDelta || 0) % edo;
-                    currentRoot = ((lockedChord.lockedRoot ?? 0) + (this._transposing ? delta : 0) + edo) % edo;
+                    const edo = lockedChord.lockedTuning || this.currentTuning || 12;
+                    const globalDelta = (this.transposeDelta || 0) % edo;
+                    const localDelta = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
+                    currentRoot = ((lockedChord.lockedRoot ?? 0) + (this._transposing ? globalDelta : 0) + localDelta + edo) % edo;
                     currentTuning = lockedChord.lockedTuning;
-                    console.log('🎵 Using locked settings for string generation - root:', currentRoot, 'tuning:', currentTuning);
                 } else {
                     currentRoot = this.currentRoot;
                     currentTuning = this.currentTuning;
                 }
                 
-                console.log('🔧 generateStringsForColumn called with:', {
-                    intervals: intervals,
-                    isCustomChord: isCustomChord,
-                    currentTuning: currentTuning,
-                    currentRoot: currentRoot
-                });
+                
                 
                 const noteNames = this.getNoteNames();
                 const tuningSize = currentTuning || this.getTuningStepsPerOctave();
 
                 // Override base root per column from its chord label when not locked
+                // Important: the header label is already updated by per-column transpose controls,
+                // so we DO NOT apply column.dataset.localTranspose again here to avoid double shifting.
                 if (!lockedChord) {
                     try {
                         const nameEl = column.querySelector('.extension-header .chord-name');
@@ -10640,8 +11257,7 @@
                             let step = Math.round((rootSemi * tuningSize) / 12);
                             const ups = (m[3].match(/\^/g) || []).length;
                             const downs = (m[3].match(/v/g) || []).length;
-                            step = ((step + ups - downs) % tuningSize + tuningSize) % tuningSize;
-                            currentRoot = step;
+                            currentRoot = ((step + ups - downs) % tuningSize + tuningSize) % tuningSize;
                         }
                     } catch { /* ignore */ }
                 }
@@ -11326,10 +11942,15 @@
                     
                     // Add immediate click handler with high priority
                     header.addEventListener('click', (e) => {
-                        // Don't interfere with lock button clicks
-                        if (e.target.classList.contains('lock-button')) {
-                            console.log('?? Lock button clicked, allowing event to proceed');
-                            return; // Let the lock button handle its own click
+                        // Don't interfere with header action buttons
+                        if (
+                            e.target.classList.contains('lock-button') ||
+                            e.target.classList.contains('piano-lock-button') ||
+                            e.target.classList.contains('chord-action-button') ||
+                            e.target.tagName === 'BUTTON'
+                        ) {
+                            console.log('?? Header action button clicked, allowing event to proceed');
+                            return; // Let the buttons handle their own clicks
                         }
                         
                         console.log('?? IMMEDIATE CLICK on header:', header.textContent);
@@ -11349,8 +11970,16 @@
                     
                     // Also add a pointerdown event for better mobile support
                     header.addEventListener('pointerdown', (e) => {
+                        // Let header action buttons receive pointerdown
+                        if (
+                            e.target.classList.contains('lock-button') ||
+                            e.target.classList.contains('piano-lock-button') ||
+                            e.target.classList.contains('chord-action-button') ||
+                            e.target.tagName === 'BUTTON'
+                        ) {
+                            return;
+                        }
                         console.log('?? POINTERDOWN on header:', header.textContent);
-                        
                         e.preventDefault();
                         e.stopPropagation();
                         
@@ -11365,11 +11994,18 @@
                     }, true); // Use capture phase for highest priority
                     
                     header.addEventListener('mousedown', (e) => {
+                        // Let header action buttons receive mousedown
+                        if (
+                            e.target.classList.contains('lock-button') ||
+                            e.target.classList.contains('piano-lock-button') ||
+                            e.target.classList.contains('chord-action-button') ||
+                            e.target.tagName === 'BUTTON'
+                        ) {
+                            return;
+                        }
                         console.log('?? MOUSEDOWN on header:', header.textContent);
-                        
                         // Only handle left mouse button
                         if (e.button !== 0) return;
-                        
                         e.preventDefault();
                         e.stopPropagation();
                         
@@ -11399,16 +12035,15 @@
                     
                     // Also add touchstart for mobile
                     header.addEventListener('touchstart', (e) => {
-                        console.log('TOUCHSTART on header:', header.textContent);
-                        
                         // Don't interfere with button clicks - let them bubble up
                         if (e.target.classList.contains('lock-button') || 
                             e.target.classList.contains('piano-lock-button') ||
+                            e.target.classList.contains('chord-action-button') ||
                             e.target.tagName === 'BUTTON') {
                             console.log('Touch on button, allowing default behavior');
                             return;
                         }
-                        
+                        console.log('TOUCHSTART on header:', header.textContent);
                         e.preventDefault();
                         e.stopPropagation();
                         
