@@ -1600,12 +1600,12 @@
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Decay</label>
-                                <input type="range" class="envelope-slider" id="decaySlider" min="1" max="200" value="30" style="height:18px;">
-                                <div class="slider-value" id="decayValue" style="font-size:8px;">30ms</div>
+                                <input type="range" class="envelope-slider" id="decaySlider" min="0" max="1000" value="200" style="height:18px;">
+                                <div class="slider-value" id="decayValue" style="font-size:8px;">200ms</div>
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Sustain</label>
-                                <input type="range" class="envelope-slider" id="sustainSlider" min="0" max="10" value="5" style="height:18px;">
+                                <input type="range" class="envelope-slider" id="sustainSlider" min="1" max="100" value="50" style="height:18px;">
                                 <div class="slider-value" id="sustainValue" style="font-size:8px;">50%</div>
                             </div>
                             <div class="slider-container">
@@ -1655,12 +1655,12 @@
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Decay</label>
-                                <input type="range" class="envelope-slider" id="osc2DecaySlider" min="1" max="200" value="30" style="height:18px;">
+                                <input type="range" class="envelope-slider" id="osc2DecaySlider" min="0" max="1000" value="30" style="height:18px;">
                                 <div class="slider-value" id="osc2DecayValue" style="font-size:8px;">30ms</div>
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Sustain</label>
-                                <input type="range" class="envelope-slider" id="osc2SustainSlider" min="0" max="10" value="5" style="height:18px;">
+                                <input type="range" class="envelope-slider" id="osc2SustainSlider" min="1" max="100" value="50" style="height:18px;">
                                 <div class="slider-value" id="osc2SustainValue" style="font-size:8px;">50%</div>
                             </div>
                             <div class="slider-container">
@@ -2765,6 +2765,8 @@
                 gainNode.gain.setValueAtTime(0, now);
                 gainNode.gain.linearRampToValueAtTime(this.volume * this.masterVolume, now + this.envelope.attack);
                 gainNode.gain.exponentialRampToValueAtTime(this.volume * this.masterVolume * this.envelope.sustain, now + this.envelope.attack + this.envelope.decay);
+                // Release to zero after decay completes
+                gainNode.gain.linearRampToValueAtTime(0, now + this.envelope.attack + this.envelope.decay + this.envelope.release);
                 
                 // Connect through reverb if enabled
                 oscillator.connect(gainNode);
@@ -5574,12 +5576,11 @@
                 const decaySlider = document.getElementById('decaySlider');
                 if (decaySlider) {
                     decaySlider.addEventListener('input', (e) => {
-                        this.envelope.decay = Math.max(0.001, e.target.value / 1000); // 1ms minimum, 200ms max
-                        console.log('?? Decay changed to:', this.envelope.decay);
+                        // 0–1000ms → 0–1s
+                        const ms = Math.max(0, parseInt(e.target.value, 10) || 0);
+                        this.envelope.decay = ms / 1000;
                         const decayValue = document.getElementById('decayValue');
-                        if (decayValue) {
-                            decayValue.textContent = `${e.target.value}ms`;
-                        }
+                        if (decayValue) decayValue.textContent = `${ms}ms`;
                     });
                 } else {
                     console.error('decaySlider not found');
@@ -5588,12 +5589,11 @@
                 const sustainSlider = document.getElementById('sustainSlider');
                 if (sustainSlider) {
                     sustainSlider.addEventListener('input', (e) => {
-                        this.envelope.sustain = e.target.value / 10; // 0-10 scale to 0-1
-                        console.log('?? Sustain changed to:', this.envelope.sustain);
+                        // 1–100% → 0.01–1.0 level
+                        const pct = Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1));
+                        this.envelope.sustain = pct / 100;
                         const sustainValue = document.getElementById('sustainValue');
-                        if (sustainValue) {
-                            sustainValue.textContent = `${e.target.value * 10}%`;
-                        }
+                        if (sustainValue) sustainValue.textContent = `${pct}%`;
                     });
                 } else {
                     console.error('sustainSlider not found');
@@ -5663,11 +5663,10 @@
                 const osc2DecaySlider = document.getElementById('osc2DecaySlider');
                 if (osc2DecaySlider) {
                     osc2DecaySlider.addEventListener('input', (e) => {
-                        this.osc2Envelope.decay = Math.max(0.001, e.target.value / 1000); // 1ms minimum, 200ms max
+                        const ms = Math.max(0, parseInt(e.target.value, 10) || 0);
+                        this.osc2Envelope.decay = ms / 1000;
                         const osc2DecayValue = document.getElementById('osc2DecayValue');
-                        if (osc2DecayValue) {
-                            osc2DecayValue.textContent = `${e.target.value}ms`;
-                        }
+                        if (osc2DecayValue) osc2DecayValue.textContent = `${ms}ms`;
                     });
                 } else {
                     console.error('osc2DecaySlider not found');
@@ -5676,11 +5675,10 @@
                 const osc2SustainSlider = document.getElementById('osc2SustainSlider');
                 if (osc2SustainSlider) {
                     osc2SustainSlider.addEventListener('input', (e) => {
-                        this.osc2Envelope.sustain = e.target.value / 10; // 0-10 scale to 0-1
+                        const pct = Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1));
+                        this.osc2Envelope.sustain = pct / 100;
                         const osc2SustainValue = document.getElementById('osc2SustainValue');
-                        if (osc2SustainValue) {
-                            osc2SustainValue.textContent = `${e.target.value * 10}%`;
-                        }
+                        if (osc2SustainValue) osc2SustainValue.textContent = `${pct}%`;
                     });
                 } else {
                     console.error('osc2SustainSlider not found');
@@ -12532,16 +12530,14 @@
                     }
                 }
                 
-                // Auto-release timeout (use longer of the two attack+decay times)
-                const maxEnvelopeTime = Math.max(
-                    this.envelope.attack + this.envelope.decay,
-                    this.osc2Envelope.attack + this.osc2Envelope.decay
-                );
+                // Auto-release exactly at the end of decay to avoid infinite sustain on taps
+                const endOfDecayTime = Math.max(osc1DecayTime, osc2DecayTime);
+                const releaseDelayMs = Math.max(0, (endOfDecayTime - currentTime) * 1000);
                 const releaseTimeout = setTimeout(() => {
                     this.stopFrequency(frequency, element);
-                }, (maxEnvelopeTime + 1) * 1000);
-                
-                // Store oscillator data
+                }, releaseDelayMs);
+
+                // Store oscillator data (release also handled by user interaction or the timeout above)
                 this.activeOscillators.set(frequency, { 
                     osc1, 
                     osc2, 
