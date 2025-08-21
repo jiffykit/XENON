@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Microtonal Omnichord</title>
+    <title>Microtonal Omnichord - DEBUG v2</title>
     <!-- Retro font (Oswald) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1378,6 +1378,34 @@
             background: #8b1e1e !important;
             border-color: #ef4444 !important;
         }
+
+        /* Flash highlight for call-to-action buttons */
+        @keyframes flashCTA {
+            0% { box-shadow: 0 0 0 0 rgba(80, 200, 120, 0.85); transform: translateZ(0); }
+            50% { box-shadow: 0 0 0 10px rgba(80, 200, 120, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(80, 200, 120, 0); }
+        }
+        .flash-cta {
+            animation: flashCTA 1.8s ease-out infinite;
+        }
+        .flash-cta-alt {
+            animation: flashCTA 2.2s ease-out infinite;
+        }
+
+        /* Lightweight tooltip bubble */
+        .hint-bubble {
+            position: absolute;
+            z-index: 1000;
+            background: #0f2a3a;
+            color: #dff3ff;
+            border: 1px solid #2b5567;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            white-space: nowrap;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -1386,7 +1414,7 @@
     <!-- Bottom control bar -->
     <div id="bottomBar" style="position:fixed;bottom:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:0 18px;background:#081a28;border-top:2px solid #123447;z-index:600;font-family:var(--retro-font);">
         <!-- New global create chord button (moved out of TUNING panel) -->
-        <button id="createNewChordBtn" class="panel-btn" title="Add a new custom chord" style="font-weight:bold;padding:6px 10px;">+</button>
+    <button id="createNewChordBtn" class="panel-btn" title="Add Chord" style="font-weight:bold;padding:6px 10px;">+</button>
         <!-- EDO quick control (5–52) -->
         <div style="display:flex;align-items:center;gap:6px;">
             <span style="font-size:12px;color:#9db6c8;">EDO</span>
@@ -1394,7 +1422,7 @@
         </div>
         <button class="panel-btn" data-panel="osc">OSCILLATORS</button>
         <button class="panel-btn" data-panel="fx">EFFECTS</button>
-        <button id="openTextChordParserBtn" class="panel-btn" title="Type or paste a chord sequence" style="margin-left:6px;">SEQUENCE</button>
+    <button id="openTextChordParserBtn" class="panel-btn" title="Or click here to type a chord sequence" style="margin-left:6px;">SEQUENCE</button>
         <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
             <button id="bottomSaveSeqBtn" class="panel-btn" title="Save current chord sequence as preset" style="padding:6px 10px;background:#10b981;border-color:#34d399;">💾</button>
             <button id="bottomImportOMGBtn" class="panel-btn" title="Import .OMG session" style="padding:6px 10px;background:#9b59b6;border-color:#8e44ad;">📂</button>
@@ -1828,7 +1856,7 @@
     <script>
         // Disable verbose logging by default; toggle DEBUG to true for development
         (function(){
-            const DEBUG = false;
+            const DEBUG = true;
             if (!DEBUG && window && window.console) {
                 try {
                     console.debug = function(){};
@@ -3208,112 +3236,37 @@
                     const applyLocalTranspose = (delta)=>{
                         if (_pressGuard) return; // avoid accidental double-fire on first tap
                         _pressGuard = true;
-                        const edoNow = (chordExt.lockedData?.lockedTuning) || chordExt.fixedRootTuning || this.currentTuning || 12;
-                        // Normalize both model and DOM dataset to 0..edo-1
-                        chordExt.localTranspose = norm((chordExt.localTranspose||0) + delta, edoNow);
-                        // Persist per-column for locked rendering paths
-                        const prev = (+column.dataset.localTranspose || 0);
-                        column.dataset.localTranspose = String(norm(prev + delta, edoNow));
+                        const edoNow = chordExt.fixedRootTuning || this.currentTuning || 24; // use column/root tuning
 
-                        // Update header label root token; for locked chords base on locked root; else recompute
-                        const lockedData = chordExt.lockedData || this.lockedChords?.get(column);
-                        if (lockedData && typeof lockedData.lockedRoot === 'number') {
-                            const edo = lockedData.lockedTuning || edoNow;
-                            const base = lockedData.lockedRoot;
-                            const step = ((base + (chordExt.localTranspose||0)) % edo + edo) % edo;
-                            const newRoot = this.getRootNameForStep(step, edo);
-                            const rest = (lockedData.chordName || '').replace(/^[A-G][#b]?\s*/, '');
-                            chordName.textContent = `${newRoot}${rest}`;
-                            chordName.dataset.lockedName = chordName.textContent;
-                            // Clear any exact snapshot so local transpose takes effect in audio
-                            if (lockedData.exactFrequencies && lockedData.exactFrequencies.length) {
-                                lockedData.exactFrequencies = [];
-                            }
-                            // Also clear central map snapshot if present
-                            try {
-                                const mapLocked = this.lockedChords?.get(column);
-                                if (mapLocked && Array.isArray(mapLocked.exactFrequencies) && mapLocked.exactFrequencies.length) {
-                                    mapLocked.exactFrequencies = [];
-                                }
-                            } catch (_) {}
-                            // Regenerate strings using locked settings + local transpose
-                            const oldContainer = column.querySelector('.strings-column');
-                            if (oldContainer) oldContainer.remove();
-                            this.generateStringsForColumnWithLockedSettings(column, chordExt.intervals || [0], lockedData);
-                            // Refresh header accent color to effective root
-                            try {
-                                const semi = this.stepToSemitone(step, edo);
-                                const accent = this.getChromaticColorForSemitone(semi);
-                                const text = this.pickTextColor(accent);
-                                header.style.background = accent;
-                                header.style.borderBottom = `2px solid ${accent}`;
-                                header.style.boxShadow = `0 0 10px ${accent}55`;
-                                header.style.color = text;
-                            } catch(_) {}
-                        } else {
-                            // Unlocked
-                            if (typeof chordExt.fixedRootStepAbs === 'number' && chordExt.fixedRootTuning) {
-                                // Recompute full name from absolute steps using fixed root + local delta
-                                const modelEdo = chordExt.fixedRootTuning;
-                                const localDelta2 = ((+column.dataset.localTranspose || 0) % modelEdo + modelEdo) % modelEdo;
-                                const rootAbs2 = ((chordExt.fixedRootStepAbs % modelEdo) + localDelta2 + modelEdo) % modelEdo;
-                                const absModel = [rootAbs2, ...((chordExt.intervals||[]).map(iv=> (rootAbs2 + (iv % modelEdo) + modelEdo) % modelEdo))];
-                                // Map to current tuning before naming
-                                const edo = this.getTuningStepsPerOctave();
-                                const centsPerModel = 1200 / modelEdo;
-                                const centsPerCur = 1200 / edo;
-                                const absCur = absModel.map(s=>{
-                                    const cents = (s % modelEdo) * centsPerModel;
-                                    return ((Math.round(cents / centsPerCur) % edo) + edo) % edo;
-                                });
-                                const newName = this.computeFullChordNameFromAbsoluteSteps(absCur, edo);
-                                chordName.textContent = newName;
-                                chordName.dataset.lockedName = newName;
-                            } else {
-                                // Shift from CURRENT displayed root by delta only
-                                const label = (chordName.dataset.lockedName || chordName.textContent || '').trim();
-                                const m = label.match(/^([A-G])([#b]?)([\^v]*)(.*)$/);
-                                if (m) {
-                                    const rest = m[4]||'';
-                                    const rootSemi = this.rootToSemitone(m[1], m[2]||'');
-                                    const edo = this.getTuningStepsPerOctave();
-                                    const step0 = Math.round((rootSemi * edo)/12);
-                                    const ups = (m[3].match(/\^/g) || []).length;
-                                    const downs = (m[3].match(/v/g) || []).length;
-                                    const currentStep = ((step0 + ups - downs) % edo + edo) % edo;
-                                    const nextStep = ((currentStep + delta) % edo + edo) % edo;
-                                    const newRoot = this.getRootNameForStep(nextStep, edo);
-                                    chordName.textContent = `${newRoot}${rest}`;
-                                    chordName.dataset.lockedName = chordName.textContent;
-                                }
-                            }
-                            // Regenerate strings for this column only
-                            const oldContainer2 = column.querySelector('.strings-column');
-                            if (oldContainer2) oldContainer2.remove();
-                            this.generateStringsForColumn(column, chordExt.intervals || [0], chordExt.isCustom||false);
-                            // Refresh header accent color based on new displayed root
-                            try {
-                                const labelNow = (chordName.dataset.lockedName || chordName.textContent || '').trim();
-                                const m2 = labelNow.match(/^([A-G])([#b]?)([\^v]*)/);
-                                let rootStep;
-                                if (m2) {
-                                    const semi2 = this.rootToSemitone(m2[1], m2[2]||'');
-                                    const edo2 = this.getTuningStepsPerOctave();
-                                    let step2 = Math.round((semi2 * edo2) / 12);
-                                    const ups2 = (m2[3].match(/\^/g) || []).length;
-                                    const downs2 = (m2[3].match(/v/g) || []).length;
-                                    rootStep = ((step2 + ups2 - downs2) % edo2 + edo2) % edo2;
-                                } else {
-                                    rootStep = this.currentRoot ?? 0;
-                                }
-                                const accent = this.getChromaticColorForSemitone(this.stepToSemitone(rootStep, this.getTuningStepsPerOctave()));
-                                const text = this.pickTextColor(accent);
-                                header.style.background = accent;
-                                header.style.borderBottom = `2px solid ${accent}`;
-                                header.style.boxShadow = `0 0 10px ${accent}55`;
-                                header.style.color = text;
-                            } catch(_) {}
-                        }
+                        // Non-baking model: update local offset only
+                        const prevLocal = parseInt(column.dataset.localTranspose || '0', 10) || 0;
+                        const nextLocal = norm(prevLocal + delta, edoNow);
+                        column.dataset.localTranspose = String(nextLocal);
+                        chordExt.localTranspose = nextLocal; // persist for regeneration
+
+                        // Compute displayed root = fixed root + local transpose (do not bake into intervals)
+                        const baseRoot = typeof chordExt.fixedRootStepAbs === 'number' ? chordExt.fixedRootStepAbs : 0;
+                        const displayRoot = norm((baseRoot % edoNow) + nextLocal, edoNow);
+
+                        // Update the header chord name by re-rooting its label while preserving tail/quality
+                        try {
+                            // Strip any existing ^/v and legacy ↑/↓ from root, keep tail (quality/etc.)
+                            const mRoot = (chordExt.name || '').match(/^([A-G])([#b]?)([\^v↑↓]*)(.*)$/);
+                            const tail = mRoot ? (mRoot[4] || '') : '';
+                            const newRootName = this.getRootNameForStep(displayRoot, edoNow) || String(displayRoot);
+                            const newName = `${newRootName}${tail}`.trim();
+                            chordName.textContent = newName;
+                            chordName.dataset.lockedName = newName;
+                            chordExt.name = newName;
+                        } catch(_) {}
+
+                        // Do not mutate chord intervals or fixed root; regenerate strings using new local transpose
+                        const oldContainer = column.querySelector('.strings-column');
+                        if (oldContainer) oldContainer.remove();
+                        this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+
+                        // Update keyboard highlighting
+                        try { this.highlightKeyboardForColumn(column); } catch {}
                         // release guard on next microtask to collapse duplicate events
                         Promise.resolve().then(()=>{ _pressGuard = false; });
                     };
@@ -3325,7 +3278,8 @@
                     buttonsContainer.appendChild(upBtn);
                     
                     // Initialize per-column local transpose from model (default 0)
-                    column.dataset.localTranspose = String(chordExt.localTranspose || 0);
+                    const initLocalTranspose = (typeof chordExt.localTranspose === 'number') ? chordExt.localTranspose : 0;
+                    column.dataset.localTranspose = String(initLocalTranspose);
 
                     header.appendChild(chordName);
                     header.appendChild(buttonsContainer);
@@ -3599,9 +3553,15 @@
 
             // Apply a global transpose by n EDO steps; rootless: rename headers from absolute steps when possible and retune
             applyTransposeStep(n = 0) {
+                console.log('=== TRANSPOSE DEBUG ===');
+                console.log('applyTransposeStep called with n =', n);
+                console.log('Before: this.transposeDelta =', this.transposeDelta);
                 if (!n) return;
                 const edo = this.currentTuning || 12;
                 this.transposeDelta = (((this.transposeDelta || 0) + n) % edo + edo) % edo;
+                console.log('After: this.transposeDelta =', this.transposeDelta);
+                console.log('Current active column element:', this.currentActiveColumnEl);
+                console.log('=== TRANSPOSE DEBUG END ===');
                 // Refresh keyboard labels and chord-tone highlights
                 try { this.generateRootButtons(); } catch (_) {}
                 // Rename headers (prefer recompute from absolute steps if model has fixed root)
@@ -3684,7 +3644,9 @@
                     });
                 } catch (_) {}
                 // Refresh keyboard highlights after global transpose
-                try { if (this.currentActiveColumnEl) this.highlightKeyboardForColumn(this.currentActiveColumnEl); } catch {}
+                console.log('About to call highlightKeyboardForColumn with:', this.currentActiveColumnEl);
+                console.log('Current this.transposeDelta before highlighting:', this.transposeDelta);
+                try { if (this.currentActiveColumnEl) this.highlightKeyboardForColumn(this.currentActiveColumnEl); } catch (e) { console.log('Error highlighting:', e); }
             }
 
             // ================== TEXT → CHORDS PARSER ==================
@@ -3955,6 +3917,7 @@
                 const list = (repeat && blocks.length > 1)
                     ? blocks.flatMap(b=>b)
                     : this.extractChordsFromTextPreserveOrder(material);
+                try { console.log('[SEQ] material =', material, '| list =', list, '| EDO =', this.currentTuning); } catch {}
                 if (!list.length) return;
                 // Reset global transpose and rebuild
                 this.transposeDelta = 0;
@@ -4084,6 +4047,7 @@
             getDefaultSequencePresets() {
                 // A compact but comprehensive starter set
                 return [
+                    'C A^m E^m Ddim7 A^m Ebm  Bbm B^ E^m Abm6 Ebm Fsus4 F (Sunshine)',
                     'I–vi–IV–V (50s progression)',
                     'IV–V–I–vi (Doo-wop variant)',
                     'I–V–vi–IV (Pop progression)',
@@ -4236,8 +4200,8 @@
                     rootStep = (((rootStep + ups - downs) % edo) + edo) % edo;
                     tail = tail.slice(microMatch[1].length).trim();
                 }
-                const preferAccidental = acc && /b/.test(acc) ? 'flat' : (acc && /#/.test(acc) ? 'sharp' : undefined);
-                const rootName = this.getMicrotonalNoteName(rootStep, preferAccidental ? { preferAccidental } : {});
+                // Preserve ^/v micro-steps in 24-EDO by using getRootNameForStep instead of getMicrotonalNoteName (which emits ↑/↓)
+                const rootName = this.getRootNameForStep(rootStep, edo);
                 // Determine basic quality from case unless tail already encodes explicit quality (maj/M/m/°/ø/+/sus)
                 let canonicalTail = tail.replace(/△/g,'maj');
                 const hasExplicitQuality = /^(?:maj|M|m|°|ø|\+|sus)/.test(canonicalTail);
@@ -4273,6 +4237,7 @@
                 this.pianoLockedChords = new Map();
                 const beforeLen = 0;
                 const created = [];
+                const curEDO = this.currentTuning || 24;
                 for (const chordStr of chordList) {
                     if (chordStr === '__SECTION__') {
                         // Insert a visual separator placeholder
@@ -4304,6 +4269,20 @@
                 for (const data of created) {
                     const { chord, position, rootSemitone, rootStep } = data;
                     if (rootSemitone == null && rootStep == null) continue;
+                    // Safety: if this chord's intervals look like raw 12-EDO values in a non-12 system, remap them now
+                    try {
+                        const model = chord;
+                        if (model && model.isCustom && Array.isArray(model.intervals) && curEDO !== 12) {
+                            const looks12 = model.intervals.some(iv => iv > 0 && iv <= 11);
+                            const looks24 = model.intervals.some(iv => iv >= 12);
+                            if (looks12 && !looks24) {
+                                const remapped = model.intervals.map(semi => Math.round((semi * curEDO) / 12));
+                                model.intervals = Array.from(new Set(remapped)).sort((a,b)=>a-b);
+                                model.lastTuning = curEDO;
+                                console.warn('[FIXUP] Remapped probable 12-EDO intervals to', curEDO, 'EDO for chord', model.name, '→', model.intervals);
+                            }
+                        }
+                    } catch {}
                     const lockedRoot = (rootStep != null) ? rootStep : this.findNearestStepForSemitone(rootSemitone, stepCents);
                     const column = container.querySelector(`.extension-column[data-original-position="${position}"]`);
                     if (!column) continue;
@@ -4311,42 +4290,29 @@
                         // Temporarily switch root for this chord
                         const prevRoot = this.currentRoot;
                         this.currentRoot = lockedRoot;
-                        // Recompute this column's string frequencies at this root so capture is correct
+                        // Recompute this column's string frequencies at this root using interval tags (robust against stale edoStep)
                         const strings = column.querySelectorAll('.string');
                         strings.forEach(string => {
-                            // Prefer persisted EDO step and octave when available
-                            const edoStep = parseInt(string.dataset.edoStep);
                             const octave = parseInt(string.dataset.octave);
-                            const hasPersisted = !isNaN(edoStep) && !isNaN(octave);
-                            let frequency;
-                            let stepForName;
-                            if (hasPersisted) {
-                                // Absolute step in current tuning = lockedRoot + relative edoStep
-                                const tuningSize = this.currentTuning;
-                                const absStep = ((lockedRoot + edoStep) % tuningSize + tuningSize) % tuningSize;
-                                stepForName = absStep;
-                                frequency = this.getFrequency(absStep, octave, this.currentTuning);
-                            } else {
-                                // Fallback to interval-based recompute
-                                const interval = parseInt(string.dataset.interval);
-                                if (isNaN(interval)) return;
-                                stepForName = (this.currentRoot + interval) % this.currentTuning;
-                                // Interpret interval as relative step from currentRoot
-                                const absStep2 = ((this.currentRoot + interval) % this.currentTuning + this.currentTuning) % this.currentTuning;
-                                frequency = this.getFrequency(absStep2, octave, this.currentTuning);
-                            }
-
+                            const interval = parseInt(string.dataset.interval);
+                            if (isNaN(octave) || isNaN(interval)) return;
+                            const tuningSize = this.currentTuning;
+                            // Absolute step in current tuning = lockedRoot + interval (intervals are EDO steps for custom chords)
+                            const absStep = ((lockedRoot + interval) % tuningSize + tuningSize) % tuningSize;
+                            const frequency = this.getFrequency(absStep, octave, tuningSize);
                             string.dataset.frequency = frequency;
-                            // Keep existing inner structure (core div) and just update tooltip and vibration period
-                            const noteName = this.getNoteNames()[stepForName] || this.getIntervalNoteName(parseInt(string.dataset.interval)||0);
-                            string.title = `${noteName} (${hasPersisted ? `step ${stepForName}` : `interval ${string.dataset.interval}`} , ${frequency.toFixed(1)}Hz)`;
+                            // Also refresh relative step to be consistent with lockedRoot
+                            const relStep = ((absStep - lockedRoot) % tuningSize + tuningSize) % tuningSize;
+                            string.dataset.edoStep = String(relStep);
+                            // Update tooltip/name and vibration period
+                            const noteName = this.getNoteNames()[absStep] || this.getIntervalNoteName(interval);
+                            string.title = `${noteName} (step ${absStep}, ${frequency.toFixed(1)}Hz)`;
                             const core = string.querySelector('.string-core');
                             if (core) {
-                                const period = this.computeVibrationPeriod(frequency, stepForName);
+                                const period = this.computeVibrationPeriod(frequency, absStep);
                                 core.style.setProperty('--vib-period', period + 'ms');
                             }
                         });
-                        // Do not snapshot/lock automatically
                         // Restore global root for subsequent chords
                         this.currentRoot = prevRoot;
                     } catch (_) {}
@@ -4368,11 +4334,28 @@
                     const ups = (microMarks.match(/\^/g) || []).length;
                     const downs = (microMarks.match(/v/g) || []).length;
                     rootStep = ((baseStep + ups - downs) % this.currentTuning + this.currentTuning) % this.currentTuning;
+                    // Only enforce 12-TET semitone back-mapping if there are NO micro marks
+                    const hasMicro = (ups + downs) !== 0;
+                    if (!hasMicro) {
+                        try {
+                            const semiBack = Math.round((rootStep * 12) / this.currentTuning) % 12;
+                            if (semiBack !== ((rootSemitone % 12)+12)%12) {
+                                console.warn('[ADD] Root mismatch, adjusting step. norm=', norm, 'rootSemi=', rootSemitone, 'computedStep=', rootStep, 'semiBack=', semiBack, 'EDO=', this.currentTuning);
+                                // Find nearest step for this semitone in current EDO
+                                const stepCents = Array.from({length: this.currentTuning}, (_,i)=> this.getCentValue(i, this.currentTuning));
+                                const centsTarget = (rootSemitone * 1200) / 12;
+                                let best = 0, bestDist = Infinity;
+                                stepCents.forEach((c, i)=>{ const d = Math.abs(c - centsTarget); if (d < bestDist) { bestDist = d; best = i; }});
+                                rootStep = best;
+                            }
+                        } catch {}
+                    }
                 }
                 const quality = norm.replace(/^([A-G][#b]?[\^v]*)/, '');
                 // Exclude slash bass from stacked-interval parsing; it will be added explicitly below
                 const tailForIntervals = quality.replace(/\/[A-G](?:#|b)?/, '');
                 let intervals = this.parseChordQualityToIntervals(tailForIntervals);
+                try { console.log('[ADD] name=', norm, 'rootSemi=', rootSemitone, 'rootStep=', rootStep, 'intervals(steps)=', intervals, 'EDO=', this.currentTuning); } catch {}
 
                 // Slash chord handling: if tail contains "/<bass>", add that bass pitch as an extra interval
                 // Example: G/F -> add b7 (F relative to G)
@@ -4426,8 +4409,6 @@
                 // quality
                 const isMinorQuality = /^m(?!aj)/.test(t);
                 if (isMinorQuality) third = 3; // 'm' but not 'maj'
-                // bare half-diminished symbol: treat as ø7 by default
-                if (/^ø(?!7)/.test(t)) { third = 3; fifth = 6; }
                 if (/^°/.test(t)) { third = 3; fifth = 6; }
                 if (/^\+/.test(t)) { third = 4; fifth = 8; }
                 if (/sus2/.test(t)) { hasThird = false; }
@@ -4442,7 +4423,7 @@
                 // seventh family
                 const hasMaj7 = /maj7|Δ7|M7/.test(t);
                 if (hasMaj7) add(set, 11);
-                else if (/ø7/.test(t) || /^ø(?!7)/.test(t)) { add(set, 10); add(set, 6); third = 3; }
+                else if (/ø7/.test(t)) { add(set, 10); add(set, 6); third = 3; }
                 else if (/°7/.test(t) || /dim7|diminished\s*7(?:th)?|o7/.test(t)) { add(set, 9); third = 3; fifth = 6; }
                 else if (/m7/.test(t)) { add(set, 10); third = 3; }
                 else if (/7(?![0-9])/.test(t)) { add(set, 10); }
@@ -4547,7 +4528,8 @@
                 }
 
                 // Return sorted unique
-                return Array.from(set).sort((a,b)=>a-b);
+                const result = Array.from(set).sort((a,b)=>a-b);
+                return result;
             }
 
             rootToSemitone(letter, acc) {
@@ -5337,158 +5319,32 @@
             }
             
             getMicrotonalNoteName(step, opts = {}) {
-                // Base note letters
-                const baseLetters = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+                // FORCE ARROW NOTATION: Use ↑↓ for microtonal steps as specified
+                const edo = this.currentTuning || 12;
+                const stepsPerSemitone = edo / 12;
                 
-                // Unicode accidental symbols
-                const accidentals = {
-                    doubleFlat: '𝄫',      // -2 semitones
-                    flat: '♭',            // -1 semitone
-                    quarterFlat: '𝄳',     // -0.5 semitone (24EDO)
-                    flatUp: '𝄬',          // slightly > -1 (31EDO, 22EDO)
-                    flatDown: '𝄭',        // slightly < -1 (31EDO, 22EDO)
-                    natural: '♮',         // 0 semitones (when needed for clarity)
-                    naturalUp: '𝄮',       // slightly > 0 (31EDO, 22EDO)
-                    naturalDown: '𝄯',     // slightly < 0 (31EDO, 22EDO)
-                    quarterSharp: '𝄲',    // +0.5 semitone (24EDO)
-                    sharp: '♯',           // +1 semitone
-                    sharpUp: '𝄰',         // slightly > +1 (31EDO, 22EDO)
-                    sharpDown: '𝄱',       // slightly < +1 (31EDO, 22EDO)
-                    doubleSharp: '𝄪'      // +2 semitones
-                };
+                // Base 12-tone note names
+                const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
                 
-                // Calculate cents and closest diatonic note
-                const centsPerStep = 1200 / this.currentTuning;
-                const totalCents = step * centsPerStep;
+                // Calculate which semitone this step is closest to
+                const semiPosition = (step * 12) / edo;
+                const baseSemi = Math.round(semiPosition) % 12;
+                const baseName = noteNames[baseSemi];
                 
-                // Map to closest diatonic note (C=0, D=2, E=4, F=5, G=7, A=9, B=11)
-                const diatonicSteps = [0, 2, 4, 5, 7, 9, 11];
-                const semitonePosition = totalCents / 100;
+                // Calculate microtonal deviation
+                const exactSemi = Math.round(semiPosition);
+                const deviation = step - (exactSemi * edo / 12);
                 
-                // Find closest diatonic note
-                let closestDiatonic = 0;
-                let minDistance = Infinity;
-                let diatonicIndex = 0;
-                for (let i = 0; i < diatonicSteps.length; i++) {
-                    const distance = Math.abs(semitonePosition - diatonicSteps[i]);
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestDiatonic = diatonicSteps[i];
-                        diatonicIndex = i;
-                    }
-                }
-
-                // Optional preference: if caller prefers flats or sharps for enharmonic choices,
-                // bias the diatonic anchor toward upper (flat) or lower (sharp) choice when not exact.
-                const prefer = opts.preferAccidental;
-                if (prefer === 'flat' || prefer === 'sharp') {
-                    // Compute nearest lower and upper diatonic indices
-                    let lowerIdx = 0, upperIdx = diatonicSteps.length - 1;
-                    for (let i = 0; i < diatonicSteps.length; i++) {
-                        if (diatonicSteps[i] <= semitonePosition) lowerIdx = i;
-                        if (diatonicSteps[i] >= semitonePosition) { upperIdx = i; break; }
-                    }
-                    const isExact = diatonicSteps[lowerIdx] === semitonePosition || diatonicSteps[upperIdx] === semitonePosition;
-                    if (!isExact) {
-                        if (prefer === 'flat') {
-                            diatonicIndex = upperIdx; // e.g., choose B then flat for 10 → Bb
-                            closestDiatonic = diatonicSteps[diatonicIndex];
-                        } else if (prefer === 'sharp') {
-                            diatonicIndex = lowerIdx; // e.g., choose A then sharp for 10 → A#
-                            closestDiatonic = diatonicSteps[diatonicIndex];
-                        }
-                    }
-                }
-                
-                // Get base note letter
-                let noteLetter = baseLetters[diatonicIndex];
-                let accidental = '';
-                let arrows = '';
-                
-                // Calculate deviation from closest diatonic note in cents
-                const deviation = totalCents - (closestDiatonic * 100);
-                
-                // Apply EDO-specific accidental rules
-                if (this.currentTuning === 12) {
-                    // 12 EDO - standard notation
-                    if (Math.abs(deviation) < 25) {
-                        accidental = ''; // Natural
-                    } else if (deviation >= 75) {
-                        accidental = accidentals.sharp;
-                    } else if (deviation <= -75) {
-                        accidental = accidentals.flat;
-                    }
-                } else if (this.currentTuning === 24) {
-                    // 24 EDO - quarter-tone system
-                    if (Math.abs(deviation) < 12.5) {
-                        accidental = ''; // Natural
-                    } else if (deviation >= 37.5 && deviation < 62.5) {
-                        accidental = accidentals.quarterSharp;
-                    } else if (deviation >= 62.5) {
-                        accidental = accidentals.sharp;
-                    } else if (deviation <= -37.5 && deviation > -62.5) {
-                        accidental = accidentals.quarterFlat;
-                    } else if (deviation <= -62.5) {
-                        accidental = accidentals.flat;
-                    }
-                } else if (this.currentTuning === 31 || this.currentTuning === 22) {
-                    // 31 EDO or 22 EDO - fine-tuned accidentals
-                    const threshold = 1200 / (this.currentTuning * 4); // Quarter of a step
-                    
-                    if (Math.abs(deviation) < threshold) {
-                        accidental = ''; // Natural
-                    } else if (deviation > 75 && deviation < 125) {
-                        accidental = accidentals.sharpDown; // Sharp down
-                    } else if (deviation >= 125) {
-                        accidental = accidentals.sharp;
-                    } else if (deviation < -75 && deviation > -125) {
-                        accidental = accidentals.flatUp; // Flat up
-                    } else if (deviation <= -125) {
-                        accidental = accidentals.flat;
-                    } else if (deviation > 0 && deviation <= 75) {
-                        accidental = accidentals.naturalUp; // Natural up
-                    } else if (deviation < 0 && deviation >= -75) {
-                        accidental = accidentals.naturalDown; // Natural down
-                    }
+                if (Math.abs(deviation) < 0.1) {
+                    // Close enough to standard semitone
+                    return baseName;
+                } else if (deviation > 0) {
+                    // Higher than standard semitone
+                    return baseName + '↑';
                 } else {
-                    // Higher resolution EDOs (>31) - use base accidentals + arrows
-                    const stepSize = 1200 / this.currentTuning;
-                    
-                    // Determine base accidental
-                    if (Math.abs(deviation) < stepSize / 4) {
-                        accidental = ''; // Natural
-                    } else if (deviation >= 87.5) {
-                        accidental = accidentals.sharp;
-                    } else if (deviation <= -87.5) {
-                        accidental = accidentals.flat;
-                    } else if (deviation > 37.5 && deviation < 87.5) {
-                        accidental = accidentals.quarterSharp;
-                    } else if (deviation < -37.5 && deviation > -87.5) {
-                        accidental = accidentals.quarterFlat;
-                    } else if (deviation > 0) {
-                        accidental = accidentals.naturalUp;
-                    } else {
-                        accidental = accidentals.naturalDown;
-                    }
-                    
-                    // Add ^ or v arrows for fine-tuning in high-resolution EDOs
-                    const fineDeviation = Math.abs(deviation) % stepSize;
-                    const arrowThreshold = stepSize / 8;
-                    
-                    if (fineDeviation > arrowThreshold && fineDeviation < stepSize - arrowThreshold) {
-                        const numArrows = Math.floor(fineDeviation / arrowThreshold);
-                        if (deviation > 0) {
-                            arrows = '^'.repeat(Math.min(numArrows, 3));
-                        } else {
-                            arrows = 'v'.repeat(Math.min(numArrows, 3));
-                        }
-                    }
+                    // Lower than standard semitone  
+                    return baseName + '↓';
                 }
-                
-                // Construct final note name: [Note][Accidental(s)][Arrows]
-                let finalName = noteLetter + accidental + arrows;
-                
-                return finalName;
             }
 
             // Return a concise root name for a given EDO step, using:
@@ -5820,12 +5676,12 @@
                     // Parse root and any ^/v local transpose decorations
                     let baseStep = 0;
                     let arrowDelta = 0;
-                    const m = label.match(/^([A-G])([#b]?)([\^v]*)/);
+                    const m = label.match(/^([A-G])([#b]?)([\^v↑↓]*)/);
                     if (m) {
                         const semi = this.rootToSemitone(m[1], m[2]||'');
                         baseStep = this.semitoneToStep(semi, edo);
-                        const ups = (m[3].match(/\^/g) || []).length;
-                        const downs = (m[3].match(/v/g) || []).length;
+                        const ups = (m[3].match(/[\^↑]/g) || []).length;
+                        const downs = (m[3].match(/[v↓]/g) || []).length;
                         arrowDelta = ups - downs;
                     }
 
@@ -6916,6 +6772,30 @@
                     if (chordIndex >= 0) {
                         e.preventDefault();
                         this.playChordByIndex(chordIndex);
+                        return;
+                    }
+
+                    // Global transpose shortcuts: '+' increments, '-' decrements
+                    // Support main keyboard and numpad
+                    if (key === '+' || key === '=') { // some keyboards require Shift+= for '+'
+                        e.preventDefault();
+                        try { this.applyTransposeStep(1); } catch(_) {}
+                        return;
+                    }
+                    if (key === '-' || key === '_') {
+                        e.preventDefault();
+                        try { this.applyTransposeStep(-1); } catch(_) {}
+                        return;
+                    }
+                    if (e.code === 'NumpadAdd') {
+                        e.preventDefault();
+                        try { this.applyTransposeStep(1); } catch(_) {}
+                        return;
+                    }
+                    if (e.code === 'NumpadSubtract') {
+                        e.preventDefault();
+                        try { this.applyTransposeStep(-1); } catch(_) {}
+                        return;
                     }
                 });
             }
@@ -10458,8 +10338,15 @@
                     keyboard.appendChild(delta);
                     keyboard.appendChild(down);
                     // Wire handlers
-                    up.addEventListener('click', ()=> this.applyTransposeStep(1));
-                    down.addEventListener('click', ()=> this.applyTransposeStep(-1));
+                    console.log('Adding transpose button event listeners');
+                    up.addEventListener('click', ()=> {
+                        console.log('UP TRANSPOSE BUTTON CLICKED!');
+                        this.applyTransposeStep(1);
+                    });
+                    down.addEventListener('click', ()=> {
+                        console.log('DOWN TRANSPOSE BUTTON CLICKED!');
+                        this.applyTransposeStep(-1);
+                    });
                     rootGrid.appendChild(keyboard);
                 } else {
                     // Clear dynamic children (keys + dots) only
@@ -10471,7 +10358,10 @@
                         up.title = 'Transpose up 1 step';
                         up.textContent = '▲';
                         up.style.cssText = 'position:absolute;left:10px;top:8px;background:#1f3a4a;color:#e8f5ff;border:1px solid #3b6a7a;border-radius:6px;padding:4px 6px;font-size:14px;z-index:5;';
-                        up.addEventListener('click', ()=> this.applyTransposeStep(1));
+                        up.addEventListener('click', ()=> {
+                            console.log('UP TRANSPOSE BUTTON CLICKED! (refresh case)');
+                            this.applyTransposeStep(1);
+                        });
                         keyboard.appendChild(up);
                     }
                     if (!keyboard.querySelector('#transposeDelta')) {
@@ -10489,7 +10379,10 @@
                         down.title = 'Transpose down 1 step';
                         down.textContent = '▼';
                         down.style.cssText = 'position:absolute;left:10px;bottom:8px;background:#1f3a4a;color:#e8f5ff;border:1px solid #3b6a7a;border-radius:6px;padding:4px 6px;font-size:14px;z-index:5;';
-                        down.addEventListener('click', ()=> this.applyTransposeStep(-1));
+                        down.addEventListener('click', ()=> {
+                            console.log('DOWN TRANSPOSE BUTTON CLICKED! (refresh case)');
+                            this.applyTransposeStep(-1);
+                        });
                         keyboard.appendChild(down);
                     }
                     // Ensure attribution present
@@ -10545,6 +10438,7 @@
                             }
                             const activeCol = this.getActiveColumnElement?.();
                             if (activeCol && this.editArmed) {
+                                // Use the effective step for chord editing
                                 this.toggleNoteInActiveChord(i % this.currentTuning);
                                 this._scheduleEditSave(activeCol);
                             }
@@ -10620,8 +10514,15 @@
                     // Record the key's effective step to prevent duplicate dots, but never alter the key mapping
                     usedEffSteps.add(effStep);
             el.dataset.step = effStep;
+            el.dataset.originalStep = stepIndex; // Store original step for chord editing
                     el.textContent = this.getMicrotonalNoteName(effStep);
+                    // Prevent multiple event listeners
+                    if (!el.dataset.clickHandlerAttached) {
+                        el.dataset.clickHandlerAttached = 'true';
                     el.addEventListener('click', async (ev)=>{
+                        console.log('KEYBOARD CLICK HANDLER: Using effective step for chord editing');
+                        console.log('CLICK DEBUG: el.dataset.step =', el.dataset.step, 'el.dataset.originalStep =', el.dataset.originalStep);
+                        console.log('CLICK DEBUG: this.transposeDelta =', this.transposeDelta);
                         try { ev.stopPropagation(); ev.stopImmediatePropagation && ev.stopImmediatePropagation(); } catch(_){ }
                         // mark interaction and ensure audio; keep editArmed state
                         this.userInteracted = true;
@@ -10637,16 +10538,18 @@
                 const f = this.getFrequency(eff, 4, edo);
                             this.playFrequency(f, null);
                         }
-                        const eff = parseInt(el.dataset.step,10);
+                        // Use effective step so clicks match what you hear (accounts for transpose)
+                        const effectiveStep = parseInt(el.dataset.step,10);
+                        console.log('CHORD EDIT: effectiveStep =', effectiveStep);
                         if (activeCol) {
-                            // Toggle this exact step into/out of the current chord
-                            this.toggleNoteInActiveChord(eff);
+                            this.toggleNoteInActiveChord(effectiveStep);
                             this._scheduleEditSave(activeCol);
                         } else {
                             // No active column, just arm editing for soon
                             this._scheduleEditArm();
                         }
                     });
+                    }
                     keyboard.appendChild(el);
                 }
 
@@ -10682,8 +10585,12 @@
         usedEffSteps.add(effStep);
             // Store effective step so click and highlight align with label
             d.dataset.step = effStep;
+            d.dataset.originalStep = stepIndex; // Store original step for chord editing
             d.textContent = this.getMicrotonalNoteName(effStep);
                         d.title = `${d.textContent}`;
+                        // Prevent multiple event listeners
+                        if (!d.dataset.clickHandlerAttached) {
+                            d.dataset.clickHandlerAttached = 'true';
                         d.addEventListener('click', async (ev)=>{
                             try { ev.stopPropagation(); ev.stopImmediatePropagation && ev.stopImmediatePropagation(); } catch(_){ }
                             let activeCol = this.getActiveColumnElement?.();
@@ -10698,14 +10605,17 @@
                 const f = this.getFrequency(eff, 4, this.currentTuning);
                                 this.playFrequency(f, null);
                             }
-                            const eff = parseInt(d.dataset.step,10);
+                            // Use effective step so clicks match what you hear (accounts for transpose)
+                            const effectiveStep = parseInt(d.dataset.step,10);
+                            console.log('MICRO DOT EDIT: effectiveStep =', effectiveStep);
                             if (activeCol) {
-                                this.toggleNoteInActiveChord(eff);
+                                this.toggleNoteInActiveChord(effectiveStep);
                                 this._scheduleEditSave(activeCol);
                             } else {
                                 this._scheduleEditArm();
                             }
                         });
+                        }
                         keyboard.appendChild(d);
                     };
 
@@ -10933,7 +10843,6 @@
             }
 
             getFrequency(step, octave = 4, tuning = null) {
-                console.log('getFrequency called with step:', step, 'octave:', octave, 'tuning:', tuning, 'currentTuning:', this.currentTuning);
                 
                 const cents = this.getCentValue(step, tuning);
                 console.log('cents calculated:', cents);
@@ -11264,7 +11173,49 @@
                 
                 // piano-lock button removed: instrument presets handle sound recall now
                 // (buttonsContainer kept for other action buttons)
-                
+                // Per-column transpose controls (single-column path)
+                const downBtn = document.createElement('button');
+                downBtn.className = 'chord-action-button transpose-down';
+                downBtn.title = 'Transpose this chord down one step';
+                downBtn.textContent = '▼';
+                const upBtn = document.createElement('button');
+                upBtn.className = 'chord-action-button transpose-up';
+                upBtn.title = 'Transpose this chord up one step';
+                upBtn.textContent = '▲';
+                let _pressGuard = false;
+                const norm = (v, m)=> ((v % m) + m) % m;
+                const applyLocalTranspose = (delta)=>{
+                    if (_pressGuard) return;
+                    _pressGuard = true;
+                    const edoNow = chordExt.fixedRootTuning || this.currentTuning || 24;
+                    const prevLocal = parseInt(column.dataset.localTranspose || '0', 10) || 0;
+                    const nextLocal = norm(prevLocal + delta, edoNow);
+                    column.dataset.localTranspose = String(nextLocal);
+                    chordExt.localTranspose = nextLocal; // persist
+                    // Relabel using EDO-aware root naming and strip any prior arrows
+                    try {
+                        const baseRoot = typeof chordExt.fixedRootStepAbs === 'number' ? chordExt.fixedRootStepAbs : 0;
+                        const displayRoot = norm((baseRoot % edoNow) + nextLocal, edoNow);
+                        const mRoot = (chordExt.name || '').match(/^([A-G])([#b]?)([\^v↑↓]*)(.*)$/);
+                        const tail = mRoot ? (mRoot[4] || '') : '';
+                        const newRootName = this.getRootNameForStep(displayRoot, edoNow) || String(displayRoot);
+                        const newName = `${newRootName}${tail}`.trim();
+                        chordName.textContent = newName;
+                        chordName.dataset.lockedName = newName;
+                        chordExt.name = newName;
+                    } catch(_) {}
+                    // Re-render strings with offset applied at playback time
+                    const oldContainer = column.querySelector('.strings-column');
+                    if (oldContainer) oldContainer.remove();
+                    this.generateStringsForColumn(column, this.getChordIntervals(chordExt.extensions || []), chordExt.isCustom || false);
+                    Promise.resolve().then(()=>{ _pressGuard = false; });
+                };
+                const onPointer = (delta)=> (e)=>{ e.preventDefault(); e.stopPropagation(); applyLocalTranspose(delta); };
+                upBtn.addEventListener('pointerdown', onPointer(+1));
+                downBtn.addEventListener('pointerdown', onPointer(-1));
+                buttonsContainer.appendChild(downBtn);
+                buttonsContainer.appendChild(upBtn);
+
                 header.appendChild(chordName);
                 header.appendChild(buttonsContainer);
                 
@@ -11313,6 +11264,8 @@
                 // Generate strings for this chord using the shared renderer
                 const intervals = this.getChordIntervals(chordExt.extensions || []);
                 this.generateStringsForColumn(column, intervals, chordExt.isCustom || false);
+                // Initialize per-column local transpose from model, defaulting to 0
+                if (!column.dataset.localTranspose) column.dataset.localTranspose = String(chordExt.localTranspose || 0);
                 
                 // Add to container
                 container.appendChild(column);
@@ -11561,103 +11514,50 @@
                     let _pressGuard = false;
                     const norm = (v, m)=> ((v % m) + m) % m;
                     const applyLocalTranspose = (delta)=>{
-                        if (_pressGuard) return; // collapse duplicate pointer sequences
+                        if (_pressGuard) return; // avoid accidental double-fire on first tap
                         _pressGuard = true;
-                        const edoNow = (chordExt.lockedData?.lockedTuning) || this.currentTuning || 12;
-                        chordExt.localTranspose = norm((chordExt.localTranspose||0) + delta, edoNow);
-                        const prev = (+column.dataset.localTranspose || 0);
-                        column.dataset.localTranspose = String(norm(prev + delta, edoNow));
+                        const edoNow = chordExt.fixedRootTuning || this.currentTuning || 24; // use column/root tuning
+                        
+                        console.log('=== LOCAL TRANSPOSE RESPELLING (v2) ===');
+                        console.log('Transposing chord by', delta, 'steps in', edoNow, 'EDO');
+                        console.log('this.currentTuning =', this.currentTuning);
+                        console.log('Current intervals:', chordExt.intervals);
+                        console.log('Current chord should be CEG in 24EDO: [0, 8, 14]');
+                        console.log('Current fixedRootStepAbs:', chordExt.fixedRootStepAbs);
+                        console.log('Current fixedRootStepAbs:', chordExt.fixedRootStepAbs);
+                        
+                        // Non-baking: adjust local transpose offset only
+                        const prevLocal = parseInt(column.dataset.localTranspose || '0', 10) || 0;
+                        const nextLocal = norm(prevLocal + delta, edoNow);
+                        column.dataset.localTranspose = String(nextLocal);
+                        chordExt.localTranspose = nextLocal; // persist to model
 
-                        const lockedData = chordExt.lockedData || this.lockedChords?.get(column);
-                        if (lockedData && typeof lockedData.lockedRoot === 'number') {
-                            const edo = lockedData.lockedTuning || edoNow;
-                            const base = lockedData.lockedRoot;
-                            const step = ((base + (chordExt.localTranspose||0)) % edo + edo) % edo;
-                            const newRoot = this.getRootNameForStep(step, edo);
-                            const rest = (lockedData.chordName || '').replace(/^[A-G][#b]?\s*/, '');
-                            chordName.textContent = `${newRoot}${rest}`;
-                            chordName.dataset.lockedName = chordName.textContent;
-                            // Clear any exact snapshot so transpose can take effect
-                            if (lockedData.exactFrequencies && lockedData.exactFrequencies.length) {
-                                lockedData.exactFrequencies = [];
-                            }
-                            // Also clear the central map's snapshot if present (preset-derived locks)
-                            try {
-                                const mapLocked = this.lockedChords?.get(column);
-                                if (mapLocked && Array.isArray(mapLocked.exactFrequencies) && mapLocked.exactFrequencies.length) {
-                                    mapLocked.exactFrequencies = [];
-                                }
-                            } catch (_) {}
-                            const oldContainer = column.querySelector('.strings-column');
-                            if (oldContainer) oldContainer.remove();
-                            this.generateStringsForColumnWithLockedSettings(column, chordExt.intervals || [0], lockedData);
-                            // Ensure key lights follow the new effective tones
-                            try { this.currentActiveColumnEl = column; this.highlightKeyboardForColumn(column); } catch {}
-                            // Refresh header accent to match new effective root
-                            try {
-                                const hdr = column.querySelector('.extension-header');
-                                const tuningSize = lockedData.lockedTuning || this.currentTuning || 12;
-                                const semi = this.stepToSemitone(step, tuningSize);
-                                const accent = this.getChromaticColorForSemitone(semi);
-                                const text = this.pickTextColor(accent);
-                                hdr.style.background = accent;
-                                hdr.style.borderBottom = `2px solid ${accent}`;
-                                hdr.style.boxShadow = `0 0 10px ${accent}55`;
-                                hdr.style.color = text;
-                            } catch {}
-                        } else {
-                            // Unlocked: compute from CURRENT displayed step + delta only (no cumulative add)
-                            const label = (chordName.dataset.lockedName || chordName.textContent || '').trim();
-                            const m = label.match(/^([A-G])([#b]?)([\^v]*)(.*)$/);
-                            if (m) {
-                                const rest = m[4]||'';
-                                const rootSemi = this.rootToSemitone(m[1], m[2]||'');
-                                const edo = this.getTuningStepsPerOctave();
-                                const step0 = Math.round((rootSemi * edo)/12);
-                                const ups = (m[3].match(/\^/g) || []).length;
-                                const downs = (m[3].match(/v/g) || []).length;
-                                const currentStep = ((step0 + ups - downs) % edo + edo) % edo;
-                                const nextStep = ((currentStep + delta) % edo + edo) % edo;
-                                const newRoot = this.getRootNameForStep(nextStep, edo);
-                                chordName.textContent = `${newRoot}${rest}`;
-                                // Persist the updated label so subsequent transposes build from the latest state
-                                chordName.dataset.lockedName = chordName.textContent;
-                            }
-                            const oldContainer = column.querySelector('.strings-column');
-                            if (oldContainer) oldContainer.remove();
-                            this.generateStringsForColumn(column, chordExt.intervals || [0], chordExt.isCustom||false);
-                            // Ensure key lights follow the new effective tones
-                            try { this.currentActiveColumnEl = column; this.highlightKeyboardForColumn(column); } catch {}
-                            // Refresh header accent to match new effective root
-                            try {
-                                const hdr = column.querySelector('.extension-header');
-                                const nameEl = hdr?.querySelector('.chord-name');
-                                const label = nameEl ? (nameEl.dataset.lockedName || nameEl.textContent || '').trim() : '';
-                                const m = label.match(/^([A-G])([#b]?)([\^v]*)/);
-                                if (m) {
-                                    const semi = this.rootToSemitone(m[1], m[2]||'');
-                                    const edo = this.getTuningStepsPerOctave();
-                                    const step0 = Math.round((semi * edo)/12);
-                                    const ups = (m[3].match(/\^/g) || []).length;
-                                    const downs = (m[3].match(/v/g) || []).length;
-                                    const stepEff = ((step0 + ups - downs) % edo + edo) % edo;
-                                    const accent = this.getChromaticColorForSemitone(this.stepToSemitone(stepEff, edo));
-                                    const text = this.pickTextColor(accent);
-                                    hdr.style.background = accent;
-                                    hdr.style.borderBottom = `2px solid ${accent}`;
-                                    hdr.style.boxShadow = `0 0 10px ${accent}55`;
-                                    hdr.style.color = text;
-                                }
-                            } catch {}
-                        }
+                        // Relabel root: base fixed root + local
+                        const baseRoot = typeof chordExt.fixedRootStepAbs === 'number' ? chordExt.fixedRootStepAbs : 0;
+                        const displayRoot = norm((baseRoot % edoNow) + nextLocal, edoNow);
+                        try {
+                            const mRoot = (chordExt.name || '').match(/^([A-G])([#b]?)([\^v↑↓]*)(.*)$/);
+                            const tail = mRoot ? (mRoot[4] || '') : '';
+                            const newRootName = this.getRootNameForStep(displayRoot, edoNow) || String(displayRoot);
+                            const newName = `${newRootName}${tail}`.trim();
+                            chordName.textContent = newName;
+                            chordName.dataset.lockedName = newName;
+                            chordExt.name = newName;
+                        } catch(_) {}
+
+                        // Re-render strings using the same intervals, offset applied at playback
+                        const oldContainer = column.querySelector('.strings-column');
+                        if (oldContainer) oldContainer.remove();
+                        this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+                        try { this.currentActiveColumnEl = column; this.highlightKeyboardForColumn(column); } catch {}
                         Promise.resolve().then(()=>{ _pressGuard = false; });
                     };
                     const onPointer = (delta)=> (e)=>{ e.preventDefault(); e.stopPropagation(); applyLocalTranspose(delta); };
                     upBtn.addEventListener('pointerdown', onPointer(+1));
                     downBtn.addEventListener('pointerdown', onPointer(-1));
 
-                    // Ensure per-column local transpose is initialized
-                    if (!column.dataset.localTranspose) column.dataset.localTranspose = '0';
+                    // Ensure per-column local transpose is initialized from model (default 0)
+                    if (!column.dataset.localTranspose) column.dataset.localTranspose = String(chordExt.localTranspose || 0);
 
                     // Revoice and full padlock removed per requirements
                     
@@ -12108,7 +12008,9 @@
                         const edo = currentTuning || this.getTuningStepsPerOctave();
                         const globalDelta = (this.transposeDelta || 0) % edo;
                         const localDelta = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
+                        console.log('AUDIO GENERATION DEBUG: fixedRootStepAbs =', model.fixedRootStepAbs, 'globalDelta =', globalDelta, 'localDelta =', localDelta, 'edo =', edo);
                         currentRoot = (((model.fixedRootStepAbs % edo) + globalDelta + localDelta) % edo + edo) % edo;
+                        console.log('AUDIO GENERATION DEBUG: calculated currentRoot =', currentRoot);
                     } else {
                         // Start from current global context; header label parsing below may override
                         currentRoot = this.currentRoot;
@@ -12129,6 +12031,12 @@
                     const localDelta = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
                     currentRoot = (((currentRoot ?? 0) + globalDelta + localDelta) % edo + edo) % edo;
                 }
+
+                try {
+                    const headerNameEl = column.querySelector('.extension-header .chord-name');
+                    const headerName = headerNameEl ? headerNameEl.textContent.trim() : '';
+                    console.log('[AUDIO] header=', headerName, 'currentRoot=', currentRoot, 'currentTuning=', currentTuning, 'fixedRoot=', model?.fixedRootStepAbs, 'isCustomChord=', isCustomChord, 'intervals(steps)=', intervals);
+                } catch {}
 
                 // Ascending, octave-consistent voicing:
                 // 1) Map intervals to EDO steps (or use directly for custom chords)
@@ -12298,12 +12206,18 @@
                     // Persist the interval for later recalculation (e.g., during auto-lock recompute)
                     row.dataset.interval = stringData.interval;
                     // Also persist octave and relative EDO step (interval mapped in current tuning)
-                    // EDO step is the interval in current tuning independent of the current root
+                    // Store the interval relative to the chord's stored root (model.fixedRootStepAbs)
                     try {
                         const tuningSize = currentTuning || this.getTuningStepsPerOctave();
-                        const rootForCalc = currentRoot ?? this.currentRoot ?? 0;
-                        const relStep = ((stringData.step - rootForCalc) % tuningSize + tuningSize) % tuningSize;
+                        // For edoStep calculation, always use the stored model root (if available) as reference
+                        let referenceRoot = 0;
+                        if (model && typeof model.fixedRootStepAbs === 'number') {
+                            referenceRoot = model.fixedRootStepAbs; // This should always be 0 for edited chords
+                        }
+                        // Calculate interval relative to the reference root
+                        const relStep = ((stringData.step - currentRoot + referenceRoot) % tuningSize + tuningSize) % tuningSize;
                         row.dataset.edoStep = String(relStep);
+                        console.log('STRING GENERATION: stringData.step =', stringData.step, 'currentRoot =', currentRoot, 'referenceRoot =', referenceRoot, 'relStep =', relStep);
                     } catch (_) {
                         // Fallback: omit if cannot compute
                     }
@@ -13394,73 +13308,88 @@
 
             // Light the keyboard keys/dots that match the current chord tones
             highlightKeyboardForColumn(column){
+                console.log('=== HIGHLIGHT FUNCTION CALLED ===');
+                console.log('this.transposeDelta at start of highlight function:', this.transposeDelta);
+                console.log('column:', column);
+                
                 const kb = document.querySelector('#rootGrid .piano-keyboard');
-                if (!kb || !column) return;
-                // Determine effective tuning and base root for this column (mirrors string rendering)
-                const lockedChord = this.lockedChords?.get(column) || null;
-                let tuningSize = (lockedChord?.lockedTuning) || this.currentTuning || 12;
-                // Compute base root exactly like audio rendering:
-                // - Locked chords: ignore global transpose; apply local only
-                // - Unlocked with fixed root: apply global + local
-                // - Unlocked without fixed root: start from currentRoot and apply global + local
-                let baseRoot = 0;
-                if (lockedChord) {
-                    const edo = lockedChord.lockedTuning || tuningSize;
-                    const localDelta = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
-                    baseRoot = ((lockedChord.lockedRoot ?? 0) + localDelta) % edo;
-                    tuningSize = edo;
-                } else {
-                    try {
-                        const id = column.dataset.chordId;
-                        let idx = -1;
-                        if (id) idx = (this.chordExtensions || []).findIndex(c => (String(c.id)===String(id)));
-                        if (idx < 0 && column.dataset.originalPosition != null) {
-                            const op = parseInt(column.dataset.originalPosition,10);
-                            if (!isNaN(op) && op >= 0) idx = op;
-                        }
-                        const model = (idx>=0)? this.chordExtensions[idx] : null;
-                        if (model && typeof model.fixedRootStepAbs === 'number' && model.fixedRootTuning) {
-                            tuningSize = model.fixedRootTuning;
-                            const edo = tuningSize;
-                            const g = ((this.transposeDelta || 0) % edo + edo) % edo;
-                            const l = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
-                            baseRoot = (((model.fixedRootStepAbs % edo) + g + l) % edo + edo) % edo;
-                        } else {
-                            const edo = tuningSize;
-                            const g = ((this.transposeDelta || 0) % edo + edo) % edo;
-                            const l = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
-                            const start = (this.currentRoot ?? 0) % edo;
-                            baseRoot = (((start + g + l) % edo) + edo) % edo;
-                        }
-                    } catch {}
+                if (!kb || !column) {
+                    console.log('Missing kb or column:', {kb: !!kb, column: !!column});
+                    return;
                 }
-                const steps = this.getChordStepsForColumn(column);
+                
+                // Get chord model and optional locked snapshot
+                const kbEdo = this.currentTuning || 12;
+                let chordIntervals = [];
+                let tuningSize = kbEdo;
+                let baseRoot = 0;
+                let model = null;
+                const lockedChord = this.lockedChords?.get(column) || null;
+
+                try {
+                    const id = column.dataset.chordId;
+                    let idx = -1;
+                    if (id) idx = (this.chordExtensions || []).findIndex(c => (String(c.id)===String(id)));
+                    if (idx < 0 && column.dataset.originalPosition != null) {
+                        const op = parseInt(column.dataset.originalPosition,10);
+                        if (!isNaN(op) && op >= 0) idx = op;
+                    }
+                    model = (idx>=0)? this.chordExtensions[idx] : null;
+                    console.log('HIGHLIGHT DEBUG: model =', model, 'lockedChord =', !!lockedChord);
+                } catch(e) { console.error('HIGHLIGHT ERROR (model lookup):', e); }
+
+                if (model && Array.isArray(model.intervals)) {
+                    chordIntervals = [...model.intervals];
+                    tuningSize = model.fixedRootTuning || kbEdo;
+                } else {
+                    // Fallback to rendered steps if model missing
+                    chordIntervals = this.getChordStepsForColumn(column);
+                    tuningSize = kbEdo;
+                }
+
+                // Compute effective baseRoot to align lights with audio/name
+                const edo = tuningSize;
+                const norm = (v,m)=> ((v % m) + m) % m;
+                const g = norm((this.transposeDelta || 0), edo);
+                const l = norm((+column.dataset.localTranspose || 0), edo);
+
+                if (lockedChord && typeof lockedChord.lockedRoot === 'number') {
+                    // Locked chords preserve exact pitch; follow local transpose only
+                    baseRoot = norm((lockedChord.lockedRoot || 0) + l, edo);
+                } else if (model && typeof model.fixedRootStepAbs === 'number' && model.fixedRootTuning) {
+                    baseRoot = norm((model.fixedRootStepAbs % edo) + g + l, edo);
+                } else {
+                    baseRoot = norm((this.currentRoot || 0) + g + l, edo);
+                }
+                console.log('HIGHLIGHT ROOT:', {baseRoot, edo, g, l, tuningSize});
+                
                 // Clear previous chord-tone marks and any inline glow
                 kb.querySelectorAll('[data-step]').forEach(el=>{
                     el.classList.remove('chord-tone');
                     try { el.style.boxShadow = ''; el.style.outlineColor = ''; } catch(_){}
                 });
+
                 // Apply colored glow per chord tone (by pitch class/semitone color)
-                const kbEdo = this.currentTuning || 12;
-                steps.forEach(rel =>{
-                    // Compute absolute step in the chord's tuning
-                    const absInModel = ((baseRoot + rel) % tuningSize + tuningSize) % tuningSize;
-                    // Map that absolute step to the keyboard's EDO via cents
-                    let abs;
-                    if (tuningSize === kbEdo) {
-                        abs = absInModel;
-                    } else {
-                        const cents = (absInModel * 1200) / tuningSize;
-                        abs = Math.round((cents * kbEdo) / 1200);
-                        abs = ((abs % kbEdo) + kbEdo) % kbEdo;
+                chordIntervals.forEach(rel =>{
+                    // Compute absolute step: baseRoot + interval
+                    const abs = ((baseRoot + rel) % tuningSize + tuningSize) % tuningSize;
+                    console.log('HIGHLIGHT APPLY: rel =', rel, 'baseRoot =', baseRoot, 'abs =', abs);
+                    
+                    // Map to keyboard EDO if needed
+                    let kbAbs = abs;
+                    if (tuningSize !== kbEdo) {
+                        const cents = (abs * 1200) / tuningSize;
+                        kbAbs = Math.round((cents * kbEdo) / 1200);
+                        kbAbs = ((kbAbs % kbEdo) + kbEdo) % kbEdo;
                     }
-                    const semi = this.stepToSemitone(abs, kbEdo);
+                    
+                    const semi = this.stepToSemitone(kbAbs, kbEdo);
                     const color = this.getChromaticColorForSemitone(semi);
                     if (kbEdo === 12) {
-                        // Match any element whose data-step % 12 equals abs % 12
+                        // Match any element whose data-step % 12 equals kbAbs % 12
                         kb.querySelectorAll('[data-step]').forEach(el=>{
                             const ds = parseInt(el.dataset.step,10);
-                            if ((ds % 12) === (abs % 12)) {
+                            if ((ds % 12) === (kbAbs % 12)) {
                                 el.classList.add('chord-tone');
                                 try {
                                     el.style.boxShadow = `0 0 10px 3px ${color}99, 0 0 18px 6px ${color}55`;
@@ -13469,7 +13398,7 @@
                             }
                         });
                     } else {
-                        kb.querySelectorAll(`[data-step='${abs}']`).forEach(el=>{
+                        kb.querySelectorAll(`[data-step='${kbAbs}']`).forEach(el=>{
                         el.classList.add('chord-tone');
                         try {
                             el.style.boxShadow = `0 0 10px 3px ${color}99, 0 0 18px 6px ${color}55`;
@@ -13500,6 +13429,10 @@
 
             // Toggle an absolute keyboard step in the currently active chord
             toggleNoteInActiveChord(absStep){
+                console.log('=== TOGGLE NOTE DEBUG START ===');
+                console.log('toggleNoteInActiveChord called with absStep:', absStep);
+                console.log('Current transposeDelta:', this.transposeDelta);
+                console.log('Current currentTuning:', this.currentTuning);
                 // Re-entrancy guard
                 if (this._toggling) return; this._toggling = true; setTimeout(()=>{ this._toggling = false; }, 0);
                 const column = this.getActiveColumnElement();
@@ -13518,27 +13451,31 @@
                         idxModel = (this.chordExtensions || []).findIndex(c => (c.id===id));
                     }
                     const chordModel = (idxModel>=0)? this.chordExtensions[idxModel] : null;
+                    console.log('BASEROOT CALCULATION: lockedChord =', !!lockedChord, 'chordModel =', !!chordModel);
+                    console.log('BASEROOT CALCULATION: this.currentRoot =', this.currentRoot, 'this.transposeDelta =', this.transposeDelta);
                     if (lockedChord) {
                         const edo = lockedChord.lockedTuning || tuningSize;
                         const localDelta = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
                         baseRoot = ((lockedChord.lockedRoot ?? 0) + localDelta) % edo;
                         tuningSize = edo;
+                        console.log('BASEROOT CALCULATION: lockedChord path, baseRoot =', baseRoot);
                     } else if (chordModel && typeof chordModel.fixedRootStepAbs === 'number' && chordModel.fixedRootTuning) {
                         tuningSize = chordModel.fixedRootTuning;
                         const edo = tuningSize;
-                        const g = ((this.transposeDelta || 0) % edo + edo) % edo;
-                        const l = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
+                        const g = ((this.transposeDelta || 0) % edo + edo) % edo; // INCLUDE global transpose to match effective clicks
+                        const l = ((+column.dataset.localTranspose || 0) % edo + edo) % edo; // INCLUDE local transpose
                         baseRoot = (((chordModel.fixedRootStepAbs % edo) + g + l) % edo + edo) % edo;
+                        console.log('BASEROOT CALCULATION: fixedRoot path, fixedRootStepAbs =', chordModel.fixedRootStepAbs, 'g =', g, 'l =', l, 'baseRoot =', baseRoot);
                     } else {
                         const edo = tuningSize;
-                        const g = ((this.transposeDelta || 0) % edo + edo) % edo;
-                        const l = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
+                        const g = ((this.transposeDelta || 0) % edo + edo) % edo; // INCLUDE global transpose
+                        const l = ((+column.dataset.localTranspose || 0) % edo + edo) % edo; // INCLUDE local transpose
                         const start = (this.currentRoot ?? 0) % edo;
                         baseRoot = (((start + g + l) % edo) + edo) % edo;
+                        console.log('BASEROOT CALCULATION: default path, start =', start, 'g =', g, 'l =', l, 'baseRoot =', baseRoot);
                     }
                 } catch {}
-
-                // If the keyboard EDO differs from the chord's EDO, map the clicked step via cents
+                // Define keyboard EDO for reference
                 const kbEdo = this.currentTuning || 12;
                 // If the chord's model EDO differs from the keyboard, migrate the chord model to the keyboard EDO first
                 // so that adding micro-steps never snaps back to the old EDO grid.
@@ -13575,6 +13512,9 @@
                 let absInTarget = ((absStep % tuningSize)+tuningSize)%tuningSize;
                 // Compute relative step to toggle
                 const rel = ((absInTarget - baseRoot) % tuningSize + tuningSize) % tuningSize;
+                console.log('=== INTERVAL CALCULATION ===');
+                console.log('toggleNoteInActiveChord: absStep =', absStep, 'baseRoot =', baseRoot, 'rel =', rel, 'tuningSize =', tuningSize);
+                console.log('absInTarget =', absInTarget);
                 // Get the chord model behind this column
                 let idx = column.dataset.originalPosition != null ? parseInt(column.dataset.originalPosition,10) : this.findChordPosition?.(column) ?? -1;
                 if (isNaN(idx) || idx < 0 || idx >= (this.chordExtensions?.length||0)) {
@@ -13587,8 +13527,13 @@
                 if (!chordModel2) return;
                 // Work on a set of intervals in this tuning; intervals are already EDO steps for customs
                 const set = new Set((chordModel2.intervals || []).map(v => ((v % tuningSize)+tuningSize)%tuningSize));
+                console.log('=== CHORD MODEL DEBUG ===');
+                console.log('chordModel2.intervals (before) =', chordModel2.intervals);
+                console.log('chordModel2.fixedRootStepAbs =', chordModel2.fixedRootStepAbs);
+                console.log('toggleNoteInActiveChord: current intervals before toggle =', Array.from(set));
                 // Toggle presence including the current root; allow removing it to enable re-rooting by lowest note
                 if (set.has(rel)) set.delete(rel); else set.add(rel);
+                console.log('toggleNoteInActiveChord: intervals after toggle =', Array.from(set));
                 // Allow empty set temporarily (blank chord) until user adds notes
                 const relSorted = Array.from(set.values()).sort((a,b)=>{
                     const sa = this.stepToSemitone(a, tuningSize);
@@ -13619,23 +13564,34 @@
                 }
                 // Choose a musical root by best quality in 12-TET space, then normalize
                 const absSet = relSorted.map(v => ((baseRoot + v) % tuningSize + tuningSize) % tuningSize);
-                // User expects naming from the true lowest note; do not re-root by 12-TET quality
-                const lowestAbs = absSet.reduce((m,v)=> v < m ? v : m, absSet[0]);
-                const normalized = absSet.map(s => ((s - lowestAbs) % tuningSize + tuningSize) % tuningSize).sort((a,b)=>{
+                // Normalize RELATIVE to the effective baseRoot so we don't bake transpose into stored intervals
+                const preservedRoot = ((baseRoot % tuningSize) + tuningSize) % tuningSize;
+                const normalized = absSet.map(s => ((s - preservedRoot) % tuningSize + tuningSize) % tuningSize).sort((a,b)=>{
                     const sa = this.stepToSemitone(a, tuningSize);
                     const sb = this.stepToSemitone(b, tuningSize);
                     return sa - sb;
                 });
+                console.log('NORMALIZATION DEBUG: absSet =', absSet, 'preservedRoot =', preservedRoot, 'normalized =', normalized);
                 chordModel2.intervals = normalized;
-                chordModel2.fixedRootStepAbs = lowestAbs;
+                // Store the untransposed absolute base root to avoid double-applying g/l later
+                try {
+                    const edoStore = tuningSize;
+                    const norm = (v,m)=> ((v % m) + m) % m;
+                    const g = norm((this.transposeDelta || 0), edoStore);
+                    const lcl = norm((+column.dataset.localTranspose || 0), edoStore);
+                    chordModel2.fixedRootStepAbs = norm(preservedRoot - g - lcl, edoStore);
+                } catch(_) {
+                    chordModel2.fixedRootStepAbs = preservedRoot;
+                }
                 chordModel2.fixedRootTuning = tuningSize;
                 // Treat any chord that has been edited from the keyboard as a custom chord in EDO steps
                 chordModel2.isCustom = true;
-                // Build absolute steps for naming in MODEL space (remove current global transpose to avoid double-application)
-                const t = ((this.transposeDelta || 0) % tuningSize + tuningSize) % tuningSize;
-                const absForName = [lowestAbs, ...normalized.map(x=> (lowestAbs + x)%tuningSize)];
-                const deTransposed = absForName.map(s => ((s - t) % tuningSize + tuningSize) % tuningSize);
-                const newName = this.computeFullChordNameFromAbsoluteSteps(deTransposed, tuningSize);
+                console.log('=== FINAL RESULT ===');
+                console.log('TOGGLE NOTE END: Updated chord fixedRootStepAbs =', chordModel2.fixedRootStepAbs, 'intervals =', chordModel2.intervals);
+                console.log('=== TOGGLE NOTE DEBUG END ===');
+                // Build absolute steps for naming in EFFECTIVE space so the header shows the heard root (includes local/global)
+                const absForName = [baseRoot, ...normalized.map(x=> ((baseRoot + x) % tuningSize + tuningSize) % tuningSize)];
+                const newName = this.computeFullChordNameFromAbsoluteSteps(absForName, tuningSize);
                 // Update header text to always include computed root (from lowest note)
                 try {
                     const nameEl = column.querySelector('.extension-header .chord-name');
@@ -14573,6 +14529,123 @@
             omnichord = new MicrotonalOmnichord();
             window.omnichord = omnichord; // Make it globally accessible
 
+            // Force 24-EDO at startup before any parsing/sequencing occurs
+            try {
+                if (omnichord && typeof omnichord.updateTuningSystem === 'function') {
+                    omnichord.updateTuningSystem(24);
+                }
+                const edoPanel = document.getElementById('edoDivisions');
+                if (edoPanel) edoPanel.value = '24';
+                const edoQuick = document.getElementById('edoQuickInput');
+                if (edoQuick) edoQuick.value = '24';
+            } catch {}
+
+            // Briefly flash the + and SEQUENCE buttons with helper bubbles
+            try {
+                const plusBtn = document.getElementById('createNewChordBtn');
+                const seqBtn = document.getElementById('openTextChordParserBtn');
+                if (plusBtn) {
+                    plusBtn.classList.add('flash-cta');
+                    const bubble = document.createElement('div');
+                    bubble.className = 'hint-bubble';
+                    bubble.textContent = 'Add Chord';
+                    document.body.appendChild(bubble);
+                    const rect = plusBtn.getBoundingClientRect();
+                    bubble.style.left = `${rect.left + window.scrollX}px`;
+                    bubble.style.top = `${rect.top + window.scrollY - 36}px`;
+                    setTimeout(()=>{ bubble.remove(); plusBtn.classList.remove('flash-cta'); }, 3500);
+                }
+                if (seqBtn) {
+                    seqBtn.classList.add('flash-cta-alt');
+                    const bubble2 = document.createElement('div');
+                    bubble2.className = 'hint-bubble';
+                    bubble2.textContent = 'Or click here to type a chord sequence';
+                    document.body.appendChild(bubble2);
+                    const r2 = seqBtn.getBoundingClientRect();
+                    bubble2.style.left = `${r2.left + window.scrollX}px`;
+                    bubble2.style.top = `${r2.top + window.scrollY - 36}px`;
+                    setTimeout(()=>{ bubble2.remove(); seqBtn.classList.remove('flash-cta-alt'); }, 4000);
+                }
+            } catch {}
+
+            // Add test function for transpose behavior
+            omnichord.testTransposeSequence = function() {
+                console.log('🎵 TESTING TRANSPOSE SEQUENCE');
+                console.log('Expected: C major → transpose up → C↑E↑G↑ → edit notes correctly');
+                
+                // Helper functions
+                const getKeyboardState = () => {
+                    const kb = document.querySelector('#rootGrid .piano-keyboard');
+                    const litKeys = [];
+                    if (kb) {
+                        kb.querySelectorAll('[data-step].chord-tone').forEach(el => {
+                            litKeys.push({
+                                step: parseInt(el.dataset.step),
+                                originalStep: parseInt(el.dataset.originalStep || el.dataset.step),
+                                label: el.textContent.trim()
+                            });
+                        });
+                    }
+                    return litKeys.sort((a, b) => a.step - b.step);
+                };
+                
+                const getChordName = () => {
+                    const col = document.querySelector('.extension-column');
+                    const nameEl = col?.querySelector('.extension-header .chord-name');
+                    return nameEl?.textContent?.trim()?.replace(/^🔒\s*/, '') || 'Unknown';
+                };
+                
+                const clickKeyByLabel = (label) => {
+                    const kb = document.querySelector('#rootGrid .piano-keyboard');
+                    const keys = kb.querySelectorAll('[data-step]');
+                    for (let key of keys) {
+                        if (key.textContent.trim() === label) {
+                            console.log(`  Clicking: ${label}`);
+                            key.click();
+                            return true;
+                        }
+                    }
+                    console.log(`  ❌ Key not found: ${label}`);
+                    return false;
+                };
+                
+                const logState = (stepName) => {
+                    const state = getKeyboardState();
+                    const chordName = getChordName();
+                    console.log(`${stepName}:`);
+                    console.log(`  Chord: ${chordName}`);
+                    console.log(`  Transpose: ${this.transposeDelta}`);
+                    console.log(`  Lit keys: ${state.map(k => `${k.label}(${k.step})`).join(', ')}`);
+                };
+                
+                // Set up test environment
+                this.currentTuning = 24;
+                this.transposeDelta = 0;
+                this.generateRootButtons();
+                
+                setTimeout(() => {
+                    logState('1. Initial state');
+                    
+                    setTimeout(() => {
+                        console.log('\n2. Transpose up...');
+                        document.querySelector('#transposeUp')?.click();
+                        
+                        setTimeout(() => {
+                            logState('2. After transpose up');
+                            console.log('   Expected: Keys should show microtonal notation');
+                            
+                            setTimeout(() => {
+                                console.log('\n✅ Test setup complete. Now manually test:');
+                                console.log('   - Click any key and verify correct chord tones light up');
+                                console.log('   - The issue was: clicking F would incorrectly light C#, F#, G#');
+                                console.log('   - Now it should light the correct chord tones');
+                                
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                }, 100);
+            };
+
             // Also expose adjustKeyboardForLogo for resize events
             window.PianoApp = window.PianoApp || {};
             window.PianoApp.adjustKeyboardForLogo = () => {
@@ -14618,30 +14691,7 @@
                 });
             }
 
-            // Ensure startup EDO is 24 and seed a single C major chord (no extra blank column)
-            try {
-                const edoPanel = document.getElementById('edoDivisions');
-                const edoQuick = document.getElementById('edoQuickInput');
-                if (edoPanel) edoPanel.value = '24';
-                if (edoQuick) edoQuick.value = '24';
-                if (omnichord && typeof omnichord.updateTuningSystem === 'function') omnichord.updateTuningSystem(24);
-            } catch {}
-            try {
-                // Prefill [0,4,7] mapped to current EDO and finalize directly as a single chord
-                const edo = omnichord.currentTuning || 24;
-                const triadSteps = [0, omnichord.mapIntervalToEDO(4, edo), omnichord.mapIntervalToEDO(7, edo)];
-                omnichord.selectedIntervals = triadSteps;
-                // Finalize directly (no preview/blank column), creating exactly one chord
-                omnichord.finalizePreviewChord('C');
-                // Set the last column (newly added) as active and arm keyboard editing
-                const cols = document.querySelectorAll('.extension-column');
-                const lastCol = cols && cols.length ? cols[cols.length - 1] : null;
-                if (lastCol) {
-                    omnichord.currentActiveColumnEl = lastCol;
-                    omnichord.highlightKeyboardForColumn(lastCol);
-                }
-                omnichord.editArmed = true;
-            } catch {}
+            // Startup is now in 24-EDO; do not auto-seed chords to avoid interfering with user-entered sequences
         });
         
         // Add exit prompt for saving to OMG file
@@ -14688,6 +14738,7 @@
     </script>
 </body>
 </html>
+
 
 
 
