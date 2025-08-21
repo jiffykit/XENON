@@ -1854,9 +1854,9 @@
     
 
     <script>
-        // Disable verbose logging by default; toggle DEBUG to true for development
+        // Disable verbose logging by default for performance. Set localStorage.muteConsole='0' to re-enable.
         (function(){
-            const DEBUG = true;
+            const DEBUG = false;
             if (!DEBUG && window && window.console) {
                 try {
                     console.debug = function(){};
@@ -1864,15 +1864,15 @@
                 } catch(_) {}
             }
         })();
-        // Console output control: set localStorage.muteConsole = '1' to mute logs; otherwise keep logs enabled for debugging
+        // Console output control: logs are muted by default; set localStorage.muteConsole='0' to enable
         (function(){
             try {
-                const shouldMute = typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('muteConsole') === '1';
+                const shouldMute = !(typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('muteConsole') === '0');
                 if (shouldMute && window.console) {
                     const methods = ['log','info','debug','warn','error','trace','group','groupCollapsed','groupEnd','time','timeEnd','table'];
                     methods.forEach(function(m){ if (typeof window.console[m] === 'function') window.console[m] = function(){}; });
                 } else if (window && window.console && typeof window.console.info === 'function') {
-                    console.info('[OMGnichord] Console logging ENABLED (set localStorage.muteConsole="1" to mute)');
+                    console.info('[OMGnichord] Console logging ENABLED (set localStorage.muteConsole="0" to keep enabled)');
                 }
             } catch(_) {}
         })();
@@ -1898,6 +1898,9 @@
                 this.splitExtendedChordsAcrossOctaves = false;
                 // Keyboard rotation across EDO steps (drag left/right rotates visible order)
                 this.keyboardRotation = 0;
+                // Global keyboard listener guard/handle
+                this._keyboardListenerAttached = false;
+                this._keyboardHandler = null;
                 // Editing flow flags
                 this.isEditingChord = false;
                 // Global transpose accumulator (steps from session start)
@@ -2082,6 +2085,8 @@
                 document.addEventListener('click', tryResume, { once: false });
                 document.addEventListener('touchstart', tryResume, { once: false, passive: false });
                 this.initEventListeners();
+                // Always enable global keyboard shortcuts (including +/- for transpose)
+                this.setupKeyboardInput();
                 this.generateRootButtons();
                 this.generateExtensionColumns();
                 // Ensure we always have an active column so keyboard taps edit that chord
@@ -6753,51 +6758,34 @@
             }
             
             setupKeyboardInput() {
-                document.addEventListener('keydown', (e) => {
-                    // Only handle number keys 1-0 and only if not typing in an input field
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                        return; // Don't interfere with text input
-                    }
-                    
+                if (this._keyboardListenerAttached) return;
+                this._keyboardHandler = (e) => {
+                    // Allow typing in inputs/textareas without hijacking
+                    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+                    if (tag === 'INPUT' || tag === 'TEXTAREA' || e.isComposing) return;
+
                     const key = e.key;
                     let chordIndex = -1;
-                    
+
                     // Map number keys to chord indices (1-9, then 0 for 10th chord)
-                    if (key >= '1' && key <= '9') {
-                        chordIndex = parseInt(key) - 1; // 1 -> 0, 2 -> 1, etc.
-                    } else if (key === '0') {
-                        chordIndex = 9; // 0 -> 9 (10th chord)
-                    }
-                    
+                    if (key >= '1' && key <= '9') chordIndex = parseInt(key,10) - 1;
+                    else if (key === '0') chordIndex = 9;
+
                     if (chordIndex >= 0) {
                         e.preventDefault();
                         this.playChordByIndex(chordIndex);
                         return;
                     }
 
-                    // Global transpose shortcuts: '+' increments, '-' decrements
-                    // Support main keyboard and numpad
-                    if (key === '+' || key === '=') { // some keyboards require Shift+= for '+'
-                        e.preventDefault();
-                        try { this.applyTransposeStep(1); } catch(_) {}
-                        return;
-                    }
-                    if (key === '-' || key === '_') {
-                        e.preventDefault();
-                        try { this.applyTransposeStep(-1); } catch(_) {}
-                        return;
-                    }
-                    if (e.code === 'NumpadAdd') {
-                        e.preventDefault();
-                        try { this.applyTransposeStep(1); } catch(_) {}
-                        return;
-                    }
-                    if (e.code === 'NumpadSubtract') {
-                        e.preventDefault();
-                        try { this.applyTransposeStep(-1); } catch(_) {}
-                        return;
-                    }
-                });
+                    // Global transpose shortcuts: support '+', '-', '=', and numpad add/subtract
+                    if (key === '+' || key === '=') { e.preventDefault(); try { this.applyTransposeStep(1); } catch(_) {} return; }
+                    if (key === '-' || key === '_') { e.preventDefault(); try { this.applyTransposeStep(-1); } catch(_) {} return; }
+                    if (e.code === 'NumpadAdd') { e.preventDefault(); try { this.applyTransposeStep(1); } catch(_) {} return; }
+                    if (e.code === 'NumpadSubtract') { e.preventDefault(); try { this.applyTransposeStep(-1); } catch(_) {} return; }
+                };
+                // Attach on window with capture so it fires even during bubbling-stopped handlers
+                window.addEventListener('keydown', this._keyboardHandler, true);
+                this._keyboardListenerAttached = true;
             }
             
             playChordByIndex(index) {
@@ -13970,37 +13958,42 @@
                 this.tutorialSteps = [
                     {
                         title: "Welcome to OMGnichord",
-                        text: "This is a microtonal omnichord that lets you explore different tuning systems and create awesome harmonic textures. You start with a Major chord ready to play!",
+                        text: "Explore microtonal harmony in any EDO (24 by default). Click and strum columns; use + / - for global transpose.",
                         highlight: null
                     },
                     {
-                        title: "Initial Setup",
-                        text: "You can freely change the tuning system and root note before creating new chords. Enter the number of notes per octave (2/1) or use other ratios for things like Bohlen Pierce.",
-                        highlight: "#tuningSelector"
+                        title: "Tuning (EDO)",
+                        text: "Set steps per octave (EDO). Microtonal ^ (up) and v (down) micro-steps in names and parsing microtonal chords.",
+                        highlight: "#edoQuickInput"
                     },
                     {
                         title: "Playing Chords",
-                        text: "The Major chord is ready to play! Click and drag vertically on the column to strum the strings. Each column represents a different chord type.",
+                        text: "Click and drag on a chord column to strum. Each column is transposable, editable chord;",
                         highlight: "#extensionColumns"
+                    },
+                    {
+                        title: "Sequences & Romans",
+                        text: "Click SEQUENCE to type chords or Roman numerals. Use ^ and v to micro-step roots: e.g., A^m, B^.",
+                        highlight: "#openTextChordParserBtn"
                     },
                     {
                         title: "Creating New Chords",
-                        text: "Click 'New Chord' to enter chord creation mode. You'll build custom chords by selecting intervals on the top row of the screen.",
+                        text: "Click + button to add new cnhord, then select intervals on the top row. It attempts to name your chord using the order of the notes.",
                         highlight: "[data-action='newChord']"
                     },
                     {
-                        title: "Piano Lock System",
-                        text: "Click the piano icon (🎹) on any chord header to 'piano lock' it - this saves the current synthesizer settings (oscillators + effects) specifically for that chord. Each chord gets its own unique sound preset!",
+                        title: "Local vs Global Transpose",
+                        text: "Use + / - for global transpose. Use ▲▼ in a header for per-chord transpose without rebaking.",
                         highlight: "#extensionColumns"
                     },
                     {
-                        title: "Master Controls",
-                        text: "Control the overall volume and mix of your sound here. The Master Volume affects everything, and you can adjust the overall stereo balance.",
-                        highlight: "#masterSection"
+                        title: "Master Volume",
+                        text: "Adjust overall loudness here.",
+                        highlight: "#masterVolume"
                     },
                     {
                         title: "Effects Section",
-                        text: "Add reverb and control stereo panning. Piano-locked chords preserve their individual effect settings while still responding to master controls.",
+                        text: "Add reverb and control stereo panning.",
                         highlight: "#effectsSection"
                     },
                     {
@@ -14010,12 +14003,12 @@
                     },
                     {
                         title: "Saving & Loading",
-                        text: "Use 'Save .OMG' to save your complete session - all chords, piano locks, and synthesizer presets. Loading an OMG file restores everything and leaves you ready to create more chords!",
-                        highlight: "#saveSessionBtn"
+                        text: "Save your session and presets; load them later to continue. Sequence presets live in the SEQUENCE modal.",
+                        highlight: "#seqPresetDropdown"
                     },
                     {
-                        title: "Advanced Features",
-                        text: "Each chord supports per-chord transpose (▲▼) and piano-lock (🎹) for oscillator/effect presets. Piano locks work across all root notes until manually unlocked.",
+                        title: "Advanced",
+                        text: "Keyboard lights and edits honor effective pitch (global + local transpose). ^/v are preserved in labels.",
                         highlight: "#extensionColumns"
                     }
                 ];
