@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Microtonal Omnichord - DEBUG v2</title>
     <!-- Retro font (Oswald) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1275,11 +1275,13 @@
             color: white;
             padding: 20px;
             border-radius: 10px;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
+            width: min(96vw, 900px);
+            max-height: 94vh;
+            overflow-y: auto; /* allow scroll if truly needed */
+            scrollbar-width: none; /* hide scrollbar in Firefox */
             border: 2px solid #666;
         }
+        .modal-content::-webkit-scrollbar { display: none; } /* hide scrollbar in WebKit */
 
         .add-column-grid {
             display: grid;
@@ -1326,9 +1328,27 @@
             backdrop-filter: blur(2px);
         }
 
+        /* Mobile/touch optimizations */
+        @media (hover: none), (pointer: coarse) {
+            .osc-btn { min-height: 44px; padding: 10px 12px; font-size: 12px; }
+            .synth-slider { height: 28px; }
+            .slider-value { font-size: 11px !important; }
+            .effect-group label, .section-title { font-size: 13px; }
+        }
+
+        /* Larger slider thumbs on touch devices */
+        .synth-slider::-webkit-slider-thumb { width: 22px; height: 22px; }
+        .synth-slider::-moz-range-thumb { width: 22px; height: 22px; }
+
+        @media (max-width: 768px) {
+            /* Stack dense grids for small screens to avoid horizontal scroll */
+            .panel-content { grid-template-columns: 1fr !important; gap: 12px; }
+            .modal-content { width: 96vw; max-height: 94vh; }
+        }
+
         #tutorialBox {
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-height: 80vh;
+            max-height: 88vh;
             overflow-y: auto;
             position: fixed !important;
             top: 50px !important;
@@ -1464,7 +1484,7 @@
             <div class="synth-section" id="effectsSection" style="padding:8px;">
                 <h4 style="font-size:15px; margin-bottom:8px; color:#9b59b6;">Effects</h4>
                 <div style="margin-bottom:10px;">
-                    <label style="font-size:13px; color:#e67e22;">Drive</label>
+                    <label style="font-size:15px; color:#e67e22;">Drive</label>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                         <div class="slider-container">
                             <label style="font-size:10px;">Amount</label>
@@ -1477,9 +1497,22 @@
                             <div class="slider-value" id="driveMixValue" style="font-size:9px;">0%</div>
                         </div>
                     </div>
+                    <!-- Drive per-effect tone controls -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px;">
+                        <div class="slider-container">
+                            <label style="font-size:10px;">HP Cut</label>
+                            <input type="range" class="synth-slider" id="driveHpCutoff" min="0" max="100" value="0" style="height:20px;">
+                            <div class="slider-value" id="driveHpCutoffValue" style="font-size:9px;">off</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">LP Cut</label>
+                            <input type="range" class="synth-slider" id="driveLpCutoff" min="0" max="100" value="100" style="height:20px;">
+                            <div class="slider-value" id="driveLpCutoffValue" style="font-size:9px;">off</div>
+                        </div>
+                    </div>
                 </div>
                 <div style="margin-bottom:10px;">
-                    <label style="font-size:13px; color:#f59e0b;">Delay</label>
+                    <label style="font-size:15px; color:#f59e0b;">Delay</label>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                         <div class="slider-container">
                             <label style="font-size:10px;">Time</label>
@@ -1492,9 +1525,14 @@
                             <div class="slider-value" id="delayFeedbackValue" style="font-size:9px;">25%</div>
                         </div>
                         <div class="slider-container">
-                            <label style="font-size:10px;">Cutoff</label>
-                            <input type="range" class="synth-slider" id="delayFilterCutoff" min="200" max="20000" value="6000" style="height:20px;">
-                            <div class="slider-value" id="delayFilterCutoffValue" style="font-size:9px;">6kHz</div>
+                            <label style="font-size:10px;">LP Cut</label>
+                            <input type="range" class="synth-slider" id="delayLpCutoff" min="0" max="100" value="73" style="height:20px;">
+                            <div class="slider-value" id="delayLpCutoffValue" style="font-size:9px;">6kHz</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">HP Cut</label>
+                            <input type="range" class="synth-slider" id="delayHpCutoff" min="0" max="100" value="0" style="height:20px;">
+                            <div class="slider-value" id="delayHpCutoffValue" style="font-size:9px;">off</div>
                         </div>
                         <div class="slider-container">
                             <label style="font-size:10px;">Mix</label>
@@ -1504,7 +1542,7 @@
                     </div>
                 </div>
                 <div style="margin-bottom:10px;">
-                    <label style="font-size:13px; color:#2ecc71;">Filters</label>
+                    <label style="font-size:15px; color:#2ecc71;">Filters</label>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                         <div class="slider-container">
                             <label style="font-size:10px;">Cutoff (LP ↔ HP)</label>
@@ -1528,7 +1566,7 @@
                     </div>
                 </div>
                 <div style="margin-bottom:10px;">
-                    <label style="font-size:13px; color:#9b59b6;">Reverb</label>
+                    <label style="font-size:15px; color:#9b59b6;">Reverb</label>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                         <div class="slider-container">
                             <label style="font-size:10px;">Wet</label>
@@ -1546,14 +1584,19 @@
                             <div class="slider-value" id="reverbDecayValue" style="font-size:9px;">2.0s</div>
                         </div>
                         <div class="slider-container">
-                            <label style="font-size:10px;">Cut</label>
-                            <input type="range" class="synth-slider" id="reverbFilterCutoff" min="200" max="20000" value="8000" style="height:20px;">
+                            <label style="font-size:10px;">LP Cut</label>
+                            <input type="range" class="synth-slider" id="reverbFilterCutoff" min="0" max="100" value="70" style="height:20px;">
                             <div class="slider-value" id="reverbFilterCutoffValue" style="font-size:9px;">8kHz</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">HP Cut</label>
+                            <input type="range" class="synth-slider" id="reverbHpCutoff" min="0" max="100" value="0" style="height:20px;">
+                            <div class="slider-value" id="reverbHpCutoffValue" style="font-size:9px;">off</div>
                         </div>
                     </div>
                 </div>
                 <div>
-                    <label style="font-size:13px; color:#e74c3c;">Panning</label>
+                    <label style="font-size:15px; color:#e74c3c;">Panning</label>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                         <div class="slider-container">
                             <label style="font-size:10px;">Mode</label>
@@ -1605,7 +1648,7 @@
                             <div class="osc-btn" data-wave="pulse" data-osc="1" style="font-size:11px; padding:6px 8px;">Pulse</div>
                             <div class="osc-btn" data-wave="fullrect" data-osc="1" style="font-size:11px; padding:6px 8px;">FRect</div>
                             <div class="osc-btn" data-wave="halfrect" data-osc="1" style="font-size:11px; padding:6px 8px;">HRect</div>
-                            <div class="osc-btn" data-wave="trapezoid" data-osc="1" style="font-size:11px; padding:6px 8px;">Trap</div>
+                            
                             <div class="osc-btn" data-wave="parabolic" data-osc="1" style="font-size:11px; padding:6px 8px;">Para</div>
                             <div class="osc-btn" data-wave="stair" data-osc="1" style="font-size:11px; padding:6px 8px;">Stair</div>
                         </div>
@@ -1613,6 +1656,11 @@
                             <label style="font-size:9px;">Pulse Width</label>
                             <input type="range" class="synth-slider" id="osc1PulseWidth" min="5" max="95" value="50" style="height:20px;">
                             <div class="slider-value" id="osc1PulseWidthValue" style="font-size:9px;">50%</div>
+                        </div>
+                        <div class="slider-container" data-osc="1" style="margin-bottom:6px;">
+                            <label style="font-size:9px;">Width of Shape</label>
+                            <input type="range" class="synth-slider" id="osc1ShapeWidth" min="0" max="100" value="50" style="height:20px;">
+                            <div class="slider-value" id="osc1ShapeWidthValue" style="font-size:9px;">50%</div>
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:8px;">
                             <div class="slider-container">
@@ -1671,7 +1719,7 @@
                             <div class="osc-btn" data-wave="pulse" data-osc="2" style="font-size:11px; padding:6px 8px;">Pulse</div>
                             <div class="osc-btn" data-wave="fullrect" data-osc="2" style="font-size:11px; padding:6px 8px;">FRect</div>
                             <div class="osc-btn" data-wave="halfrect" data-osc="2" style="font-size:11px; padding:6px 8px;">HRect</div>
-                            <div class="osc-btn" data-wave="trapezoid" data-osc="2" style="font-size:11px; padding:6px 8px;">Trap</div>
+                            
                             <div class="osc-btn" data-wave="parabolic" data-osc="2" style="font-size:11px; padding:6px 8px;">Para</div>
                             <div class="osc-btn" data-wave="stair" data-osc="2" style="font-size:11px; padding:6px 8px;">Stair</div>
                         </div>
@@ -1679,6 +1727,11 @@
                             <label style="font-size:9px;">Pulse Width</label>
                             <input type="range" class="synth-slider" id="osc2PulseWidth" min="5" max="95" value="50" style="height:20px;">
                             <div class="slider-value" id="osc2PulseWidthValue" style="font-size:9px;">50%</div>
+                        </div>
+                        <div class="slider-container" data-osc="2" style="margin-bottom:6px;">
+                            <label style="font-size:9px;">Width of Shape</label>
+                            <input type="range" class="synth-slider" id="osc2ShapeWidth" min="0" max="100" value="50" style="height:20px;">
+                            <div class="slider-value" id="osc2ShapeWidthValue" style="font-size:9px;">50%</div>
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:8px;">
                             <div class="slider-container">
@@ -1995,10 +2048,13 @@
                 
                 // Dual oscillator settings with proper dB scaling
                 this.oscillators = {
-                    // Add pulseWidth (0-1) for pulse; keep detune as fine cents
-                    osc1: { type: 'sine', detune: 0, level: 5 * 0.125 / 10, octave: 0, coarse: 0, pulseWidth: 0.5 },
-                    osc2: { type: 'sine', detune: -7, level: 5 * 0.125 / 10, octave: 0, coarse: 0, pulseWidth: 0.5 }
-                };
+                    // pulseWidth (0-1) for 'pulse'; detune in cents; shapeWidth (0-1) controls waveform width/skew:
+                    // - sine: phase-skewed sine (narrow = steep peak)
+                    // - sawtooth: phase-skewed slope (narrow = fast rise)
+                    // - square: PWM duty (narrow = skinny high)
+                    osc1: { type: 'sine', detune: 0, level: 5 * 0.125 / 10, octave: 0, coarse: 0, pulseWidth: 0.5, shapeWidth: 0.5 },
+                    osc2: { type: 'sine', detune: -7, level: 5 * 0.125 / 10, octave: 0, coarse: 0, pulseWidth: 0.5, shapeWidth: 0.5 }
+                }
 
                 // Custom oscillator wavetable cache
                 this._customWaveCache = new Map();
@@ -2995,14 +3051,31 @@
                 // Apply current oscillator settings
                 const t = this.oscillators.osc1.type;
                 if (t === 'noise') {
-                    source = this.createNoiseSource();
+                    // Brown noise preview with a peaking EQ centered at the played frequency
+                    const noise = this.createNoiseSource();
+                    const peak = this.audioContext.createBiquadFilter();
+                    peak.type = 'peaking';
+                    peak.frequency.setValueAtTime(Math.max(10, Math.min(this.audioContext.sampleRate/2, frequency)), this.audioContext.currentTime);
+                    // Map Shape Width (0..1) to Q (0.5..60) exponentially for musical feel
+                    {
+                        const sw = Math.max(0, Math.min(1, this.oscillators.osc1.shapeWidth ?? 0.5));
+                        const minQ = 0.5, maxQ = 60;
+                        const q = minQ * Math.pow(maxQ / minQ, sw);
+                        peak.Q.setValueAtTime(q, this.audioContext.currentTime);
+                    }
+                    // Level controls resonance gain: 0..+48 dB; 0 dB yields plain brown noise
+                    const lvlNorm = Math.max(0, Math.min(1, (this.oscillators.osc1.level || 0) / 0.125));
+                    peak.gain.setValueAtTime(lvlNorm * 48, this.audioContext.currentTime);
+                    noise.connect(peak);
+                    source = peak;
+                    // Start/stop the buffer source based on envelope timing
+                    // We'll capture the underlying buffer source to stop later
+                    source.__noiseSource = noise;
                 } else {
                     source = this.audioContext.createOscillator();
-                    if (['pulse','fullrect','halfrect','trapezoid','parabolic','stair'].includes(t)) {
-                        source.setPeriodicWave(this.getCustomPeriodicWave(t, this.oscillators.osc1.pulseWidth));
-                    } else {
-                        source.type = t;
-                    }
+                    if (['sine','sawtooth','square','pulse','fullrect','halfrect','parabolic','stair'].includes(t)) {
+                        source.setPeriodicWave(this.getCustomPeriodicWave(t, this.oscillators.osc1.pulseWidth, this.oscillators.osc1.shapeWidth));
+                    } else { source.type = t; }
                     source.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
                 }
                 
@@ -3020,8 +3093,14 @@
                 // Always route into master gainNode so global wet/dry split handles reverb
                 gainNode.connect(this.gainNode);
                 
-                source.start();
-                source.stop(now + this.envelope.attack + this.envelope.decay + this.envelope.release);
+                // Start/stop respecting noise vs oscillator
+                if (t === 'noise' && source.__noiseSource) {
+                    try { source.__noiseSource.start(); } catch(_) {}
+                    try { source.__noiseSource.stop(now + this.envelope.attack + this.envelope.decay + this.envelope.release); } catch(_) {}
+                } else {
+                    source.start();
+                    source.stop(now + this.envelope.attack + this.envelope.decay + this.envelope.release);
+                }
                 
                 // Store for cleanup
                 this.tempChordAudio.set(`preview-${Date.now()}`, { oscillator: source, gainNode });
@@ -3205,8 +3284,9 @@
                     container.style.flexDirection = 'column';
                     rowTop = document.createElement('div');
                     rowBottom = document.createElement('div');
-                    Object.assign(rowTop.style, { display:'flex', gap:'0px', width:'100%', height:'50%' });
-                    Object.assign(rowBottom.style, { display:'flex', gap:'0px', width:'100%', height:'50%' });
+                    // Use flex growth instead of fixed 50% height, and allow shrinking (minHeight:0) to avoid clipping
+                    Object.assign(rowTop.style, { display:'flex', gap:'0px', width:'100%', flex:'1 1 0', minHeight:'0' });
+                    Object.assign(rowBottom.style, { display:'flex', gap:'0px', width:'100%', flex:'1 1 0', minHeight:'0' });
                     container.appendChild(rowTop);
                     container.appendChild(rowBottom);
                 }
@@ -3496,7 +3576,11 @@
                         targetRow.appendChild(column);
                         // If strings exist already, scale their container height to half
                         const sc = column.querySelector('.strings-column');
-                        if (sc) sc.style.height = 'calc(100% - 42px)';
+                        if (sc) {
+                            const headerEl = column.querySelector('.extension-header');
+                            const headerPx = Math.max(56, headerEl ? headerEl.offsetHeight : 56);
+                            sc.style.height = `calc(100% - ${headerPx}px)`;
+                        }
                     } else {
                         container.appendChild(column);
                     }
@@ -3865,6 +3949,14 @@
                                 const pct = Math.round((data.pulseWidth || 0.5) * 100);
                                 pwSlider.value = String(pct);
                                 if (pwValue) pwValue.textContent = `${pct}%`;
+                            }
+                            // Shape width
+                            const swSlider = document.getElementById(`osc${num}ShapeWidth`);
+                            const swValue = document.getElementById(`osc${num}ShapeWidthValue`);
+                            if (swSlider && typeof data.shapeWidth === 'number') {
+                                const swPct = Math.round((data.shapeWidth || 0.5) * 100);
+                                swSlider.value = String(swPct);
+                                if (swValue) swValue.textContent = `${swPct}%`;
                             }
                             const lvl = document.getElementById(`osc${num}Level`);
                             const lvlV = document.getElementById(`osc${num}LevelValue`);
@@ -5909,7 +6001,11 @@
             this.wetGainNode.gain.value = wet;
             this.dryGainNode.gain.value = 1.0 - wet;
                     
-                    // Create reverb filter
+                    // Create reverb filters: HP then LP after convolver
+                    this.reverbHpNode = this.audioContext.createBiquadFilter();
+                    this.reverbHpNode.type = 'highpass';
+                    this.reverbHpNode.frequency.value = 20;
+                    this.reverbHpNode.Q.value = 0.707;
                     this.reverbFilterNode = this.audioContext.createBiquadFilter();
                     this.reverbFilterNode.type = 'lowpass';
                     this.reverbFilterNode.frequency.value = Math.max(100, Math.min(20000, Number.isFinite(this.reverb.filterCutoff) ? this.reverb.filterCutoff : 8000));
@@ -5919,11 +6015,16 @@
                     this._drive = {
                         pre: this.audioContext.createGain(),
                         shaper: this.audioContext.createWaveShaper(),
+                        // Per-effect tone for drive wet path: HP -> LP
+                        hp: this.audioContext.createBiquadFilter(),
+                        lp: this.audioContext.createBiquadFilter(),
                         post: this.audioContext.createGain(),
                         dry: this.audioContext.createGain(),
                         wet: this.audioContext.createGain(),
                         mix: this.audioContext.createGain()
                     };
+                    this._drive.hp.type = 'highpass'; this._drive.hp.frequency.value = 20; this._drive.hp.Q.value = 0.707;
+                    this._drive.lp.type = 'lowpass'; this._drive.lp.frequency.value = 20000; this._drive.lp.Q.value = 0.707;
                     // Default mix states
                     this._drive.dry.gain.value = 1;
                     this._drive.wet.gain.value = 0;
@@ -5932,13 +6033,16 @@
                     this.updateDrive = () => {
                         const amt = Math.max(0, Math.min(100, this.drive?.amount || 0)) / 100;
                         const mix = Math.max(0, Math.min(100, this.drive?.mix || 0)) / 100;
-                        // Curve
-                        const n = 1024; const curve = new Float32Array(n);
-                        const k = amt * 6 + 0.0001;
-                        for (let i=0;i<n;i++){ const x = i/(n-1)*2-1; curve[i] = (1+k)*x/(1+k*Math.abs(x)); }
-                        this._drive.shaper.curve = curve; this._drive.shaper.oversample = '2x';
-                        // Output compensation (simple, perceptual)
-                        const comp = 1 / (1 + amt * 1.2);
+                        // Stronger curve range using arctangent shaper-like curve
+                        const n = 2048; const curve = new Float32Array(n);
+                        const k = 1 + amt * 24; // extend range
+                        for (let i=0;i<n;i++){
+                            const x = i/(n-1)*2-1; // -1..1
+                            curve[i] = Math.tanh(k * x);
+                        }
+                        this._drive.shaper.curve = curve; this._drive.shaper.oversample = '4x';
+                        // Perceived-loudness autogain: approximate inverse of RMS growth
+                        const comp = 1 / Math.sqrt(1 + k*0.6);
                         this._drive.post.gain.value = comp;
                         // Mix
                         this._drive.dry.gain.value = 1 - mix;
@@ -5952,7 +6056,10 @@
                     this.gainNode.connect(this._drive.pre);
                     this.gainNode.connect(this._drive.dry);
                     this._drive.pre.connect(this._drive.shaper);
-                    this._drive.shaper.connect(this._drive.post);
+                    // Drive wet tone: shaper -> hp -> lp -> post -> wet
+                    this._drive.shaper.connect(this._drive.hp);
+                    this._drive.hp.connect(this._drive.lp);
+                    this._drive.lp.connect(this._drive.post);
                     this._drive.post.connect(this._drive.wet);
                     this._drive.dry.connect(this._drive.mix);
                     this._drive.wet.connect(this._drive.mix);
@@ -5961,7 +6068,10 @@
                     this._delay = {
                         node: this.audioContext.createDelay(2.0),
                         feedback: this.audioContext.createGain(),
+                        // Feedback loop tone (LP) and wet-path tone (HP/LP)
                         filter: this.audioContext.createBiquadFilter(),
+                        wetHp: this.audioContext.createBiquadFilter(),
+                        wetLp: this.audioContext.createBiquadFilter(),
                         wet: this.audioContext.createGain(),
                         dry: this.audioContext.createGain(),
                         mix: this.audioContext.createGain()
@@ -5970,6 +6080,9 @@
                     this._delay.feedback.gain.value = 0.25;
                     this._delay.filter.type = 'lowpass';
                     this._delay.filter.frequency.value = 6000;
+                    // Delay wet path tone defaults
+                    this._delay.wetHp.type = 'highpass'; this._delay.wetHp.frequency.value = 20; this._delay.wetHp.Q.value = 0.707;
+                    this._delay.wetLp.type = 'lowpass'; this._delay.wetLp.frequency.value = 6000; this._delay.wetLp.Q.value = 0.707;
                     this._delay.wet.gain.value = 0.0; // start bypassed
                     this._delay.dry.gain.value = 1.0;
                     this._delay.mix.gain.value = 1.0;
@@ -5979,7 +6092,10 @@
                     this._delay.node.connect(this._delay.filter);
                     this._delay.filter.connect(this._delay.feedback);
                     this._delay.feedback.connect(this._delay.node);
-                    this._delay.node.connect(this._delay.wet);
+                    // Delay wet chain: node → wetHp → wetLp → wet
+                    this._delay.node.connect(this._delay.wetHp);
+                    this._delay.wetHp.connect(this._delay.wetLp);
+                    this._delay.wetLp.connect(this._delay.wet);
                     // Sum delay wet/dry
                     this._postDelayMix = this.audioContext.createGain();
                     this._postDelayMix.gain.value = 1.0;
@@ -6001,7 +6117,8 @@
                     this._postDelayMix.connect(this.wetGainNode);
                     this.dryGainNode.connect(this.audioContext.destination);
                     this.wetGainNode.connect(this.reverbNode);
-                    this.reverbNode.connect(this.reverbFilterNode);
+                    this.reverbNode.connect(this.reverbHpNode);
+                    this.reverbHpNode.connect(this.reverbFilterNode);
                     this.reverbFilterNode.connect(this.audioContext.destination);
 
                     // Helper to bypass convolver when wet=0 to save CPU
@@ -6009,15 +6126,17 @@
                         try {
                             const isWet = (this.reverb?.wet || 0) > 0.0001;
                             // Ensure base connections exist
-                            if (!this.wetGainNode || !this.reverbNode || !this.reverbFilterNode) return;
+                            if (!this.wetGainNode || !this.reverbNode || !this.reverbFilterNode || !this.reverbHpNode) return;
                             // Disconnect all from wet chain first
                             try { this.wetGainNode.disconnect(); } catch {}
                             try { this.reverbNode.disconnect(); } catch {}
+                            try { this.reverbHpNode.disconnect(); } catch {}
                             try { this.reverbFilterNode.disconnect(); } catch {}
                             if (isWet) {
                                 // Enable wet path
                                 this.wetGainNode.connect(this.reverbNode);
-                                this.reverbNode.connect(this.reverbFilterNode);
+                                this.reverbNode.connect(this.reverbHpNode);
+                                this.reverbHpNode.connect(this.reverbFilterNode);
                                 this.reverbFilterNode.connect(this.audioContext.destination);
                             } else {
                                 // Keep wetGainNode disconnected when wet=0
@@ -6077,33 +6196,68 @@
             }
 
             createNoiseSource() {
-                const bufferSize = this.audioContext.sampleRate * 1; // 1 second of noise
+                // Brown (Brownian) noise: integrate white noise with slight damping; looped buffer
+                const seconds = 3; // longer to minimize loop artifacts
+                const bufferSize = Math.max(1, Math.floor(this.audioContext.sampleRate * seconds));
                 const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-                
+                const out = noiseBuffer.getChannelData(0);
+                let last = 0;
                 for (let i = 0; i < bufferSize; i++) {
-                    output[i] = Math.random() * 2 - 1; // White noise
+                    const white = Math.random() * 2 - 1; // [-1, 1]
+                    // Leaky integrator to avoid DC drift; tuning keeps spectrum ~1/f^2
+                    last = (last + white) * 0.995; // slight damping
+                    // Scale down to safe amplitude
+                    out[i] = last * 0.1;
                 }
-                
-                const whiteNoise = this.audioContext.createBufferSource();
-                whiteNoise.buffer = noiseBuffer;
-                whiteNoise.loop = true;
-                
-                return whiteNoise;
+                const brownNoise = this.audioContext.createBufferSource();
+                brownNoise.buffer = noiseBuffer;
+                brownNoise.loop = true;
+                return brownNoise;
             }
 
             // Build or fetch a cached PeriodicWave for custom oscillator shapes.
-            // type: 'pulse' | 'fullrect' | 'halfrect' | 'trapezoid' | 'parabolic' | 'stair'
+            // type includes: 'sine','sawtooth','square','pulse','fullrect','halfrect','parabolic','stair'
             // pulseWidth: only applies to 'pulse' (0..1), default 0.5
-            getCustomPeriodicWave(type, pulseWidth = 0.5) {
+            // width: used for sine/saw/square skewing (0..1), default 0.5
+            getCustomPeriodicWave(type, pulseWidth = 0.5, width = 0.5) {
                 if (!this.audioContext) return null;
-                const key = `${type}:${type === 'pulse' ? Math.max(0.01, Math.min(0.99, pulseWidth || 0.5)).toFixed(3) : 'std'}`;
+                const key = `${type}:${type === 'pulse' ? Math.max(0.01, Math.min(0.99, pulseWidth || 0.5)).toFixed(3) : 'std'}:${Math.max(0.0, Math.min(1.0, width ?? 0.5)).toFixed(3)}`;
                 if (this._customWaveCache.has(key)) return this._customWaveCache.get(key);
 
                 let real = null, imag = null;
                 const N = 64; // number of harmonics to include
 
                 switch (type) {
+                    case 'sine': {
+                        const w = Math.max(0.0, Math.min(1.0, width ?? 0.5));
+                        // Phase-skewed sine per hint
+                        return this._buildSampledPeriodicWave(x => {
+                            const phase = ((x / (2 * Math.PI)) % 1 + 1) % 1;
+                            const skewed = (phase < w)
+                                ? (phase / w) * 0.5
+                                : 0.5 + ((phase - w) / (1 - w)) * 0.5;
+                            return Math.sin(skewed * 2 * Math.PI);
+                        }, key);
+                    }
+                    case 'sawtooth': {
+                        const w = Math.max(0.0, Math.min(1.0, width ?? 0.5));
+                        // Phase-skewed saw per hint
+                        return this._buildSampledPeriodicWave(x => {
+                            const phase = ((x / (2 * Math.PI)) % 1 + 1) % 1;
+                            const skewed = (phase < w)
+                                ? (phase / w) * 0.5
+                                : 0.5 + ((phase - w) / (1 - w)) * 0.5;
+                            return 2 * skewed - 1;
+                        }, key);
+                    }
+                    case 'square': {
+                        const w = Math.max(0.01, Math.min(0.99, width ?? 0.5));
+                        // PWM-style duty comparator
+                        return this._buildSampledPeriodicWave(x => {
+                            const phase = ((x / (2 * Math.PI)) % 1 + 1) % 1;
+                            return (phase < w) ? 1 : -1;
+                        }, key);
+                    }
                     case 'pulse': {
                         const d = Math.max(0.01, Math.min(0.99, pulseWidth));
                         real = new Float32Array(N + 1);
@@ -6143,19 +6297,7 @@
                         // Half-wave rectified sine: better built via sampling then DFT
                         return this._buildSampledPeriodicWave(x => Math.max(0, Math.sin(x)) * 2 - 1, key);
                     }
-                    case 'trapezoid': {
-                        const slope = 0.2; // ramp fraction
-                        return this._buildSampledPeriodicWave(x => {
-                            const t = ((x / (2 * Math.PI)) % 1 + 1) % 1;
-                            let y;
-                            if (t < slope) y = t / slope; // rise 0..1
-                            else if (t < 0.5 - slope) y = 1; // high
-                            else if (t < 0.5 + slope) y = 1 - (t - (0.5 - slope)) / (2 * slope); // fall
-                            else if (t < 1 - slope) y = 0; // low
-                            else y = (t - (1 - slope)) / slope; // rise to wrap
-                            return y * 2 - 1;
-                        }, key);
-                    }
+                    
                     case 'stair': {
                         const steps = 8;
                         return this._buildSampledPeriodicWave(x => {
@@ -6437,6 +6579,18 @@
 
                 // Oscillator detune and level controls
                 ['1', '2'].forEach(num => {
+                    // Shape width slider (DC proportion)
+                    const swSlider = document.getElementById(`osc${num}ShapeWidth`);
+                    if (swSlider) {
+                        swSlider.addEventListener('input', (e) => {
+                            if (this.isActiveChordPianoLocked && this.isActiveChordPianoLocked()) { this.flashPianoLockFeedback && this.flashPianoLockFeedback(); return; }
+                            const pct = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 50));
+                            this.oscillators[`osc${num}`].shapeWidth = pct / 100; // 0..1
+                            const v = document.getElementById(`osc${num}ShapeWidthValue`);
+                            if (v) v.textContent = `${pct}%`;
+                        });
+                    }
+
                     // Pulse width slider
                     const pwSlider = document.getElementById(`osc${num}PulseWidth`);
                     if (pwSlider) {
@@ -6548,11 +6702,21 @@
                     const el = document.getElementById('delayFeedbackValue'); if (el) el.textContent = `${Math.round(v*100)}%`;
                     if (this._delay && this._delay.feedback) this._delay.feedback.gain.value = v;
                 });
-                const delayCut = document.getElementById('delayFilterCutoff');
-                if (delayCut) delayCut.addEventListener('input', (e)=>{
-                    const hz = Math.max(200, Math.min(20000, parseInt(e.target.value)||6000));
-                    const el = document.getElementById('delayFilterCutoffValue'); if (el) el.textContent = `${hz>=1000?(hz/1000)+'kHz':hz+'Hz'}`;
-                    if (this._delay && this._delay.filter) this._delay.filter.frequency.value = hz;
+                // Delay LP/HP per-effect tone (log scale)
+                const delayLp = document.getElementById('delayLpCutoff');
+                if (delayLp) delayLp.addEventListener('input', (e)=>{
+                    const pct = Math.max(0, Math.min(100, parseInt(e.target.value)||73))/100;
+                    const hz = Math.max(200, 200 * Math.pow(20000/200, pct));
+                    const el = document.getElementById('delayLpCutoffValue'); if (el) el.textContent = `${hz>=20000? 'off' : (hz>=1000? (hz/1000).toFixed(1)+'kHz' : Math.round(hz)+'Hz')}`;
+                    if (this._delay && this._delay.filter) this._delay.filter.frequency.value = hz; // feedback loop LP
+                    if (this._delay && this._delay.wetLp) this._delay.wetLp.frequency.value = hz; // wet tone LP
+                });
+                const delayHp = document.getElementById('delayHpCutoff');
+                if (delayHp) delayHp.addEventListener('input', (e)=>{
+                    const pct = Math.max(0, Math.min(100, parseInt(e.target.value)||0))/100;
+                    const hz = Math.max(20, 20 * Math.pow(2000/20, pct));
+                    const el = document.getElementById('delayHpCutoffValue'); if (el) el.textContent = `${hz<=20? 'off' : Math.round(hz)+'Hz'}`;
+                    if (this._delay && this._delay.wetHp) this._delay.wetHp.frequency.value = hz; // wet tone HP
                 });
                 const delayMix = document.getElementById('delayMix');
                 if (delayMix) delayMix.addEventListener('input', (e)=>{
@@ -6651,9 +6815,11 @@
                             this.createReverb();
                             // Properly reconnect the reverb chain
                             try { this.wetGainNode.disconnect(); } catch {}
+                            try { this.reverbHpNode.disconnect(); } catch {}
                             try { this.reverbFilterNode.disconnect(); } catch {}
                             this.wetGainNode.connect(this.reverbNode);
-                            this.reverbNode.connect(this.reverbFilterNode);
+                            this.reverbNode.connect(this.reverbHpNode);
+                            this.reverbHpNode.connect(this.reverbFilterNode);
                             this.reverbFilterNode.connect(this.audioContext.destination);
                             if (typeof this.updateReverbRouting === 'function') this.updateReverbRouting();
                         }
@@ -6676,9 +6842,11 @@
                             this.createReverb();
                             // Properly reconnect the reverb chain
                             try { this.wetGainNode.disconnect(); } catch {}
+                            try { this.reverbHpNode.disconnect(); } catch {}
                             try { this.reverbFilterNode.disconnect(); } catch {}
                             this.wetGainNode.connect(this.reverbNode);
-                            this.reverbNode.connect(this.reverbFilterNode);
+                            this.reverbNode.connect(this.reverbHpNode);
+                            this.reverbHpNode.connect(this.reverbFilterNode);
                             this.reverbFilterNode.connect(this.audioContext.destination);
                             if (typeof this.updateReverbRouting === 'function') this.updateReverbRouting();
                         }
@@ -6691,18 +6859,47 @@
                 if (reverbFilterCutoffSlider) {
                     reverbFilterCutoffSlider.addEventListener('input', (e) => {
                         if (this.isActiveChordPianoLocked && this.isActiveChordPianoLocked()) { this.flashPianoLockFeedback && this.flashPianoLockFeedback(); return; }
-                        this.reverb.filterCutoff = parseInt(e.target.value);
+                        const pct = Math.max(0, Math.min(100, parseInt(e.target.value)||70)) / 100;
+                        // Map 0..1 to 200..20000 Hz log
+                        const hz = Math.max(200, 200 * Math.pow(20000/200, pct));
+                        this.reverb.filterCutoff = hz;
                         if (this.reverbFilterNode) {
-                            this.reverbFilterNode.frequency.value = this.reverb.filterCutoff;
+                            this.reverbFilterNode.frequency.value = hz;
                         }
                         const reverbFilterCutoffValue = document.getElementById('reverbFilterCutoffValue');
                         if (reverbFilterCutoffValue) {
-                            reverbFilterCutoffValue.textContent = `${e.target.value}Hz`;
+                            reverbFilterCutoffValue.textContent = hz>=20000? 'off': `${Math.round(hz)}Hz`;
                         }
                     });
                 } else {
                     console.error('reverbFilterCutoff slider not found');
                 }
+                const reverbHpCutoffSlider = document.getElementById('reverbHpCutoff');
+                if (reverbHpCutoffSlider) {
+                    reverbHpCutoffSlider.addEventListener('input', (e) => {
+                        const pct = Math.max(0, Math.min(100, parseInt(e.target.value)||0)) / 100;
+                        // Map 0..1 to 20..2000 Hz log
+                        const hz = Math.max(20, 20 * Math.pow(2000/20, pct));
+                        if (this.reverbHpNode) this.reverbHpNode.frequency.value = hz;
+                        const el = document.getElementById('reverbHpCutoffValue'); if (el) el.textContent = hz<=20? 'off': `${Math.round(hz)}Hz`;
+                    });
+                }
+
+                // Drive HP/LP per-effect tone (log scale)
+                const driveHp = document.getElementById('driveHpCutoff');
+                if (driveHp) driveHp.addEventListener('input', (e)=>{
+                    const pct = Math.max(0, Math.min(100, parseInt(e.target.value)||0))/100;
+                    const hz = Math.max(20, 20 * Math.pow(2000/20, pct));
+                    const el = document.getElementById('driveHpCutoffValue'); if (el) el.textContent = `${hz<=20? 'off' : Math.round(hz)+'Hz'}`;
+                    if (this._drive && this._drive.hp) this._drive.hp.frequency.value = hz;
+                });
+                const driveLp = document.getElementById('driveLpCutoff');
+                if (driveLp) driveLp.addEventListener('input', (e)=>{
+                    const pct = Math.max(0, Math.min(100, parseInt(e.target.value)||100))/100;
+                    const hz = Math.max(200, 200 * Math.pow(20000/200, pct));
+                    const el = document.getElementById('driveLpCutoffValue'); if (el) el.textContent = `${hz>=20000? 'off' : (hz>=1000? (hz/1000).toFixed(1)+'kHz' : Math.round(hz)+'Hz')}`;
+                    if (this._drive && this._drive.lp) this._drive.lp.frequency.value = hz;
+                });
 
                 const reverbFilterResSlider = document.getElementById('reverbFilterRes');
                 if (reverbFilterResSlider) {
@@ -8366,11 +8563,14 @@
                 } catch (_) {}
                 
                 // Style the container like main columns
+                // Use real header height to size strings correctly in two-row mode
+                const headerEl = column.querySelector('.extension-header');
+                const headerPx = Math.max(56, headerEl ? headerEl.offsetHeight : 56);
                 stringsContainer.style.cssText = `
                     flex: 1;
                     overflow: hidden;
                     padding: 1px;
-                    height: calc(100% - 40px);
+                    height: calc(100% - ${headerPx}px);
                     display: flex;
                     flex-direction: column;
                     justify-content: space-evenly;
@@ -11654,8 +11854,9 @@
                     container.style.flexDirection = 'column';
                     rowTop = document.createElement('div');
                     rowBottom = document.createElement('div');
-                    Object.assign(rowTop.style, { display:'flex', gap:'0px', width:'100%', height:'50%' });
-                    Object.assign(rowBottom.style, { display:'flex', gap:'0px', width:'100%', height:'50%' });
+                    // Use flex growth instead of fixed 50% height, and allow shrinking (minHeight:0) to avoid clipping
+                    Object.assign(rowTop.style, { display:'flex', gap:'0px', width:'100%', flex:'1 1 0', minHeight:'0' });
+                    Object.assign(rowBottom.style, { display:'flex', gap:'0px', width:'100%', flex:'1 1 0', minHeight:'0' });
                     container.appendChild(rowTop);
                     container.appendChild(rowBottom);
                 }
@@ -11900,7 +12101,11 @@
                         const targetRow = extensionIndex < half ? rowTop : rowBottom;
                         targetRow.appendChild(column);
                         const sc = column.querySelector('.strings-column');
-                        if (sc) sc.style.height = 'calc(100% - 42px)';
+                        if (sc) {
+                            const headerEl = column.querySelector('.extension-header');
+                            const headerPx = Math.max(56, headerEl ? headerEl.offsetHeight : 56);
+                            sc.style.height = `calc(100% - ${headerPx}px)`;
+                        }
                     } else {
                         container.appendChild(column);
                     }
@@ -12200,7 +12405,10 @@
                     if (oldContainer) oldContainer.remove();
                     const stringsContainer = document.createElement('div');
                     stringsContainer.className = 'strings-column';
-                    stringsContainer.style.cssText = `flex:1; overflow:hidden; padding:1px; height: calc(100% - 40px); display:flex; flex-direction:column; justify-content:center; align-items:center; color:#8fb3d3; font-size:12px; opacity:0.8;`;
+                    // Compute dynamic header height for robust layout in two-row mode
+                    const headerEl = column.querySelector('.extension-header');
+                    const headerPx = Math.max(56, headerEl ? headerEl.offsetHeight : 56);
+                    stringsContainer.style.cssText = `flex:1; overflow:hidden; padding:1px; height: calc(100% - ${headerPx}px); display:flex; flex-direction:column; justify-content:center; align-items:center; color:#8fb3d3; font-size:12px; opacity:0.8;`;
                     const hint = document.createElement('div');
                     hint.textContent = 'Tap keys to add notes';
                     stringsContainer.appendChild(hint);
@@ -12408,11 +12616,14 @@
                 // Create strings container that fills remaining space
                 const stringsContainer = document.createElement('div');
                 stringsContainer.className = 'strings-column';
+                // Use real header height if available to avoid clipping
+                const headerEl = column.querySelector('.extension-header');
+                const headerPx = Math.max(56, headerEl ? headerEl.offsetHeight : headerHeight);
                 stringsContainer.style.cssText = `
                     flex: 1;
                     overflow: hidden;
                     padding: 1px;
-                    height: calc(100% - ${headerHeight}px);
+                    height: calc(100% - ${headerPx}px);
                     display: flex;
                     flex-direction: column;
                     justify-content: space-evenly;
@@ -13941,11 +14152,9 @@
                 } else {
                     osc1 = this.audioContext.createOscillator();
                     const t1 = this.oscillators.osc1.type;
-                    if (['pulse','fullrect','halfrect','trapezoid','parabolic','stair'].includes(t1)) {
-                        osc1.setPeriodicWave(this.getCustomPeriodicWave(t1, this.oscillators.osc1.pulseWidth));
-                    } else {
-                        osc1.type = t1;
-                    }
+                    if (['sine','sawtooth','square','pulse','fullrect','halfrect','parabolic','stair'].includes(t1)) {
+                        osc1.setPeriodicWave(this.getCustomPeriodicWave(t1, this.oscillators.osc1.pulseWidth, this.oscillators.osc1.shapeWidth));
+                    } else { osc1.type = t1; }
                     const totalDetune1 = this.oscillators.osc1.detune + (this.oscillators.osc1.coarse * (1200 / this.currentTuning));
                     const freq1 = frequency * Math.pow(2, this.oscillators.osc1.octave + (totalDetune1 / 1200));
                     osc1.frequency.setValueAtTime(freq1, this.audioContext.currentTime);
@@ -13957,11 +14166,9 @@
                 } else {
                     osc2 = this.audioContext.createOscillator();
                     const t2 = this.oscillators.osc2.type;
-                    if (['pulse','fullrect','halfrect','trapezoid','parabolic','stair'].includes(t2)) {
-                        osc2.setPeriodicWave(this.getCustomPeriodicWave(t2, this.oscillators.osc2.pulseWidth));
-                    } else {
-                        osc2.type = t2;
-                    }
+                    if (['sine','sawtooth','square','pulse','fullrect','halfrect','parabolic','stair'].includes(t2)) {
+                        osc2.setPeriodicWave(this.getCustomPeriodicWave(t2, this.oscillators.osc2.pulseWidth, this.oscillators.osc2.shapeWidth));
+                    } else { osc2.type = t2; }
                     const totalDetune2 = this.oscillators.osc2.detune + (this.oscillators.osc2.coarse * (1200 / this.currentTuning));
                     const freq2 = frequency * Math.pow(2, this.oscillators.osc2.octave + (totalDetune2 / 1200));
                     osc2.frequency.setValueAtTime(freq2, this.audioContext.currentTime);
@@ -13972,19 +14179,62 @@
                 osc2Gain.gain.value = this.oscillators.osc2.level;
                 
                 // Connect oscillators through their individual envelopes
-                osc1.connect(osc1Gain);
+                if (this.oscillators.osc1.type === 'noise') {
+                    // Add a resonant peak at the played frequency using a peaking EQ
+                    const totalDetune1 = this.oscillators.osc1.detune + (this.oscillators.osc1.coarse * (1200 / this.currentTuning));
+                    const center1 = frequency * Math.pow(2, this.oscillators.osc1.octave + (totalDetune1 / 1200));
+                    const peak1 = this.audioContext.createBiquadFilter();
+                    peak1.type = 'peaking';
+                    const c1 = Math.max(10, Math.min(this.audioContext.sampleRate/2, center1));
+                    peak1.frequency.setValueAtTime(c1, this.audioContext.currentTime);
+                    // Shape Width controls Q of the resonant peak too
+                    {
+                        const sw = Math.max(0, Math.min(1, this.oscillators.osc1.shapeWidth ?? 0.5));
+                        const minQ = 0.5, maxQ = 60;
+                        const q = minQ * Math.pow(maxQ / minQ, sw);
+                        peak1.Q.setValueAtTime(q, this.audioContext.currentTime);
+                    }
+                    // Level -> 0..+48 dB; 0 dB means plain brown noise
+                    const lvlNorm1 = Math.max(0, Math.min(1, (this.oscillators.osc1.level || 0) / 0.125));
+                    peak1.gain.setValueAtTime(lvlNorm1 * 48, this.audioContext.currentTime);
+                    osc1.connect(peak1);
+                    peak1.connect(osc1Gain);
+                } else {
+                    // Direct connect; shaping is embedded in the PeriodicWave
+                    osc1.connect(osc1Gain);
+                }
                 osc1Gain.connect(osc1Envelope);
                 
-                osc2.connect(osc2Gain);
+                if (this.oscillators.osc2.type === 'noise') {
+                    const totalDetune2 = this.oscillators.osc2.detune + (this.oscillators.osc2.coarse * (1200 / this.currentTuning));
+                    const center2 = frequency * Math.pow(2, this.oscillators.osc2.octave + (totalDetune2 / 1200));
+                    const peak2 = this.audioContext.createBiquadFilter();
+                    peak2.type = 'peaking';
+                    const c2 = Math.max(10, Math.min(this.audioContext.sampleRate/2, center2));
+                    peak2.frequency.setValueAtTime(c2, this.audioContext.currentTime);
+                    {
+                        const sw = Math.max(0, Math.min(1, this.oscillators.osc2.shapeWidth ?? 0.5));
+                        const minQ = 0.5, maxQ = 60;
+                        const q = minQ * Math.pow(maxQ / minQ, sw);
+                        peak2.Q.setValueAtTime(q, this.audioContext.currentTime);
+                    }
+                    const lvlNorm2 = Math.max(0, Math.min(1, (this.oscillators.osc2.level || 0) / 0.125));
+                    peak2.gain.setValueAtTime(lvlNorm2 * 48, this.audioContext.currentTime);
+                    osc2.connect(peak2);
+                    peak2.connect(osc2Gain);
+                } else {
+                    osc2.connect(osc2Gain);
+                }
                 osc2Gain.connect(osc2Envelope);
-                
-                // Simple addition - both oscillators mixed
+                // Mix envelopes into final mixer
                 osc1Envelope.connect(finalMixer);
                 osc2Envelope.connect(finalMixer);
-                console.log('Both oscillators mixed');
+                console.log('Both oscillators mixed (with per-oscillator bandpass shaping)');
                 
                 const currentTime = this.audioContext.currentTime;
                 
+                // No DC sources used for shape width anymore
+
                 // Create panner and apply panning based on mode (BEFORE reverb)
                 const panner = this.audioContext.createStereoPanner();
                 let panValue = 0; // Default center
@@ -14144,6 +14394,7 @@
                     osc1.stop(currentTime + maxReleaseTime);
                     osc2.stop(currentTime + maxReleaseTime);
                     
+                    
                     console.log('Note stopped with', maxReleaseTime, 'second release time');
                     
                     // Clean up visual indicator
@@ -14190,6 +14441,7 @@
                         const maxReleaseTime = Math.max(this.envelope.release, this.osc2Envelope.release);
                         osc1.stop(currentTime + maxReleaseTime);
                         osc2.stop(currentTime + maxReleaseTime);
+                        
                     } catch (error) {
                         console.warn('Error stopping oscillator:', error);
                     }
@@ -14984,7 +15236,6 @@
     </script>
 </body>
 </html>
-
 
 
 
