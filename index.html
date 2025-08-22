@@ -1464,6 +1464,70 @@
             <div class="synth-section" id="effectsSection" style="padding:8px;">
                 <h4 style="font-size:15px; margin-bottom:8px; color:#9b59b6;">Effects</h4>
                 <div style="margin-bottom:10px;">
+                    <label style="font-size:13px; color:#e67e22;">Drive</label>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Amount</label>
+                            <input type="range" class="synth-slider" id="driveAmount" min="0" max="100" value="0" style="height:20px;">
+                            <div class="slider-value" id="driveAmountValue" style="font-size:9px;">0%</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Mix</label>
+                            <input type="range" class="synth-slider" id="driveMix" min="0" max="100" value="0" style="height:20px;">
+                            <div class="slider-value" id="driveMixValue" style="font-size:9px;">0%</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:13px; color:#f59e0b;">Delay</label>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Time</label>
+                            <input type="range" class="synth-slider" id="delayTime" min="20" max="1000" value="280" style="height:20px;">
+                            <div class="slider-value" id="delayTimeValue" style="font-size:9px;">280ms</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Feedback</label>
+                            <input type="range" class="synth-slider" id="delayFeedback" min="0" max="95" value="25" style="height:20px;">
+                            <div class="slider-value" id="delayFeedbackValue" style="font-size:9px;">25%</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Cutoff</label>
+                            <input type="range" class="synth-slider" id="delayFilterCutoff" min="200" max="20000" value="6000" style="height:20px;">
+                            <div class="slider-value" id="delayFilterCutoffValue" style="font-size:9px;">6kHz</div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Mix</label>
+                            <input type="range" class="synth-slider" id="delayMix" min="0" max="100" value="0" style="height:20px;">
+                            <div class="slider-value" id="delayMixValue" style="font-size:9px;">0%</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:13px; color:#2ecc71;">Filters</label>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Cutoff (LP ↔ HP)</label>
+                            <!-- Dual-handle filter edges: left = HP edge, right = LP edge (log scale) -->
+                            <div style="display:flex; gap:8px; align-items:center; width:100%">
+                                <div style="flex:1">
+                                    <input type="range" class="synth-slider" id="filterLow" min="0" max="100" value="0" style="height:20px;">
+                                    <div class="slider-value" id="filterLowValue" style="font-size:9px;">HP 20Hz</div>
+                                </div>
+                                <div style="flex:1">
+                                    <input type="range" class="synth-slider" id="filterHigh" min="0" max="100" value="100" style="height:20px;">
+                                    <div class="slider-value" id="filterHighValue" style="font-size:9px;">LP 20kHz</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slider-container">
+                            <label style="font-size:10px;">Resonance (Q)</label>
+                            <input type="range" class="synth-slider" id="filterRes" min="0.1" max="20" step="0.1" value="1" style="height:20px;">
+                            <div class="slider-value" id="filterResValue" style="font-size:9px;">Q 1.0</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-bottom:10px;">
                     <label style="font-size:13px; color:#9b59b6;">Reverb</label>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                         <div class="slider-container">
@@ -1972,6 +2036,11 @@
                 this.wetGainNode = null;
                 this.dryGainNode = null;
                 this.reverbFilterNode = null;
+                // Drive state (indexsun variant)
+                this.drive = {
+                    amount: 0, // 0..100
+                    mix: 0     // 0..100 (% wet)
+                };
                 
                 // No default chord extensions - start completely empty unless locked chords exist
                 this.defaultChordExtensions = [];
@@ -5846,9 +5915,90 @@
                     this.reverbFilterNode.frequency.value = Math.max(100, Math.min(20000, Number.isFinite(this.reverb.filterCutoff) ? this.reverb.filterCutoff : 8000));
                     this.reverbFilterNode.Q.value = 1;
                     
-                    // Connect audio routing: gainNode ? dry/wet ? reverb ? destination
-                    this.gainNode.connect(this.dryGainNode);
-                    this.gainNode.connect(this.wetGainNode);
+                    // Global Drive (first in chain after summing all notes)
+                    this._drive = {
+                        pre: this.audioContext.createGain(),
+                        shaper: this.audioContext.createWaveShaper(),
+                        post: this.audioContext.createGain(),
+                        dry: this.audioContext.createGain(),
+                        wet: this.audioContext.createGain(),
+                        mix: this.audioContext.createGain()
+                    };
+                    // Default mix states
+                    this._drive.dry.gain.value = 1;
+                    this._drive.wet.gain.value = 0;
+                    this._drive.mix.gain.value = 1;
+                    // Build updateDrive helper for curve, mix, and output compensation
+                    this.updateDrive = () => {
+                        const amt = Math.max(0, Math.min(100, this.drive?.amount || 0)) / 100;
+                        const mix = Math.max(0, Math.min(100, this.drive?.mix || 0)) / 100;
+                        // Curve
+                        const n = 1024; const curve = new Float32Array(n);
+                        const k = amt * 6 + 0.0001;
+                        for (let i=0;i<n;i++){ const x = i/(n-1)*2-1; curve[i] = (1+k)*x/(1+k*Math.abs(x)); }
+                        this._drive.shaper.curve = curve; this._drive.shaper.oversample = '2x';
+                        // Output compensation (simple, perceptual)
+                        const comp = 1 / (1 + amt * 1.2);
+                        this._drive.post.gain.value = comp;
+                        // Mix
+                        this._drive.dry.gain.value = 1 - mix;
+                        this._drive.wet.gain.value = mix;
+                    };
+                    this.updateDrive();
+
+                    // Master routing: sum → Drive (first) → Delay → PostDelayMix → HP → LP → Output
+                    // Reverb taps after Delay (very last stage) and goes straight to output
+                    // Drive split/mix
+                    this.gainNode.connect(this._drive.pre);
+                    this.gainNode.connect(this._drive.dry);
+                    this._drive.pre.connect(this._drive.shaper);
+                    this._drive.shaper.connect(this._drive.post);
+                    this._drive.post.connect(this._drive.wet);
+                    this._drive.dry.connect(this._drive.mix);
+                    this._drive.wet.connect(this._drive.mix);
+
+                    // Global Delay with filtered feedback and wet/dry mix
+                    this._delay = {
+                        node: this.audioContext.createDelay(2.0),
+                        feedback: this.audioContext.createGain(),
+                        filter: this.audioContext.createBiquadFilter(),
+                        wet: this.audioContext.createGain(),
+                        dry: this.audioContext.createGain(),
+                        mix: this.audioContext.createGain()
+                    };
+                    this._delay.node.delayTime.value = 0.28; // 280ms
+                    this._delay.feedback.gain.value = 0.25;
+                    this._delay.filter.type = 'lowpass';
+                    this._delay.filter.frequency.value = 6000;
+                    this._delay.wet.gain.value = 0.0; // start bypassed
+                    this._delay.dry.gain.value = 1.0;
+                    this._delay.mix.gain.value = 1.0;
+                    // Wire delay split
+                    this._drive.mix.connect(this._delay.dry);
+                    this._drive.mix.connect(this._delay.node);
+                    this._delay.node.connect(this._delay.filter);
+                    this._delay.filter.connect(this._delay.feedback);
+                    this._delay.feedback.connect(this._delay.node);
+                    this._delay.node.connect(this._delay.wet);
+                    // Sum delay wet/dry
+                    this._postDelayMix = this.audioContext.createGain();
+                    this._postDelayMix.gain.value = 1.0;
+                    this._delay.dry.connect(this._postDelayMix);
+                    this._delay.wet.connect(this._postDelayMix);
+
+                    // Final filters at end of chain (HP then LP)
+                    this._finalHP = this.audioContext.createBiquadFilter();
+                    this._finalHP.type = 'highpass';
+                    this._finalHP.frequency.value = 20;
+                    this._finalLP = this.audioContext.createBiquadFilter();
+                    this._finalLP.type = 'lowpass';
+                    this._finalLP.frequency.value = 20000;
+                    this._postDelayMix.connect(this._finalHP);
+                    this._finalHP.connect(this._finalLP);
+                    this._finalLP.connect(this.dryGainNode);
+
+                    // Reverb taps after delay and is last to output
+                    this._postDelayMix.connect(this.wetGainNode);
                     this.dryGainNode.connect(this.audioContext.destination);
                     this.wetGainNode.connect(this.reverbNode);
                     this.reverbNode.connect(this.reverbFilterNode);
@@ -6364,6 +6514,109 @@
                 // Mix mode removed - oscillators will now simply add together
 
                 // Reverb controls
+                // Drive controls
+                const driveAmt = document.getElementById('driveAmount');
+                if (driveAmt) {
+                    driveAmt.addEventListener('input', (e)=>{
+                        const v = Math.max(0, Math.min(100, parseInt(e.target.value)||0));
+                        this.drive.amount = v;
+                        const el = document.getElementById('driveAmountValue'); if (el) el.textContent = `${v}%`;
+                        if (typeof this.updateDrive === 'function') this.updateDrive();
+                    });
+                }
+                const driveMix = document.getElementById('driveMix');
+                if (driveMix) {
+                    driveMix.addEventListener('input', (e)=>{
+                        const v = Math.max(0, Math.min(100, parseInt(e.target.value)||0));
+                        this.drive.mix = v;
+                        const el = document.getElementById('driveMixValue'); if (el) el.textContent = `${v}%`;
+                        if (typeof this.updateDrive === 'function') this.updateDrive();
+                    });
+                }
+
+                // Reverb controls
+                // Delay controls
+                const delayTime = document.getElementById('delayTime');
+                if (delayTime) delayTime.addEventListener('input', (e)=>{
+                    const ms = Math.max(20, Math.min(1000, parseInt(e.target.value)||280));
+                    const el = document.getElementById('delayTimeValue'); if (el) el.textContent = `${ms}ms`;
+                    if (this._delay && this._delay.node) this._delay.node.delayTime.value = ms/1000;
+                });
+                const delayFb = document.getElementById('delayFeedback');
+                if (delayFb) delayFb.addEventListener('input', (e)=>{
+                    const v = Math.max(0, Math.min(95, parseInt(e.target.value)||25))/100;
+                    const el = document.getElementById('delayFeedbackValue'); if (el) el.textContent = `${Math.round(v*100)}%`;
+                    if (this._delay && this._delay.feedback) this._delay.feedback.gain.value = v;
+                });
+                const delayCut = document.getElementById('delayFilterCutoff');
+                if (delayCut) delayCut.addEventListener('input', (e)=>{
+                    const hz = Math.max(200, Math.min(20000, parseInt(e.target.value)||6000));
+                    const el = document.getElementById('delayFilterCutoffValue'); if (el) el.textContent = `${hz>=1000?(hz/1000)+'kHz':hz+'Hz'}`;
+                    if (this._delay && this._delay.filter) this._delay.filter.frequency.value = hz;
+                });
+                const delayMix = document.getElementById('delayMix');
+                if (delayMix) delayMix.addEventListener('input', (e)=>{
+                    const v = Math.max(0, Math.min(100, parseInt(e.target.value)||0))/100;
+                    const el = document.getElementById('delayMixValue'); if (el) el.textContent = `${Math.round(v*100)}%`;
+                    if (this._delay && this._delay.wet && this._delay.dry) {
+                        this._delay.wet.gain.value = v;
+                        this._delay.dry.gain.value = 1;
+                    }
+                });
+
+                // Dual-handle Filter controls (log scale)
+                const low = document.getElementById('filterLow'); // 0..100 → 20..maxHz (HP edge)
+                const high = document.getElementById('filterHigh'); // 0..100 → 20..maxHz (LP edge)
+                const res = document.getElementById('filterRes');
+                const lowLabel = document.getElementById('filterLowValue');
+                const highLabel = document.getElementById('filterHighValue');
+                const resLabel = document.getElementById('filterResValue');
+
+                const getMaxHz = ()=>{
+                    const nyq = (this.audioContext && this.audioContext.sampleRate) ? this.audioContext.sampleRate/2 : 22050;
+                    return Math.min(20000, nyq);
+                };
+                const fromPercentLog = (p)=>{
+                    // p in 0..100 → 20..maxHz exponentially
+                    const maxHz = getMaxHz();
+                    const t = Math.max(0, Math.min(1, (parseFloat(p)||0)/100));
+                    return Math.max(20, 20 * Math.pow(maxHz/20, t));
+                };
+                const toLabel = (hz, prefix)=>{
+                    return `${prefix} ${hz>=1000? (hz/1000).toFixed(1)+'kHz' : Math.round(hz)+'Hz'}`;
+                };
+                const clampHandles = ()=>{
+                    if (!low || !high) return;
+                    // Ensure low <= high in frequency space; if cross, snap the moved one back
+                    const lowHz = fromPercentLog(low.value);
+                    const highHz = fromPercentLog(high.value);
+                    if (lowHz > highHz) {
+                        // Decide based on last changed element; default clamp high to low
+                        if (document.activeElement === low) {
+                            high.value = low.value;
+                        } else {
+                            low.value = high.value;
+                        }
+                    }
+                };
+                const updateDualFilter = ()=>{
+                    if (!this._finalHP || !this._finalLP) return;
+                    clampHandles();
+                    const hpHz = fromPercentLog(low ? low.value : 0);
+                    const lpHz = fromPercentLog(high ? high.value : 100);
+                    const q = res ? Math.max(0.1, Math.min(20, parseFloat(res.value)||1)) : 1;
+                    this._finalHP.frequency.value = hpHz;
+                    this._finalLP.frequency.value = lpHz;
+                    this._finalHP.Q.value = q;
+                    this._finalLP.Q.value = q;
+                    if (lowLabel) lowLabel.textContent = toLabel(hpHz, 'HP');
+                    if (highLabel) highLabel.textContent = toLabel(lpHz, 'LP');
+                    if (resLabel) resLabel.textContent = `Q ${q.toFixed(1)}`;
+                };
+                if (low) low.addEventListener('input', updateDualFilter);
+                if (high) high.addEventListener('input', updateDualFilter);
+                if (res) res.addEventListener('input', updateDualFilter);
+                updateDualFilter();
                 const reverbWetSlider = document.getElementById('reverbWet');
                 if (reverbWetSlider) {
                     reverbWetSlider.addEventListener('input', (e) => {
@@ -13764,7 +14017,7 @@
                 
                 panner.pan.setValueAtTime(panValue, currentTime);
                 
-                // Connect: finalMixer ? panner ? gainNode (gainNode routes to reverb)
+                // Connect: finalMixer → panner → master gainNode (global drive comes after summing)
                 finalMixer.connect(panner);
                 panner.connect(this.gainNode);
                 
