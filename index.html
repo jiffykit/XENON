@@ -1447,6 +1447,19 @@
             <button id="bottomSaveSeqBtn" class="panel-btn" title="Save current chord sequence as preset" style="padding:6px 10px;background:#10b981;border-color:#34d399;">💾</button>
             <button id="bottomImportOMGBtn" class="panel-btn" title="Import .OMG session" style="padding:6px 10px;background:#9b59b6;border-color:#8e44ad;">📂</button>
             <button id="bottomExportOMGBtn" class="panel-btn" title="Export full session (.OMG)" style="padding:6px 10px;background:#f59e0b;border-color:#fbbf24;">⬇️</button>
+            <label for="playModeSelect" style="font-size:11px;color:#9db6c8;">PLAY</label>
+            <select id="playModeSelect" title="Play Mode" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:11px;">
+                <option value="high-low" selected>High → Low</option>
+                <option value="low-high">Low → High</option>
+                <option value="alt-ends">Alt Ends</option>
+                <option value="alt-center">Alt Center</option>
+            </select>
+            <label for="strumSpeedSelect" style="font-size:11px;color:#9db6c8;">STRUM</label>
+            <select id="strumSpeedSelect" title="Strum speed" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:11px;">
+                <option value="8">Fast</option>
+                <option value="20" selected>Medium</option>
+                <option value="35">Slow</option>
+            </select>
             <label for="voicingSpanMode" style="font-size:11px;color:#9db6c8;">VOICING</label>
             <select id="voicingSpanMode" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:11px;">
                 <option value="split-two">Split extended chords across 2 octaves</option>
@@ -1483,6 +1496,13 @@
         <div class="panel-content" data-panel="fx" style="display:none;">
             <div class="synth-section" id="effectsSection" style="padding:8px;">
                 <h4 style="font-size:15px; margin-bottom:8px; color:#9b59b6;">Effects</h4>
+                <div id="effectsPresetsBar" style="display:flex; align-items:center; gap:8px; margin:6px 0 10px 0;">
+                    <label for="effectsPresetSelect" style="font-size:12px; color:#8fb3d3;">Preset</label>
+                    <select id="effectsPresetSelect" style="background:#0d2938; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:6px 8px; min-width:200px;"></select>
+                    <button class="osc-btn" id="effectsPresetApply" title="Apply selected FX" style="background:#3498db; border-color:#2980b9;">Apply</button>
+                    <button class="osc-btn" id="effectsPresetSave" title="Save current FX as preset" style="background:#10b981; border-color:#059669;">Save</button>
+                    <button class="osc-btn" id="effectsPresetDelete" title="Delete selected FX preset" style="background:#e74c3c; border-color:#c0392b;">Delete</button>
+                </div>
                 <div style="margin-bottom:10px;">
                     <label style="font-size:15px; color:#e67e22;">Drive</label>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
@@ -1926,6 +1946,11 @@
                     </label>
                     <button class="osc-btn" id="closeTextChordModalBtn" style="background:#666; border-color:#888;">Close</button>
                 </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin:6px 0 8px 0;">
+                <label style="font-size:12px;color:#9db6c8;">EDO</label>
+                <input id="seqEdoInput" type="number" min="5" max="52" value="24" title="Steps per octave for this sequence" style="width:64px;background:#102a3a;color:#e8f5ff;border:1px solid #2b5567;border-radius:4px;padding:4px 6px;font-size:12px;" />
+                <span style="font-size:11px;color:#6ea4bf;">Saved with preset and applied on load</span>
             </div>
             <textarea id="textChordInput" placeholder="Type or Paste chord sequence here (use Roman numerals, e.g. I IV V | vi ii V)." style="width:100%; min-height:160px; background:#102a3a; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; line-height:1.5; resize:vertical;"></textarea>
 
@@ -2481,6 +2506,8 @@
                         this.updateTuningSystem(v);
                         const qi = document.getElementById('edoQuickInput');
                         if (qi) qi.value = String(v);
+                        const seq = document.getElementById('seqEdoInput');
+                        if (seq) seq.value = String(v);
                     });
                 }
                 const edoQuick = document.getElementById('edoQuickInput');
@@ -2491,6 +2518,8 @@
                         this.updateTuningSystem(v);
                         const p = document.getElementById('edoDivisions');
                         if (p) p.value = String(v);
+                        const seq = document.getElementById('seqEdoInput');
+                        if (seq) seq.value = String(v);
                     });
                 }
             }
@@ -2914,8 +2943,14 @@
                     });
                 }
                 
-                // Sort by frequency to ensure proper ordering
-                stringFreqs.sort((a, b) => a.freq - b.freq);
+                // Sort for preview based on Play Mode: low-high => low at top; else high at top
+                try {
+                    const __pm = (this.playMode || 'high-low');
+                    const __desc = (__pm === 'low-high') ? false : true;
+                    stringFreqs.sort((a,b)=> __desc ? (b.freq - a.freq) : (a.freq - b.freq));
+                } catch(_) {
+                    stringFreqs.sort((a,b)=> b.freq - a.freq);
+                }
                 
                 // Calculate string sizing to MATCH main column behavior (fill height uniformly)
                 const previewColumn = document.getElementById('previewChordColumn');
@@ -3160,7 +3195,8 @@
                         headerColor: oldChord.headerColor,
                         originalTuning: oldChord.originalTuning,
                         originalGamelanMode: oldChord.originalGamelanMode,
-                        lastTuning: oldChord.lastTuning
+                        lastTuning: oldChord.lastTuning,
+                        originalIntervals: oldChord.originalIntervals
                     };
                 }
 
@@ -3183,7 +3219,9 @@
                     headerColor: preserved.headerColor || headerAccentColor,
                     // Per-chord fixed root lock (abs step in its tuning)
                     fixedRootStepAbs: baseRootAbs,
-                    fixedRootTuning: edo
+                    fixedRootTuning: edo,
+                    // Capture the original intervals at creation/edit baseline for future EDO remaps
+                    originalIntervals: preserved.originalIntervals || normalized.slice()
                 };
                 
                 console.log('🔧 finalizePreviewChord - saving chord:', {
@@ -3722,7 +3760,7 @@
                 console.log('=== TRANSPOSE DEBUG END ===');
                 // Refresh keyboard labels and chord-tone highlights
                 try { this.generateRootButtons(); } catch (_) {}
-                // Rename headers (prefer recompute from absolute steps if model has fixed root)
+                // Rename headers (build from each chord's fixed-root baseline; include global/local transpose; map via nearest-neighbor)
                 document.querySelectorAll('.extension-column').forEach(col => {
                     const nameEl = col.querySelector('.extension-header .chord-name');
                     if (!nameEl) return;
@@ -3737,28 +3775,45 @@
                         }
                         model = (idx>=0)? this.chordExtensions[idx] : null;
                     } catch (_) { model = null; }
-                    if (model && typeof model.fixedRootStepAbs === 'number' && Array.isArray(model.intervals) && model.intervals.length>1) {
-                        // Map model's absolute steps (in its tuning) into the CURRENT tuning space before naming
-                        const modelEdo = model.fixedRootTuning || edo;
-                        const mapToCurrent = (s)=>{
-                            // step -> cents in model edo -> nearest step in current edo
-                            const cents = (s % modelEdo) * (1200 / modelEdo);
-                            const step = Math.round(cents / (1200 / edo)) % edo;
-                            return (step + edo) % edo;
+
+                    const edoNow = this.currentTuning || 12;
+                    const localDeltaNow = ((+col.dataset.localTranspose || 0) % edoNow + edoNow) % edoNow;
+                    const globalDeltaNow = ((this.transposeDelta || 0) % edoNow + edoNow) % edoNow;
+
+                    if (model && typeof model.fixedRootStepAbs === 'number' && Array.isArray(model.intervals) && model.intervals.length>0) {
+                        const modelEdo = model.fixedRootTuning || edoNow;
+                        // Map a step between EDOs by cents (nearest neighbor)
+                        const mapStep = (step, srcEdo, dstEdo) => {
+                            const cents = ((step % srcEdo + srcEdo) % srcEdo) * (1200 / srcEdo);
+                            const dst = Math.round(cents / (1200 / dstEdo));
+                            return ((dst % dstEdo) + dstEdo) % dstEdo;
                         };
-                        const absModel = [model.fixedRootStepAbs, ...model.intervals.map(iv=> (model.fixedRootStepAbs + iv)%modelEdo)];
-                        const abs = absModel.map(mapToCurrent);
-                        const recomputed = this.computeFullChordNameFromAbsoluteSteps(abs, edo);
+                        // Convert deltas if model EDO differs
+                        const localDeltaModel = (modelEdo === edoNow) ? localDeltaNow : mapStep(localDeltaNow, edoNow, modelEdo);
+                        const globalDeltaModel = (modelEdo === edoNow) ? globalDeltaNow : mapStep(globalDeltaNow, edoNow, modelEdo);
+                        // Effective root in model's EDO after transpose
+                        const effRootModel = (((model.fixedRootStepAbs || 0) + localDeltaModel + globalDeltaModel) % modelEdo + modelEdo) % modelEdo;
+                        // Build degree steps in model's EDO
+                        const degreeStepsModel = model.isCustom
+                            ? model.intervals.map(iv => ((iv % modelEdo) + modelEdo) % modelEdo)
+                            : model.intervals.map(iv => this.mapIntervalToEDO(iv, modelEdo));
+                        // Ensure root (0) included and sorted unique
+                        const uniqDegrees = Array.from(new Set([0, ...degreeStepsModel])).sort((a,b)=>a-b);
+                        const absModel = [effRootModel, ...uniqDegrees.filter(d=>d!==0).map(d => (effRootModel + d) % modelEdo)];
+                        // Map to current EDO if needed
+                        const absNow = (modelEdo === edoNow) ? absModel.map(s => ((s%edoNow)+edoNow)%edoNow)
+                                                            : absModel.map(s => mapStep(s, modelEdo, edoNow));
+                        const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow);
                         nameEl.textContent = locked ? `🔒 ${recomputed}` : recomputed;
                         nameEl.dataset.lockedName = nameEl.textContent;
                     } else {
-                        // Fallback: rotate by EDO steps using parsed root, then relabel
+                        // Fallback: parse current root and rotate by n, keep tail suffix
                         const m = labelRaw.match(/^([A-G])([#b]?)(.*)$/);
                         if (m) {
                             const semi = this.rootToSemitone(m[1], m[2]||'');
-                            let step = this.semitoneToStep(semi, edo);
-                            step = (((step + n) % edo) + edo) % edo;
-                            const newRoot = this.getRootNameForStep(step, edo);
+                            let step = this.semitoneToStep(semi, edoNow);
+                            step = (((step + (this.transposeDelta||0) + localDeltaNow) % edoNow) + edoNow) % edoNow;
+                            const newRoot = this.getRootNameForStep(step, edoNow);
                             nameEl.textContent = locked ? `🔒 ${newRoot}${m[3]||''}` : `${newRoot}${m[3]||''}`;
                             nameEl.dataset.lockedName = nameEl.textContent;
                         }
@@ -3825,6 +3880,8 @@
                         modal.style.display = 'block';
                         // Populate presets each open to pick up new saves/deletes
                         try { if (seqSelect) this.populateSeqPresetDropdown(seqSelect, this.getSequencePresets()); } catch(_) {}
+                        // Initialize EDO field to current tuning
+                        try { const ed = document.getElementById('seqEdoInput'); if (ed) ed.value = String(this.currentTuning || 24); } catch(_) {}
                         // Run an initial parse to populate palette/count
                         try { this.runTextChordParsing(); } catch(_) {}
                     });
@@ -3844,11 +3901,21 @@
                 // Auto-load on selection change and close modal
                 if (seqSelect && textarea && modal) {
                     seqSelect.addEventListener('change', () => {
-                        const v = seqSelect.value || '';
-                        if (!v) return;
-                        const textOnly = v.replace(/\s*\([^)]*\)\s*$/, '');
+                        const id = seqSelect.value || '';
+                        if (!id) return;
+                        const list = this.getSequencePresets();
+                        const found = list.find(p=> p.id === id);
+                        if (!found) return;
+                        const textOnly = found.text || '';
+                        const edo = Math.max(5, Math.min(52, parseInt(found.edo || this.currentTuning || 24)));
+                        const seqEdo = document.getElementById('seqEdoInput');
+                        if (seqEdo) seqEdo.value = String(edo);
+                        // Apply EDO now so parsing reflects it
+                        try { this.updateTuningSystem(edo); const qi=document.getElementById('edoQuickInput'); if(qi) qi.value=String(edo); const p=document.getElementById('edoDivisions'); if(p) p.value=String(edo);} catch {}
                         textarea.value = textOnly;
                         textarea.dispatchEvent(new Event('input'));
+                        // Apply any saved FX state
+                        try { if (found.fx && typeof this.applyEffectsState === 'function') this.applyEffectsState(found.fx); } catch(_) {}
                         // If it's a Roman sequence, immediately create columns
                         try {
                             const material = this.convertRomanNumeralsInline(textOnly);
@@ -3863,6 +3930,28 @@
                         modal.style.display = 'none';
                     });
                 }
+                // Make sequencer EDO field drive the global tuning as well (kept in sync with quick/panel inputs)
+                try {
+                    const seqEdoEl = document.getElementById('seqEdoInput');
+                    if (seqEdoEl) {
+                        const applySeqEdo = () => {
+                            const v = Math.max(5, Math.min(52, parseInt(seqEdoEl.value || this.currentTuning || 24)));
+                            seqEdoEl.value = String(v);
+                            try {
+                                this.updateTuningSystem(v);
+                                const qi = document.getElementById('edoQuickInput');
+                                if (qi) qi.value = String(v);
+                                const p = document.getElementById('edoDivisions');
+                                if (p) p.value = String(v);
+                            } catch {}
+                            // Live preview re-parse if user is drafting a sequence
+                            try { if (textarea) this.runTextChordParsing(); } catch {}
+                        };
+                        seqEdoEl.addEventListener('change', applySeqEdo);
+                        // Also react to Enter key while focused
+                        seqEdoEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); applySeqEdo(); }});
+                    }
+                } catch (_) {}
                 // Save: prompt for name and save current textarea as a new preset, then refresh dropdown
                 if (seqSaveBtn) seqSaveBtn.addEventListener('click', () => {
                     if (!textarea) return;
@@ -3870,19 +3959,23 @@
                     if (!text) return;
                     const name = prompt('Preset name?', 'My Sequence');
                     if (!name) return;
-                    this.saveSequencePreset(`${text} (${name})`);
+                    const edoEl = document.getElementById('seqEdoInput');
+                    const edo = Math.max(5, Math.min(52, parseInt(edoEl?.value || this.currentTuning || 24)));
+                    const fx = (typeof this.captureEffectsState === 'function') ? this.captureEffectsState() : null;
+                    this.saveSequencePreset({ text, name, edo, fx });
                     try { if (seqSelect) this.populateSeqPresetDropdown(seqSelect, this.getSequencePresets()); } catch(_) {}
-                    if (seqSelect) seqSelect.value = `${text} (${name})`;
+                    const list = this.getSequencePresets();
+                    if (seqSelect && list.length) seqSelect.value = list[0].id;
                 });
                 // Delete: remove selected preset
                 if (seqDelBtn) seqDelBtn.addEventListener('click', () => {
                     if (!seqSelect) return;
-                    const v = seqSelect.value || '';
-                    if (!v) return;
-                    const key = 'omni_seq_presets_v3';
+                    const id = seqSelect.value || '';
+                    if (!id) return;
+                    const key = 'omni_seq_presets_v4';
                     try {
                         const list = this.getSequencePresets();
-                        const next = list.filter(x => x !== v);
+                        const next = list.filter(x => x.id !== id);
                         localStorage.setItem(key, JSON.stringify(next));
                         this.populateSeqPresetDropdown(seqSelect, next);
                     } catch(_) {}
@@ -4002,6 +4095,75 @@
                     syncOscUi(1, this.oscillators.osc1);
                     syncOscUi(2, this.oscillators.osc2);
                 }
+            }
+            // ================== EFFECTS PRESETS ==================
+            getEffectsPresets() {
+                const key = 'omni_fx_presets_v1';
+                try { const raw = localStorage.getItem(key); const list = raw ? JSON.parse(raw) : []; return Array.isArray(list)? list: []; } catch(_) { return []; }
+            }
+            saveEffectsPresets(list) {
+                const key = 'omni_fx_presets_v1';
+                try { localStorage.setItem(key, JSON.stringify(list.slice(0,200))); } catch(_) {}
+            }
+            populateEffectsPresetDropdown(selectEl) {
+                if (!selectEl) return; const list = this.getEffectsPresets(); selectEl.innerHTML='';
+                const def=document.createElement('option'); def.value=''; def.textContent='Choose preset'; selectEl.appendChild(def);
+                list.forEach(p=>{ const opt=document.createElement('option'); opt.value=p.id; opt.textContent=p.name||p.id; selectEl.appendChild(opt); });
+            }
+            captureEffectsState() {
+                return {
+                    drive: {
+                        amount: parseFloat(document.getElementById('driveAmount')?.value || 0),
+                        mix: parseFloat(document.getElementById('driveMix')?.value || 0),
+                        hp: parseFloat(document.getElementById('driveHpCutoff')?.value || 0),
+                        lp: parseFloat(document.getElementById('driveLpCutoff')?.value || 100)
+                    },
+                    delay: {
+                        timeMs: parseFloat(document.getElementById('delayTime')?.value || 280),
+                        feedback: parseFloat(document.getElementById('delayFeedback')?.value || 0),
+                        lp: parseFloat(document.getElementById('delayLpCutoff')?.value || 73),
+                        hp: parseFloat(document.getElementById('delayHpCutoff')?.value || 0),
+                        mix: parseFloat(document.getElementById('delayMix')?.value || 0)
+                    },
+                    filters: {
+                        low: parseFloat(document.getElementById('filterLow')?.value || 0),
+                        high: parseFloat(document.getElementById('filterHigh')?.value || 100),
+                        q: parseFloat(document.getElementById('filterRes')?.value || 1)
+                    },
+                    reverb: {
+                        wet: parseFloat(document.getElementById('reverbWet')?.value || 1),
+                        room: parseFloat(document.getElementById('reverbRoom')?.value || 5),
+                        decay: parseFloat(document.getElementById('reverbDecay')?.value || 20),
+                        lp: parseFloat(document.getElementById('reverbFilterCutoff')?.value || 70),
+                        hp: parseFloat(document.getElementById('reverbHpCutoff')?.value || 0)
+                    },
+                    panning: {
+                        mode: document.getElementById('panningMode')?.value || 'center',
+                        width: parseFloat(document.getElementById('panningWidth')?.value || 80),
+                        speedMs: parseFloat(document.getElementById('panningSpeed')?.value || 2000)
+                    }
+                };
+            }
+            applyEffectsState(state) {
+                if (!state) return;
+                try {
+                    const setVal = (id, val, textFormatter)=>{ const el=document.getElementById(id); if(el){ el.value=String(val); const vEl=document.getElementById(id+"Value"); if(vEl){ vEl.textContent = textFormatter? textFormatter(val): String(val); } el.dispatchEvent(new Event('input')); } };
+                    if (state.drive){ setVal('driveAmount', state.drive.amount, v=> `${Math.round(v)}%`); setVal('driveMix', state.drive.mix, v=> `${Math.round(v)}%`); setVal('driveHpCutoff', state.drive.hp); setVal('driveLpCutoff', state.drive.lp); }
+                    if (state.delay){ setVal('delayTime', state.delay.timeMs, v=> `${Math.round(v)}ms`); setVal('delayFeedback', state.delay.feedback, v=> `${Math.round(v)}%`); setVal('delayLpCutoff', state.delay.lp); setVal('delayHpCutoff', state.delay.hp); setVal('delayMix', state.delay.mix, v=> `${Math.round(v)}%`); }
+                    if (state.filters){ setVal('filterLow', state.filters.low); setVal('filterHigh', state.filters.high); setVal('filterRes', state.filters.q, v=> `Q ${Number(v).toFixed(1)}`); }
+                    if (state.reverb){ setVal('reverbWet', state.reverb.wet, v=> `${Math.round(v*10)}%`); setVal('reverbRoom', state.reverb.room, v=> `${Math.round((v||0)*10)}%`); setVal('reverbDecay', state.reverb.decay, v=> `${(Number(v)/10).toFixed(1)}s`); setVal('reverbFilterCutoff', state.reverb.lp); setVal('reverbHpCutoff', state.reverb.hp); }
+                    if (state.panning){ const pm=document.getElementById('panningMode'); if(pm) { pm.value = state.panning.mode||'center'; pm.dispatchEvent(new Event('change')); } setVal('panningWidth', state.panning.width, v=> `${Math.round(v)}%`); setVal('panningSpeed', state.panning.speedMs, v=> `${(Number(v)/1000).toFixed(1)}s`); }
+                } catch(_) {}
+            }
+            wireEffectsPresetsUI() {
+                const sel = document.getElementById('effectsPresetSelect');
+                const btnApply = document.getElementById('effectsPresetApply');
+                const btnSave = document.getElementById('effectsPresetSave');
+                const btnDel  = document.getElementById('effectsPresetDelete');
+                if (sel) this.populateEffectsPresetDropdown(sel);
+                if (btnApply) btnApply.addEventListener('click', ()=>{ const id=sel?.value||''; if(!id) return; const list=this.getEffectsPresets(); const found=list.find(p=>p.id===id); if(found) this.applyEffectsState(found.state); });
+                if (btnSave) btnSave.addEventListener('click', ()=>{ const name=prompt('Preset name?','My FX'); if(!name) return; const list=this.getEffectsPresets(); const id=`FX${Date.now()}`; list.unshift({ id, name, state: this.captureEffectsState() }); this.saveEffectsPresets(list); if (sel){ this.populateEffectsPresetDropdown(sel); sel.value=id; } });
+                if (btnDel) btnDel.addEventListener('click', ()=>{ const id=sel?.value||''; if(!id) return; const list=this.getEffectsPresets(); const next=list.filter(p=>p.id!==id); this.saveEffectsPresets(next); if (sel) this.populateEffectsPresetDropdown(sel); });
             }
             wireInstrumentPresetsUI() {
                 const sel = document.getElementById('instrumentPresetSelect');
@@ -4171,24 +4333,71 @@
 
             // Presets management in localStorage
             getSequencePresets() {
-                const key = 'omni_seq_presets_v3';
-                let list = [];
-                try { list = JSON.parse(localStorage.getItem(key)) || []; } catch(_) { list = []; }
-                if (!Array.isArray(list) || !list.length) {
-                    list = this.getDefaultSequencePresets();
-                    try { localStorage.setItem(key, JSON.stringify(list)); } catch(_) {}
+                const keyNew = 'omni_seq_presets_v4';
+                const keyOld = 'omni_seq_presets_v3';
+                // Load new
+                let listObj = [];
+                try { listObj = JSON.parse(localStorage.getItem(keyNew)) || []; } catch(_) { listObj = []; }
+                if (!Array.isArray(listObj) || !listObj.length) {
+                    // Try migrate from v3 strings
+                    let old = [];
+                    try { old = JSON.parse(localStorage.getItem(keyOld)) || []; } catch(_) { old = []; }
+                    if (Array.isArray(old) && old.length) {
+                        const migrated = old.map(s => {
+                            const nameMatch = String(s).match(/\(([^)]+)\)\s*$/);
+                            const name = nameMatch ? nameMatch[1] : 'Preset';
+                            const text = String(s).replace(/\s*\([^)]*\)\s*$/, '');
+                            return { id: `S${Date.now()}_${Math.random().toString(36).slice(2,8)}`, name, text, edo: this.currentTuning || 24 };
+                        });
+                        listObj = migrated;
+                        try { localStorage.setItem(keyNew, JSON.stringify(listObj)); } catch(_) {}
+                    } else {
+                        // Seed with defaults
+            const defs = this.getDefaultSequencePresets();
+            listObj = defs.map(s=>{ const nameMatch = String(s).match(/\(([^)]+)\)\s*$/); const name = nameMatch ? nameMatch[1] : 'Preset'; const text = String(s).replace(/\s*\([^)]*\)\s*$/, ''); return { id:`S${Date.now()}_${Math.random().toString(36).slice(2,8)}`, name, text, edo: this.currentTuning || 24, fx: null }; });
+                        try { localStorage.setItem(keyNew, JSON.stringify(listObj)); } catch(_) {}
+                    }
                 }
-                return list;
+                // Always merge in any new defaults added by the app author without removing user presets
+                try {
+                    const existing = Array.isArray(listObj) ? listObj.slice() : [];
+                    const defs = this.getDefaultSequencePresets();
+                    const toEntry = (s)=>{
+                        const nm = String(s || '');
+                        const nameMatch = nm.match(/\(([^)]+)\)\s*$/);
+                        const name = nameMatch ? nameMatch[1] : 'Preset';
+                        const text = nm.replace(/\s*\([^)]*\)\s*$/, '');
+                        return { id: `DEF_${name.toLowerCase().replace(/[^a-z0-9]+/g,'-')}_${text.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,20)}`, name, text, edo: this.currentTuning || 24, fx: null, _isDefault: true };
+                    };
+                    const defaults = defs.map(toEntry);
+                    const norm = (s)=> String(s || '').trim().toLowerCase().replace(/\s+/g,' ');
+                    const haveName = new Set(existing.map(p=> norm(p.name)));
+                    const haveText = new Set(existing.map(p=> norm(p.text)));
+                    const merged = existing.slice();
+                    for (const d of defaults){
+                        const nameKey = norm(d.name);
+                        const textKey = norm(d.text);
+                        if (!haveName.has(nameKey) && !haveText.has(textKey)){
+                            merged.push({ id: d.id, name: d.name, text: d.text, edo: d.edo, fx: d.fx || null });
+                            haveName.add(nameKey); haveText.add(textKey);
+                        }
+                    }
+                    // Persist back so future loads don't lose merged defaults
+                    try { localStorage.setItem(keyNew, JSON.stringify(merged.slice(0, 200))); } catch(_) {}
+                    return merged;
+                } catch(_) {
+                    return listObj;
+                }
             }
-            saveSequencePreset(text) {
-                const key = 'omni_seq_presets_v3';
+            saveSequencePreset(preset) {
+                const key = 'omni_seq_presets_v4';
                 const list = this.getSequencePresets();
-                let v = String(text || '').trim();
-                if (!v) return;
-                // If user didn't include a bracketed name, append a simple one
-                if (!/\([^)]*\)\s*$/.test(v)) v = v + ' (Saved)';
-                if (!list.includes(v)) list.unshift(v);
-                try { localStorage.setItem(key, JSON.stringify(list.slice(0,50))); } catch(_) {}
+        const item = typeof preset === 'string' ? { text: preset.replace(/\s*\([^)]*\)\s*$/, ''), name: 'Saved', edo: this.currentTuning || 24 } : preset;
+                if (!item || !item.text) return;
+                const id = `S${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+        const entry = { id, name: item.name || 'Saved', text: item.text, edo: Math.max(5, Math.min(52, parseInt(item.edo||this.currentTuning||24))), fx: item.fx || null };
+                list.unshift(entry);
+                try { localStorage.setItem(key, JSON.stringify(list.slice(0,100))); } catch(_) {}
             }
             populateSeqPresetDropdown(selectEl, list) {
                 if (!selectEl) return;
@@ -4200,13 +4409,11 @@
                 def.selected = true;
                 def.disabled = false; // allow re-selecting empty to clear
                 selectEl.appendChild(def);
-                // Add presets with label = name in parentheses when present
-                list.forEach(v => {
+                // Add presets with label = preset name
+                list.forEach(p => {
                     const opt = document.createElement('option');
-                    opt.value = v;
-                    const nameMatch = v.match(/\(([^)]+)\)\s*$/);
-                    const label = nameMatch ? nameMatch[1] : v;
-                    opt.textContent = label.length > 80 ? label.slice(0,77)+'…' : label;
+                    opt.value = p.id;
+                    opt.textContent = (p.name || 'Preset').slice(0,80);
                     selectEl.appendChild(opt);
                 });
             }
@@ -4553,7 +4760,9 @@
                     localTranspose: 0,
                     // Set a fixed absolute root so keyboard edits use the correct base
                     fixedRootStepAbs: (rootStep != null ? rootStep : 0),
-                    fixedRootTuning: this.currentTuning
+                    fixedRootTuning: this.currentTuning,
+                    // Also capture a baseline of the original relative intervals for EDO remaps
+                    originalIntervals: intervals.slice()
                 };
                 this.chordExtensions.push(newChord);
                 return { chord: newChord, position: newChord.position, rootSemitone, rootStep };
@@ -5789,29 +5998,48 @@
                 if (typeof this.closeBottomPanel === 'function') this.closeBottomPanel();
             }
 
-            // Remap custom-chord intervals from an old EDO to the nearest neighbors in a new EDO
+            // Remap custom-chord intervals using each chord's ORIGINAL EDO baseline to nearest neighbors in the new EDO.
             remapCustomChordsToNearestNeighbors(fromEdo, toEdo) {
-                if (!Array.isArray(this.chordExtensions) || !fromEdo || !toEdo || fromEdo === toEdo) return;
-                // Helper: map a step value in fromEdo to nearest step in toEdo by preserving cents
-                const mapStep = (step) => {
-                    // Preserve pitch-class modulo octave while keeping absolute step differences minimal
-                    // Convert to cents relative to octave and round to nearest destination step
-                    const cents = (step / fromEdo) * 1200;
-                    const mapped = Math.round((cents / 1200) * toEdo);
-                    return ((mapped % toEdo) + toEdo) % toEdo;
+                if (!Array.isArray(this.chordExtensions) || !toEdo) return;
+                const clampEdo = (n)=> Math.max(5, Math.min(52, parseInt(n||0))) || 12;
+                const mapStepFromTo = (step, srcEdo, dstEdo) => {
+                    if (!srcEdo || srcEdo === dstEdo) return ((step % dstEdo) + dstEdo) % dstEdo;
+                    const cents = (step / srcEdo) * 1200;
+                    const mapped = Math.round((cents / 1200) * dstEdo);
+                    return ((mapped % dstEdo) + dstEdo) % dstEdo;
                 };
                 this.chordExtensions = this.chordExtensions.map(ch => {
-                    if (ch && ch.isCustom && Array.isArray(ch.intervals)) {
-                        const mappedIntervals = ch.intervals.map(mapStep);
-                        // Keep root at 0 explicitly
-                        if (!mappedIntervals.includes(0)) mappedIntervals.unshift(0);
-                        return {
-                            ...ch,
-                            intervals: [...new Set(mappedIntervals)].sort((a,b)=>a-b),
-                            lastTuning: toEdo
-                        };
+                    if (!ch || !ch.isCustom) return ch;
+                    // Establish original baseline: source EDO and original relative intervals
+                    const srcEdo = clampEdo(ch.originalTuning || ch.fixedRootTuning || fromEdo || this.currentTuning);
+                    const sourceIntervals = (Array.isArray(ch.originalIntervals) && ch.originalIntervals.length)
+                        ? ch.originalIntervals.slice()
+                        : (Array.isArray(ch.intervals) ? ch.intervals.slice() : [0]);
+                    // Ensure we remember the baseline for future remaps
+                    const ensureOriginal = (!Array.isArray(ch.originalIntervals) || ch.originalIntervals.length === 0);
+                    // Map each original interval to the destination EDO
+                    let mappedIntervals = sourceIntervals.map(s => mapStepFromTo(((s % srcEdo)+srcEdo)%srcEdo, srcEdo, toEdo));
+                    if (!mappedIntervals.includes(0)) mappedIntervals.unshift(0);
+                    const uniqueSorted = [...new Set(mappedIntervals)].sort((a,b)=>a-b);
+                    // Re-anchor the fixed root to the equivalent step in the destination EDO
+                    let newFixedRoot = 0;
+                    let hadFixed = false;
+                    if (typeof ch.fixedRootStepAbs === 'number') {
+                        const srcForRoot = clampEdo(ch.fixedRootTuning || srcEdo);
+                        newFixedRoot = mapStepFromTo(((ch.fixedRootStepAbs % srcForRoot)+srcForRoot)%srcForRoot, srcForRoot, toEdo);
+                        hadFixed = true;
                     }
-                    return ch;
+                    const next = {
+                        ...ch,
+                        intervals: uniqueSorted,
+                        lastTuning: toEdo,
+                        ...(hadFixed ? { fixedRootStepAbs: newFixedRoot, fixedRootTuning: toEdo } : {})
+                    };
+                    if (ensureOriginal) {
+                        next.originalIntervals = sourceIntervals.slice();
+                        next.originalTuning = srcEdo;
+                    }
+                    return next;
                 });
             }
 
@@ -6498,6 +6726,29 @@
                         if (typeof this.generateExtensionColumns === 'function') {
                             this.generateExtensionColumns();
                         }
+                    });
+                }
+
+        // Play Mode selector
+        this.playMode = this.playMode || 'high-low';
+                const playModeSelect = document.getElementById('playModeSelect');
+                if (playModeSelect) {
+                    playModeSelect.value = this.playMode;
+                    playModeSelect.addEventListener('change', (e) => {
+            this.playMode = e.target.value || 'high-low';
+                        // Immediately reorder visible strings so the UI reflects the mode
+                        if (typeof this.applyPlayModeToAllColumns === 'function') this.applyPlayModeToAllColumns();
+                    });
+                }
+
+                // Strum speed selector (controls per-string delay)
+                this.strumDelayMs = Number.isFinite(this.strumDelayMs) ? this.strumDelayMs : 20;
+                const strumSpeedSelect = document.getElementById('strumSpeedSelect');
+                if (strumSpeedSelect) {
+                    strumSpeedSelect.value = String(this.strumDelayMs);
+                    strumSpeedSelect.addEventListener('change', (e) => {
+                        const val = parseInt(e.target.value, 10);
+                        this.strumDelayMs = Number.isFinite(val) ? Math.max(0, val) : 20;
                     });
                 }
 
@@ -10058,6 +10309,39 @@
                     // Audio settings
                     masterVolume: this.masterVolume || 0.7,
                     reverbLevel: this.reverbLevel || 0.3,
+                    // Effects settings (full)
+                    fx: {
+                        drive: {
+                            amount: parseFloat(document.getElementById('driveAmount')?.value || 0),
+                            mix: parseFloat(document.getElementById('driveMix')?.value || 0),
+                            hp: parseFloat(document.getElementById('driveHpCutoff')?.value || 0),
+                            lp: parseFloat(document.getElementById('driveLpCutoff')?.value || 100)
+                        },
+                        delay: {
+                            timeMs: parseFloat(document.getElementById('delayTime')?.value || 280),
+                            feedback: parseFloat(document.getElementById('delayFeedback')?.value || 0),
+                            lp: parseFloat(document.getElementById('delayLpCutoff')?.value || 73),
+                            hp: parseFloat(document.getElementById('delayHpCutoff')?.value || 0),
+                            mix: parseFloat(document.getElementById('delayMix')?.value || 0)
+                        },
+                        filters: {
+                            low: parseFloat(document.getElementById('filterLow')?.value || 0),
+                            high: parseFloat(document.getElementById('filterHigh')?.value || 100),
+                            q: parseFloat(document.getElementById('filterRes')?.value || 1)
+                        },
+                        reverb: {
+                            wet: parseFloat(document.getElementById('reverbWet')?.value || 1),
+                            room: parseFloat(document.getElementById('reverbRoom')?.value || 5),
+                            decay: parseFloat(document.getElementById('reverbDecay')?.value || 20),
+                            lp: parseFloat(document.getElementById('reverbFilterCutoff')?.value || 70),
+                            hp: parseFloat(document.getElementById('reverbHpCutoff')?.value || 0)
+                        },
+                        panning: {
+                            mode: document.getElementById('panningMode')?.value || 'center',
+                            width: parseFloat(document.getElementById('panningWidth')?.value || 80),
+                            speedMs: parseFloat(document.getElementById('panningSpeed')?.value || 2000)
+                        }
+                    },
                     
                     // Oscillator settings
                     osc1: {
@@ -10164,6 +10448,18 @@
                         }
                         if (sessionData.reverbLevel !== undefined) {
                             this.reverbLevel = sessionData.reverbLevel;
+                        }
+                        // Restore FX/panning settings and sync UI
+                        if (sessionData.fx) {
+                            try {
+                                const fx = sessionData.fx;
+                                const setVal = (id, val, textFormatter)=>{ const el=document.getElementById(id); if(el){ el.value=String(val); const vEl=document.getElementById(id+"Value"); if(vEl){ vEl.textContent = textFormatter? textFormatter(val): String(val); } el.dispatchEvent(new Event('input')); } };
+                                if (fx.drive){ setVal('driveAmount', fx.drive.amount, v=> `${Math.round(v)}%`); setVal('driveMix', fx.drive.mix, v=> `${Math.round(v)}%`); setVal('driveHpCutoff', fx.drive.hp); setVal('driveLpCutoff', fx.drive.lp); }
+                                if (fx.delay){ setVal('delayTime', fx.delay.timeMs, v=> `${Math.round(v)}ms`); setVal('delayFeedback', fx.delay.feedback, v=> `${Math.round(v)}%`); setVal('delayLpCutoff', fx.delay.lp); setVal('delayHpCutoff', fx.delay.hp); setVal('delayMix', fx.delay.mix, v=> `${Math.round(v)}%`); }
+                                if (fx.filters){ setVal('filterLow', fx.filters.low); setVal('filterHigh', fx.filters.high); setVal('filterRes', fx.filters.q, v=> `Q ${Number(v).toFixed(1)}`); }
+                                if (fx.reverb){ setVal('reverbWet', fx.reverb.wet, v=> `${Math.round(v*10)}%`); setVal('reverbRoom', fx.reverb.room, v=> `${Math.round((v||0)*10)}%`); setVal('reverbDecay', fx.reverb.decay, v=> `${(Number(v)/10).toFixed(1)}s`); setVal('reverbFilterCutoff', fx.reverb.lp); setVal('reverbHpCutoff', fx.reverb.hp); }
+                                if (fx.panning){ const pm=document.getElementById('panningMode'); if(pm) { pm.value = fx.panning.mode||'center'; pm.dispatchEvent(new Event('change')); } setVal('panningWidth', fx.panning.width, v=> `${Math.round(v)}%`); setVal('panningSpeed', fx.panning.speedMs, v=> `${(Number(v)/1000).toFixed(1)}s`); }
+                            } catch(_) { console.warn('Failed to restore FX from OMG'); }
                         }
                         
                         // Restore oscillator settings
@@ -12602,8 +12898,11 @@
                     }
                 }
                 
-                // Sort final strings by frequency ascending to guarantee low→high order
-                stringFreqs.sort((a,b)=> a.freq - b.freq);
+                // Visual ordering depends on Play Mode selection
+                // low-high => low at top (ascending); otherwise default to high at top (descending)
+                const __pm = (this.playMode || 'high-low');
+                const __desc = (__pm === 'low-high') ? false : true;
+                stringFreqs.sort((a,b)=> __desc ? (b.freq - a.freq) : (a.freq - b.freq));
 
                 // Calculate string sizing to fill full height of column
                 const availableHeight = column.offsetHeight || 500; // Default height if not available
@@ -12709,6 +13008,8 @@
                 });
                 // Post-fit adjustment to guarantee no hidden octaves
                 this.ensureStringsFullyVisible(stringsContainer);
+                // Apply current play mode ordering to the new strings
+                try { this.applyPlayModeToColumnVisual(column); } catch(_) {}
                 
                 column.appendChild(stringsContainer);
             }
@@ -12730,6 +13031,112 @@
                 // Run twice (immediate + next frame) to catch late layout
                 adjust();
                 requestAnimationFrame(adjust);
+            }
+
+            // ===== Play Mode helpers: compute sequence and apply visual order =====
+            // Group strings by octave (ascending), each group sorted low->high by frequency
+            groupStringsByOctave(rows){
+                const byOct = new Map();
+                for (const r of rows){
+                    const o = parseInt(r.dataset.octave||'0',10);
+                    if (!byOct.has(o)) byOct.set(o, []);
+                    byOct.get(o).push(r);
+                }
+                const octKeys = Array.from(byOct.keys()).sort((a,b)=> a-b);
+                const groups = octKeys.map(o=> byOct.get(o).sort((a,b)=> (parseFloat(a.dataset.frequency)||0)-(parseFloat(b.dataset.frequency)||0)));
+                return { groups, octaves: octKeys };
+            }
+            getPatternSequence(base, mode){
+                // base: array of string elements ordered low->high (ascending by freq)
+                const asc = base;
+                const desc = base.slice().reverse();
+                const altEnds = (arr)=>{ const a=arr.slice(); const out=[]; let i=0,j=a.length-1; while(i<=j){ if(i<=j) out.push(a[i++]); if(i<=j) out.push(a[j--]); } return out; };
+                const altCenter = (arr)=>{ const a=arr.slice(); const mid=Math.floor((a.length-1)/2); const out=[]; let l=mid, r=mid+1; if(a.length%2===1){ out.push(a[mid]); l=mid-1; r=mid+1; } while(l>=0 || r<a.length){ if(r<a.length) out.push(a[r++]); if(l>=0) out.push(a[l--]); } return out; };
+                switch(mode){
+                    case 'low-high': return asc;
+                    case 'high-low': return desc;
+                    case 'alt-ends': return altEnds(asc);
+                    case 'alt-center': return altCenter(asc);
+                    default: return desc; // default visual top-high
+                }
+            }
+
+            // Playback-oriented pattern builder: allows repeats (e.g., 123,234,345,456) within the swipe window
+            getPatternPlaybackSequence(base, mode){
+                // base: array of string elements ordered low->high WITHIN the gesture window
+                const asc = base;
+                const desc = base.slice().reverse();
+                const altEnds = (arr)=>{ const a=arr.slice(); const out=[]; let i=0,j=a.length-1; while(i<=j){ if(i<=j) out.push(a[i++]); if(i<=j) out.push(a[j--]); } return out; };
+                const altCenter = (arr)=>{ const a=arr.slice(); const mid=Math.floor((a.length-1)/2); const out=[]; let l=mid, r=mid+1; if(a.length%2===1){ out.push(a[mid]); l=mid-1; r=mid+1; } while(l>=0 || r<a.length){ if(r<a.length) out.push(a[r++]); if(l>=0) out.push(a[l--]); } return out; };
+                if (typeof this.groupStringsByOctave === 'function'){
+                    const { groups } = this.groupStringsByOctave(asc);
+                    const out = [];
+                    for (const g of groups){
+                        switch(mode){
+                            case 'low-high': out.push(...g); break;
+                            case 'high-low': out.push(...g.slice().reverse()); break;
+                            case 'alt-ends': out.push(...altEnds(g)); break;
+                            case 'alt-center': out.push(...altCenter(g)); break;
+                            default: out.push(...g.slice().reverse()); break; // default top-high
+                        }
+                    }
+                    return out;
+                }
+                switch(mode){
+                    case 'low-high': return asc.slice();
+                    case 'high-low': return desc.slice();
+                    case 'alt-ends': return altEnds(asc);
+                    case 'alt-center': return altCenter(asc);
+                    default: return desc.slice();
+                }
+            }
+
+            applyPlayModeToColumnVisual(column){
+                try {
+                    const container = column.querySelector('.strings-column');
+                    if (!container) return;
+                    const rows = Array.from(container.querySelectorAll('.string'));
+                    if (rows.length===0) return;
+                    const mode = this.playMode || 'high-low';
+                    let seq = [];
+                    if ((mode === 'alt-ends' || mode === 'alt-center') && typeof this.groupStringsByOctave === 'function'){
+                        const { groups } = this.groupStringsByOctave(rows);
+                        for (const g of groups){
+                            if (mode === 'alt-ends'){
+                                const a = g.slice(); let i=0, j=a.length-1; while(i<=j){ if(i<=j) seq.push(a[i++]); if(i<=j) seq.push(a[j--]); }
+                            } else {
+                                const a=g.slice(); const mid=Math.floor((a.length-1)/2); let l=mid, r=mid+1; if(a.length%2===1){ seq.push(a[mid]); l=mid-1; r=mid+1; } while(l>=0 || r<a.length){ if(r<a.length) seq.push(a[r++]); if(l>=0) seq.push(a[l--]); }
+                            }
+                        }
+                    } else {
+                        // Base ascending by frequency
+                        const asc = rows.slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0)-(parseFloat(b.dataset.frequency)||0));
+                        seq = this.getPatternSequence(asc, mode);
+                    }
+                    // Apply CSS order and store play order index based on first occurrence
+                    const seen = new Set(); let orderIdx = 0;
+                    for (const el of seq){
+                        if (seen.has(el)) continue;
+                        seen.add(el);
+                        el.style.order = String(orderIdx);
+                        el.dataset.playOrder = String(orderIdx);
+                        orderIdx++;
+                    }
+                    // Append any remaining rows not included
+                    rows.forEach(el=>{
+                        if (!seen.has(el)){
+                            el.style.order = String(orderIdx);
+                            el.dataset.playOrder = String(orderIdx);
+                            orderIdx++;
+                        }
+                    });
+                } catch(e) { console.warn('applyPlayModeToColumnVisual failed:', e); }
+            }
+
+            applyPlayModeToAllColumns(){
+                document.querySelectorAll('.extension-column').forEach(col=> this.applyPlayModeToColumnVisual(col));
+                const prev = document.getElementById('previewChordColumn');
+                if (prev) this.applyPlayModeToColumnVisual(prev);
             }
             
             adjustColorBrightness(hexColor, percent) {
@@ -13671,15 +14078,28 @@
                 // Fallback: if the gesture window captured no strings (e.g., tiny swipe), play them all
                 if (stringsToPlay.length === 0) stringsToPlay = strings;
                 
-                // Sort strings by position for directional strumming
-                stringsToPlay.sort((a, b) => {
-                    const aY = a.getBoundingClientRect().top;
-                    const bY = b.getBoundingClientRect().top;
-                    return strumDown ? aY - bY : bY - aY;
-                });
+                // Build playback sequence from the subset within the gesture window
+                const ascAll = strings.slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0)-(parseFloat(b.dataset.frequency)||0));
+                const baseAscInWindow = ascAll.filter(s=> stringsToPlay.includes(s));
+                // Allow repeated notes for arpeggio patterns where applicable
+                let playbackSeq = (typeof this.getPatternPlaybackSequence==='function')
+                    ? this.getPatternPlaybackSequence(baseAscInWindow, this.playMode||'high-low')
+                    : baseAscInWindow.slice();
+                // Fallback to play-order if pattern builder failed
+                if (!Array.isArray(playbackSeq) || playbackSeq.length===0) {
+                    playbackSeq = stringsToPlay.slice().sort((a,b)=> (parseInt(a.dataset.playOrder||'0',10) - parseInt(b.dataset.playOrder||'0',10)));
+                }
+                // For non-forced modes, reverse order on upward strum so patterns follow gesture direction
+                if (this.playMode && !['low-high','high-low'].includes(this.playMode)) {
+                    if (!strumDown) playbackSeq = playbackSeq.slice().reverse();
+                }
+                const originalCount = stringsToPlay.length;
+                stringsToPlay = playbackSeq;
                 
-                // Much faster strum for high-speed playing - 8ms between strings
-                const strumDelay = 8; 
+                // Per-string delay controls perceptibility of order; if we expanded notes (repeats), squeeze to same span
+                const baseDelay = Number.isFinite(this.strumDelayMs) ? this.strumDelayMs : 20;
+                const factor = Math.max(1, stringsToPlay.length / Math.max(1, originalCount));
+                const strumDelay = baseDelay / factor;
                 
                 stringsToPlay.forEach((string, index) => {
                     setTimeout(() => {
@@ -14755,7 +15175,7 @@
                 this.randomizeOscillator(1);
                 this.randomizeOscillator(2);
 
-                // Randomize effects for sonic variety
+                // Effects are intentionally not randomized.
                 this.randomizeEffects();
 
                 // 🎹 RESTORE: Put back all piano-locked settings and presets after randomization
@@ -15157,18 +15577,21 @@
             // Initialize new features
             omnichord.initTutorial();
             omnichord.initRandomDice();
+            try { omnichord.wireEffectsPresetsUI(); } catch {}
             // Wire bottom bar Save/Import/Export
             const bottomSave = document.getElementById('bottomSaveSeqBtn');
-            if (bottomSave) bottomSave.addEventListener('click', () => {
+        if (bottomSave) bottomSave.addEventListener('click', () => {
                 try {
                     const text = omnichord.buildCurrentSequenceString(true);
                     if (!text) return;
                     const name = prompt('Preset name?', 'My Sequence');
                     if (!name) return;
-                    omnichord.saveSequencePreset(`${text} (${name})`);
+            const seqEdoEl = document.getElementById('seqEdoInput');
+            const edo = Math.max(5, Math.min(52, parseInt(seqEdoEl?.value || omnichord.currentTuning || 24)));
+            omnichord.saveSequencePreset({ text, name, edo });
                     // Refresh presets dropdown immediately if open
-                    const sel = document.getElementById('seqPresetSelect');
-                    if (sel) omnichord.populateSeqPresetDropdown(sel, omnichord.getSequencePresets());
+            const sel = document.getElementById('seqPresetDropdown');
+            if (sel) omnichord.populateSeqPresetDropdown(sel, omnichord.getSequencePresets());
                 } catch {}
             });
             const bottomExport = document.getElementById('bottomExportOMGBtn');
