@@ -19,6 +19,7 @@
             -webkit-touch-callout: none;
         }
 
+        /* Base layout and background (restores gradient and structure) */
         body {
             font-family: var(--retro-font) !important;
             background: linear-gradient(135deg, #1a1a2e, #16213e);
@@ -35,7 +36,7 @@
         }
 
         .root-notes-area {
-            height: 260px; /* sync with later override */
+            height: 260px; /* synced with piano keyboard section */
             background: rgba(0, 30, 60, 0.9);
             border-bottom: 2px solid #333;
             padding: 10px;
@@ -57,226 +58,6 @@
 
         .strum-area:hover {
             border-color: #8fb3d3;
-        }
-
-
-
-        .empty-hint {
-            text-align: center;
-            font-size: 12px;
-        }
-
-        .palette-column {
-            min-height: 200px;
-            max-height: 300px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .palette-chord-remove {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 20px;
-            height: 20px;
-            background: #e94560;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            z-index: 10;
-            transition: all 0.2s;
-        }
-
-        .palette-chord-remove:hover {
-            background: #c73650;
-            transform: scale(1.1);
-        }
-
-        .palette-chord {
-            flex: 1;
-            max-width: 25%;
-            min-width: 80px;
-            background: linear-gradient(135deg, #2a4858, #3a5868);
-            border: 2px solid #4a6870;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: row;
-            align-items: stretch;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            padding: 0;
-            overflow: hidden;
-            gap: 2px;
-            touch-action: none; /* Prevent default touch behaviors */
-            user-select: none; /* Prevent text selection */
-            -webkit-user-select: none;
-            -webkit-touch-callout: none; /* Prevent iOS callout */
-        }
-
-        .palette-chord:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            border-color: #6aa0b0;
-        }
-
-        .palette-chord:active {
-            transform: translateY(0px) scale(0.98);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-
-        .palette-chord.active {
-            border-color: #e94560;
-            box-shadow: 0 0 15px rgba(233, 69, 96, 0.5);
-            background: linear-gradient(135deg, #4a2858, #5a3868);
-        }
-
-        /* Touch-specific feedback states for palette chords */
-        .palette-chord.touch-pressed {
-            transform: translateY(0px) scale(0.95);
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
-            background: linear-gradient(135deg, #3a5868, #4a6878);
-        }
-
-        .palette-chord.touch-long-press {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 6px 20px rgba(106, 160, 176, 0.6);
-            border-color: #8ab0c0;
-            background: linear-gradient(135deg, #4a6878, #5a7888);
-        }
-
-        .palette-chord-name {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 2px;
-            height: 20px;
-            font-size: 10px;
-            font-weight: bold;
-            text-align: center;
-            color: #fff;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 2px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
-        }
-
-        .palette-chord-root {
-            position: absolute;
-            bottom: 2px;
-            left: 2px;
-            right: 2px;
-            height: 15px;
-            font-size: 8px;
-            color: #8fb3d3;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 2px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
-        }
-
-        .palette-chord-strings {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-evenly;
-            padding: 25px 4px 20px 4px;
-            position: relative;
-        }
-
-        .palette-string {
-            height: 3px;
-            background: linear-gradient(90deg, #34495e, #95a5a6, #34495e);
-            border-radius: 1px;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.05s;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-            margin: 1px 0;
-            flex-shrink: 0;
-            overflow: hidden;
-        }
-
-        .palette-string:hover {
-            transform: scaleY(1.3);
-            box-shadow: 0 0 8px rgba(149, 165, 166, 0.5);
-        }
-
-        .palette-string.active {
-            background: linear-gradient(90deg, #e74c3c, #f39c12, #e74c3c);
-            transform: scaleY(1.5);
-            box-shadow: 0 0 12px rgba(231, 76, 60, 0.7);
-        }
-
-        .palette-string-wave {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity 0.1s;
-            background: repeating-linear-gradient(
-                90deg,
-                transparent 0%,
-                rgba(255, 255, 255, 0.3) 25%,
-                transparent 50%,
-                rgba(255, 255, 255, 0.3) 75%,
-                transparent 100%
-            );
-            background-size: 15px 100%;
-            animation: wave-flow 1s linear infinite;
-        }
-
-        .palette-string.active .palette-string-wave {
-            opacity: 1;
-        }
-
-        .palette-chord-remove {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 16px;
-            height: 16px;
-            background: #e94560;
-            border: 1px solid #c73650;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 8px;
-            color: white;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .palette-chord:hover .palette-chord-remove {
-            opacity: 1;
-        }
-
-        .root-notes-area {
-            height: 260px; /* enlarged to fit circular keyboard + microtone lanes */
-            flex: 0 0 260px; /* lock vertical allocation */
-            background: rgba(0, 20, 40, 0.9);
-            border-bottom: 1px solid #333;
-            display: flex;
-            align-items: flex-start; /* keep keyboard pinned to top to avoid jump when regenerating */
-            justify-content: center; /* center horizontally */
-            padding: 8px 8px 0 8px;
-            position: relative;
         }
 
         .clear-triads-container {
@@ -700,7 +481,7 @@
         }
 
         /* The actual visible 4px neon line lives inside the hit area */
-        .string-core {
+    .string-core {
             position: relative;
             width: 100%;
             height: 4px; /* visual thickness */
@@ -757,14 +538,22 @@
         /* Subtle vertical vibration tied to frequency (period set via --vib-period) */
         @keyframes vibrate-y {
             0% { transform: translateY(0) scaleY(1); }
-            25% { transform: translateY(-1px) scaleY(1.07); }
+            20% { transform: translateY(-2px) scaleY(1.12); }
             50% { transform: translateY(0) scaleY(1); }
-            75% { transform: translateY(1px) scaleY(1.07); }
+            80% { transform: translateY(2px) scaleY(1.12); }
             100% { transform: translateY(0) scaleY(1); }
         }
 
         .string-core.vibrating {
             animation: vibrate-y var(--vib-period, 60ms) ease-in-out infinite;
+        }
+
+        /* Subtle highlight band for middle octaves (3–4) */
+        .string.mid-octave {
+            background: rgba(255, 255, 255, 0.035);
+        }
+        .string.mid-octave .string-core {
+            filter: brightness(1.12) saturate(1.06);
         }
 
         .note-labels {
@@ -906,6 +695,39 @@
         }
 
         /* ================= Piano Keyboard Revamp (Top Row) ================ */
+        /* Wrapper row to place transpose controls to the left of the keyboard */
+        .keyboard-row {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 8px 0 0 0;
+        }
+        .transpose-controls-left {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            user-select: none;
+        }
+        .transpose-controls-left button {
+            background:#1f3a4a;
+            color:#e8f5ff;
+            border:1px solid #3b6a7a;
+            border-radius:6px;
+            padding:4px 6px;
+            font-size:14px;
+            width: 36px;
+            cursor: pointer;
+        }
+        .transpose-controls-left .delta {
+            color:#9db6c8;
+            font-weight:700;
+            font-size:14px;
+            min-height: 18px;
+        }
         .piano-keyboard {
             position: relative;
             width: 66.666vw; /* fixed 2/3 viewport width */
@@ -915,11 +737,12 @@
             user-select: none;
             background: transparent; /* remove purple rectangle so keys float on blue */
             border-radius: 8px;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.7);
+            /* remove dark border/inset so it blends with background */
+            box-shadow: none;
             overflow: hidden;
             /* scaling removed */
             padding-top: 4px; /* slight top padding so glow/outline never alters outer box */
-            padding-left: 48px; /* left gutter so transpose buttons never cover first key */
+            padding-left: 8px;
         }
         /* Reserve vertical space inside for active glow so layout never shifts */
         .piano-keyboard .white-key.root-btn,
@@ -931,11 +754,15 @@
         .piano-keyboard .edo-dot.active { outline-offset: 0; }
     /* Light currently active chord tones on the keyboard */
     .piano-keyboard .chord-tone { filter: brightness(1.25) contrast(1.1); box-shadow: 0 0 12px 3px rgba(255,255,200,0.5); }
-        /* Prevent reflow on hover/active transitions */
+    /* Prevent reflow on hover/active transitions */
         .piano-keyboard .white-key.root-btn,
         .piano-keyboard .black-key.root-btn { position:absolute; }
         /* Hardware accelerate transforms for smoother glow without jitter */
     .piano-keyboard, .piano-keyboard * { backface-visibility:hidden; }
+    /* Subtle drag hint overlay */
+    .piano-keyboard .drag-hint { position:absolute; top:8px; left:50%; transform:translateX(-50%); font-size:12px; color:#cfe6ff; opacity:.18; pointer-events:none; transition: opacity .2s ease; }
+    .piano-keyboard:hover .drag-hint { opacity:.28; }
+    .piano-keyboard.is-dragging .drag-hint { opacity:.6; }
         /* ===== Branding ===== */
     .logo-inline { position:fixed; top:14px; left:20px; z-index:9500; font-family: var(--retro-font); font-weight:600; font-size:32px; letter-spacing:1px; line-height:1; display:flex; align-items:center; gap:6px; pointer-events:none; user-select:none; color:#ffffff; text-shadow:0 0 8px rgba(255,255,255,0.7), 0 0 16px rgba(120,180,255,0.4); animation: logoPulse 3.2s ease-in-out infinite; }
     .logo-inline span { color:#fff; }
@@ -1009,6 +836,7 @@
             text-shadow:0 1px 2px rgba(0,0,0,0.9);
             padding:2px;
             box-sizing:border-box;
+            transition: opacity .12s ease; /* smooth edge fade */
         }
         .piano-keyboard .edo-dot.blue { background:radial-gradient(circle at 30% 30%, #6fa9ff, #2563eb 60%, #1e3a8a); }
         .piano-keyboard .edo-dot.green { background:radial-gradient(circle at 30% 30%, #5ef0b2, #0d9e6f 60%, #065f46); }
@@ -1453,18 +1281,46 @@
                 <option value="low-high">Low → High</option>
                 <option value="alt-ends">Alt Ends</option>
                 <option value="alt-center">Alt Center</option>
+                <option value="chords">Chords</option>
+                <option value="arp">ARP</option>
             </select>
-            <label for="strumSpeedSelect" style="font-size:11px;color:#9db6c8;">STRUM</label>
-            <select id="strumSpeedSelect" title="Strum speed" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:11px;">
-                <option value="8">Fast</option>
-                <option value="20" selected>Medium</option>
-                <option value="35">Slow</option>
-            </select>
-            <label for="voicingSpanMode" style="font-size:11px;color:#9db6c8;">VOICING</label>
-            <select id="voicingSpanMode" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:11px;">
-                <option value="split-two">Split extended chords across 2 octaves</option>
-                <option value="compact-one" selected>Fit extended chords within one octave</option>
-            </select>
+            <div id="arpControls" style="display:none;align-items:center;gap:6px;">
+                <label style="font-size:11px;color:#9db6c8;">BPM</label>
+                <input id="arpBpm" type="number" min="20" max="300" value="120" style="width:58px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
+                <label style="font-size:11px;color:#9db6c8;">Quant</label>
+                <select id="arpQuant" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
+                    <option value="1/1">1/1</option>
+                    <option value="1/2">1/2</option>
+                    <option value="1/4" selected>1/4</option>
+                    <option value="1/8">1/8</option>
+                    <option value="1/16">1/16</option>
+                    <option value="1/32">1/32</option>
+                    <option value="1/8T">1/8T</option>
+                    <option value="1/16T">1/16T</option>
+                </select>
+                <label style="font-size:11px;color:#9db6c8;">Pat</label>
+                <select id="arpPattern" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
+                    <option value="up" selected>Up</option>
+                    <option value="down">Down</option>
+                    <option value="updown">Up-Down</option>
+                    <option value="downup">Down-Up</option>
+                    <option value="walk-up">Walk Up</option>
+                    <option value="walk-down">Walk Down</option>
+                    <option value="alt-ends">Alt Ends</option>
+                    <option value="alt-center">Alt Center</option>
+                    <option value="random">Random</option>
+                </select>
+                <label style="font-size:11px;color:#9db6c8;">Tuplet</label>
+                <select id="arpTuplet" title="Override step to N-notes per beat" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
+                    <option value="0" selected>Off</option>
+                    <option value="5">Quintuplet</option>
+                    <option value="7">Septuplet</option>
+                    <option value="9">Nonuplet</option>
+                    <option value="11">Undecuplet</option>
+                </select>
+                <label style="font-size:11px;color:#9db6c8;">NPC</label>
+                <input id="arpNpc" type="number" min="1" max="64" value="3" title="Notes Per Cycle" style="width:52px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
+            </div>
             <label for="masterVolume" style="font-size:11px;color:#9db6c8;">MASTER</label>
             <input type="range" id="masterVolume" min="0" max="10" value="10" style="width:140px; accent-color:#2d9c5d;">
             <span id="masterVolumeValue" style="font-size:11px; color:#b7d4e6; width:38px; text-align:right;">100%</span>
@@ -2031,6 +1887,8 @@
                 this.isPlayingStrings = false;
                 this.triggeredStrings = new Set();
                 this.activeTouches = new Map();
+                // Track last-hit string per pointer (mouse or each touch) to avoid retriggers on the same string while sustaining
+                this._pointerLastStringKey = new Map();
                 this.gamelanMode = false;
                 // Track the column element that's currently active/last-played for live keyboard edits
                 this.currentActiveColumnEl = null;
@@ -2999,6 +2857,12 @@
                     stringEl.dataset.column = 'preview';
                     stringEl.dataset.frequency = stringData.freq;
                     stringEl.dataset.noteIndex = stringData.step;
+                    stringEl.dataset.octave = String(stringData.octave);
+                    // Highlight mid octaves (3–4)
+                    try {
+                        const oct = parseInt(stringEl.dataset.octave, 10);
+                        if (oct === 3 || oct === 4) stringEl.classList.add('mid-octave');
+                    } catch(_) {}
 
                     // Interval color and glow
                     const intervalColor = this.getIntervalColor(stringData.interval);
@@ -6715,20 +6579,8 @@
                     console.error('masterVolumeSlider not found');
                 }
 
-                // Voicing mode selector (split vs compact)
-                const voicingSpanMode = document.getElementById('voicingSpanMode');
-                if (voicingSpanMode) {
-                    // Sync initial UI with current flag
-                    voicingSpanMode.value = this.splitExtendedChordsAcrossOctaves ? 'split-two' : 'compact-one';
-                    voicingSpanMode.addEventListener('change', (e) => {
-                        const mode = e.target.value;
-                        this.splitExtendedChordsAcrossOctaves = (mode === 'split-two');
-                        // Regenerate current columns to reflect mode
-                        if (typeof this.generateExtensionColumns === 'function') {
-                            this.generateExtensionColumns();
-                        }
-                    });
-                }
+                // Force compact one-octave voicing
+                this.splitExtendedChordsAcrossOctaves = false;
 
         // Play Mode selector
         this.playMode = this.playMode || 'high-low';
@@ -6737,21 +6589,15 @@
                     playModeSelect.value = this.playMode;
                     playModeSelect.addEventListener('change', (e) => {
             this.playMode = e.target.value || 'high-low';
-                        // Immediately reorder visible strings so the UI reflects the mode
-                        if (typeof this.applyPlayModeToAllColumns === 'function') this.applyPlayModeToAllColumns();
+                        const ac = document.getElementById('arpControls');
+                        if (ac) ac.style.display = (this.playMode === 'arp') ? 'flex' : 'none';
+                        // Immediately reorder visible strings so the UI reflects the mode (skip for chords and arp)
+                        if (!['chords','arp'].includes(this.playMode) && typeof this.applyPlayModeToAllColumns === 'function') this.applyPlayModeToAllColumns();
                     });
                 }
 
-                // Strum speed selector (controls per-string delay)
-                this.strumDelayMs = Number.isFinite(this.strumDelayMs) ? this.strumDelayMs : 20;
-                const strumSpeedSelect = document.getElementById('strumSpeedSelect');
-                if (strumSpeedSelect) {
-                    strumSpeedSelect.value = String(this.strumDelayMs);
-                    strumSpeedSelect.addEventListener('change', (e) => {
-                        const val = parseInt(e.target.value, 10);
-                        this.strumDelayMs = Number.isFinite(val) ? Math.max(0, val) : 20;
-                    });
-                }
+                // Fixed strum delay (no menu)
+                this.strumDelayMs = 12;
 
                 // OSC 2 ADSR controls
                 const osc2AttackSlider = document.getElementById('osc2AttackSlider');
@@ -7245,9 +7091,29 @@
                     if (this.audioContext && this.audioContext.state === 'suspended') {
                         this.audioContext.resume();
                     }
-                    
+                    if ((this.playMode||'high-low') === 'arp') {
+                        const hit = document.elementFromPoint(e.clientX, e.clientY);
+                        const column = hit && hit.closest ? hit.closest('.extension-column') : null;
+                        if (column) {
+                            this._startArp(column, e.clientY);
+                            return;
+                        }
+                    }
+                    // In Chords mode, tapping the strings area should play the whole chord for the tapped octave
+                    if ((this.playMode || 'high-low') === 'chords') {
+                        e.preventDefault();
+                        const hit = document.elementFromPoint(e.clientX, e.clientY);
+                        const column = hit && hit.closest ? hit.closest('.extension-column') : null;
+                        if (column) {
+                            this.playChordChordsMode(column, e.clientY);
+                        }
+                        // Do not start per-string swipe processing
+                        return;
+                    }
                     this.isPlayingStrings = true;
                     this.triggeredStrings.clear();
+                    // Start of a new mouse gesture: clear mouse pointer last-hit tracking
+                    this._pointerLastStringKey.set('mouse', null);
                     // Disarm edit during active strum
                     this.editArmed = false;
                     clearTimeout(this._editArmTimer);
@@ -7257,13 +7123,25 @@
                 document.addEventListener('mousemove', (e) => {
                     if (this.isPlayingStrings) {
                         this.handleStringTrigger(e);
+                    } else if ((this.playMode||'high-low') === 'chords' && this._sustainActive) {
+                        // Allow strumming additional strings over a sustained chord
+                        this.handleStringTrigger(e);
                     }
                 });
                 
                 document.addEventListener('mouseup', () => {
+                    if ((this.playMode||'high-low') === 'arp') {
+                        this._stopArp();
+                    }
                     this.isPlayingStrings = false;
                     this.triggeredStrings.clear();
+                    // End of mouse gesture: clear last-hit
+                    this._pointerLastStringKey.delete('mouse');
                     this.stopAllActiveNotes();
+                    if (this._chordsGestureActive) {
+                        this._sustainActive = false;
+                        this._chordsGestureActive = false;
+                    }
                     // Re-arm editing 500ms after strum ends
                     this._scheduleEditArm();
                 });
@@ -7274,13 +7152,61 @@
                     if (this.audioContext && this.audioContext.state === 'suspended') {
                         this.audioContext.resume();
                     }
-                    
+                    if ((this.playMode||'high-low') === 'arp') {
+                        const all = Array.from(e.touches);
+                        // Determine common column from first valid touch
+                        let commonCol = null;
+                        for (const t of all){
+                            const h = document.elementFromPoint(t.clientX, t.clientY);
+                            const c = h && h.closest ? h.closest('.extension-column') : null;
+                            if (c){ commonCol = c; break; }
+                        }
+                        if (!commonCol) return;
+                        // Filter touches on the same column
+                        const sameColTouches = all.filter(t => {
+                            const h = document.elementFromPoint(t.clientX, t.clientY);
+                            const c = h && h.closest ? h.closest('.extension-column') : null;
+                            return c === commonCol;
+                        });
+                        if (sameColTouches.length >= 2){
+                            const ys = sameColTouches.map(t=> t.clientY);
+                            const yMin = Math.min(...ys);
+                            const yMax = Math.max(...ys);
+                            const oTop = this._getTappedOctave(commonCol, yMin);
+                            const oBot = this._getTappedOctave(commonCol, yMax);
+                            const oMin = Math.max(3, Math.min(9, Math.min(oTop??3, oBot??9)));
+                            const oMax = Math.max(3, Math.min(9, Math.max(oTop??3, oBot??9)));
+                            this._ensureArpDefaults();
+                            this._arp.span = { active:true, yMin, yMax, octMin:oMin, octMax:oMax };
+                            this._startArp(commonCol, (yMin+yMax)/2);
+                        } else {
+                            // Single-finger: no span; just start from tapped octave
+                            this._ensureArpDefaults();
+                            this._arp.span = { active:false, yMin:null, yMax:null, octMin:null, octMax:null };
+                            const t = sameColTouches[0] || e.changedTouches[0];
+                            if (t) this._startArp(commonCol, t.clientY);
+                        }
+                        return;
+                    }
+                    // In Chords mode, a touch in strings area plays the whole chord for that octave
+                    if ((this.playMode || 'high-low') === 'chords') {
+                        Array.from(e.changedTouches).forEach(touch => {
+                            const hit = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const column = hit && hit.closest ? hit.closest('.extension-column') : null;
+                            if (column) {
+                                this.playChordChordsMode(column, touch.clientY);
+                            }
+                        });
+                        return;
+                    }
                     this.isPlayingStrings = true;
                     this.triggeredStrings.clear();
                     this.editArmed = false;
                     clearTimeout(this._editArmTimer);
                     
                     Array.from(e.changedTouches).forEach(touch => {
+                        // Clear last-hit for this touch identifier at the beginning of a gesture
+                        this._pointerLastStringKey.set(`t${touch.identifier}`, null);
                         this.activeTouches.set(touch.identifier, touch);
                         this.handleStringTrigger(touch);
                     });
@@ -7288,7 +7214,7 @@
                 
                 extensionColumns.addEventListener('touchmove', (e) => {
                     e.preventDefault();
-                    if (this.isPlayingStrings) {
+                    if (this.isPlayingStrings || ((this.playMode||'high-low')==='chords' && this._sustainActive)) {
                         Array.from(e.changedTouches).forEach(touch => {
                             this.activeTouches.set(touch.identifier, touch);
                             this.handleStringTrigger(touch);
@@ -7296,16 +7222,20 @@
                     }
                 }, { passive: false });
                 
-        extensionColumns.addEventListener('touchend', (e) => {
+    extensionColumns.addEventListener('touchend', (e) => {
                     e.preventDefault();
+            if ((this.playMode||'high-low') === 'arp') { this._stopArp(); }
                     Array.from(e.changedTouches).forEach(touch => {
                         this.activeTouches.delete(touch.identifier);
+                        // Clear tracking for this touch pointer
+                        this._pointerLastStringKey.delete(`t${touch.identifier}`);
                     });
                     
                     if (this.activeTouches.size === 0) {
                         this.isPlayingStrings = false;
                         this.triggeredStrings.clear();
-                        this.stopAllActiveNotes();
+            this.stopAllActiveNotes();
+        if (this._chordsGestureActive) { this._sustainActive = false; this._chordsGestureActive = false; }
             this._scheduleEditArm();
                     }
                 }, { passive: false });
@@ -7314,6 +7244,7 @@
                     e.preventDefault();
                     Array.from(e.changedTouches).forEach(touch => {
                         this.activeTouches.delete(touch.identifier);
+                        this._pointerLastStringKey.delete(`t${touch.identifier}`);
                     });
                     
                     if (this.activeTouches.size === 0) {
@@ -7468,12 +7399,17 @@
 
                     const key = e.key;
                     let chordIndex = -1;
+                    // Track held number keys to throttle OS key repeat
+                    if (!this._heldNumberKeys) this._heldNumberKeys = new Set();
 
                     // Map number keys to chord indices (1-9, then 0 for 10th chord)
                     if (key >= '1' && key <= '9') chordIndex = parseInt(key,10) - 1;
                     else if (key === '0') chordIndex = 9;
 
                     if (chordIndex >= 0) {
+                        // Ignore auto-repeat while key is held
+                        if (this._heldNumberKeys.has(key) || e.repeat) return;
+                        this._heldNumberKeys.add(key);
                         e.preventDefault();
                         this.playChordByIndex(chordIndex);
                         return;
@@ -7487,32 +7423,60 @@
                 };
                 // Attach on window with capture so it fires even during bubbling-stopped handlers
                 window.addEventListener('keydown', this._keyboardHandler, true);
+                // Stop playback on number key release for ARP/Chords (press-to-start/release-to-stop parity with mouse/touch)
+                this._keyboardKeyupHandler = (e) => {
+                    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+                    if (tag === 'INPUT' || tag === 'TEXTAREA' || e.isComposing) return;
+                    const key = e.key;
+                    const isNumberKey = (key >= '1' && key <= '9') || key === '0';
+                    if (!isNumberKey) return;
+                    if (this._heldNumberKeys) this._heldNumberKeys.delete(key);
+                    const mode = (this.playMode||'high-low');
+                    if (mode === 'arp') {
+                        try { this._stopArp(); } catch(_) {}
+                    } else if (mode === 'chords') {
+                        try { this.stopAllActiveNotes(); } catch(_) {}
+                        this._sustainActive = false;
+                        this._chordsGestureActive = false;
+                    }
+                };
+                window.addEventListener('keyup', this._keyboardKeyupHandler, true);
                 this._keyboardListenerAttached = true;
             }
             
             playChordByIndex(index) {
-                // First try to play from palette chords
-                if (this.paletteChords && index < this.paletteChords.length) {
-                    const chord = this.paletteChords[index];
-                    console.log(`Playing palette chord ${index + 1}:`, chord.name);
-                    this.playPaletteChord(chord);
-                    return;
-                }
-                
-                // If no palette chord at that index, try to play from extension columns
+                // Prefer playing from extension grid columns; fall back to palette when needed
                 const columns = document.querySelectorAll('.extension-column');
                 if (index < columns.length) {
                     const column = columns[index];
                     const header = column.querySelector('.extension-header');
                     if (header) {
                         console.log(`Playing extension chord ${index + 1}:`, header.textContent);
-                        // Simulate a click on the column to play the chord
+                        // For ARP mode, start the arpeggiator from the column on key press
                         const rect = column.getBoundingClientRect();
                         const centerY = rect.top + rect.height / 2;
-                        this.playChordStrum(column, { name: header.textContent }, centerY - 10, centerY + 10);
+                        if ((this.playMode||'high-low') === 'arp') {
+                            this._ensureArpDefaults();
+                            // Keyboard start uses single-octave start (no span)
+                            this._arp.span = { active:false, yMin:null, yMax:null, octMin:null, octMax:null };
+                            this._startArp(column, centerY);
+                        } else if ((this.playMode||'high-low') === 'chords') {
+                            // Chords mode: play simultaneous chord in tapped octave
+                            this.playChordChordsMode(column, centerY);
+                        } else {
+                            // Other modes: simulate a short swipe strum across the center
+                            this.playChordStrum(column, { name: header.textContent }, centerY - 10, centerY + 10);
+                        }
                     }
                 } else {
-                    console.log(`No chord available at index ${index + 1}`);
+                    // Fall back to palette chords if available
+                    if (this.paletteChords && index < this.paletteChords.length) {
+                        const chord = this.paletteChords[index];
+                        console.log(`Playing palette chord ${index + 1}:`, chord.name);
+                        this.playPaletteChord(chord);
+                    } else {
+                        console.log(`No chord available at index ${index + 1}`);
+                    }
                 }
             }
 
@@ -7791,9 +7755,14 @@
                     const column = element.closest('.palette-chord') || element.closest('.extension-column') || element;
                     if (column && chordData) {
                         const rect = column.getBoundingClientRect();
-                        const startY = rect.top + Math.max(4, rect.height * 0.08);
-                        const endY = rect.bottom - Math.max(4, rect.height * 0.08);
-                        this.playChordStrum(column, chordData, startY, endY);
+                        if ((this.playMode || 'high-low') === 'chords') {
+                            const midY = rect.top + rect.height * 0.5;
+                            this.playChordChordsMode(column, midY);
+                        } else {
+                            const startY = rect.top + Math.max(4, rect.height * 0.08);
+                            const endY = rect.bottom - Math.max(4, rect.height * 0.08);
+                            this.playChordStrum(column, chordData, startY, endY);
+                        }
                     }
                     return;
                 }
@@ -8846,6 +8815,11 @@
                     const noteInfo = this.estimateNoteFromFrequency(freq);
                     stringElement.dataset.note = noteInfo.note;
                     stringElement.dataset.octave = noteInfo.octave;
+                    // Highlight mid octaves (3–4)
+                    try {
+                        const oct = parseInt(stringElement.dataset.octave, 10);
+                        if (oct === 3 || oct === 4) stringElement.classList.add('mid-octave');
+                    } catch(_) {}
 
                     // Calculate interval from the locked root to get proper color
                     const intervalFromRoot = (noteInfo.note - lockedData.lockedRoot + lockedData.lockedTuning) % lockedData.lockedTuning;
@@ -11041,88 +11015,66 @@
             generateRootButtons() {
                 const rootGrid = document.getElementById('rootGrid');
                 if (!rootGrid) return;
+                // Create or reuse a keyboard row containing left transpose controls + keyboard
+                let row = rootGrid.querySelector('.keyboard-row');
+                if (!row) {
+                    row = document.createElement('div');
+                    row.className = 'keyboard-row';
+                    rootGrid.appendChild(row);
+                }
+                // Left-side transpose controls (▲ delta ▼)
+                let leftControls = row.querySelector('.transpose-controls-left');
+                if (!leftControls) {
+                    leftControls = document.createElement('div');
+                    leftControls.className = 'transpose-controls-left';
+                    // Up button
+                    const up = document.createElement('button');
+                    up.id = 'transposeUp';
+                    up.title = 'Transpose up 1 step';
+                    up.textContent = '▲';
+                    up.addEventListener('click', () => this.applyTransposeStep(1));
+                    // Delta readout
+                    const delta = document.createElement('div');
+                    delta.id = 'transposeDelta';
+                    delta.className = 'delta';
+                    delta.textContent = String(this.transposeDelta || 0);
+                    // Down button
+                    const down = document.createElement('button');
+                    down.id = 'transposeDown';
+                    down.title = 'Transpose down 1 step';
+                    down.textContent = '▼';
+                    down.addEventListener('click', () => this.applyTransposeStep(-1));
+                    leftControls.appendChild(up);
+                    leftControls.appendChild(delta);
+                    leftControls.appendChild(down);
+                    row.appendChild(leftControls);
+                } else {
+                    const delta = leftControls.querySelector('#transposeDelta');
+                    if (delta) delta.textContent = String(this.transposeDelta || 0);
+                }
                 // Reuse existing keyboard element to avoid layout shift flicker
-                let keyboard = rootGrid.querySelector('.piano-keyboard');
+                let keyboard = row.querySelector('.piano-keyboard');
                 if (!keyboard) {
                     // First-time creation
                     keyboard = document.createElement('div');
                     keyboard.className = 'piano-keyboard';
                     const by = document.createElement('div');
                     by.className = 'by-fastfast';
-                    // Make last four letters clickable ("FAST")
                     by.innerHTML = 'By FAST<span class="fastfast-link" title="Open FASTFAST Bandcamp">FAST</span>';
-                    // Click handler (only on the link span)
                     by.querySelector('.fastfast-link')?.addEventListener('click', (e)=>{
                         e.stopPropagation();
                         try { window.open('https://fastfast.bandcamp.com/', '_blank', 'noopener,noreferrer'); } catch(_) { }
                     });
                     keyboard.appendChild(by);
-                    // Transpose controls: up (top-left), down (bottom-left), and delta between
-                    const up = document.createElement('button');
-                    up.id = 'transposeUp';
-                    up.title = 'Transpose up 1 step';
-                    up.textContent = '▲';
-                    up.style.cssText = 'position:absolute;left:10px;top:8px;background:#1f3a4a;color:#e8f5ff;border:1px solid #3b6a7a;border-radius:6px;padding:4px 6px;font-size:14px;z-index:5;';
-                    const down = document.createElement('button');
-                    down.id = 'transposeDown';
-                    down.title = 'Transpose down 1 step';
-                    down.textContent = '▼';
-                    down.style.cssText = 'position:absolute;left:10px;bottom:8px;background:#1f3a4a;color:#e8f5ff;border:1px solid #3b6a7a;border-radius:6px;padding:4px 6px;font-size:14px;z-index:5;';
-                    const delta = document.createElement('div');
-                    delta.id = 'transposeDelta';
-                    delta.textContent = String(this.transposeDelta || 0);
-                    delta.style.cssText = 'position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9db6c8;font-weight:700;font-size:14px;z-index:5;';
-                    keyboard.appendChild(up);
-                    keyboard.appendChild(delta);
-                    keyboard.appendChild(down);
-                    // Wire handlers
-                    console.log('Adding transpose button event listeners');
-                    up.addEventListener('click', ()=> {
-                        console.log('UP TRANSPOSE BUTTON CLICKED!');
-                        this.applyTransposeStep(1);
-                    });
-                    down.addEventListener('click', ()=> {
-                        console.log('DOWN TRANSPOSE BUTTON CLICKED!');
-                        this.applyTransposeStep(-1);
-                    });
-                    rootGrid.appendChild(keyboard);
+                    // Drag hint
+                    const hint = document.createElement('div');
+                    hint.className = 'drag-hint';
+                    hint.textContent = 'drag ← →';
+                    keyboard.appendChild(hint);
+                    row.appendChild(keyboard);
                 } else {
                     // Clear dynamic children (keys + dots) only
                     keyboard.querySelectorAll('.white-key.root-btn, .black-key.root-btn, .edo-dot').forEach(el=> el.remove());
-                    // Ensure transpose controls exist on refresh
-                    if (!keyboard.querySelector('#transposeUp')) {
-                        const up = document.createElement('button');
-                        up.id = 'transposeUp';
-                        up.title = 'Transpose up 1 step';
-                        up.textContent = '▲';
-                        up.style.cssText = 'position:absolute;left:10px;top:8px;background:#1f3a4a;color:#e8f5ff;border:1px solid #3b6a7a;border-radius:6px;padding:4px 6px;font-size:14px;z-index:5;';
-                        up.addEventListener('click', ()=> {
-                            console.log('UP TRANSPOSE BUTTON CLICKED! (refresh case)');
-                            this.applyTransposeStep(1);
-                        });
-                        keyboard.appendChild(up);
-                    }
-                    if (!keyboard.querySelector('#transposeDelta')) {
-                        const delta = document.createElement('div');
-                        delta.id = 'transposeDelta';
-                        delta.textContent = String(this.transposeDelta || 0);
-                        delta.style.cssText = 'position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9db6c8;font-weight:700;font-size:14px;z-index:5;';
-                        keyboard.appendChild(delta);
-                    } else {
-                        keyboard.querySelector('#transposeDelta').textContent = String(this.transposeDelta || 0);
-                    }
-                    if (!keyboard.querySelector('#transposeDown')) {
-                        const down = document.createElement('button');
-                        down.id = 'transposeDown';
-                        down.title = 'Transpose down 1 step';
-                        down.textContent = '▼';
-                        down.style.cssText = 'position:absolute;left:10px;bottom:8px;background:#1f3a4a;color:#e8f5ff;border:1px solid #3b6a7a;border-radius:6px;padding:4px 6px;font-size:14px;z-index:5;';
-                        down.addEventListener('click', ()=> {
-                            console.log('DOWN TRANSPOSE BUTTON CLICKED! (refresh case)');
-                            this.applyTransposeStep(-1);
-                        });
-                        keyboard.appendChild(down);
-                    }
                     // Ensure attribution present
                     if (!keyboard.querySelector('.by-fastfast')) {
                         const by = document.createElement('div');
@@ -11134,6 +11086,12 @@
                         });
                         keyboard.appendChild(by);
                     }
+                    if (!keyboard.querySelector('.drag-hint')) {
+                        const hint = document.createElement('div');
+                        hint.className = 'drag-hint';
+                        hint.textContent = 'drag ← →';
+                        keyboard.appendChild(hint);
+                    }
                 }
 
                 // Attach drag-to-rotate across all EDOs (cyclic modulo currentTuning)
@@ -11142,6 +11100,7 @@
                     let dragging = false; let startX = 0; let startRot = 0;
                     const applyDrag = (dx)=>{
                         const stepPx = Math.max(12, (keyboard.clientWidth || 600) / 12);
+                        // Keep discrete steps but compute continuously, then round once
                         const delta = -Math.round(dx / stepPx);
                         const edo = this.currentTuning || 12;
                         let next = ((startRot + delta) % edo + edo) % edo;
@@ -11152,12 +11111,12 @@
                             if (this.currentActiveColumnEl) this.highlightKeyboardForColumn(this.currentActiveColumnEl);
                         }
                     };
-                    keyboard.addEventListener('mousedown', (e)=>{ dragging=true; startX=e.clientX; startRot=this.keyboardRotation|0; });
+                    keyboard.addEventListener('mousedown', (e)=>{ dragging=true; keyboard.classList.add('is-dragging'); startX=e.clientX; startRot=this.keyboardRotation|0; });
                     window.addEventListener('mousemove', (e)=>{ if(!dragging) return; applyDrag(e.clientX - startX); });
-                    window.addEventListener('mouseup', ()=>{ dragging=false; });
-                    keyboard.addEventListener('touchstart', (e)=>{ dragging=true; startX=e.touches[0].clientX; startRot=this.keyboardRotation|0; }, {passive:false});
+                    window.addEventListener('mouseup', ()=>{ dragging=false; keyboard.classList.remove('is-dragging'); });
+                    keyboard.addEventListener('touchstart', (e)=>{ dragging=true; keyboard.classList.add('is-dragging'); startX=e.touches[0].clientX; startRot=this.keyboardRotation|0; }, {passive:false});
                     window.addEventListener('touchmove', (e)=>{ if(!dragging) return; applyDrag(e.touches[0].clientX - startX); }, {passive:false});
-                    window.addEventListener('touchend', ()=>{ dragging=false; }, {passive:false});
+                    window.addEventListener('touchend', ()=>{ dragging=false; keyboard.classList.remove('is-dragging'); }, {passive:false});
                 }
 
                 // Fallback to legacy buttons in gamelan mode (7-tone pelog)
@@ -11300,9 +11259,9 @@
                         centersBySemitone[semi] = slotCenters[i];
                     }
 
-                    // Helper to add a micro dot at a fractional position between two adjacent slots
-                    // stepIndex is the exact EDO step we want this dot to represent (no nearest rounding)
-            const addMicroDot = (s, frac01, color, stepIndex) => {
+            // Helper to add a micro dot at a fractional position between two adjacent slots
+            // stepIndex is the exact EDO step we want this dot to represent (no nearest rounding)
+        const addMicroDot = (s, frac01, color, stepIndex) => {
                         // j is the slot index for semitone s in the rotated view
                         const j = ((s - rotBase) % 12 + 12) % 12;
                         const jNext = (j + 1) % 12;
@@ -11315,8 +11274,13 @@
 
                         // Create the dot element and map it to the nearest EDO step inside this gap
                         const d = document.createElement('div');
-                        d.className = `edo-dot edo-lane-${color} ${color}`;
+            d.className = `edo-dot ${color}`; // inline style will set vertical position precisely
                         d.style.left = pct + '%';
+            // Vertically position dot based on cents offset: 0c at topBound, 50c centered, 100c at bottomBound
+            const topBound = 36;   // percent from top of keyboard
+            const bottomBound = 64; // percent from top
+            const topPct = topBound + (bottomBound - topBound) * Math.min(Math.max(frac01, 0), 1);
+            d.style.top = topPct + '%';
         let effStep = ((stepIndex + (this.transposeDelta||0)) % this.currentTuning + this.currentTuning)%this.currentTuning;
         // Skip creating a dot if its effective step is already represented (avoid duplicates like E^ and Ev coupling)
         if (usedEffSteps.has(effStep)) return;
@@ -11386,14 +11350,19 @@
                         if (!candidates.length) continue;
                         candidates.sort((a,b)=> a.offset - b.offset);
 
-                        // Distribute all candidate dots with color ordering depending on WB/BW gap
-                        const gapType = (whiteSemis.has(s) && blackSemis.has(nextSemi)) ? 'WB'
-                                       : (blackSemis.has(s) && whiteSemis.has(nextSemi)) ? 'BW' : 'OTHER';
-                        const colorOrder = (gapType==='WB') ? ['red','green','blue'] : ['blue','green','red'];
-                        candidates.forEach((obj,idx)=>{
-                            const frac = obj.offset/100;
-                            const color = colorOrder[idx % colorOrder.length];
-                            addMicroDot(s, Math.min(Math.max(frac, 0.02), 0.98), color, obj.step);
+                        // Map each candidate to a fraction within the 0-100c gap
+                        const fracs = candidates.map(c => ({...c, frac: c.offset/100}));
+                        // Find the one nearest 50c (0.5) to be the neutral green
+                        let greenIdx = 0; let minDist = Infinity;
+                        fracs.forEach((c,idx)=>{ const d = Math.abs(c.frac - 0.5); if (d < minDist){ minDist = d; greenIdx = idx; } });
+                        // Add the green neutral dot first, centered vertically (handled in addMicroDot)
+                        const g = fracs[greenIdx];
+                        if (g) addMicroDot(s, Math.min(Math.max(g.frac, 0.02), 0.98), 'green', g.step);
+                        // Dots below 50c are blue, above are red
+                        fracs.forEach((c,idx)=>{
+                            if (idx === greenIdx) return;
+                            const color = (c.frac < 0.5) ? 'blue' : 'red';
+                            addMicroDot(s, Math.min(Math.max(c.frac, 0.02), 0.98), color, c.step);
                         });
                     }
                 }
@@ -11404,6 +11373,8 @@
                     // Removed enforceEquidistantCenters to prevent squishing layout after rotation
                     this.resizeDotsToKeySize(keyboard);
                 }
+                // Edge fade and dot/link exclusions
+                this.applyDotEdgeFadeAndExclusions(keyboard);
                 // Reapply highlight if a chord is currently active
                 try {
                     const activeCol = this.getActiveColumnElement?.();
@@ -11540,6 +11511,42 @@
                     });
                 }
              }
+
+            // Fade out dots near left/right edges and remove dots overlapping the FASTFAST link area
+            applyDotEdgeFadeAndExclusions(keyboard) {
+                if (!keyboard) return;
+                const dots = Array.from(keyboard.querySelectorAll('.edo-dot'));
+                if (!dots.length) return;
+                // Compute fade based on percent from edges
+                const edgeWidthPct = 6; // within 6% from either edge start fading
+                dots.forEach(d => {
+                    const left = parseFloat(d.style.left || '0');
+                    const distToEdge = Math.min(left, 100 - left);
+                    let alpha = 1.0;
+                    if (distToEdge < edgeWidthPct) {
+                        alpha = Math.max(0, distToEdge / edgeWidthPct);
+                    }
+                    d.style.opacity = String(alpha);
+                });
+
+                // Remove dots overlapping the FASTFAST link bounding box
+                const brand = keyboard.querySelector('.by-fastfast');
+                if (brand) {
+                    const kbRect = keyboard.getBoundingClientRect();
+                    const brRect = brand.getBoundingClientRect();
+                    const relLeft = ((brRect.left - kbRect.left) / kbRect.width) * 100;
+                    const relRight = ((brRect.right - kbRect.left) / kbRect.width) * 100;
+                    const relTop = ((brRect.top - kbRect.top) / kbRect.height) * 100;
+                    const relBottom = ((brRect.bottom - kbRect.top) / kbRect.height) * 100;
+                    dots.forEach(d => {
+                        const l = parseFloat(d.style.left || '0');
+                        const t = parseFloat(d.style.top || '0');
+                        if (l >= relLeft && l <= relRight && t >= relTop && t <= relBottom) {
+                            d.remove();
+                        }
+                    });
+                }
+            }
 
             // Reposition all key & dot centers to be perfectly equidistant while preserving ordering
             enforceEquidistantCenters(keyboard){
@@ -12974,6 +12981,11 @@
                         // Fallback: omit if cannot compute
                     }
                     row.dataset.octave = String(stringData.octave);
+                    // Tag middle octave rows (3–4) for subtle highlighting
+                    try {
+                        const oct = parseInt(row.dataset.octave, 10);
+                        if (oct === 3 || oct === 4) row.classList.add('mid-octave');
+                    } catch(_) {}
 
                     // Colors
                     const intervalColor = this.getIntervalColor(stringData.interval);
@@ -13047,6 +13059,76 @@
                 const groups = octKeys.map(o=> byOct.get(o).sort((a,b)=> (parseFloat(a.dataset.frequency)||0)-(parseFloat(b.dataset.frequency)||0)));
                 return { groups, octaves: octKeys };
             }
+
+            // Helper: from a column and a y-position, determine the tapped octave number
+            _getTappedOctave(columnElement, yClient){
+                try {
+                    const colRect = columnElement.getBoundingClientRect();
+                    const container = columnElement.querySelector('.strings-column');
+                    if (!container) return null;
+                    const rows = Array.from(container.querySelectorAll('.string'));
+                    if (rows.length === 0) return null;
+                    const hitY = yClient - colRect.top;
+                    let best = null; let bestDist = Infinity;
+                    for (const r of rows){
+                        const rr = r.getBoundingClientRect();
+                        const center = (rr.top + rr.height/2) - colRect.top;
+                        const d = Math.abs(center - hitY);
+                        if (d < bestDist){ bestDist = d; best = r; }
+                    }
+                    if (!best) return null;
+                    const o = parseInt(best.dataset.octave||'0',10);
+                    return Number.isFinite(o) ? o : null;
+                } catch(_) { return null; }
+            }
+
+            // Helper: compute simultaneous chord targets for "Chords" mode
+            _computeChordsModeTargets(columnElement, tappedOctave){
+                const out = { stringsInOctave: [], bassFreq: null };
+                try {
+                    const rows = Array.from(columnElement.querySelectorAll('.strings-column .string'));
+                    if (rows.length === 0) return out;
+                    const tuning = this.currentTuning || 12;
+                    // 1) Pick chord tones whose dataset.octave === tappedOctave
+                    out.stringsInOctave = rows.filter(r => parseInt(r.dataset.octave||'0',10) === tappedOctave);
+                    if (out.stringsInOctave.length === 0) {
+                        // Fallback: choose closest octave group
+                        let best = null; let bestDelta = Infinity;
+                        const byOct = new Map();
+                        rows.forEach(r=>{
+                            const o = parseInt(r.dataset.octave||'0',10);
+                            if (!byOct.has(o)) byOct.set(o, []);
+                            byOct.get(o).push(r);
+                        });
+                        for (const [o, arr] of byOct.entries()){
+                            const d = Math.abs(o - tappedOctave);
+                            if (d < bestDelta){ bestDelta = d; best = arr; }
+                        }
+                        if (best) out.stringsInOctave = best;
+                    }
+                    // 2) Add bass root in octave 2: derive from the chord's named/effective root for this column
+                    // This avoids mis-picking a 3rd when voicing causes dataset.edoStep alignment differences.
+                    const baseStep = this._getEffectiveColumnRootStep(columnElement);
+                    const bassOct = 2;
+                    out.bassFreq = this.getFrequency(((baseStep % tuning)+tuning)%tuning, bassOct, tuning);
+                } catch(_) {}
+                return out;
+            }
+
+            // Helper: compute the effective absolute root step for a column, honoring locks and transposes
+            _getEffectiveColumnRootStep(columnElement){
+                try {
+                    const edo = this.currentTuning || 12;
+                    const globalDelta = (this.transposeDelta || 0) % edo;
+                    const localDelta = ((+columnElement?.dataset?.localTranspose || 0) % edo + edo) % edo;
+                    if (columnElement?.dataset?.lockedRoot != null) {
+                        const locked = parseInt(columnElement.dataset.lockedRoot, 10) || 0;
+                        return (((locked + localDelta + globalDelta) % edo) + edo) % edo;
+                    }
+                    const base = this.currentRoot || 0;
+                    return (((base + localDelta + globalDelta) % edo) + edo) % edo;
+                } catch(_) { return (this.currentRoot || 0); }
+            }
             getPatternSequence(base, mode){
                 // base: array of string elements ordered low->high (ascending by freq)
                 const asc = base;
@@ -13092,6 +13174,330 @@
                 }
             }
 
+            // ===== ARP Engine =====
+            _ensureArpDefaults(){
+                if (this._arp) return;
+                this._arp = {
+                    running: false,
+                    timer: null,
+                    bpm: 120,
+                    quant: '1/8',
+                    gatePct: 50,
+                    pattern: 'up',
+                    tuplet: 0,
+                    npc: 3,
+                    seq: [],
+                    bassFreq: null,
+                    // Voice/sequence state consumed by transport ticks
+                    idx: 0,
+                    column: null,
+                    span: { active:false, yMin:null, yMax:null, octMin:null, octMax:null },
+                    active: false,
+                    startTickAlign: 0,
+                    gateMs: 0
+                };
+            }
+
+            // Global ARP transport: keeps a shared bar-aligned clock so chord changes stay in time
+            _ensureArpTransport(){
+                if (this._arpTransport) return;
+                this._arpTransport = {
+                    running: false,
+                    timer: null,
+                    bpm: 120,
+                    quant: '1/8',
+                    tuplet: 0,
+                    beatMs: 500,
+                    tickMs: 250,
+                    ticksPerBeat: 2,
+                    beatsPerBar: 4,
+                    ticksPerBar: 8,
+                    tickCounter: 0,
+                    absTickCounter: 0,
+                    nextAt: 0,
+                    lastActiveTick: 0,
+                    lastActiveAbsTick: 0,
+                    inactivityStopScheduled: false,
+                    stopAtBarIndex: null
+                };
+            }
+
+            _refreshArpTransportTiming(){
+                this._ensureArpDefaults();
+                this._ensureArpTransport();
+                const bpm = Math.max(20, this._arp?.bpm || this._arpTransport.bpm || 120);
+                const quant = (this._arp?.quant || this._arpTransport.quant || '1/8');
+                const tuplet = Math.max(0, this._arp?.tuplet || 0);
+                const beatMs = 60000 / bpm;
+                let ticksPerBeat = 2; // default for 1/8
+                let tickMs;
+                if (tuplet > 0){
+                    ticksPerBeat = tuplet; // N notes per beat
+                    tickMs = beatMs / tuplet;
+                } else {
+                    const tri = q => q.endsWith('T');
+                    const base = quant.replace('T','');
+                    const map = { '1/1':1, '1/2':2, '1/4':4, '1/8':8, '1/16':16, '1/32':32 };
+                    const div = map[base] || 8;
+                    // quarter note is 1 beat; 1/div of whole note = (4/div) beats per tick
+                    const beatsPerTick = tri(quant) ? ((4/div) * (2/3)) : (4/div);
+                    ticksPerBeat = Math.max(1, Math.round(1/Math.max(1e-6, beatsPerTick)));
+                    tickMs = beatMs * beatsPerTick;
+                }
+                const beatsPerBar = 4; // 4/4
+                const ticksPerBar = ticksPerBeat * beatsPerBar;
+                Object.assign(this._arpTransport, { bpm, quant, tuplet, beatMs, tickMs, ticksPerBeat, beatsPerBar, ticksPerBar });
+                // Update gate based on current tick
+                const gateMs = Math.max(5, Math.floor(((this._arp?.gatePct||50)/100) * tickMs));
+                this._arp.gateMs = gateMs;
+            }
+
+            _startArpTransport(){
+                this._ensureArpTransport();
+                this._refreshArpTransportTiming();
+                if (this._arpTransport.running) return;
+                this._arpTransport.running = true;
+                const now = (performance && performance.now) ? performance.now() : Date.now();
+                const tickMs = this._arpTransport.tickMs;
+                // Align nextAt to the next subdivision to minimize latency and keep stable phase
+                const rem = now % tickMs;
+                this._arpTransport.nextAt = now + (rem ? (tickMs - rem) : 0);
+                const runTick = ()=>{
+                    if (!this._arpTransport.running) return;
+                    const t = (performance && performance.now) ? performance.now() : Date.now();
+                    // Play any active ARP voice aligned to global tickCounter
+                    try {
+                        if (this._arp && this._arp.active && this._arp.seq && this._arp.seq.length){
+                            const seq = this._arp.seq;
+                            const idx = (this._arpTransport.tickCounter - (this._arp.startTickAlign||0));
+                            const el = seq[((idx%seq.length)+seq.length)%seq.length];
+                            const gateMs = this._arp.gateMs || Math.max(5, Math.floor(((this._arp.gatePct||50)/100) * this._arpTransport.tickMs));
+                            let f = el ? parseFloat(el.dataset.frequency) : NaN;
+                            if (!f || !isFinite(f) || f<=0){
+                                try{
+                                    const step = parseInt(el.dataset.noteIndex,10);
+                                    const oct = parseInt(el.dataset.octave,10);
+                                    const tuning = this.currentTuning || 12;
+                                    if (Number.isFinite(step)) f = this.getFrequency(((step%tuning)+tuning)%tuning, Number.isFinite(oct)?oct:4, tuning);
+                                }catch(_){ }
+                            }
+                            if (f && isFinite(f) && f>0){
+                                this.playFrequency(f, null);
+                                setTimeout(()=>{ try { this.stopFrequency(f, null); } catch(_){} }, gateMs);
+                            }
+                            if (this._arp.bassFreq && isFinite(this._arp.bassFreq) && this._arp.bassFreq>0){
+                                this.playFrequency(this._arp.bassFreq, null);
+                                setTimeout(()=>{ try { this.stopFrequency(this._arp.bassFreq, null); } catch(_){} }, gateMs);
+                            }
+                            // Alternate panning on each step
+                            try { if (this.panning && this.panning.mode === 'alternating') this.panning.alternateState = !this.panning.alternateState; } catch(_){ }
+                            this._arpTransport.lastActiveTick = this._arpTransport.tickCounter;
+                            this._arpTransport.lastActiveAbsTick = this._arpTransport.absTickCounter;
+                            // Any new activity cancels a pending inactivity stop
+                            this._arpTransport.inactivityStopScheduled = false;
+                            this._arpTransport.stopAtBarIndex = null;
+                        }
+                    } catch(_){ }
+                    // Advance transport tick and schedule next, correcting drift
+                    this._arpTransport.tickCounter = (this._arpTransport.tickCounter + 1) % (this._arpTransport.ticksPerBar||64);
+                    this._arpTransport.absTickCounter = (this._arpTransport.absTickCounter + 1) >>> 0; // keep as non-negative int
+                    this._arpTransport.nextAt += this._arpTransport.tickMs;
+                    // If inactivity is scheduled and still no active ARP voice, stop after a full empty bar at bar boundary
+                    if (this._arpTransport.inactivityStopScheduled && (!this._arp || !this._arp.active)){
+                        const tpBar = this._arpTransport.ticksPerBar || 16;
+                        const curBarIdx = Math.floor(this._arpTransport.absTickCounter / tpBar);
+                        if (this._arpTransport.stopAtBarIndex != null && curBarIdx >= this._arpTransport.stopAtBarIndex && this._arpTransport.tickCounter === 0){
+                            this._stopArpTransport();
+                            return;
+                        }
+                    }
+                    const delay = Math.max(0, this._arpTransport.nextAt - ((performance && performance.now) ? performance.now() : Date.now()));
+                    this._arpTransport.timer = setTimeout(runTick, delay);
+                };
+                const firstDelay = Math.max(0, this._arpTransport.nextAt - now);
+                this._arpTransport.timer = setTimeout(runTick, firstDelay);
+            }
+
+            _stopArpTransport(){
+                if (!this._arpTransport) return;
+                this._arpTransport.running = false;
+                if (this._arpTransport.timer){ clearTimeout(this._arpTransport.timer); this._arpTransport.timer = null; }
+                this._arpTransport.inactivityStopScheduled = false;
+            }
+
+            _scheduleTransportStopAfterInactivity(){
+                this._ensureArpTransport();
+                if (this._arpTransport.inactivityStopScheduled) return;
+                this._arpTransport.inactivityStopScheduled = true;
+                // Compute the bar index after one full empty bar from now
+                const tpBar = this._arpTransport.ticksPerBar || 16;
+                const curBarIdx = Math.floor((this._arpTransport.absTickCounter || 0) / tpBar);
+                this._arpTransport.stopAtBarIndex = curBarIdx + 1; // stop at the beginning of the next bar after an empty one
+            }
+
+            _parseQuantToMs(quant, bpm){
+                const beatMs = 60000 / Math.max(1, bpm);
+                const tri = q => q.endsWith('T');
+                const base = quant.replace('T','');
+                const map = { '1/1':1, '1/2':2, '1/4':4, '1/8':8, '1/16':16, '1/32':32 };
+                const div = map[base] || 8;
+                let dur = beatMs * (4/div);
+                if (tri(quant)) dur *= 2/3; // triplet
+                return dur;
+            }
+
+            _buildArpSequence(rows, pattern){
+                // Build an ascending/descending "ladder" across octaves so NPC can exceed a single-octave chord size
+                const safeAsc = rows.slice().sort((a,b)=> (parseFloat(a?.dataset?.frequency)||0)-(parseFloat(b?.dataset?.frequency)||0));
+                const npc = Math.max(1, (this._arp?.npc|0) || 1);
+                const altEnds = (arr)=>{ const a=arr.slice(); const out=[]; let i=0,j=a.length-1; while(i<=j){ if(i<=j) out.push(a[i++]); if(i<=j) out.push(a[j--]); } return out; };
+                const altCenter = (arr)=>{ const a=arr.slice(); const mid=Math.floor((a.length-1)/2); const out=[]; let l=mid, r=mid+1; if(a.length%2===1){ out.push(a[mid]); l=mid-1; r=mid+1; } while(l>=0 || r<a.length){ if(r<a.length) out.push(a[r++]); if(l>=0) out.push(a[l--]); } return out; };
+
+                // Column + octave inventory (3..9)
+                const firstEl = safeAsc[0];
+                const column = firstEl?.closest ? firstEl.closest('.extension-column') : null;
+                if (!column) {
+                    // Fallback to simple slicing if we cannot resolve column
+                    const asc = safeAsc;
+                    const desc = asc.slice().reverse();
+                    switch(pattern){
+                        case 'up': return asc.slice(0, npc);
+                        case 'down': return desc.slice(0, npc);
+                        case 'updown': { const a = asc.slice(0, Math.max(npc, asc.length)); return a.concat(a.slice(0, Math.max(1,a.length-1)).reverse()); }
+                        case 'downup': { const d = desc.slice(0, Math.max(npc, desc.length)); return d.concat(d.slice(0, Math.max(1,d.length-1)).reverse()); }
+                        case 'alt-ends': return altEnds(asc).slice(0, npc);
+                        case 'alt-center': return altCenter(asc).slice(0, npc);
+                        case 'random': return asc.sort(()=>Math.random()-0.5).slice(0, npc);
+                        default: return asc.slice(0, npc);
+                    }
+                }
+
+                // Map desired step order from the base octave
+                const desiredSteps = safeAsc.map(r => parseInt(r.dataset?.edoStep||'NaN',10)).filter(n=>Number.isFinite(n));
+                const allStrings = Array.from(column.querySelectorAll('.strings-column .string'));
+                const byOct = new Map();
+                allStrings.forEach(r=>{
+                    const o = parseInt(r.dataset?.octave||'0',10);
+                    if (o>=3 && o<=9){ if(!byOct.has(o)) byOct.set(o,[]); byOct.get(o).push(r); }
+                });
+                // Align each octave's rows to base order
+                const alignOct = (o)=>{
+                    const grp = (byOct.get(o)||[]).slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0)-(parseFloat(b.dataset.frequency)||0));
+                    if (!grp.length) return [];
+                    if (!desiredSteps.length) return grp;
+                    const gMap = new Map(grp.map(r=> [parseInt(r.dataset.edoStep||'NaN',10), r]));
+                    const out = [];
+                    desiredSteps.forEach(st=>{ const rr = gMap.get(st); if(rr) out.push(rr); });
+                    return out.length? out : grp;
+                };
+                // Determine base octave
+                const baseOct = parseInt(safeAsc[0]?.dataset?.octave||'4',10);
+                const ascOcts = []; for(let o=baseOct; o<=9; o++) ascOcts.push(o);
+                const descOcts = []; for(let o=baseOct; o>=3; o--) descOcts.push(o);
+                const ladderAsc = ascOcts.flatMap(o=> alignOct(o));
+                const ladderDesc = descOcts.flatMap(o=> alignOct(o).slice().reverse());
+
+                const takeUp = ladderAsc.slice(0, npc);
+                const takeDown = ladderDesc.slice(0, npc);
+
+                // Walk patterns: produce overlapping triplets: 123,234,345,... (flattened)
+                const buildWalk = (ladder)=>{
+                    if (ladder.length < 3) return ladder.slice(0, npc);
+                    const out = [];
+                    for (let i=0; out.length < npc && i+2 < ladder.length; i++){
+                        out.push(ladder[i], ladder[i+1], ladder[i+2]);
+                    }
+                    return out.slice(0, npc);
+                };
+
+                switch(pattern){
+                    case 'up': return takeUp;
+                    case 'down': return takeDown;
+                    case 'updown': {
+                        const a = ladderAsc.slice();
+                        if (a.length<=1) return a;
+                        return a.concat(a.slice(0, a.length-1).reverse()); // full 1..N..1 shape
+                    }
+                    case 'downup': {
+                        const d = ladderDesc.slice();
+                        if (d.length<=1) return d;
+                        return d.concat(d.slice(0, d.length-1).reverse());
+                    }
+                    case 'walk-up': return buildWalk(ladderAsc);
+                    case 'walk-down': return buildWalk(ladderDesc);
+                    case 'alt-ends': return altEnds(takeUp.length? takeUp : ladderAsc).slice(0, npc);
+                    case 'alt-center': return altCenter(takeUp.length? takeUp : ladderAsc).slice(0, npc);
+                    case 'random': {
+                        const base = takeUp.length? takeUp : ladderAsc;
+                        return base.slice().sort(()=>Math.random()-0.5).slice(0, npc);
+                    }
+                    default: return takeUp.length? takeUp : ladderAsc.slice(0, npc);
+                }
+            }
+
+    _startArp(columnElement, clientY){
+        this._ensureArpDefaults();
+        this._ensureArpTransport();
+        // Suppress per-note panning auto-toggle while ARP owns alternation
+        this._suppressPanningAutoToggle = true;
+        // Capture UI values
+        try {
+            const bpmEl = document.getElementById('arpBpm');
+            const quantEl = document.getElementById('arpQuant');
+            const tupletEl = document.getElementById('arpTuplet');
+            const patEl = document.getElementById('arpPattern');
+            const npcEl = document.getElementById('arpNpc');
+            if (bpmEl) this._arp.bpm = Math.max(20, Math.min(300, parseInt(bpmEl.value)||120));
+            if (quantEl) this._arp.quant = quantEl.value || '1/8';
+            if (patEl) this._arp.pattern = patEl.value || 'up';
+            this._arp.tuplet = tupletEl ? Math.max(0, parseInt(tupletEl.value)||0) : 0;
+            if (npcEl) this._arp.npc = Math.max(1, Math.min(64, parseInt(npcEl.value)||3));
+            this._arp.gatePct = 50;
+        } catch(_){ }
+
+        // Build octave-restricted note list from tapped octave (restrict to 3–9)
+        const tappedOct = this._getTappedOctave(columnElement, clientY);
+        const rowsAll = Array.from(columnElement.querySelectorAll('.strings-column .string'));
+        const within = rowsAll.filter(r => {
+            const o = parseInt(r.dataset.octave||'0',10);
+            return o>=3 && o<=9 && (tappedOct==null || o===tappedOct);
+        });
+        const npc = Math.max(1, this._arp.npc|0);
+        const pat = this._arp.pattern || 'up';
+        const seq = this._buildArpSequence(within, pat).slice(0, npc);
+        this._arp.seq = seq;
+        // Prepare bass on the effective column root (octave 2)
+        try {
+            const tuning = this.currentTuning || 12;
+            const rootStep = this._getEffectiveColumnRootStep(columnElement);
+            this._arp.bassFreq = this.getFrequency(((rootStep%tuning)+tuning)%tuning, 2, tuning);
+        } catch(_) { this._arp.bassFreq = null; }
+        // Activate voice without resetting phase; keep transport phase continuous across chord changes
+        const wasActive = !!this._arp.active;
+        const transportRunning = !!(this._arpTransport && this._arpTransport.running);
+        this._arp.column = columnElement;
+        this._arp.active = true;
+        this._refreshArpTransportTiming();
+        if (!wasActive || !transportRunning) {
+            // First start: align to current grid
+            this._arp.startTickAlign = this._arpTransport.tickCounter;
+        }
+        this._startArpTransport();
+        try { this.highlightKeyboardForColumn(columnElement); this.currentActiveColumnEl = columnElement; } catch(_){ }
+    }
+
+            _stopArp(){
+                if (!this._arp) return;
+                // Deactivate the ARP voice but keep transport running; we'll stop after 1 bar if nothing resumes
+                this._arp.active = false;
+                this._arp.seq = [];
+                this._arp.column = null;
+                // Re-enable per-note panning auto-toggle when ARP voice stops
+                this._suppressPanningAutoToggle = false;
+                // Schedule transport stop at the next bar boundary if no activity resumes
+                this._scheduleTransportStopAfterInactivity();
+            }
+
             applyPlayModeToColumnVisual(column){
                 try {
                     const container = column.querySelector('.strings-column');
@@ -13112,7 +13518,8 @@
                     } else {
                         // Base ascending by frequency
                         const asc = rows.slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0)-(parseFloat(b.dataset.frequency)||0));
-                        seq = this.getPatternSequence(asc, mode);
+                        // For chords mode, keep default order (visual only)
+                        seq = (mode === 'chords') ? asc : this.getPatternSequence(asc, mode);
                     }
                     // Apply CSS order and store play order index based on first occurrence
                     const seen = new Set(); let orderIdx = 0;
@@ -13624,11 +14031,17 @@
                         
                         const chordData = this.getChordDataFromColumn(column, header);
                         if (chordData) {
-                            // Trigger a quick full-column strum instead of a context menu
-                            const rect = column.getBoundingClientRect();
-                            const startY = rect.top + Math.max(4, rect.height * 0.08);
-                            const endY = rect.bottom - Math.max(4, rect.height * 0.08);
-                            this.playChordStrum(column, chordData, startY, endY);
+                            if ((this.playMode || 'high-low') === 'chords') {
+                                const rect = column.getBoundingClientRect();
+                                const midY = rect.top + rect.height * 0.5;
+                                this.playChordChordsMode(column, midY);
+                            } else {
+                                // Trigger a quick full-column strum instead of a context menu
+                                const rect = column.getBoundingClientRect();
+                                const startY = rect.top + Math.max(4, rect.height * 0.08);
+                                const endY = rect.bottom - Math.max(4, rect.height * 0.08);
+                                this.playChordStrum(column, chordData, startY, endY);
+                            }
                         }
                     }, true); // Use capture phase for highest priority
                     
@@ -13712,11 +14125,16 @@
                         
                         const chordData = this.getChordDataFromColumn(column, header);
                         if (chordData) {
-                            // Trigger strum immediately on touch
                             const rect = column.getBoundingClientRect();
-                            const startY = rect.top + Math.max(4, rect.height * 0.08);
-                            const endY = rect.bottom - Math.max(4, rect.height * 0.08);
-                            this.playChordStrum(column, chordData, startY, endY);
+                            if ((this.playMode || 'high-low') === 'chords') {
+                                const midY = rect.top + rect.height * 0.5;
+                                this.playChordChordsMode(column, midY);
+                            } else {
+                                // Trigger strum immediately on touch
+                                const startY = rect.top + Math.max(4, rect.height * 0.08);
+                                const endY = rect.bottom - Math.max(4, rect.height * 0.08);
+                                this.playChordStrum(column, chordData, startY, endY);
+                            }
                         }
                     }, { passive: false });
                 });
@@ -13848,6 +14266,18 @@
                     } catch(_) {}
                     const stringIndex = stringElement.dataset.index;
                     const column = parseInt(stringElement.dataset.column) || stringElement.dataset.column;
+                    // Build a stable key for this string in its column
+                    const stringKey = `${column}|${stringIndex}`;
+                    // Identify pointer: mouse vs specific touch id (derive from event if needed)
+                    let pointerKey;
+                    if (touchId !== null && touchId !== undefined) {
+                        pointerKey = `t${touchId}`;
+                    } else if (event && typeof event === 'object' && 'identifier' in event && event.identifier !== undefined && event.identifier !== null) {
+                        pointerKey = `t${event.identifier}`;
+                    } else {
+                        pointerKey = 'mouse';
+                    }
+                    const lastKey = this._pointerLastStringKey.get(pointerKey);
                     const trackingSet = touchId !== null ? 
                         this.activeTouches.get(touchId)?.triggeredStrings : 
                         this.triggeredStrings;
@@ -13857,7 +14287,9 @@
                     const lastTrigger = stringElement.lastTriggerTime || 0;
                     const minInterval = 125; // 125ms minimum between triggers per string (≤8/s)
                     
-                    if (now - lastTrigger > minInterval) {
+                    // Skip retrigger if same pointer is still on the same string and sustain gesture is active
+                    const sameStringAsLast = (lastKey === stringKey);
+                    if (!sameStringAsLast && (now - lastTrigger > minInterval)) {
                         this.currentPlayingColumn = column;
                         // Try to cache actual column element and light keyboard
                         try {
@@ -13875,6 +14307,8 @@
                         this.updateCurrentChord(column);
                         
                         stringElement.lastTriggerTime = now;
+                        // Update last-hit key for this pointer
+                        this._pointerLastStringKey.set(pointerKey, stringKey);
                         
                         // Add to tracking for cleanup
                         if (trackingSet) {
@@ -13968,6 +14402,12 @@
             }
 
             playChordStrum(columnElement, chordData, startY, endY) {
+                // Chords mode: play all tones simultaneously in tapped octave + bass root, sustain until release
+                if ((this.playMode || 'high-low') === 'chords') {
+                    const tapY = (typeof startY === 'number' && typeof endY === 'number') ? (startY + endY) / 2 : (columnElement?.getBoundingClientRect()?.top || 0);
+                    this.playChordChordsMode(columnElement, tapY);
+                    return;
+                }
                 // Ensure audio is ready once for this strum
                 if (typeof this.ensureAudioContext === 'function') {
                     // Fire and forget; individual notes also guard, but this minimizes per-note overhead
@@ -14153,6 +14593,245 @@
                         console.log('?? Restored original settings after locked chord playback');
                     }, restoreDelay);
                 }
+            }
+
+            // New: Chords Play Mode implementation
+            playChordChordsMode(columnElement, clientY){
+                if (!columnElement) return;
+                try { this.ensureAudioContext && this.ensureAudioContext(); } catch(_){}
+                // Sustain gate active until mouseup/touchend
+                this._sustainActive = true;
+                this._chordsGestureActive = true;
+                // Reset pointer last-hit so over-strum can begin cleanly
+                try { this._pointerLastStringKey.set('mouse', null); } catch(_){ }
+
+                const tappedOct = this._getTappedOctave(columnElement, clientY);
+                // Anchor average octave on first chord tap in a gesture/session
+                if (this._chordsModeAnchorOctave == null) {
+                    const init = Number.isFinite(tappedOct) ? tappedOct : 3;
+                    this._chordsModeAnchorOctave = Math.max(3, Math.min(5, init));
+                }
+                const anchorOct = Math.max(3, Math.min(5, this._chordsModeAnchorOctave));
+
+                // Determine desired chord degrees (all tones) for this column
+                const desiredDegrees = this._getChordDegreesForColumn(columnElement);
+
+                // Compute a voice-led voicing near the anchor and last voicing
+                const pickedRows = this._pickNearestVoicingRows(columnElement, desiredDegrees, anchorOct, this._lastChordVoicing?.pitches || null, 1.5);
+
+                // As a fallback if selection fails, use the original octave group
+                let rowsToPlay = pickedRows && pickedRows.length ? pickedRows
+                    : (this._computeChordsModeTargets(columnElement, tappedOct).stringsInOctave || Array.from(columnElement.querySelectorAll('.strings-column .string')));
+
+                // Play selection simultaneously
+                rowsToPlay.forEach(string => {
+                    let frequency = parseFloat(string.dataset.frequency);
+                    if (!frequency || !isFinite(frequency) || frequency <= 0){
+                        try {
+                            const step = parseInt(string.dataset.noteIndex,10);
+                            const oct = parseInt(string.dataset.octave,10);
+                            const tuning = this.currentTuning || 12;
+                            if (Number.isFinite(step)) frequency = this.getFrequency(((step%tuning)+tuning)%tuning, Number.isFinite(oct)?oct:4, tuning);
+                        } catch(_){ }
+                    }
+                    if (frequency && isFinite(frequency) && frequency>0){
+                        this.playFrequency(frequency, null);
+                        try{ string.classList.add('active'); setTimeout(()=> string.classList.remove('active'), 120); }catch(_){ }
+                    }
+                });
+
+                // Compute bass independently: choose the closest chord tone in octave 2 (not part of voice-leading set)
+                try {
+                    const tuning = this.currentTuning || 12;
+                    const effRoot = this._getEffectiveColumnRootStep(columnElement);
+                    const degrees = desiredDegrees.slice();
+                    const cand = [];
+                    for (const d of degrees){
+                        const step = ((effRoot + ((d%tuning)+tuning)%tuning) % tuning + tuning) % tuning;
+                        const f = this.getFrequency(step, 2, tuning);
+                        if (f && isFinite(f) && f>0) cand.push({ step, f });
+                    }
+                    if (cand.length){
+                        let pick = null;
+                        if (typeof this._lastBassFreq === 'number' && this._lastBassFreq>0){
+                            // Choose candidate closest to previous bass in log2 space
+                            const lb = Math.log2(this._lastBassFreq);
+                            pick = cand.reduce((best, c)=>{
+                                const diff = Math.abs(Math.log2(c.f) - lb);
+                                return (!best || diff < best.diff) ? { c, diff } : best;
+                            }, null)?.c;
+                        }
+                        if (!pick){
+                            // Prefer the root at octave 2 if present; else pick the lowest frequency
+                            pick = cand.find(x=> x.step === (((effRoot%tuning)+tuning)%tuning)) || cand.slice().sort((a,b)=> a.f - b.f)[0];
+                        }
+                        if (pick){ this._lastBassFreq = pick.f; this.playFrequency(pick.f, null); }
+                    }
+                } catch(_) {}
+
+                // Remember last voicing (use log2 frequency positions for distance)
+                if (rowsToPlay && rowsToPlay.length){
+                    const toPitch = (el)=>{
+                        const f = parseFloat(el.dataset.frequency);
+                        return (f && f>0) ? Math.log2(f) : null;
+                    };
+                    const pitches = rowsToPlay.map(toPitch).filter(v=> v!=null).sort((a,b)=>a-b);
+                    const avgOct = (()=>{
+                        const arr = rowsToPlay.map(r=> parseFloat(r.dataset.octave)).filter(Number.isFinite);
+                        if (!arr.length) return anchorOct;
+                        return arr.reduce((a,b)=>a+b,0)/arr.length;
+                    })();
+                    this._lastChordVoicing = { pitches, avgOctave: avgOct };
+                }
+
+                try { this.highlightKeyboardForColumn(columnElement); this.currentActiveColumnEl = columnElement; } catch(_){}
+            }
+
+            // Determine all chord degrees (EDO steps) for a column's chord model
+            _getChordDegreesForColumn(column){
+                try {
+                    const id = column.dataset.chordId;
+                    let idx = -1;
+                    if (id) idx = (this.chordExtensions || []).findIndex(c => (String(c.id)===String(id)));
+                    if (idx < 0 && column.dataset.originalPosition != null) {
+                        const op = parseInt(column.dataset.originalPosition,10);
+                        if (!isNaN(op) && op >= 0) idx = op;
+                    }
+                    const model = (idx>=0)? this.chordExtensions[idx] : null;
+                    const EDO = (model?.fixedRootTuning) || this.currentTuning || 12;
+                    let ints = Array.isArray(model?.intervals) ? model.intervals.slice() : [];
+                    if (!ints.length) {
+                        // Try derive from rendered steps
+                        ints = this.getChordStepsForColumn(column);
+                    }
+                    // Unique and sort by semitone equivalence for stable order
+                    const uniq = Array.from(new Set(ints)).map(s=> ((s%EDO)+EDO)%EDO);
+                    uniq.sort((a,b)=> this.stepToSemitone(a, EDO) - this.stepToSemitone(b, EDO));
+                    return uniq;
+                } catch(_) {
+                    // Fallback to a major triad mapping if model lookup fails
+                    return [0,4,7].map(semi=> Math.round((semi * (this.currentTuning||12))/12));
+                }
+            }
+
+            // Choose a voicing minimizing motion to previous chord and constrained to maxSpanOct octaves
+            _pickNearestVoicingRows(column, desiredIntervals, anchorOct, lastLogPitches, maxSpanOct = 1.5){
+                try {
+                    const rows = Array.from(column.querySelectorAll('.strings-column .string'));
+                    if (!rows.length) return [];
+                    const tuning = this.currentTuning || 12;
+
+                    // Degree -> candidate rows
+                    const byDeg = new Map();
+                    desiredIntervals.forEach(iv=> byDeg.set(((iv%tuning)+tuning)%tuning, []));
+                    for (const r of rows){
+                        const deg = parseInt(r.dataset.interval,10);
+                        const oct = parseInt(r.dataset.octave,10);
+                        if (!Number.isFinite(deg) || !Number.isFinite(oct)) continue;
+                        const key = ((deg%tuning)+tuning)%tuning;
+                        if (!byDeg.has(key)) continue;
+                        // Exclude octave 2 from voice-leading candidates
+                        if (oct >= 3) byDeg.get(key).push(r);
+                    }
+                    const degs = Array.from(byDeg.keys());
+                    if (degs.length === 0) return [];
+            // Sort candidates per degree by octave, then proximity to anchor
+                    for (const [k, list] of byDeg.entries()){
+                        list.sort((a,b)=>{
+                            const oa = parseInt(a.dataset.octave,10)||0;
+                            const ob = parseInt(b.dataset.octave,10)||0;
+                if (oa !== ob) return oa - ob;
+                return Math.abs(oa - anchorOct) - Math.abs(ob - anchorOct);
+                        });
+                    }
+
+                    // Order degrees by semitone ascending for stable mapping to sorted previous pitches
+                    degs.sort((a,b)=> this.stepToSemitone(a, tuning) - this.stepToSemitone(b, tuning));
+
+                    // Build target pitch vector (log2) aligned to degree order
+                    const buildTargets = (N)=>{
+                        if (!Array.isArray(lastLogPitches) || lastLogPitches.length===0){
+                            return null; // anchor-driven selection only
+                        }
+                        const prev = lastLogPitches.slice().sort((x,y)=>x-y);
+                        const M = prev.length;
+                        if (M === N) return prev;
+                        const T = new Array(N);
+                        // Map indices proportionally
+                        for (let i=0;i<N;i++){
+                            const t = (i*(M-1))/(N-1);
+                            const lo = Math.floor(t), hi = Math.ceil(t);
+                            if (lo===hi) T[i] = prev[lo]; else T[i] = (prev[lo] + prev[hi]) / 2;
+                        }
+                        return T;
+                    };
+                    const targets = buildTargets(degs.length);
+
+                    // Greedy selection: per degree, choose row closest to target; avoid reusing the same element
+                    const chosen = [];
+                    const used = new Set();
+                    const log2f = (el)=>{ const f=parseFloat(el.dataset.frequency)||0; return (f>0)? Math.log2(f) : null; };
+                    degs.forEach((deg, i)=>{
+                        const list = byDeg.get(deg) || [];
+                        let best = null, bestCost = Infinity;
+                        for (const r of list){
+                            if (used.has(r)) continue;
+                            const p = log2f(r); if (p==null) continue;
+                            const oct = parseInt(r.dataset.octave,10)||0;
+                            let cost;
+                            if (targets){
+                                cost = Math.abs(p - targets[i]) + 0.25*Math.abs(oct - anchorOct);
+                            } else {
+                                cost = Math.abs(oct - anchorOct) + 0.001*Math.abs((parseFloat(r.dataset.frequency)||0) - 0);
+                            }
+                            if (cost < bestCost){ bestCost = cost; best = r; }
+                        }
+                        if (best){ used.add(best); chosen.push(best); }
+                    });
+                    if (!chosen.length) return [];
+
+                    // Span control with octave rolling
+                    const toPitches = ()=> chosen.map(log2f).filter(v=>v!=null).sort((a,b)=>a-b);
+                    const withinSpan = ()=>{
+                        const octs = chosen.map(r=> parseInt(r.dataset.octave,10)||0).sort((a,b)=>a-b);
+                        if (!octs.length) return true;
+                        return (octs[octs.length-1] - octs[0]) <= maxSpanOct + 1e-6;
+                    };
+                    const tryShift = (index, dir)=>{
+                        // dir: +1 move up to next higher candidate; -1 move down
+                        const deg = degs[index];
+                        const list = byDeg.get(deg) || [];
+                        if (!list.length) return false;
+                        const cur = chosen[index];
+                        const pos = list.indexOf(cur);
+                        let nextIdx = pos + dir;
+                        while (nextIdx>=0 && nextIdx<list.length){
+                            const cand = list[nextIdx];
+                            if (!cand || chosen.includes(cand)) { nextIdx += dir; continue; }
+                            chosen[index] = cand; return true;
+                        }
+                        return false;
+                    };
+
+                    let guard = 0;
+                    while (!withinSpan() && guard < 16){
+                        guard++;
+                        const octs = chosen.map(r=> parseInt(r.dataset.octave,10)||0).sort((a,b)=>a-b);
+                        const meanOct = octs.reduce((a,b)=>a+b,0)/octs.length;
+                        // If drifting upward, raise the lowest degree; else lower the highest (within 3..5)
+                        if (meanOct >= anchorOct){
+                            // find index of chosen with lowest pitch
+                            let minIdx = 0; let minVal = Infinity;
+                            chosen.forEach((r,i)=>{ const v = parseInt(r.dataset.octave,10)||0; if (v<minVal){ minVal=v; minIdx=i; } });
+                            if (!tryShift(minIdx, +1)) break;
+                        } else {
+                            let maxIdx = 0; let maxVal = -Infinity;
+                            chosen.forEach((r,i)=>{ const v = parseInt(r.dataset.octave,10)||0; if (v>maxVal){ maxVal=v; maxIdx=i; } });
+                            if (!tryShift(maxIdx, -1)) break;
+                        }
+                    }
+                    return chosen;
+                } catch(_) { return []; }
             }
 
             // Compute the set of current chord tones (relative steps) for a column
@@ -14676,8 +15355,10 @@
                         panValue = Math.sin(this.panning.rotationAngle) * this.panning.width;
                         break;
                     case 'alternating':
-                        // Alternating left/right
-                        this.panning.alternateState = !this.panning.alternateState;
+                        // Alternating left/right; when ARP is running, step-driven toggle occurs in scheduler
+                        if (!this._suppressPanningAutoToggle) {
+                            this.panning.alternateState = !this.panning.alternateState;
+                        }
                         panValue = (this.panning.alternateState ? 1 : -1) * this.panning.width;
                         break;
                     default:
@@ -14739,12 +15420,15 @@
                     }
                 }
                 
-                // Auto-release exactly at the end of decay to avoid infinite sustain on taps
-                const endOfDecayTime = Math.max(osc1DecayTime, osc2DecayTime);
-                const releaseDelayMs = Math.max(0, (endOfDecayTime - currentTime) * 1000);
-                const releaseTimeout = setTimeout(() => {
-                    this.stopFrequency(frequency, safeElement);
-                }, releaseDelayMs);
+                // Auto-release at end of decay unless sustain gesture is active (e.g., chords mode held)
+                let releaseTimeout = null;
+                if (!this._sustainActive) {
+                    const endOfDecayTime = Math.max(osc1DecayTime, osc2DecayTime);
+                    const releaseDelayMs = Math.max(0, (endOfDecayTime - currentTime) * 1000);
+                    releaseTimeout = setTimeout(() => {
+                        this.stopFrequency(frequency, safeElement);
+                    }, releaseDelayMs);
+                }
 
                 // Store oscillator data along with the exact ADSR values used at note start
                 this.activeOscillators.set(frequency, { 
@@ -14757,6 +15441,7 @@
                     osc1Gain,
                     osc2Gain,
                     releaseTimeout,
+                    element: safeElement,
                     startTime: currentTime,
                     env1: {
                         attack: this.envelope.attack,
@@ -14837,106 +15522,34 @@
             }
 
             stopAllStrings() {
-                // Stop all currently playing oscillators with proper release
-                for (const [frequency, oscData] of this.activeOscillators) {
-                    const { osc1, osc2, osc1Envelope, osc2Envelope, releaseTimeout } = oscData;
-                    
-                    if (releaseTimeout) {
-                        clearTimeout(releaseTimeout);
-                    }
-                    
+                // Snapshot active oscillators to avoid mutation during iteration
+                const entries = Array.from(this.activeOscillators.entries());
+                for (const [frequency, data] of entries) {
                     try {
-                        const currentTime = this.audioContext.currentTime;
-                        
-                        // Apply OSC 1 release envelope
-                        osc1Envelope.gain.cancelScheduledValues(currentTime);
-                        osc1Envelope.gain.setValueAtTime(osc1Envelope.gain.value, currentTime);
-                        osc1Envelope.gain.linearRampToValueAtTime(0, currentTime + this.envelope.release);
-                        
-                        // Apply OSC 2 release envelope
-                        osc2Envelope.gain.cancelScheduledValues(currentTime);
-                        osc2Envelope.gain.setValueAtTime(osc2Envelope.gain.value, currentTime);
-                        osc2Envelope.gain.linearRampToValueAtTime(0, currentTime + this.osc2Envelope.release);
-                        
-                        // Stop oscillators after the longer of the two release times
-                        const maxReleaseTime = Math.max(this.envelope.release, this.osc2Envelope.release);
-                        osc1.stop(currentTime + maxReleaseTime);
-                        osc2.stop(currentTime + maxReleaseTime);
-                        
-                    } catch (error) {
-                        console.warn('Error stopping oscillator:', error);
+                        this.stopFrequency(frequency, data.element || null);
+                    } catch (e) {
+                        console.warn('stopAllStrings: error stopping frequency', frequency, e);
                     }
                 }
-                
-                // Clear all tracking
-                this.activeOscillators.clear();
+                // Clear per-gesture tracking
                 this.triggeredStrings.clear();
-                
-                // Remove visual indicators
-                document.querySelectorAll('.string.active').forEach(el => {
-                    el.classList.remove('active');
-                });
             }
 
             // Tutorial System
             initTutorial() {
                 this.tutorialStep = 0;
                 this.tutorialSteps = [
-                    {
-                        title: "Welcome to OMGnichord",
-                        text: "Explore microtonal harmony in any EDO (24 by default). Click and strum columns; use + / - for global transpose.",
-                        highlight: null
-                    },
-                    {
-                        title: "Tuning (EDO)",
-                        text: "Set steps per octave (EDO). Microtonal ^ (up) and v (down) micro-steps in names and parsing microtonal chords.",
-                        highlight: "#edoQuickInput"
-                    },
-                    {
-                        title: "Playing Chords",
-                        text: "Click and drag on a chord column to strum. Each column is transposable, editable chord;",
-                        highlight: "#extensionColumns"
-                    },
-                    {
-                        title: "Sequences & Romans",
-                        text: "Click SEQUENCE to type chords or Roman numerals. Use ^ and v to micro-step roots: e.g., A^m, B^.",
-                        highlight: "#openTextChordParserBtn"
-                    },
-                    {
-                        title: "Creating New Chords",
-                        text: "Click + button to add new cnhord, then select intervals on the top row. It attempts to name your chord using the order of the notes.",
-                        highlight: "[data-action='newChord']"
-                    },
-                    {
-                        title: "Local vs Global Transpose",
-                        text: "Use + / - for global transpose. Use ▲▼ in a header for per-chord transpose without rebaking.",
-                        highlight: "#extensionColumns"
-                    },
-                    {
-                        title: "Master Volume",
-                        text: "Adjust overall loudness here.",
-                        highlight: "#masterVolume"
-                    },
-                    {
-                        title: "Effects Section",
-                        text: "Add reverb and control stereo panning.",
-                        highlight: "#effectsSection"
-                    },
-                    {
-                        title: "Oscillators",
-                        text: "Each oscillator has waveform selection, volume, coarse tuning, and ADSR envelope controls. Piano-locked chords remember their oscillator settings. Use the dice button to randomize for inspiration!",
-                        highlight: "#oscillatorsSection"
-                    },
-                    {
-                        title: "Saving & Loading",
-                        text: "Save your session and presets; load them later to continue. Sequence presets live in the SEQUENCE modal.",
-                        highlight: "#seqPresetDropdown"
-                    },
-                    {
-                        title: "Advanced",
-                        text: "Keyboard lights and edits honor effective pitch (global + local transpose). ^/v are preserved in labels.",
-                        highlight: "#extensionColumns"
-                    }
+                    { title: "Hi! Let's make music", text: "Tap the big + to add a chord. We'll build it together.", highlight: "#createNewChordBtn" },
+                    { title: "Pick your tuning (EDO)", text: "EDO = how many steps in an octave. Try 12, 19, or 24.", highlight: "#edoQuickInput" },
+                    { title: "Add notes on the top row", text: "Click the white/black circles or colored dots to add sounds. Pick at least two.", highlight: "#rootGrid" },
+                    { title: "Strum your chord", text: "Click and drag up/down the new box to hear it. Numbers 1–0 also trigger boxes!", highlight: "#extensionColumns" },
+                    { title: "Transpose everything", text: "Use the ▲ ▼ on the left of the keyboard or press + / - on your keys.", highlight: ".transpose-controls-left" },
+                    { title: "Try ARP mode", text: "Set PLAY to ARP, set a BPM and Quant, then hold a chord box to hear a pattern.", highlight: "#arpControls" },
+                    { title: "Change your sound", text: "Open OSCILLATORS and try Sine/Saw/Square, then tweak ADSR.", highlight: "#oscillatorsSection" },
+                    { title: "Add space & motion", text: "Open EFFECTS to add reverb or make the sound move left-right.", highlight: "#effectsSection" },
+                    { title: "Type a sequence", text: "Click SEQUENCE and type chords (like I IV V or C F G). Save as a preset.", highlight: "#openTextChordParserBtn" },
+                    { title: "Save your song", text: "Use the 💾 and ⬇️ buttons to save the session or export as .OMG.", highlight: "#bottomExportOMGBtn" },
+                    { title: "You're ready!", text: "Keep adding chords, strum, and experiment. Music rewards curiosity.", highlight: null }
                 ];
 
                 document.getElementById('tutorialButton').addEventListener('click', () => {
@@ -15176,8 +15789,8 @@
                 this.randomizeOscillator(1);
                 this.randomizeOscillator(2);
 
-                // Effects are intentionally not randomized.
-                this.randomizeEffects();
+                // Effects are NEVER randomized by dice (per requirements)
+                // this.randomizeEffects(); // disabled
 
                 // 🎹 RESTORE: Put back all piano-locked settings and presets after randomization
                 if (protectedPianoLocks.size > 0) {
@@ -15660,7 +16273,6 @@
     </script>
 </body>
 </html>
-
 
 
 
