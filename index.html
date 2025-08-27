@@ -728,6 +728,25 @@
             font-size:14px;
             min-height: 18px;
         }
+        /* Inline mode controls placed between transpose and keyboard */
+        .mode-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 10px 0 2px;
+            user-select: none;
+        }
+        .mode-controls .mode-btn {
+            background: #2a4858;
+            color: #e8f5ff;
+            border: 1px solid #4a6870;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .mode-controls .mode-btn.active { background: #3498db; border-color: #2980b9; }
         .piano-keyboard {
             position: relative;
             width: 66.666vw; /* fixed 2/3 viewport width */
@@ -1275,15 +1294,16 @@
             <button id="bottomSaveSeqBtn" class="panel-btn" title="Save current chord sequence as preset" style="padding:6px 10px;background:#10b981;border-color:#34d399;">💾</button>
             <button id="bottomImportOMGBtn" class="panel-btn" title="Import .OMG session" style="padding:6px 10px;background:#9b59b6;border-color:#8e44ad;">📂</button>
             <button id="bottomExportOMGBtn" class="panel-btn" title="Export full session (.OMG)" style="padding:6px 10px;background:#f59e0b;border-color:#fbbf24;">⬇️</button>
-            <label for="playModeSelect" style="font-size:11px;color:#9db6c8;">PLAY</label>
-            <select id="playModeSelect" title="Play Mode" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:11px;">
-                <option value="high-low" selected>High → Low</option>
-                <option value="low-high">Low → High</option>
-                <option value="alt-ends">Alt Ends</option>
-                <option value="alt-center">Alt Center</option>
-                <option value="chords">Chords</option>
-                <option value="arp">ARP</option>
-            </select>
+            
+            <div id="chordControls" style="display:none;align-items:center;gap:6px;">
+                <label for="chordSlide" style="font-size:11px;color:#9db6c8;">SLIDE</label>
+                <input id="chordSlide" type="checkbox" title="Enable voice-leading slide between chords" />
+                <div class="slider-container" style="margin-left:8px; min-width:140px; display:inline-block; vertical-align:middle;">
+                    <label for="chordGlideMs" style="font-size:11px;color:#9db6c8;">GLIDE</label>
+                    <input type="range" class="synth-slider" id="chordGlideMs" min="20" max="2000" value="300" style="height:20px; width:140px;">
+                    <div class="slider-value" id="chordGlideMsValue" style="font-size:9px;">300ms</div>
+                </div>
+            </div>
             <div id="arpControls" style="display:none;align-items:center;gap:6px;">
                 <label style="font-size:11px;color:#9db6c8;">BPM</label>
                 <input id="arpBpm" type="number" min="20" max="300" value="120" style="width:58px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
@@ -1320,6 +1340,13 @@
                 </select>
                 <label style="font-size:11px;color:#9db6c8;">NPC</label>
                 <input id="arpNpc" type="number" min="1" max="64" value="3" title="Notes Per Cycle" style="width:52px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
+                <label style="font-size:11px;color:#9db6c8;">CHG Q</label>
+                <select id="chordQuant" title="Quantize chord changes" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
+                    <option value="1/4" selected>1/4</option>
+                    <option value="1/8">1/8</option>
+                </select>
+                
+                <button id="metroToggle" title="Metronome" style="background:#1f3744;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 6px;font-size:11px;cursor:pointer;">METRO</button>
             </div>
             <label for="masterVolume" style="font-size:11px;color:#9db6c8;">MASTER</label>
             <input type="range" id="masterVolume" min="0" max="10" value="10" style="width:140px; accent-color:#2d9c5d;">
@@ -5716,11 +5743,9 @@
                     return;
                 }
                 
-                // Prefix the display name with current root (only if no root letter at start)
-                const rootName = this.getMicrotonalNoteName(this.currentRoot || 0);
-                const prefixedName = /^[A-G][#b]?/.test(name) ? name : `${rootName}${name}`;
+                // Use flavor-only name (no root injection)
                 const newChord = {
-                    name: prefixedName,
+                    name: name,
                     intervals: selectedIntervals,
                     isCustom: true,
                     id: Date.now(), // Unique ID
@@ -6582,22 +6607,101 @@
                 // Force compact one-octave voicing
                 this.splitExtendedChordsAcrossOctaves = false;
 
-        // Play Mode selector
+        // Play modes via inline buttons
         this.playMode = this.playMode || 'high-low';
-                const playModeSelect = document.getElementById('playModeSelect');
-                if (playModeSelect) {
-                    playModeSelect.value = this.playMode;
-                    playModeSelect.addEventListener('change', (e) => {
-            this.playMode = e.target.value || 'high-low';
-                        const ac = document.getElementById('arpControls');
-                        if (ac) ac.style.display = (this.playMode === 'arp') ? 'flex' : 'none';
-                        // Immediately reorder visible strings so the UI reflects the mode (skip for chords and arp)
-                        if (!['chords','arp'].includes(this.playMode) && typeof this.applyPlayModeToAllColumns === 'function') this.applyPlayModeToAllColumns();
-                    });
-                }
+        this.strumMode = this.strumMode || 'up'; // up | down | alternating
+        this.setPlayMode = (mode) => {
+            const valid = ['high-low','low-high','alt-ends','alt-center','chords','arp'];
+            this.playMode = valid.includes(mode) ? mode : 'high-low';
+            // Update UI visibility
+            const ac = document.getElementById('arpControls'); if (ac) ac.style.display = (this.playMode === 'arp') ? 'flex' : 'none';
+            const cc = document.getElementById('chordControls'); if (cc) cc.style.display = (this.playMode === 'chords') ? 'flex' : 'none';
+            // Reorder strings if strum modes
+            if (!['chords','arp'].includes(this.playMode) && typeof this.applyPlayModeToAllColumns === 'function') this.applyPlayModeToAllColumns();
+            // Toggle button states
+            this.updateModeUI?.();
+        };
+        this.cycleStrumMode = () => {
+            const order = ['up','down','alternating'];
+            const i = order.indexOf(this.strumMode);
+            this.strumMode = order[(i+1)%order.length];
+            const lbl = document.getElementById('strumLabel');
+            if (lbl) lbl.textContent = this.strumMode === 'alternating' ? 'Alt' : (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1));
+            // Map strum mode to internal playMode ordering
+            if (this.strumMode === 'up') this.setPlayMode('low-high');
+            else if (this.strumMode === 'down') this.setPlayMode('high-low');
+            else this.setPlayMode('alt-ends');
+        };
+        this.updateModeUI = () => {
+            const btnStrum = document.getElementById('modeStrum');
+            const btnCh = document.getElementById('modeChords');
+            const btnAr = document.getElementById('modeArp');
+            if (btnStrum) btnStrum.classList.toggle('active', !['chords','arp'].includes(this.playMode));
+            if (btnCh) btnCh.classList.toggle('active', this.playMode==='chords');
+            if (btnAr) btnAr.classList.toggle('active', this.playMode==='arp');
+        };
+        // Wire buttons when present
+        setTimeout(()=>{
+            const btnStrum = document.getElementById('modeStrum');
+            const btnCh = document.getElementById('modeChords');
+            const btnAr = document.getElementById('modeArp');
+            const lbl = document.getElementById('strumLabel');
+            if (lbl) lbl.textContent = this.strumMode==='alternating' ? 'Alt' : (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1));
+            if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.cycleStrumMode()); }
+            if (btnCh && !btnCh._wired){ btnCh._wired=true; btnCh.addEventListener('click', ()=> this.setPlayMode('chords')); }
+            if (btnAr && !btnAr._wired){ btnAr._wired=true; btnAr.addEventListener('click', ()=> this.setPlayMode('arp')); }
+            this.updateModeUI();
+            // Initialize panels visibility
+            const acInit = document.getElementById('arpControls'); if (acInit) acInit.style.display = (this.playMode === 'arp') ? 'flex' : 'none';
+            const ccInit = document.getElementById('chordControls'); if (ccInit) ccInit.style.display = (this.playMode === 'chords') ? 'flex' : 'none';
+        }, 0);
 
                 // Fixed strum delay (no menu)
                 this.strumDelayMs = 12;
+
+                // Chords slide state
+                this._chordSlideEnabled = !!document.getElementById('chordSlide')?.checked;
+                this._chordSlideActive = false;
+                this._chordSlideVoices = new Map(); // Map<stringRowEl, {freq,startLog2}>
+                this._chordSlideGroupId = 0;
+                this._chordSlideStartColumn = null;
+                this._chordSlideHoverColumn = null;
+                this._chordSlideHoverSince = 0;
+                this._chordSlideCommittedColumn = null;
+                this._lastChordSlideTime = 0;
+                this._chordSlideHoverCommitTimer = null;
+                // Idle-stop for CHORD slide mode
+                this._chordSlideIdleTimer = null;
+                this._chordSlideIdleMs = 2000; // stop sustaining ~2s after last activity
+                // Small dwell to avoid triggering intermediate boxes during fast slides (ms)
+                this._chordSlideDwellMs = 80; // default 80ms, target: 50–100ms
+                // Track last movement vector for direction-aware voice leading
+                this._chordSlideLastDX = 0;
+                this._chordSlideLastDY = 0;
+                this._lastChordSlideDeltaT = 0;
+                // Chord glide duration (ms) configurable via UI
+                this._chordGlideMs = (()=>{ const s=document.getElementById('chordGlideMs'); return s? Number(s.value)||300 : 300; })();
+                const chordSlideEl = document.getElementById('chordSlide');
+                if (chordSlideEl) {
+                    chordSlideEl.addEventListener('change', (e)=>{
+                        this._chordSlideEnabled = !!e.target.checked;
+                        if (!this._chordSlideEnabled) {
+                            try { clearTimeout(this._chordSlideIdleTimer); } catch(_) {}
+                            this._chordSlideIdleTimer = null;
+                            this._chordSlideActive = false;
+                        }
+                    });
+                }
+                const chordGlideSlider = document.getElementById('chordGlideMs');
+                const chordGlideVal = document.getElementById('chordGlideMsValue');
+                if (chordGlideSlider && !chordGlideSlider._wired){
+                    chordGlideSlider._wired = true;
+                    const renderVal = (v)=>{ if (chordGlideVal) chordGlideVal.textContent = `${Math.round(v)}ms`; };
+                    renderVal(this._chordGlideMs);
+                    chordGlideSlider.addEventListener('input', (e)=>{
+                        const v = Number(e.target.value)||300; this._chordGlideMs = Math.max(1, v); renderVal(this._chordGlideMs);
+                    });
+                }
 
                 // OSC 2 ADSR controls
                 const osc2AttackSlider = document.getElementById('osc2AttackSlider');
@@ -7091,21 +7195,36 @@
                     if (this.audioContext && this.audioContext.state === 'suspended') {
                         this.audioContext.resume();
                     }
-                    if ((this.playMode||'high-low') === 'arp') {
+            if ((this.playMode||'high-low') === 'arp') {
                         const hit = document.elementFromPoint(e.clientX, e.clientY);
                         const column = hit && hit.closest ? hit.closest('.extension-column') : null;
                         if (column) {
+                            // Begin ARP gesture: enable lateral sliding while held
+                            this._arpGestureActive = true;
+                            this._arpLastColumn = column;
                             this._startArp(column, e.clientY);
                             return;
                         }
                     }
                     // In Chords mode, tapping the strings area should play the whole chord for the tapped octave
-                    if ((this.playMode || 'high-low') === 'chords') {
+            if ((this.playMode || 'high-low') === 'chords') {
                         e.preventDefault();
                         const hit = document.elementFromPoint(e.clientX, e.clientY);
                         const column = hit && hit.closest ? hit.closest('.extension-column') : null;
                         if (column) {
-                            this.playChordChordsMode(column, e.clientY);
+                // Seed slide velocity tracking
+                this._lastChordSlideX = e.clientX;
+                this._lastChordSlideY = e.clientY;
+                this._lastChordSlideTime = performance.now(); this._markChordSlideActivity();
+                            // If slide is enabled, glide to the tapped column using the configured glide time.
+                            if (this._chordSlideEnabled && this._chordsGestureActive && this._chordSlideVoices && this._chordSlideVoices.size){
+                                this._chordSlideHoverColumn = column; this._chordSlideCommittedColumn = column; this._chordSlideHoverSince = performance.now();
+                                const targets = this._computeChordSlideTargets(column);
+                                this._retuneActiveChordVoicesToTargets(targets, 0);
+                                this._markChordSlideActivity();
+                            } else {
+                                this.playChordChordsMode(column, e.clientY);
+                            }
                         }
                         // Do not start per-string swipe processing
                         return;
@@ -7121,26 +7240,74 @@
                 });
                 
                 document.addEventListener('mousemove', (e) => {
+                    // ARP mode: lateral slide across columns schedules quantized chord switches
+                    if ((this.playMode||'high-low') === 'arp' && this._arpGestureActive) {
+                        const hit = document.elementFromPoint(e.clientX, e.clientY);
+                        const column = hit && hit.closest ? hit.closest('.extension-column') : null;
+                        if (column && column !== this._arpLastColumn) {
+                            this._arpLastColumn = column;
+                            this._startArp(column, e.clientY);
+                        }
+                        return;
+                    }
                     if (this.isPlayingStrings) {
                         this.handleStringTrigger(e);
                     } else if ((this.playMode||'high-low') === 'chords' && this._sustainActive) {
-                        // Allow strumming additional strings over a sustained chord
-                        this.handleStringTrigger(e);
+                        // In CHORD slide, don't trigger intermediates; just track the latest hovered column
+                        if (this._chordSlideActive) {
+                            const hit = document.elementFromPoint(e.clientX, e.clientY);
+                            const column = hit && hit.closest ? hit.closest('.extension-column') : null;
+                            const now = performance.now();
+                            // Track movement vector and dt
+                            const dx = (typeof this._lastChordSlideX==='number') ? (e.clientX - this._lastChordSlideX) : 0;
+                            const dy = (typeof this._lastChordSlideY==='number') ? (e.clientY - this._lastChordSlideY) : 0;
+                            const dt = Math.max(1, now - (this._lastChordSlideTime||now)); this._markChordSlideActivity();
+                            this._chordSlideLastDX = dx; this._chordSlideLastDY = dy; this._lastChordSlideDeltaT = dt;
+                            if (column){ this._chordSlideHoverColumn = column; /* hoverSince updated only when pointer slows */ }
+                            else { this._chordSlideHoverColumn = null; }
+                            this._lastChordSlideX = e.clientX; this._lastChordSlideY = e.clientY; this._lastChordSlideTime = now;
+                            // Debounce + dwell: when pointer slows or stops for dwellMs, glide once to hovered column
+                            clearTimeout(this._chordSlideHoverCommitTimer);
+                            const dwellMs = Math.max(30, Math.min(200, this._chordSlideDwellMs||80));
+                            this._chordSlideHoverCommitTimer = setTimeout(()=>{
+                                try{
+                                    if ((this.playMode||'high-low')==='chords' && this._chordSlideActive && this._chordsGestureActive && this._chordSlideHoverColumn){
+                                        this._chordSlideCommittedColumn = this._chordSlideHoverColumn; this._chordSlideHoverSince = performance.now();
+                                        const targets = this._computeChordSlideTargets(this._chordSlideHoverColumn);
+                                        this._retuneActiveChordVoicesToTargets(targets, 0); this._markChordSlideActivity();
+                                    }
+                                }catch(_){}
+                            }, dwellMs);
+                        } else {
+                            // Allow strumming additional strings over a sustained chord when slide is off
+                            this.handleStringTrigger(e);
+                        }
                     }
                 });
                 
-                document.addEventListener('mouseup', () => {
-                    if ((this.playMode||'high-low') === 'arp') {
-                        this._stopArp();
-                    }
+                document.addEventListener('mouseup', (e) => {
+                    if ((this.playMode||'high-low') === 'arp') { this._stopArp(); this._arpGestureActive = false; this._arpLastColumn = null; }
+                    clearTimeout(this._chordSlideHoverCommitTimer);
                     this.isPlayingStrings = false;
                     this.triggeredStrings.clear();
                     // End of mouse gesture: clear last-hit
                     this._pointerLastStringKey.delete('mouse');
-                    this.stopAllActiveNotes();
-                    if (this._chordsGestureActive) {
-                        this._sustainActive = false;
-                        this._chordsGestureActive = false;
+                    // If in CHORDS slide, settle to final hovered/target column and KEEP SUSTAINING (taps will glide)
+                    if ((this.playMode||'high-low')==='chords' && this._chordSlideActive && this._chordsGestureActive) {
+                        const hit = e ? document.elementFromPoint(e.clientX, e.clientY) : null;
+                        let column = hit && hit.closest ? hit.closest('.extension-column') : null;
+                        // Prefer committed column (dwelled) to skip intermediates
+                        column = this._chordSlideCommittedColumn || this._chordSlideHoverColumn || column || this.currentActiveColumnEl || null;
+                        if (column) {
+                            const targets = this._computeChordSlideTargets(column);
+                            this._retuneActiveChordVoicesToTargets(targets, 0); this._markChordSlideActivity();
+                        }
+                        // Do not stop or clear; keep sustaining so next tap glides smoothly
+                    } else {
+                        // Non-slide chords: end notes as before
+                        this.stopAllActiveNotes();
+                        try{ this._resetAllStringFrequencies(); }catch(_){ }
+                        if (this._chordsGestureActive) { this._sustainActive = false; this._chordsGestureActive = false; }
                     }
                     // Re-arm editing 500ms after strum ends
                     this._scheduleEditArm();
@@ -7152,7 +7319,7 @@
                     if (this.audioContext && this.audioContext.state === 'suspended') {
                         this.audioContext.resume();
                     }
-                    if ((this.playMode||'high-low') === 'arp') {
+            if ((this.playMode||'high-low') === 'arp') {
                         const all = Array.from(e.touches);
                         // Determine common column from first valid touch
                         let commonCol = null;
@@ -7178,13 +7345,16 @@
                             const oMax = Math.max(3, Math.min(9, Math.max(oTop??3, oBot??9)));
                             this._ensureArpDefaults();
                             this._arp.span = { active:true, yMin, yMax, octMin:oMin, octMax:oMax };
+                            this._arpGestureActive = true;
+                            this._arpLastColumn = commonCol;
                             this._startArp(commonCol, (yMin+yMax)/2);
+                            
                         } else {
                             // Single-finger: no span; just start from tapped octave
                             this._ensureArpDefaults();
                             this._arp.span = { active:false, yMin:null, yMax:null, octMin:null, octMax:null };
                             const t = sameColTouches[0] || e.changedTouches[0];
-                            if (t) this._startArp(commonCol, t.clientY);
+                            if (t) { this._arpGestureActive = true; this._arpLastColumn = commonCol; this._startArp(commonCol, t.clientY); }
                         }
                         return;
                     }
@@ -7194,7 +7364,17 @@
                             const hit = document.elementFromPoint(touch.clientX, touch.clientY);
                             const column = hit && hit.closest ? hit.closest('.extension-column') : null;
                             if (column) {
-                                this.playChordChordsMode(column, touch.clientY);
+                                // Seed slide velocity tracking for touch
+                                this._lastChordSlideX = touch.clientX;
+                                this._lastChordSlideY = touch.clientY;
+                                this._lastChordSlideTime = performance.now(); this._markChordSlideActivity();
+                                if (this._chordSlideEnabled && this._chordsGestureActive && this._chordSlideVoices && this._chordSlideVoices.size){
+                                    this._chordSlideHoverColumn = column; this._chordSlideCommittedColumn = column; this._chordSlideHoverSince = performance.now();
+                                    const targets = this._computeChordSlideTargets(column);
+                                    this._retuneActiveChordVoicesToTargets(targets, 0); this._markChordSlideActivity();
+                                } else {
+                                    this.playChordChordsMode(column, touch.clientY);
+                                }
                             }
                         });
                         return;
@@ -7214,17 +7394,60 @@
                 
                 extensionColumns.addEventListener('touchmove', (e) => {
                     e.preventDefault();
+                    // ARP mode: lateral slide across columns schedules quantized chord switches
+                    if ((this.playMode||'high-low')==='arp' && this._arpGestureActive) {
+                        const t = e.changedTouches[0] || (e.touches && e.touches[0]);
+                        if (t){
+                            const h = document.elementFromPoint(t.clientX, t.clientY);
+                            const c = h && h.closest ? h.closest('.extension-column') : null;
+                            if (c && c !== this._arpLastColumn) {
+                                this._arpLastColumn = c;
+                                this._startArp(c, t.clientY);
+                            }
+                        }
+                        return;
+                    }
                     if (this.isPlayingStrings || ((this.playMode||'high-low')==='chords' && this._sustainActive)) {
-                        Array.from(e.changedTouches).forEach(touch => {
-                            this.activeTouches.set(touch.identifier, touch);
-                            this.handleStringTrigger(touch);
-                        });
+                        // If in CHORDS mode with slide enabled, do not trigger intermediate columns; just track latest
+                        if ((this.playMode||'high-low')==='chords' && this._chordSlideActive) {
+                            const t = e.changedTouches[0];
+                            if (t){
+                                const h = document.elementFromPoint(t.clientX, t.clientY);
+                                const c = h && h.closest ? h.closest('.extension-column') : null;
+                                const now = performance.now();
+                                // Track movement vector and dt
+                                const dx = (typeof this._lastChordSlideX==='number') ? (t.clientX - this._lastChordSlideX) : 0;
+                                const dy = (typeof this._lastChordSlideY==='number') ? (t.clientY - this._lastChordSlideY) : 0;
+                                const dt = Math.max(1, now - (this._lastChordSlideTime||now)); this._markChordSlideActivity();
+                                this._chordSlideLastDX = dx; this._chordSlideLastDY = dy; this._lastChordSlideDeltaT = dt;
+                                if (c){ this._chordSlideHoverColumn = c; /* hoverSince updated only when finger slows */ }
+                                else { this._chordSlideHoverColumn = null; }
+                                this._lastChordSlideX = t.clientX; this._lastChordSlideY = t.clientY; this._lastChordSlideTime = now;
+                                // Debounce + dwell: when finger slows or stops for dwellMs, glide once to hovered column
+                                clearTimeout(this._chordSlideHoverCommitTimer);
+                                const dwellMs = Math.max(30, Math.min(200, this._chordSlideDwellMs||80));
+                                this._chordSlideHoverCommitTimer = setTimeout(()=>{
+                                    try{
+                                        if ((this.playMode||'high-low')==='chords' && this._chordSlideActive && this._chordsGestureActive && this._chordSlideHoverColumn){
+                                            this._chordSlideCommittedColumn = this._chordSlideHoverColumn; this._chordSlideHoverSince = performance.now();
+                                            const targets = this._computeChordSlideTargets(this._chordSlideHoverColumn);
+                                            this._retuneActiveChordVoicesToTargets(targets, 0); this._markChordSlideActivity();
+                                        }
+                                    }catch(_){}
+                                }, dwellMs);
+                            }
+                        } else {
+                            Array.from(e.changedTouches).forEach(touch => {
+                                this.activeTouches.set(touch.identifier, touch);
+                                this.handleStringTrigger(touch);
+                            });
+                        }
                     }
                 }, { passive: false });
                 
     extensionColumns.addEventListener('touchend', (e) => {
                     e.preventDefault();
-            if ((this.playMode||'high-low') === 'arp') { this._stopArp(); }
+            if ((this.playMode||'high-low') === 'arp') { this._stopArp(); this._arpGestureActive = false; this._arpLastColumn = null; }
                     Array.from(e.changedTouches).forEach(touch => {
                         this.activeTouches.delete(touch.identifier);
                         // Clear tracking for this touch pointer
@@ -7234,8 +7457,22 @@
                     if (this.activeTouches.size === 0) {
                         this.isPlayingStrings = false;
                         this.triggeredStrings.clear();
-            this.stopAllActiveNotes();
-        if (this._chordsGestureActive) { this._sustainActive = false; this._chordsGestureActive = false; }
+            // CHORD slide settle on release: keep sustaining (do not stop/clear) so taps glide
+            if ((this.playMode||'high-low')==='chords' && this._chordSlideActive && this._chordsGestureActive) {
+                clearTimeout(this._chordSlideHoverCommitTimer);
+                const t = e.changedTouches && e.changedTouches[0];
+                const h = t ? document.elementFromPoint(t.clientX, t.clientY) : null;
+                let c = h && h.closest ? h.closest('.extension-column') : null;
+                // Prefer committed column (dwelled) to skip intermediates
+                c = this._chordSlideCommittedColumn || this._chordSlideHoverColumn || c || this.currentActiveColumnEl || null;
+                if (c){ const targets = this._computeChordSlideTargets(c); this._retuneActiveChordVoicesToTargets(targets, 0); this._markChordSlideActivity(); }
+                // Keep sustaining; no stop/clear/reset here
+            } else {
+                this.stopAllActiveNotes();
+                try{ this._resetAllStringFrequencies(); }catch(_){ }
+                if (this._chordsGestureActive) { this._sustainActive = false; this._chordsGestureActive = false; }
+            }
+        
             this._scheduleEditArm();
                     }
                 }, { passive: false });
@@ -7251,6 +7488,9 @@
                         this.isPlayingStrings = false;
                         this.triggeredStrings.clear();
                         this.stopAllActiveNotes();
+            // Clear ARP slide tracking
+            this._arpGestureActive = false; this._arpLastColumn = null;
+            
             this._scheduleEditArm();
                     }
                 }, { passive: false });
@@ -7461,8 +7701,25 @@
                             this._arp.span = { active:false, yMin:null, yMax:null, octMin:null, octMax:null };
                             this._startArp(column, centerY);
                         } else if ((this.playMode||'high-low') === 'chords') {
-                            // Chords mode: play simultaneous chord in tapped octave
-                            this.playChordChordsMode(column, centerY);
+                            // Chords mode: if slide enabled, glide to this chord over 2 beats; else play immediately
+                            if (this._chordSlideEnabled) {
+                                // On first key press, if no active chord, start it immediately
+                                if (!this._chordsGestureActive) {
+                                    this.playChordChordsMode(column, centerY);
+                                } else {
+                                    // Compute 2-beat duration from transport BPM (default 120)
+                                    const bpm = (this._arp?.bpm) || 120;
+                                    const beatMs = 60000 / bpm;
+                                    const twoBeatsMs = 2 * beatMs;
+                                    const targets = this._computeChordSlideTargets(column);
+                                    // Use negative velocity hint to stretch to max
+                                    this._retuneActiveChordVoicesToTargets(targets, 0);
+                                    // Optionally, we could force a minimal gliss time by scheduling a follow-up exact settle after two beats
+                                    setTimeout(()=>{ try{ this._retuneActiveChordVoicesToTargets(targets, 0); }catch(_){ } }, Math.max(50, twoBeatsMs));
+                                }
+                            } else {
+                                this.playChordChordsMode(column, centerY);
+                            }
                         } else {
                             // Other modes: simulate a short swipe strum across the center
                             this.playChordStrum(column, { name: header.textContent }, centerY - 10, centerY + 10);
@@ -11048,9 +11305,66 @@
                     leftControls.appendChild(delta);
                     leftControls.appendChild(down);
                     row.appendChild(leftControls);
+                    // Insert mode controls container right after transpose controls
+                    const modes = document.createElement('div');
+                    modes.className = 'mode-controls';
+                    modes.innerHTML = `
+                        <button id="modeStrum" class="mode-btn" title="Cycle strum direction">Strum: <span id="strumLabel">Up</span></button>
+                        <button id="modeChords" class="mode-btn" title="Chord sustain/slide mode">Chords</button>
+                        <button id="modeArp" class="mode-btn" title="Arpeggiator mode">Arpeggio</button>
+                    `;
+                    row.appendChild(modes);
+                    // Wire mode buttons immediately
+                    try {
+                        const btnStrum = modes.querySelector('#modeStrum');
+                        const btnCh = modes.querySelector('#modeChords');
+                        const btnAr = modes.querySelector('#modeArp');
+                        const lbl = modes.querySelector('#strumLabel');
+                        if (lbl) lbl.textContent = (this.strumMode==='alternating') ? 'Alt' : (this.strumMode? (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1)) : 'Up');
+                        if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.cycleStrumMode()); }
+                        if (btnCh && !btnCh._wired){ btnCh._wired=true; btnCh.addEventListener('click', ()=> this.setPlayMode('chords')); }
+                        if (btnAr && !btnAr._wired){ btnAr._wired=true; btnAr.addEventListener('click', ()=> this.setPlayMode('arp')); }
+                        this.updateModeUI?.();
+                    } catch(_) { }
                 } else {
                     const delta = leftControls.querySelector('#transposeDelta');
                     if (delta) delta.textContent = String(this.transposeDelta || 0);
+                    // Ensure mode controls exist even if row was previously created
+                    if (!row.querySelector('.mode-controls')){
+                        const modes = document.createElement('div');
+                        modes.className = 'mode-controls';
+                        modes.innerHTML = `
+                            <button id="modeStrum" class="mode-btn" title="Cycle strum direction">Strum: <span id=\"strumLabel\">Up</span></button>
+                            <button id="modeChords" class="mode-btn" title="Chord sustain/slide mode">Chords</button>
+                            <button id="modeArp" class="mode-btn" title="Arpeggiator mode">Arpeggio</button>
+                        `;
+                        row.appendChild(modes);
+                        // After injection, refresh wiring/state and wire events
+                        try {
+                            const btnStrum = modes.querySelector('#modeStrum');
+                            const btnCh = modes.querySelector('#modeChords');
+                            const btnAr = modes.querySelector('#modeArp');
+                            const lbl = modes.querySelector('#strumLabel');
+                            if (lbl) lbl.textContent = (this.strumMode==='alternating') ? 'Alt' : (this.strumMode? (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1)) : 'Up');
+                            if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.cycleStrumMode()); }
+                            if (btnCh && !btnCh._wired){ btnCh._wired=true; btnCh.addEventListener('click', ()=> this.setPlayMode('chords')); }
+                            if (btnAr && !btnAr._wired){ btnAr._wired=true; btnAr.addEventListener('click', ()=> this.setPlayMode('arp')); }
+                            this.updateModeUI?.();
+                        } catch(_) { }
+                    } else {
+                        // If controls exist but weren't wired yet, wire them now
+                        try {
+                            const btnStrum = row.querySelector('#modeStrum');
+                            const btnCh = row.querySelector('#modeChords');
+                            const btnAr = row.querySelector('#modeArp');
+                            const lbl = row.querySelector('#strumLabel');
+                            if (lbl) lbl.textContent = (this.strumMode==='alternating') ? 'Alt' : (this.strumMode? (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1)) : 'Up');
+                            if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.cycleStrumMode()); }
+                            if (btnCh && !btnCh._wired){ btnCh._wired=true; btnCh.addEventListener('click', ()=> this.setPlayMode('chords')); }
+                            if (btnAr && !btnAr._wired){ btnAr._wired=true; btnAr.addEventListener('click', ()=> this.setPlayMode('arp')); }
+                            this.updateModeUI?.();
+                        } catch(_) { }
+                    }
                 }
                 // Reuse existing keyboard element to avoid layout shift flicker
                 let keyboard = row.querySelector('.piano-keyboard');
@@ -13178,24 +13492,35 @@
             _ensureArpDefaults(){
                 if (this._arp) return;
                 this._arp = {
-                    running: false,
-                    timer: null,
                     bpm: 120,
-                    quant: '1/8',
-                    gatePct: 50,
-                    pattern: 'up',
+                    quant: '1/16',
                     tuplet: 0,
+                    chordQuant: '1/4',
                     npc: 3,
+                    pattern: 'up',
+                    gatePct: 50,
+                    // Sequence/chord state
+                    active: false,
                     seq: [],
-                    bassFreq: null,
-                    // Voice/sequence state consumed by transport ticks
-                    idx: 0,
                     column: null,
                     span: { active:false, yMin:null, yMax:null, octMin:null, octMax:null },
-                    active: false,
                     startTickAlign: 0,
-                    gateMs: 0
+                    gateMs: 0,
+                    pendingSwitch: null,
+                    // Bass state
+                    bassFreq: null,
+                    bassVoice: null,
+                    bassLiveFreq: null,
+                    bassHold: true,
+                    // Lead glide state
+                    glide: false,
+                    glideMs: null,
+                    leadVoice: null,
+                    leadLiveFreq: null
                 };
+                // Precompute a gateMs based on current tick length if transport exists
+                const tickMs = this._arpTransport?.tickMs || 250;
+                this._arp.gateMs = Math.max(5, Math.floor(((this._arp.gatePct||50)/100) * tickMs));
             }
 
             // Global ARP transport: keeps a shared bar-aligned clock so chord changes stay in time
@@ -13218,7 +13543,9 @@
                     lastActiveTick: 0,
                     lastActiveAbsTick: 0,
                     inactivityStopScheduled: false,
-                    stopAtBarIndex: null
+                    stopAtBarIndex: null,
+                    metronomeOn: false,
+                    _metroLastClickAt: 0
                 };
             }
 
@@ -13226,10 +13553,10 @@
                 this._ensureArpDefaults();
                 this._ensureArpTransport();
                 const bpm = Math.max(20, this._arp?.bpm || this._arpTransport.bpm || 120);
-                const quant = (this._arp?.quant || this._arpTransport.quant || '1/8');
+                const quant = (this._arp?.quant || this._arpTransport.quant || '1/16');
                 const tuplet = Math.max(0, this._arp?.tuplet || 0);
                 const beatMs = 60000 / bpm;
-                let ticksPerBeat = 2; // default for 1/8
+                let ticksPerBeat = 4; // default for 1/16
                 let tickMs;
                 if (tuplet > 0){
                     ticksPerBeat = tuplet; // N notes per beat
@@ -13238,7 +13565,7 @@
                     const tri = q => q.endsWith('T');
                     const base = quant.replace('T','');
                     const map = { '1/1':1, '1/2':2, '1/4':4, '1/8':8, '1/16':16, '1/32':32 };
-                    const div = map[base] || 8;
+                    const div = map[base] || 16;
                     // quarter note is 1 beat; 1/div of whole note = (4/div) beats per tick
                     const beatsPerTick = tri(quant) ? ((4/div) * (2/3)) : (4/div);
                     ticksPerBeat = Math.max(1, Math.round(1/Math.max(1e-6, beatsPerTick)));
@@ -13265,6 +13592,50 @@
                 const runTick = ()=>{
                     if (!this._arpTransport.running) return;
                     const t = (performance && performance.now) ? performance.now() : Date.now();
+                    // Metronome click on beat, accented downbeat
+                    try {
+                        if (this._arpTransport.metronomeOn) {
+                            const isBeat = (this._arpTransport.tickCounter % (this._arpTransport.ticksPerBeat||1)) === 0;
+                            if (isBeat) {
+                                const isDownbeat = this._arpTransport.tickCounter === 0;
+                                const freq = isDownbeat ? 1400 : 1000;
+                                const dur = Math.max(10, Math.min(40, Math.floor(this._arpTransport.tickMs * 0.35)));
+                                this._clickMetronome(freq, dur);
+                            }
+                        }
+                    } catch(_) { }
+
+                    // Apply any pending chord/arp switch if it's time
+                    try {
+                        if (this._arp?.pendingSwitch) {
+                            const ps = this._arp.pendingSwitch;
+                            const nowAbs = this._arpTransport.absTickCounter|0;
+                            if (ps.atAbsTick != null && nowAbs >= ps.atAbsTick) {
+                                // Align new sequence to current transport phase if requested
+                                if (ps.alignPhaseToTickCounter) {
+                                    this._arp.startTickAlign = this._arpTransport.tickCounter;
+                                }
+                                // Activate with prepared data
+                                this._arp.seq = Array.isArray(ps.seq) ? ps.seq : (this._arp.seq||[]);
+                                this._arp.bassFreq = Number.isFinite(ps.bassFreq)? ps.bassFreq : this._arp.bassFreq;
+                                this._arp.column = ps.column || this._arp.column;
+                                // Store morph state for GLIDE
+                                if (ps.morph){
+                                    this._arp.morph = {
+                                        startAbsTick: nowAbs,
+                                        source: Array.isArray(ps.morph.source)? ps.morph.source.slice():[],
+                                        currentTargets: Array.isArray(ps.morph.target)? ps.morph.target.slice():[],
+                                        target: Array.isArray(ps.morph.target)? ps.morph.target.slice():[]
+                                    };
+                                } else {
+                                    this._arp.morph = null;
+                                }
+                                this._arp.active = true;
+                                this._arp.pendingSwitch = null;
+                            }
+                        }
+                    } catch(_) { }
+
                     // Play any active ARP voice aligned to global tickCounter
                     try {
                         if (this._arp && this._arp.active && this._arp.seq && this._arp.seq.length){
@@ -13281,13 +13652,63 @@
                                     if (Number.isFinite(step)) f = this.getFrequency(((step%tuning)+tuning)%tuning, Number.isFinite(oct)?oct:4, tuning);
                                 }catch(_){ }
                             }
+                            const tuner = this.currentTuning || 12;
+                            const glideMs = Number.isFinite(this._arp.glideMs) && this._arp.glideMs>0 ? this._arp.glideMs : Math.max(10, Math.min(4000, Number(this._chordGlideMs)||300));
+
+                            // Lead note behavior
                             if (f && isFinite(f) && f>0){
-                                this.playFrequency(f, null);
-                                setTimeout(()=>{ try { this.stopFrequency(f, null); } catch(_){} }, gateMs);
+                                if (this._arp.glide && this._arp.morph && Array.isArray(this._arp.morph.source) && this._arp.morph.source.length){
+                                    // Determine index of this element within ascending map for consistent mapping
+                                    let idxInMap = -1;
+                                    try {
+                                        const row = el;
+                                        const rf = parseFloat(row?.dataset?.frequency);
+                                        const map = this._arp.pendingSwitch?.mapAsc || this._arp.mapAsc || [];
+                                        const asc = map.length? map : seq.slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0)-(parseFloat(b.dataset.frequency)||0));
+                                        const fi = asc.map(r=> parseFloat(r.dataset.frequency)||0);
+                                        const targetList = this._arp.morph.target || [];
+                                        const closest = targetList.map((tf,i)=> ({i, d: Math.abs(tf - f)})).sort((a,b)=> a.d-b.d)[0];
+                                        idxInMap = closest ? closest.i : Math.min(fi.length-1, Math.max(0, fi.indexOf(f)));
+                                    } catch(_){ idxInMap = 0; }
+                                    // Compute morph progress over glideMs from morph.startAbsTick
+                                    const startAt = this._arp.morph.startAbsTick || 0;
+                                    const ticksSince = Math.max(0, (this._arpTransport.absTickCounter|0) - startAt);
+                                    const tMs = ticksSince * (this._arpTransport.tickMs||0);
+                                    const p = Math.max(0, Math.min(1, tMs / glideMs));
+                                    const a = this._arp.morph.source[idxInMap] ?? f;
+                                    const b = this._arp.morph.target[idxInMap] ?? f;
+                                    const cur = a * Math.pow(2, (Math.log2(b/a) * p)); // exponential interp in frequency domain
+                                    // Gate this step at the morphed frequency
+                                    this.playFrequency(cur, null);
+                                    setTimeout(()=>{ try { this.stopFrequency(cur, null); } catch(_){ } }, gateMs);
+                                } else {
+                                    // Original gated per-step behavior
+                                    this.playFrequency(f, null);
+                                    setTimeout(()=>{ try { this.stopFrequency(f, null); } catch(_){} }, gateMs);
+                                }
                             }
-                            if (this._arp.bassFreq && isFinite(this._arp.bassFreq) && this._arp.bassFreq>0){
-                                this.playFrequency(this._arp.bassFreq, null);
-                                setTimeout(()=>{ try { this.stopFrequency(this._arp.bassFreq, null); } catch(_){} }, gateMs);
+
+                            // Bass: sustained root, gliding on chord changes, not arpeggiated or gated
+                            if (this._arp.bassFreq && isFinite(this._arp.bassFreq) && this._arp.bassFreq>0 && this._arp.bassHold!==false){
+                                const bf = this._arp.bassFreq;
+                                if (!this._arp.bassVoice){
+                                    this.playFrequency(bf, null);
+                                    const v = this.activeOscillators.get(bf);
+                                    if (v){
+                                        try { if (v.releaseTimeout) { clearTimeout(v.releaseTimeout); v.releaseTimeout = null; } } catch(_){ }
+                                        this._arp.bassVoice = v; this._arp.bassLiveFreq = bf;
+                                    }
+                                } else if (this._arp.bassLiveFreq !== bf) {
+                                    const v = this._arp.bassVoice; const ctxNow = this.audioContext?.currentTime || 0; const timeEnd = ctxNow + glideMs/1000;
+                                    const f1 = bf * Math.pow(2, this.oscillators.osc1.octave + ((this.oscillators.osc1.detune + (this.oscillators.osc1.coarse * (1200 / tuner))) / 1200));
+                                    const f2 = bf * Math.pow(2, this.oscillators.osc2.octave + ((this.oscillators.osc2.detune + (this.oscillators.osc2.coarse * (1200 / tuner))) / 1200));
+                                    try {
+                                        if (v.osc1?.frequency?.cancelScheduledValues){ v.osc1.frequency.cancelScheduledValues(ctxNow); v.osc1.frequency.setTargetAtTime(v.osc1.frequency.value, ctxNow, 0.015); v.osc1.frequency.linearRampToValueAtTime(f1, timeEnd); }
+                                        if (v.osc2?.frequency?.cancelScheduledValues){ v.osc2.frequency.cancelScheduledValues(ctxNow); v.osc2.frequency.setTargetAtTime(v.osc2.frequency.value, ctxNow, 0.015); v.osc2.frequency.linearRampToValueAtTime(f2, timeEnd); }
+                                    } catch(_){ }
+                                    try { if (this.activeOscillators.has(this._arp.bassLiveFreq)) { const obj = this.activeOscillators.get(this._arp.bassLiveFreq); this.activeOscillators.delete(this._arp.bassLiveFreq); this.activeOscillators.set(bf, obj); } } catch(_){ }
+                                    this._arp.bassLiveFreq = bf;
+                                }
                             }
                             // Alternate panning on each step
                             try { if (this.panning && this.panning.mode === 'alternating') this.panning.alternateState = !this.panning.alternateState; } catch(_){ }
@@ -13303,7 +13724,8 @@
                     this._arpTransport.absTickCounter = (this._arpTransport.absTickCounter + 1) >>> 0; // keep as non-negative int
                     this._arpTransport.nextAt += this._arpTransport.tickMs;
                     // If inactivity is scheduled and still no active ARP voice, stop after a full empty bar at bar boundary
-                    if (this._arpTransport.inactivityStopScheduled && (!this._arp || !this._arp.active)){
+                    // Keep transport running if metronome is on
+                    if (!this._arpTransport.metronomeOn && this._arpTransport.inactivityStopScheduled && (!this._arp || !this._arp.active)){
                         const tpBar = this._arpTransport.ticksPerBar || 16;
                         const curBarIdx = Math.floor(this._arpTransport.absTickCounter / tpBar);
                         if (this._arpTransport.stopAtBarIndex != null && curBarIdx >= this._arpTransport.stopAtBarIndex && this._arpTransport.tickCounter === 0){
@@ -13344,6 +13766,29 @@
                 let dur = beatMs * (4/div);
                 if (tri(quant)) dur *= 2/3; // triplet
                 return dur;
+            }
+
+            // Very short click routed to the existing voice chain (no reverb)
+            _clickMetronome(freq, durMs){
+                try {
+                    if (!this.audioContext) return;
+                    const ctx = this.audioContext;
+                    const osc = ctx.createOscillator();
+                    const amp = ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.value = Math.max(100, Math.min(3000, freq||1000));
+                    amp.gain.value = 0.0001;
+                    // Short click envelope
+                    const now = ctx.currentTime;
+                    amp.gain.setValueAtTime(0.0001, now);
+                    amp.gain.exponentialRampToValueAtTime(0.5, now + 0.002);
+                    amp.gain.exponentialRampToValueAtTime(0.0001, now + Math.max(0.015, (durMs||20)/1000));
+                    // Route before reverb, to final mix dry path
+                    osc.connect(amp);
+                    amp.connect(this._drive ? this._drive.input : this.finalMixer || this.audioContext.destination);
+                    osc.start();
+                    osc.stop(now + Math.max(0.02, (durMs||20)/1000 + 0.005));
+                } catch(_) { }
             }
 
             _buildArpSequence(rows, pattern){
@@ -13444,15 +13889,21 @@
         try {
             const bpmEl = document.getElementById('arpBpm');
             const quantEl = document.getElementById('arpQuant');
+            const chordQuantEl = document.getElementById('chordQuant');
             const tupletEl = document.getElementById('arpTuplet');
             const patEl = document.getElementById('arpPattern');
             const npcEl = document.getElementById('arpNpc');
+            const glideBtn = document.getElementById('arpGlideToggle');
+            const glideMsEl = document.getElementById('arpGlideMs');
             if (bpmEl) this._arp.bpm = Math.max(20, Math.min(300, parseInt(bpmEl.value)||120));
-            if (quantEl) this._arp.quant = quantEl.value || '1/8';
+            if (quantEl) this._arp.quant = quantEl.value || '1/16';
+            if (chordQuantEl) this._arp.chordQuant = chordQuantEl.value || '1/4';
             if (patEl) this._arp.pattern = patEl.value || 'up';
             this._arp.tuplet = tupletEl ? Math.max(0, parseInt(tupletEl.value)||0) : 0;
             if (npcEl) this._arp.npc = Math.max(1, Math.min(64, parseInt(npcEl.value)||3));
             this._arp.gatePct = 50;
+            if (glideBtn) this._arp.glide = !!glideBtn.classList.contains('active');
+            if (glideMsEl) this._arp.glideMs = Math.max(1, Number(glideMsEl.value)||300);
         } catch(_){ }
 
         // Build octave-restricted note list from tapped octave (restrict to 3–9)
@@ -13464,27 +13915,292 @@
         });
         const npc = Math.max(1, this._arp.npc|0);
         const pat = this._arp.pattern || 'up';
-        const seq = this._buildArpSequence(within, pat).slice(0, npc);
-        this._arp.seq = seq;
+    // Base ascending order for mapping (low->high), first npc items
+    const asc = within.slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0) - (parseFloat(b.dataset.frequency)||0));
+    const mapAsc = asc.slice(0, npc);
+    let seq = this._buildArpSequence(within, pat).slice(0, npc);
+        // Directional strum shift in ARP: move order by one note based on vertical motion
+        try {
+            if (typeof clientY === 'number'){
+                const lastY = this._arp._lastStartY;
+                const dy = (typeof lastY==='number') ? (clientY - lastY) : 0;
+                this._arp._lastStartY = clientY;
+                if (dy < -6 && seq.length>1){ // upward motion: rotate left
+                    const first = seq.shift(); seq.push(first);
+                } else if (dy > 6 && seq.length>1){ // downward motion: rotate right
+                    const last = seq.pop(); seq.unshift(last);
+                }
+            }
+        } catch(_){ }
+    this._arp.seq = seq;
         // Prepare bass on the effective column root (octave 2)
         try {
             const tuning = this.currentTuning || 12;
             const rootStep = this._getEffectiveColumnRootStep(columnElement);
             this._arp.bassFreq = this.getFrequency(((rootStep%tuning)+tuning)%tuning, 2, tuning);
         } catch(_) { this._arp.bassFreq = null; }
-        // Activate voice without resetting phase; keep transport phase continuous across chord changes
-        const wasActive = !!this._arp.active;
-        const transportRunning = !!(this._arpTransport && this._arpTransport.running);
-        this._arp.column = columnElement;
-        this._arp.active = true;
-        this._refreshArpTransportTiming();
-        if (!wasActive || !transportRunning) {
-            // First start: align to current grid
-            this._arp.startTickAlign = this._arpTransport.tickCounter;
-        }
+        // Decide when to apply this change based on chord-change quant and bar position
+        const tpBeat = this._arpTransport.ticksPerBeat || 1;
+        const tpBar = this._arpTransport.ticksPerBar || (tpBeat*4);
+        const chordQ = (this._arp && this._arp.chordQuant) ? this._arp.chordQuant : '1/4';
+        const qMap = { '1/1': tpBar, '1/2': tpBar/2, '1/4': tpBar/4, '1/8': tpBar/8, '1/16': tpBar/16 };
+        const qTicks = Math.max(1, Math.floor(qMap[chordQ] || (tpBar/4)));
+        const curTick = this._arpTransport.tickCounter|0;
+        const absTick = this._arpTransport.absTickCounter|0;
+        // Next boundary at chosen quant
+        const offsetInQ = curTick % qTicks;
+        let ticksToBoundary = (offsetInQ === 0) ? 0 : (qTicks - offsetInQ);
+    // Special rule: if we're late in the bar (last beat), wait for the next bar's downbeat; otherwise, change at the next quant boundary
+    const inLastBeatOfBar = curTick >= (tpBar - tpBeat);
+    const ticksToNextBar = (tpBar - (curTick % tpBar)) % tpBar;
+    const targetAbsTick = inLastBeatOfBar ? (absTick + ticksToNextBar) : (absTick + ticksToBoundary);
+    const alignToCurrentPhase = false; // preserve transport phase so step index reflects current bar position
+
+        // Prepare morph mapping for GLIDE mode: nearest-neighbor source→target sets
+        let targetFreqs = [];
+        try {
+            const tuning = this.currentTuning || 12;
+            targetFreqs = mapAsc.map(r=>{
+                const step = parseInt(r.dataset.noteIndex,10);
+                const oct = parseInt(r.dataset.octave,10);
+                const s = ((step%tuning)+tuning)%tuning; return this.getFrequency(s, Number.isFinite(oct)?oct:4, tuning);
+            }).filter(f=> isFinite(f) && f>0);
+        } catch(_){ targetFreqs = []; }
+        // Source set: previous targets if available; else current targets (no jump)
+        let sourceFreqs = [];
+        try { sourceFreqs = (this._arp?.morph?.currentTargets && Array.isArray(this._arp.morph.currentTargets) && this._arp.morph.currentTargets.length) ? this._arp.morph.currentTargets.slice(0, targetFreqs.length) : targetFreqs.slice(); } catch(_){ sourceFreqs = targetFreqs.slice(); }
+
+        // Queue pending switch so transport applies exactly on time
+        this._arp.pendingSwitch = {
+            atAbsTick: targetAbsTick >>> 0,
+            alignPhaseToTickCounter: alignToCurrentPhase,
+            seq: seq,
+            bassFreq: this._arp.bassFreq,
+            column: columnElement,
+            mapAsc: mapAsc,
+            morph: {
+                source: sourceFreqs,
+                target: targetFreqs
+            }
+        };
+        // Ensure transport is running so scheduled switch will occur
         this._startArpTransport();
+        // Visual highlight now
         try { this.highlightKeyboardForColumn(columnElement); this.currentActiveColumnEl = columnElement; } catch(_){ }
     }
+
+            // Wire UI for metronome toggle and chord-change quantization selector
+            // Compute target rows for a chord slide based on nearest-voicing selection
+            _computeChordSlideTargets(targetColumnEl){
+                try {
+                    if (!targetColumnEl) return [];
+                    const desiredDegrees = this._getChordDegreesForColumn(targetColumnEl);
+                    // Determine tapped octave window if available
+                    const tappedOct = Number.isFinite(this._lastTappedOctave) ? this._lastTappedOctave : (this._chordsModeAnchorOctave ?? 4);
+                    const baseOct = Math.max(1, Math.min(6, tappedOct));
+                    const lowOct = baseOct;            // lower of two octaves
+                    const highOct = Math.min(8, baseOct + 1); // upper of two octaves
+                    // Collect candidate strings strictly in [lowOct, highOct]
+                    const strings = Array.from(targetColumnEl.querySelectorAll('.strings-column .string'))
+                        .filter(s=>{
+                            const o = parseInt(s.dataset.octave||'0',10);
+                            return Number.isFinite(o) && o>=lowOct && o<=highOct;
+                        });
+                    const fOf = (el)=>{
+                        try{
+                            const tuning = this.currentTuning || 12;
+                            const step = parseInt(el.dataset.noteIndex,10);
+                            const oct = parseInt(el.dataset.octave,10);
+                            if (!Number.isFinite(step) || !Number.isFinite(oct)) return NaN;
+                            const s = ((step % tuning) + tuning) % tuning;
+                            return this.getFrequency(s, oct, tuning);
+                        }catch(_){ return NaN; }
+                    };
+                    // Group by degree to preserve chord tones; prefer nearest to previous voicing if known
+                    const tuning = this.currentTuning || 12;
+                    const degSet = new Set(desiredDegrees.map(iv=> ((iv%tuning)+tuning)%tuning));
+                    const byDeg = new Map();
+                    for (const s of strings){
+                        const d = parseInt(s.dataset.interval,10);
+                        const key = ((d%tuning)+tuning)%tuning;
+                        if (!degSet.has(key)) continue;
+                        if (!byDeg.has(key)) byDeg.set(key, []);
+                        byDeg.get(key).push(s);
+                    }
+                    // Sort each degree's candidates low->high to enable stable 1:1 mapping across slides
+                    for (const [k, list] of byDeg.entries()){
+                        list.sort((a,b)=> (fOf(a)||0) - (fOf(b)||0));
+                    }
+                    // Build a 6-voice target by walking degrees in semitone order and picking alternating octaves
+                    // Direction bias: if finger moved upward recently, prefer higher octave first; if downward, prefer lower first
+                    const dy = (typeof this._chordSlideLastDY==='number') ? this._chordSlideLastDY : 0;
+                    const verticalBiasUp = dy < -2;   // moving up
+                    const verticalBiasDown = dy > 2;  // moving down
+                    const degs = Array.from(byDeg.keys()).sort((a,b)=> this.stepToSemitone(a, tuning) - this.stepToSemitone(b, tuning));
+                    const picked = [];
+                    // First pass: pick lower- or higher-octave representatives depending on bias
+                    for (const d of degs){
+                        if (picked.length>=6) break;
+                        const list = byDeg.get(d) || [];
+                        if (verticalBiasUp){
+                            const hiPref = list.find(r=> parseInt(r.dataset.octave,10)===highOct);
+                            if (hiPref) { picked.push(hiPref); continue; }
+                            const lo = list.find(r=> parseInt(r.dataset.octave,10)===lowOct);
+                            if (lo) picked.push(lo);
+                        } else {
+                            const lo = list.find(r=> parseInt(r.dataset.octave,10)===lowOct);
+                            if (lo) picked.push(lo);
+                        }
+                    }
+                    // Second pass: fill from high octave
+                    for (const d of degs){
+                        if (picked.length>=6) break;
+                        const list = byDeg.get(d) || [];
+                        if (verticalBiasDown){
+                            const lo2 = list.find(r=> parseInt(r.dataset.octave,10)===lowOct);
+                            if (lo2 && !picked.includes(lo2)) { picked.push(lo2); continue; }
+                            const hi = list.find(r=> parseInt(r.dataset.octave,10)===highOct);
+                            if (hi && !picked.includes(hi)) picked.push(hi);
+                        } else {
+                            const hi = list.find(r=> parseInt(r.dataset.octave,10)===highOct);
+                            if (hi && !picked.includes(hi)) picked.push(hi);
+                        }
+                    }
+                    // If still short, fill with nearest within window by frequency order
+                    if (picked.length < 6){
+                        const pool = strings.slice().sort((a,b)=> (fOf(a)||0) - (fOf(b)||0));
+                        for (const s of pool){ if (picked.length>=6) break; if (!picked.includes(s)) picked.push(s); }
+                    }
+                    // Sort final targets low->high to keep voice indices stable and avoid consolidation
+                    picked.sort((a,b)=> (fOf(a)||0) - (fOf(b)||0));
+                    return picked;
+                } catch(_) { return []; }
+            }
+
+            // Retune currently active chord voices towards target rows using nearest-neighbor mapping
+            _retuneActiveChordVoicesToTargets(targetRows, velocity=0){
+                if (!Array.isArray(targetRows) || targetRows.length===0) return;
+                const ctxNow = this.audioContext?.currentTime || 0;
+                const tuner = this.currentTuning || 12;
+                // Gather active voices from map that are still sounding
+                const activePairs = [];
+                if (this._chordSlideVoices && this._chordSlideVoices.size){
+                    for (const [stringEl, meta] of this._chordSlideVoices.entries()){
+                        const voice = Array.from(this.activeOscillators.values()).find(v => v.element === stringEl);
+                        const f = parseFloat(stringEl?.dataset?.frequency);
+                        if (!voice || !isFinite(f) || f<=0) continue;
+                        activePairs.push({ stringEl, meta, voice, curFreq: f, curLog: Math.log2(f) });
+                    }
+                }
+                if (!activePairs.length) return;
+                // Sort sources and targets by frequency to establish a stable index mapping (1:1)
+                const sources = activePairs.slice().sort((a,b)=> a.curFreq - b.curFreq);
+                const targets = targetRows.map(r=>{
+                        try{
+                            const tuning = this.currentTuning || 12;
+                            const step = parseInt(r.dataset.noteIndex,10);
+                            const oct = parseInt(r.dataset.octave,10);
+                            if (!Number.isFinite(step) || !Number.isFinite(oct)) return { row:r, f: NaN };
+                            const s = ((step % tuning)+tuning)%tuning;
+                            const f = this.getFrequency(s, oct, tuning);
+                            return { row:r, f };
+                        }catch(_){ return { row:r, f: NaN }; }
+                    })
+                    .filter(t=> isFinite(t.f) && t.f>0)
+                    .sort((a,b)=> a.f - b.f);
+                const count = Math.min(sources.length, targets.length, 6);
+                const mappings = [];
+                for (let i=0;i<count;i++){
+                    mappings.push({ src: sources[i], trg: targets[i] });
+                }
+                // Glide duration from UI slider (ignoring pointer velocity)
+                const cfg = Number(this._chordGlideMs)||300;
+                const glideMs = Math.max(10, Math.min(4000, cfg));
+                const timeEnd = ctxNow + glideMs/1000;
+                for (const {src, trg} of mappings){
+                    const v = src.voice;
+                    const f1 = trg.f * Math.pow(2, this.oscillators.osc1.octave + ((this.oscillators.osc1.detune + (this.oscillators.osc1.coarse * (1200 / tuner))) / 1200));
+                    const f2 = trg.f * Math.pow(2, this.oscillators.osc2.octave + ((this.oscillators.osc2.detune + (this.oscillators.osc2.coarse * (1200 / tuner))) / 1200));
+                    try {
+                        if (v.osc1?.frequency?.cancelScheduledValues){ v.osc1.frequency.cancelScheduledValues(ctxNow); v.osc1.frequency.setTargetAtTime(v.osc1.frequency.value, ctxNow, 0.015); v.osc1.frequency.linearRampToValueAtTime(f1, timeEnd); }
+                        if (v.osc2?.frequency?.cancelScheduledValues){ v.osc2.frequency.cancelScheduledValues(ctxNow); v.osc2.frequency.setTargetAtTime(v.osc2.frequency.value, ctxNow, 0.015); v.osc2.frequency.linearRampToValueAtTime(f2, timeEnd); }
+                        // Update last known frequency for subsequent mapping
+                        src.stringEl.dataset.frequency = String(trg.f);
+                    } catch(_){}
+                }
+            }
+            // Mark CHORD slide activity and (re)schedule idle-stop
+            _markChordSlideActivity(){
+                this._lastChordSlideTime = performance.now();
+                if (!this._chordSlideActive) return;
+                try { clearTimeout(this._chordSlideIdleTimer); } catch(_) {}
+                // Idle stop should allow long glides to finish: wait base (2000ms) + current glide time
+                const baseIdle = Math.max(0, Number(this._chordSlideIdleMs) || 2000);
+                const glide = Math.max(0, Number(this._chordGlideMs) || 300);
+                const ms = Math.max(250, baseIdle + glide);
+                this._chordSlideIdleTimer = setTimeout(()=>{
+                    try{
+                        if ((this.playMode||'high-low')==='chords' && this._chordSlideActive) {
+                            this.stopAllActiveNotes();
+                            this._sustainActive = false; this._chordsGestureActive = false;
+                        }
+                    }catch(_){ }
+                }, ms);
+            }
+            _wireTransportUI(){
+                try {
+                    const metroBtn = document.getElementById('metroToggle');
+                    if (metroBtn && !metroBtn._wired){
+                        metroBtn._wired = true;
+                        metroBtn.addEventListener('click', ()=>{
+                            this._ensureArpTransport();
+                            this._arpTransport.metronomeOn = !this._arpTransport.metronomeOn;
+                            metroBtn.classList.toggle('active', this._arpTransport.metronomeOn);
+                            if (this._arpTransport.metronomeOn){
+                                this._startArpTransport();
+                            } else {
+                                this._scheduleTransportStopAfterInactivity();
+                            }
+                        });
+                    }
+                    // ARP Glide toggle and slider
+                    const arpGlideBtn = document.getElementById('arpGlideToggle');
+                    if (arpGlideBtn && !arpGlideBtn._wired){
+                        arpGlideBtn._wired = true;
+                        arpGlideBtn.classList.toggle('active', !!(this._arp && this._arp.glide));
+                        arpGlideBtn.addEventListener('click', ()=>{
+                            this._ensureArpDefaults();
+                            const next = !arpGlideBtn.classList.contains('active');
+                            arpGlideBtn.classList.toggle('active', next);
+                            this._arp.glide = next;
+                            // If turning glide off while a sustained lead voice exists, stop it
+                            if (!next && this._arp.leadVoice && this._arp.leadLiveFreq){
+                                try { this.stopFrequency(this._arp.leadLiveFreq, null); } catch(_){ }
+                                this._arp.leadVoice = null; this._arp.leadLiveFreq = null;
+                            }
+                        });
+                    }
+                    const arpGlideSlider = document.getElementById('arpGlideMs');
+                    const arpGlideVal = document.getElementById('arpGlideMsValue');
+                    if (arpGlideSlider && !arpGlideSlider._wired){
+                        arpGlideSlider._wired = true;
+                        const renderVal = (v)=>{ if (arpGlideVal) arpGlideVal.textContent = `${Math.round(v)}ms`; };
+                        const init = Number(arpGlideSlider.value)||300; renderVal(init);
+                        arpGlideSlider.addEventListener('input', (e)=>{
+                            const v = Number(e.target.value)||300; renderVal(v);
+                            this._ensureArpDefaults(); this._arp.glideMs = Math.max(1, v);
+                        });
+                    }
+                    const chordQuantSel = document.getElementById('chordQuant');
+                    if (chordQuantSel && !chordQuantSel._wired){
+                        chordQuantSel._wired = true;
+                        chordQuantSel.addEventListener('change', ()=>{
+                            this._ensureArpDefaults();
+                            this._arp.chordQuant = chordQuantSel.value || '1/4';
+                        });
+                    }
+                } catch(_){ }
+            }
 
             _stopArp(){
                 if (!this._arp) return;
@@ -13492,10 +14208,35 @@
                 this._arp.active = false;
                 this._arp.seq = [];
                 this._arp.column = null;
+                // Stop sustained ARP voices (lead + bass)
+                try {
+                    if (this._arp.leadVoice && this._arp.leadLiveFreq){ this.stopFrequency(this._arp.leadLiveFreq, null); }
+                } catch(_){ }
+                try {
+                    if (this._arp.bassVoice && this._arp.bassLiveFreq){ this.stopFrequency(this._arp.bassLiveFreq, null); }
+                } catch(_){ }
+                this._arp.leadVoice = null; this._arp.leadLiveFreq = null;
+                this._arp.bassVoice = null; this._arp.bassLiveFreq = null;
                 // Re-enable per-note panning auto-toggle when ARP voice stops
                 this._suppressPanningAutoToggle = false;
                 // Schedule transport stop at the next bar boundary if no activity resumes
                 this._scheduleTransportStopAfterInactivity();
+            }
+
+            // Reset all rendered string elements' dataset.frequency back to their original pitch
+            // based on stored dataset.noteIndex (absolute step) and dataset.octave.
+            _resetAllStringFrequencies(){
+                try {
+                    const tuning = this.currentTuning || 12;
+                    document.querySelectorAll('.strings-column .string').forEach(row => {
+                        const step = parseInt(row.dataset.noteIndex, 10);
+                        const oct = parseInt(row.dataset.octave, 10);
+                        if (!Number.isFinite(step) || !Number.isFinite(oct)) return;
+                        const s = ((step % tuning) + tuning) % tuning;
+                        const f = this.getFrequency(s, oct, tuning);
+                        if (Number.isFinite(f) && f > 0) row.dataset.frequency = String(f);
+                    });
+                } catch(_) { /* no-op */ }
             }
 
             applyPlayModeToColumnVisual(column){
@@ -14602,10 +15343,25 @@
                 // Sustain gate active until mouseup/touchend
                 this._sustainActive = true;
                 this._chordsGestureActive = true;
+                // Mark slide active if enabled so tap-to-slide works immediately on subsequent taps
+                this._chordSlideActive = !!this._chordSlideEnabled;
+                // Reset any prior detunes from previous slides
+                try { this._resetAllStringFrequencies(); } catch(_) { }
+                // Prepare slide state
+                this._chordSlideVoices && this._chordSlideVoices.clear && this._chordSlideVoices.clear();
+                this._chordSlideStartColumn = columnElement;
+                if (this._chordSlideActive){
+                    this._chordSlideHoverColumn = columnElement;
+                    this._chordSlideCommittedColumn = columnElement;
+                    this._chordSlideHoverSince = performance.now();
+                    this._markChordSlideActivity();
+                }
                 // Reset pointer last-hit so over-strum can begin cleanly
                 try { this._pointerLastStringKey.set('mouse', null); } catch(_){ }
 
                 const tappedOct = this._getTappedOctave(columnElement, clientY);
+                // Remember last tapped octave for two-octave voice windowing and slides
+                if (Number.isFinite(tappedOct)) this._lastTappedOctave = tappedOct;
                 // Anchor average octave on first chord tap in a gesture/session
                 if (this._chordsModeAnchorOctave == null) {
                     const init = Number.isFinite(tappedOct) ? tappedOct : 3;
@@ -14619,12 +15375,17 @@
                 // Compute a voice-led voicing near the anchor and last voicing
                 const pickedRows = this._pickNearestVoicingRows(columnElement, desiredDegrees, anchorOct, this._lastChordVoicing?.pitches || null, 1.5);
 
-                // As a fallback if selection fails, use the original octave group
-                let rowsToPlay = pickedRows && pickedRows.length ? pickedRows
-                    : (this._computeChordsModeTargets(columnElement, tappedOct).stringsInOctave || Array.from(columnElement.querySelectorAll('.strings-column .string')));
+                // Build a strict two-octave, 6-voice set anchored at the tapped octave
+                let rowsToPlay = this._computeChordSlideTargets(columnElement);
+                if (!rowsToPlay || rowsToPlay.length === 0) {
+                    // Fallback: use nearest-voicing rows
+                    rowsToPlay = pickedRows && pickedRows.length ? pickedRows
+                        : (this._computeChordsModeTargets(columnElement, tappedOct).stringsInOctave || Array.from(columnElement.querySelectorAll('.strings-column .string')));
+                }
 
-                // Play selection simultaneously
-                rowsToPlay.forEach(string => {
+        // Play selection simultaneously
+        const groupId = ((this._chordSlideGroupId||0)+1) >>> 0; this._chordSlideGroupId = groupId;
+        rowsToPlay.forEach(string => {
                     let frequency = parseFloat(string.dataset.frequency);
                     if (!frequency || !isFinite(frequency) || frequency <= 0){
                         try {
@@ -14635,7 +15396,8 @@
                         } catch(_){ }
                     }
                     if (frequency && isFinite(frequency) && frequency>0){
-                        this.playFrequency(frequency, null);
+            this.playFrequency(frequency, string);
+            try { if (this._chordSlideVoices) this._chordSlideVoices.set(string, { startFreq: frequency, startLog2: Math.log2(frequency), groupId }); } catch(_){ }
                         try{ string.classList.add('active'); setTimeout(()=> string.classList.remove('active'), 120); }catch(_){ }
                     }
                 });
@@ -14712,6 +15474,8 @@
                     // Fallback to a major triad mapping if model lookup fails
                     return [0,4,7].map(semi=> Math.round((semi * (this.currentTuning||12))/12));
                 }
+                // Schedule idle stop after activity
+                try { this._markChordSlideActivity(); } catch(_){ }
             }
 
             // Choose a voicing minimizing motion to previous chord and constrained to maxSpanOct octaves
@@ -15544,7 +16308,7 @@
                     { title: "Add notes on the top row", text: "Click the white/black circles or colored dots to add sounds. Pick at least two.", highlight: "#rootGrid" },
                     { title: "Strum your chord", text: "Click and drag up/down the new box to hear it. Numbers 1–0 also trigger boxes!", highlight: "#extensionColumns" },
                     { title: "Transpose everything", text: "Use the ▲ ▼ on the left of the keyboard or press + / - on your keys.", highlight: ".transpose-controls-left" },
-                    { title: "Try ARP mode", text: "Set PLAY to ARP, set a BPM and Quant, then hold a chord box to hear a pattern.", highlight: "#arpControls" },
+                    { title: "Try ARP mode", text: "Click Arpeggio, set a BPM and Quant, then hold a chord box to hear a pattern.", highlight: "#arpControls" },
                     { title: "Change your sound", text: "Open OSCILLATORS and try Sine/Saw/Square, then tweak ADSR.", highlight: "#oscillatorsSection" },
                     { title: "Add space & motion", text: "Open EFFECTS to add reverb or make the sound move left-right.", highlight: "#effectsSection" },
                     { title: "Type a sequence", text: "Click SEQUENCE and type chords (like I IV V or C F G). Save as a preset.", highlight: "#openTextChordParserBtn" },
@@ -16097,6 +16861,15 @@
                     bubble2.style.left = `${r2.left + window.scrollX}px`;
                     bubble2.style.top = `${r2.top + window.scrollY - 36}px`;
                     setTimeout(()=>{ bubble2.remove(); seqBtn.classList.remove('flash-cta-alt'); }, 4000);
+                }
+            } catch {}
+
+            // Wire transport-related UI (metronome, chord-change quant)
+            try { if (omnichord && typeof omnichord._wireTransportUI === 'function') omnichord._wireTransportUI(); } catch {}
+            // Ensure ARP UI controls are wired
+            try {
+                if (omnichord && typeof omnichord._wireTransportUI === 'function') {
+                    // _wireTransportUI now also wires ARP controls
                 }
             } catch {}
 
