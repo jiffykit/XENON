@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>OMG-nichord by FASTFAST</title>
+    <title>XENON</title>
     <!-- Retro font (Oswald) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --retro-font: 'Oswald','Arial Narrow','Helvetica Neue',Arial,sans-serif; }
+        :root {
+            --retro-font: 'Oswald','Arial Narrow','Helvetica Neue',Arial,sans-serif;
+            /* Top bar height; grows on touch devices via media query below */
+            --bar-h: 56px;
+        }
         * {
             margin: 0;
             padding: 0;
@@ -25,14 +29,21 @@
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             color: #fff;
             overflow: hidden;
-            height: 100vh;
+            /* Use dynamic viewport height to avoid mobile URL bar issues (with small-viewport fallback) */
+            height: 100svh;
+            height: 100dvh;
+            padding-top: calc(var(--bar-h) + env(safe-area-inset-top));
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         .instrument {
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            height: 100dvh; /* respect dynamic viewport */
             width: 100vw;
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         .root-notes-area {
@@ -100,7 +111,8 @@
         }
 
         .control-panel {
-            height: calc(100vh - 90px - 28vh - 28vh);
+            /* Switch to dynamic viewport height so the math stays correct on mobile */
+            height: calc(100dvh - 90px - 28vh - 28vh);
             min-height: 35vh;
             padding: 10px;
             background: rgba(0, 20, 40, 0.9);
@@ -694,6 +706,51 @@
             font-weight: bold;
         }
 
+        /* Generic panel buttons (bottom/top bar etc.) */
+    .panel-btn {
+            background: #1f3744;
+            color: #e8f5ff;
+            border: 1px solid #4a6870;
+            border-radius: 10px;
+            padding: 10px 14px;
+            min-width: 48px;
+            height: 44px;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+    /* Make the metronome toggle finger friendly too */
+    #metroToggle { border-radius: 10px; padding: 10px 12px !important; height: 44px; font-size: 14px !important; }
+
+        /* Larger, finger-friendly controls on touch screens */
+        @media (pointer: coarse) {
+            :root { --bar-h: 64px; }
+            body { font-size: 18px; }
+            .section-title { font-size: 22px; }
+            .control-panel { gap: 18px; }
+
+            .tuning-btn { padding: 10px 14px; font-size: 14px; border-width: 2px; border-radius: 8px; }
+
+            .chord-grid { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 10px; }
+            .chord-btn { min-width: 84px; min-height: 84px; font-size: 16px; border-width: 3px; border-radius: 12px; }
+
+            .quality-btn { padding: 14px; font-size: 16px; border-width: 2px; }
+
+            .lock-button, .chord-action-button { width: 44px; height: 44px; font-size: 20px; border-width: 2px; }
+
+            .root-btn { height: 56px; font-size: 16px; border-width: 2px; }
+
+            .panel-btn { padding: 14px 18px; height: 52px; font-size: 18px; border-width: 2px; border-radius: 12px; }
+
+            .note-labels { height: 36px; font-size: 11px; }
+            .note-label { height: 26px; font-size: 10px; }
+
+            /* Increase string lane height for easier targeting without changing visible core thickness */
+            .string { min-height: 28px; }
+            .string-core { height: 5px; }
+        }
+
         /* ================= Piano Keyboard Revamp (Top Row) ================ */
         /* Wrapper row to place transpose controls to the left of the keyboard */
         .keyboard-row {
@@ -799,17 +856,8 @@
     .piano-keyboard .drag-hint { position:absolute; top:8px; left:50%; transform:translateX(-50%); font-size:12px; color:#cfe6ff; opacity:.18; pointer-events:none; transition: opacity .2s ease; }
     .piano-keyboard:hover .drag-hint { opacity:.28; }
     .piano-keyboard.is-dragging .drag-hint { opacity:.6; }
-        /* ===== Branding ===== */
-    .logo-inline { position:fixed; top:14px; left:20px; z-index:9500; font-family: var(--retro-font); font-weight:600; font-size:32px; letter-spacing:1px; line-height:1; display:flex; align-items:center; gap:6px; pointer-events:none; user-select:none; color:#ffffff; text-shadow:0 0 8px rgba(255,255,255,0.7), 0 0 16px rgba(120,180,255,0.4); animation: logoPulse 3.2s ease-in-out infinite; }
-    .logo-inline span { color:#fff; }
-    @keyframes logoPulse { 0%,100% { text-shadow:0 0 4px rgba(255,255,255,0.4),0 0 10px rgba(140,180,255,0.25); opacity:0.92; } 50% { text-shadow:0 0 10px rgba(255,255,255,0.9),0 0 24px rgba(140,180,255,0.55); opacity:1; } }
-    .piano-keyboard .by-fastfast { position:absolute; top:10px; right:16px; font-family: var(--retro-font); font-size:16px; font-weight:600; color:#ffffff; text-shadow:0 0 6px rgba(255,255,255,0.35), 0 0 12px rgba(120,140,255,0.45); opacity:0.95; pointer-events:auto; user-select:none; }
-        /* Allow only the last four letters (FAST) to be clickable */
-        .piano-keyboard .by-fastfast .fastfast-link { pointer-events:auto; color:#cde4ff; text-decoration:underline dotted; cursor:pointer; }
-        @media (max-width: 900px){
-            .logo-inline { font-size:26px; }
-            .piano-keyboard .by-fastfast { font-size:13px; top:12px; }
-        }
+    /* Branding moved to centered top bar link; keyboard overlay removed */
+    @media (max-width: 900px){ }
         /* Ensure retro font everywhere */
         button, .root-btn, .extension-header, .control-panel, input, select, .edo-dot { font-family: var(--retro-font) !important; }
         /* Base circle key */
@@ -1215,24 +1263,20 @@
             max-height: 88vh;
             overflow-y: auto;
             position: fixed !important;
-            top: 50px !important;
+            top: calc(var(--bar-h) + env(safe-area-inset-top) + 6px) !important;
             left: 50% !important;
             transform: translateX(-50%) !important;
             z-index: 2010 !important;
         }
 
-        #tutorialButton, #randomDiceButton {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
+    #tutorialButton, #randomDiceButton { transition: transform 0.3s ease, box-shadow 0.3s ease; }
 
         #tutorialButton:hover, #randomDiceButton:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 12px rgba(0,0,0,0.4);
         }
 
-        #randomDiceButton {
-            transition: transform 0.6s ease;
-        }
+    #randomDiceButton { transition: transform 0.6s ease; }
 
         /* Add pulsing animation for tutorial and dice buttons */
         @keyframes pulse {
@@ -1293,48 +1337,54 @@
     </style>
 </head>
 <body>
-    <!-- Global Logo (fixed on blue background) -->
-    <div class="logo-inline"><span class="omg">OMG</span><span class="nichord">- nichord</span></div>
-    <!-- Bottom control bar -->
-    <div id="bottomBar" style="position:fixed;bottom:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:0 18px;background:#081a28;border-top:2px solid #123447;z-index:600;font-family:var(--retro-font);">
+    <!-- Top control bar (moved from bottom); uses CSS var --bar-h and safe-area insets -->
+    <div id="bottomBar" style="position:fixed;top:0;left:0;right:0;height:var(--bar-h);display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:0 calc(18px + env(safe-area-inset-right)) 0 calc(18px + env(safe-area-inset-left));background:#081a28;border-bottom:2px solid #123447;z-index:9600;font-family:var(--retro-font);">
+        <!-- Centered brand -->
+    <div id="brandHost" style="position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;pointer-events:none;">
+            <a id="brandLink" href="https://fastfast.bandcamp.com/" target="_blank" rel="noopener noreferrer" style="color:#e8f5ff;text-decoration:none;font-weight:700;letter-spacing:1px;font-size:20px;">XENON</a>
+        </div>
         <!-- New global create chord button (moved out of TUNING panel) -->
-    <button id="createNewChordBtn" class="panel-btn" title="Add Chord" style="font-weight:bold;padding:6px 10px;">+</button>
+    <button id="createNewChordBtn" class="panel-btn" title="Add Chord" style="font-weight:bold;">+</button>
         <!-- EDO quick control (5–52) -->
         <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:12px;color:#9db6c8;">EDO</span>
-            <input id="edoQuickInput" type="number" min="5" max="52" value="24" title="Steps per octave" style="width:56px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:12px;" />
+        <span style="font-size:12px;color:#9db6c8;">EDO</span>
+        <input id="edoQuickInput" type="number" min="5" max="52" value="24" title="Steps per octave" style="width:56px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 6px;font-size:13px;" />
         </div>
-        <button class="panel-btn" data-panel="osc">OSCILLATORS</button>
-        <button class="panel-btn" data-panel="fx">EFFECTS</button>
-    <button id="openTextChordParserBtn" class="panel-btn" title="Or click here to type a chord sequence" style="margin-left:6px;">SEQUENCE</button>
-        <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
-            <button id="bottomSaveSeqBtn" class="panel-btn" title="Save current chord sequence as preset" style="padding:6px 10px;background:#10b981;border-color:#34d399;">💾</button>
-            <button id="bottomImportOMGBtn" class="panel-btn" title="Import .OMG session" style="padding:6px 10px;background:#9b59b6;border-color:#8e44ad;">📂</button>
-            <button id="bottomExportOMGBtn" class="panel-btn" title="Export full session (.OMG)" style="padding:6px 10px;background:#f59e0b;border-color:#fbbf24;">⬇️</button>
+    <button class="panel-btn" data-panel="osc" title="Oscillator settings">OSC</button>
+    <button class="panel-btn" data-panel="fx" title="Effects">FX</button>
+    <button id="openTextChordParserBtn" class="panel-btn" title="Type or paste a chord sequence" style="margin-left:6px;">SEQ</button>
+    <div id="rightControls" style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+        <button id="bottomSaveSeqBtn" class="panel-btn" title="Save .OMG (Full Session)" style="background:#10b981;border-color:#34d399;">💾</button>
+            <button id="bottomImportOMGBtn" class="panel-btn" title="Import .OMG session" style="background:#9b59b6;border-color:#8e44ad;">📂</button>
+            <button id="bottomExportOMGBtn" class="panel-btn" title="Export full session (.OMG)" style="background:#f59e0b;border-color:#fbbf24;">⬇️</button>
             
             <div id="chordControls" style="display:none;align-items:center;gap:6px;">
                 <label for="chordSlide" style="font-size:11px;color:#9db6c8;">SLIDE</label>
                 <input id="chordSlide" type="checkbox" title="Enable voice-leading slide between chords" />
                 <div class="slider-container" style="margin-left:8px; min-width:140px; display:inline-block; vertical-align:middle;">
                     <label for="chordGlideMs" style="font-size:11px;color:#9db6c8;">GLIDE</label>
-                    <input type="range" class="synth-slider" id="chordGlideMs" min="20" max="2000" value="300" style="height:20px; width:140px;">
-                    <div class="slider-value" id="chordGlideMsValue" style="font-size:9px;">300ms</div>
+                    <input type="range" class="synth-slider" id="chordGlideMs" min="20" max="120000" value="300" style="height:20px; width:140px;">
+                    <div class="slider-value" id="chordGlideMsValue" style="font-size:9px;width:64px;text-align:right;" contenteditable="true" title="Type milliseconds and press Enter">1/4</div>
                 </div>
                 <button id="chordBassToggle" class="panel-btn" title="Toggle sustained bass in Chords/Slide">BASS</button>
             </div>
             <div id="arpControls" style="display:none;align-items:center;gap:6px;">
                 <label style="font-size:11px;color:#9db6c8;">BPM</label>
-                <input id="arpBpm" type="number" min="20" max="300" value="120" style="width:58px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
+                <input id="arpBpm" type="number" min="20" max="300" value="120" style="width:48px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
                 <label style="font-size:11px;color:#9db6c8;">Quant</label>
                 <select id="arpQuant" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
                     <option value="1/1">1/1</option>
                     <option value="1/2">1/2</option>
-                    <option value="1/4" selected>1/4</option>
+                    <option value="1/4">1/4</option>
                     <option value="1/8">1/8</option>
-                    <option value="1/16">1/16</option>
+                    <option value="1/16" selected>1/16</option>
                     <option value="1/32">1/32</option>
                     <option value="1/8T">1/8T</option>
                     <option value="1/16T">1/16T</option>
+                    <option value="tuplet:5">5/beat</option>
+                    <option value="tuplet:7">7/beat</option>
+                    <option value="tuplet:9">9/beat</option>
+                    <option value="tuplet:11">11/beat</option>
                 </select>
                 <label style="font-size:11px;color:#9db6c8;">Pat</label>
                 <select id="arpPattern" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
@@ -1348,36 +1398,48 @@
                     <option value="alt-center">Alt Center</option>
                     <option value="random">Random</option>
                 </select>
-                <label style="font-size:11px;color:#9db6c8;">Tuplet</label>
-                <select id="arpTuplet" title="Override step to N-notes per beat" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
-                    <option value="0" selected>Off</option>
-                    <option value="5">Quintuplet</option>
-                    <option value="7">Septuplet</option>
-                    <option value="9">Nonuplet</option>
-                    <option value="11">Undecuplet</option>
-                </select>
                 <label style="font-size:11px;color:#9db6c8;">NPC</label>
-                <input id="arpNpc" type="number" min="1" max="64" value="3" title="Notes Per Cycle" style="width:52px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
-                <label style="font-size:11px;color:#9db6c8;">CHG Q</label>
-                <select id="chordQuant" title="Quantize chord changes" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
-                    <option value="1/4" selected>1/4</option>
-                    <option value="1/8">1/8</option>
+                <input id="arpNpc" type="number" min="1" max="64" value="3" title="Notes Per Cycle" style="width:44px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
+                <label style="font-size:11px;color:#9db6c8;">HOLD</label>
+                <select id="chordQuant" title="Post-release ARP hold length" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
+                    <option value="beat:1">1 beat</option>
+                    <option value="beat:2">2 beats</option>
+                    <option value="bar:1" selected>1 bar</option>
+                    <option value="bar:2">2 bars</option>
+                    <option value="bar:4">4 bars</option>
+                    <option value="bar:8">8 bars</option>
+                    <option value="bar:16">16 bars</option>
+                    <option value="bar:32">32 bars</option>
+                    <option value="bar:64">64 bars</option>
                 </select>
-                <button id="arpGlideToggle" title="Morph ARP between chords" style="background:#1f3744;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 6px;font-size:11px;cursor:pointer;">GLIDE</button>
+        <button id="arpGlideToggle" title="Morph ARP between chords" style="background:#1f3744;color:#e8f5ff;border:1px solid #4a6870;border-radius:8px;padding:8px 10px;font-size:14px;cursor:pointer;">GLIDE</button>
                 <div style="display:flex;align-items:center;gap:6px;">
-                    <input type="range" id="arpGlideMs" min="10" max="4000" value="300" style="width:120px;">
-                    <div id="arpGlideMsValue" class="slider-value" style="font-size:9px;">300ms</div>
+            <input type="range" id="arpGlideMs" min="10" max="120000" value="300" style="width:160px;">
+            <div id="arpGlideMsValue" class="slider-value" style="font-size:12px;width:64px;text-align:right;" contenteditable="true" title="Type milliseconds and press Enter">1/4</div>
                 </div>
                 <button id="arpBassToggle" class="panel-btn" title="Toggle sustained ARP bass">BASS</button>
                 
                 <button id="metroToggle" title="Metronome" style="background:#1f3744;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 6px;font-size:11px;cursor:pointer;">METRO</button>
             </div>
-            <label for="masterVolume" style="font-size:11px;color:#9db6c8;">MASTER</label>
-            <input type="range" id="masterVolume" min="0" max="10" value="10" style="width:140px; accent-color:#2d9c5d;">
-            <span id="masterVolumeValue" style="font-size:11px; color:#b7d4e6; width:38px; text-align:right;">100%</span>
+            <!-- Global Play controls (visible in both Chord and ARP modes) -->
+            <div id="playControls" style="display:flex;align-items:center;gap:6px;">
+                <button id="playSeqBtn" class="panel-btn" title="Play one bar per chord (order)">PLAY</button>
+                <label style="font-size:11px;color:#9db6c8;">Loop</label>
+                <input id="playLoop" type="checkbox" title="Loop sequence" />
+            </div>
+        <label for="masterVolume" style="font-size:14px;color:#9db6c8;">MASTER</label>
+        <input type="range" id="masterVolume" min="0" max="10" value="10" style="width:180px; accent-color:#2d9c5d;">
+        <span id="masterVolumeValue" style="font-size:12px; color:#b7d4e6; width:48px; text-align:right;">100%</span>
+        <!-- Help/Dice at far right -->
+        <div style="display:flex;align-items:center;gap:8px;margin-left:12px;">
+            <button id="tutorialButton" class="panel-btn" title="Start Tutorial">?</button>
+            <button id="randomDiceButton" class="panel-btn" title="Randomize Settings">🎲</button>
+        </div>
         </div>
     </div>
-    <div id="panelHost" style="position:fixed;bottom:54px;left:12px;width:min(95vw, 780px);max-height:55vh;background:#0b2536;border:2px solid #15506a;border-radius:10px;box-shadow:0 -6px 22px rgba(0,0,0,0.55);padding:18px 20px;display:none;overflow-y:auto;z-index:650;font-family:var(--retro-font);">
+    <!-- Panels host below the top bar -->
+    
+    <div id="panelHost" style="position:fixed;top: calc(var(--bar-h) + 6px);left:12px;width:min(95vw, 780px);max-height:55vh;background:#0b2536;border:2px solid #15506a;border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,0.55);padding:18px 20px;display:none;overflow-y:auto;z-index:650;font-family:var(--retro-font);">
         <!-- Control Panels migrated here -->
         <div class="panel-content" data-panel="tuning" style="display:none; gap:15px; grid-template-columns:300px;">
             <div class="synth-section" id="tuningSelector" style="padding:8px;">
@@ -1443,8 +1505,8 @@
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                         <div class="slider-container">
                             <label style="font-size:10px;">Time</label>
-                            <input type="range" class="synth-slider" id="delayTime" min="20" max="1000" value="280" style="height:20px;">
-                            <div class="slider-value" id="delayTimeValue" style="font-size:9px;">280ms</div>
+                            <input type="range" class="synth-slider" id="delayTime" min="20" max="120000" value="280" style="height:20px;">
+                            <div class="slider-value" id="delayTimeValue" style="font-size:9px;" contenteditable="true" title="Type milliseconds and press Enter">280ms</div>
                         </div>
                         <div class="slider-container">
                             <label style="font-size:10px;">Feedback</label>
@@ -1543,7 +1605,7 @@
                         <div class="slider-container">
                             <label style="font-size:10px;">Speed</label>
                             <input type="range" class="synth-slider" id="panningSpeed" min="200" max="10000" value="2000" style="height:20px;">
-                            <div class="slider-value" id="panningSpeedValue" style="font-size:9px;">2.0s</div>
+                            <div class="slider-value" id="panningSpeedValue" style="font-size:9px;" contenteditable="true" title="Type milliseconds and press Enter">2.0s</div>
                         </div>
                         <div style="display:flex; align-items:center; justify-content:center;">
                             <div class="mix-btn" id="panningReset" style="font-size:9px; padding:4px; cursor:pointer;">Reset</div>
@@ -1616,12 +1678,12 @@
                             <div class="slider-container">
                                 <label style="font-size:8px;">Attack</label>
                                 <input type="range" class="envelope-slider" id="attackSlider" min="3" max="1000" value="5" style="height:18px;">
-                                <div class="slider-value" id="attackValue" style="font-size:8px;">5ms</div>
+                                <div class="slider-value" id="attackValue" style="font-size:8px;" contenteditable="true" title="Type milliseconds and press Enter">5ms</div>
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Decay</label>
                                 <input type="range" class="envelope-slider" id="decaySlider" min="0" max="1000" value="200" style="height:18px;">
-                                <div class="slider-value" id="decayValue" style="font-size:8px;">200ms</div>
+                                <div class="slider-value" id="decayValue" style="font-size:8px;" contenteditable="true" title="Type milliseconds and press Enter">200ms</div>
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Sustain</label>
@@ -1631,7 +1693,7 @@
                             <div class="slider-container">
                                 <label style="font-size:8px;">Release</label>
                                 <input type="range" class="envelope-slider" id="releaseSlider" min="0" max="1000" value="1000" style="height:18px;">
-                                <div class="slider-value" id="releaseValue" style="font-size:8px;">1000ms</div>
+                                <div class="slider-value" id="releaseValue" style="font-size:8px;" contenteditable="true" title="Type milliseconds and press Enter">1000ms</div>
                             </div>
                         </div>
                     </div>
@@ -1687,12 +1749,12 @@
                             <div class="slider-container">
                                 <label style="font-size:8px;">Attack</label>
                                 <input type="range" class="envelope-slider" id="osc2AttackSlider" min="3" max="100" value="5" style="height:18px;">
-                                <div class="slider-value" id="osc2AttackValue" style="font-size:8px;">5ms</div>
+                                <div class="slider-value" id="osc2AttackValue" style="font-size:8px;" contenteditable="true" title="Type milliseconds and press Enter">5ms</div>
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Decay</label>
                                 <input type="range" class="envelope-slider" id="osc2DecaySlider" min="0" max="1000" value="30" style="height:18px;">
-                                <div class="slider-value" id="osc2DecayValue" style="font-size:8px;">30ms</div>
+                                <div class="slider-value" id="osc2DecayValue" style="font-size:8px;" contenteditable="true" title="Type milliseconds and press Enter">30ms</div>
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Sustain</label>
@@ -1702,7 +1764,7 @@
                             <div class="slider-container">
                                 <label style="font-size:8px;">Release</label>
                                 <input type="range" class="envelope-slider" id="osc2ReleaseSlider" min="0" max="1000" value="1000" style="height:18px;">
-                                <div class="slider-value" id="osc2ReleaseValue" style="font-size:8px;">1000ms</div>
+                                <div class="slider-value" id="osc2ReleaseValue" style="font-size:8px;" contenteditable="true" title="Type milliseconds and press Enter">1000ms</div>
                             </div>
                         </div>
                     </div>
@@ -1884,7 +1946,7 @@
     <!-- Tutorial Overlay -->
     <div id="tutorialOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999;">
         <div id="tutorialBox" style="position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 2px solid #4a6870; border-radius: 10px; padding: 20px; max-width: 600px; max-height: 70vh; overflow-y: auto; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-            <h3 id="tutorialTitle" style="color: #8fb3d3; margin-top: 0;">Welcome to OMGnichord By James Mulvale / FASTFAST</h3>
+            <h3 id="tutorialTitle" style="color: #8fb3d3; margin-top: 0;">Welcome to XENON</h3>
             <p id="tutorialText" style="color: #fff; line-height: 1.5;">Click Next to start the tutorial.</p>
             <div style="margin-top: 15px; text-align: center; font-size: 12px; color: #8fb3d3; opacity: 0.9; background: rgba(74, 104, 112, 0.2); padding: 8px; border-radius: 5px;">
                 💡 Press ESC, click outside, or use Skip Tutorial to exit anytime
@@ -1897,9 +1959,7 @@
         </div>
     </div>
 
-    <!-- Tutorial & Random Dice Buttons (moved top-right) -->
-    <button id="tutorialButton" style="position: fixed; top: 12px; right: 14px; z-index: 9000; background: #4a6870; color: #fff; border: 2px solid #8fb3d3; border-radius: 50%; width: 56px; height: 56px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.4); font-weight: bold;" title="Start Tutorial">?</button>
-    <button id="randomDiceButton" style="position: fixed; top: 82px; right: 14px; z-index: 9000; background: #6366f1; color: #fff; border: 2px solid #8b5cf6; border-radius: 50%; width: 56px; height: 56px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.45);" title="Randomize Settings">🎲</button>
+    
     
 
     <script>
@@ -1911,11 +1971,11 @@
                     const methods = ['log','info','debug','warn','error','trace','group','groupCollapsed','groupEnd','time','timeEnd','table'];
                     methods.forEach(function(m){ if (typeof window.console[m] === 'function') window.console[m] = function(){}; });
                 } else if (window && window.console && typeof window.console.info === 'function') {
-                    console.info('[OMGnichord] Console logging ENABLED');
+                    console.info('[XENON] Console logging ENABLED');
                 }
                 // Expose quick toggles
-                window.enableLogs = function(){ try{ if (window.localStorage) localStorage.setItem('muteConsole','0'); console.info('[OMGnichord] Logs enabled'); }catch(_){} };
-                window.disableLogs = function(){ try{ if (window.localStorage) localStorage.setItem('muteConsole','1'); console.warn('[OMGnichord] Logs disabled (reload may be needed)'); }catch(_){} };
+                window.enableLogs = function(){ try{ if (window.localStorage) localStorage.setItem('muteConsole','0'); console.info('[XENON] Logs enabled'); }catch(_){} };
+                window.disableLogs = function(){ try{ if (window.localStorage) localStorage.setItem('muteConsole','1'); console.warn('[XENON] Logs disabled (reload may be needed)'); }catch(_){} };
             } catch(_) {}
         })();
         class MicrotonalOmnichord { 
@@ -1925,7 +1985,7 @@
                 this._debugLogs = [];
                 this._debugMax = 500;
                 this._debugUI = false; // keep panel off; use console logs only
-                try { console.log('[DEBUG] Omnichord constructor: debug ON'); } catch(_){ }
+                try { console.log('[DEBUG] XENON constructor: debug ON'); } catch(_){ }
                 this.audioContext = null;
                 this.gainNode = null;
                 this.activeOscillators = new Map();
@@ -6221,7 +6281,7 @@
 
                     // Global Delay with filtered feedback and wet/dry mix
                     this._delay = {
-                        node: this.audioContext.createDelay(2.0),
+                        node: this.audioContext.createDelay(120.0),
                         feedback: this.audioContext.createGain(),
                         // Feedback loop tone (LP) and wet-path tone (HP/LP)
                         filter: this.audioContext.createBiquadFilter(),
@@ -7244,7 +7304,7 @@
                             return;
                         }
                     }
-                    // In Chords mode, tapping the strings area should play the whole chord for the tapped octave
+                    // In Chords mode, tapping the strings area should play or glide the whole chord for the tapped octave
             if ((this.playMode || 'high-low') === 'chords') {
                         e.preventDefault();
                         const hit = document.elementFromPoint(e.clientX, e.clientY);
@@ -7254,16 +7314,18 @@
                 this._lastChordSlideX = e.clientX;
                 this._lastChordSlideY = e.clientY;
                 this._lastChordSlideTime = performance.now(); this._markChordSlideActivity();
-                            // If slide is enabled, glide to the tapped column using the configured glide time.
-                            if (this._chordSlideEnabled && this._chordsGestureActive && this._chordSlideVoices && this._chordSlideVoices.size){
+                            // If slide is enabled and we're sustaining, glide to the tapped column; otherwise start and seed voices
+                            if (this._chordSlideEnabled && (this._chordsGestureActive || this._sustainActive)){
+                                if (this._chordSlideVoices && this._chordSlideVoices.size){
                                 this._chordSlideHoverColumn = column; this._chordSlideCommittedColumn = column; this._chordSlideHoverSince = performance.now();
                                 const targets = this._computeChordSlideTargets(column);
                                 this._retuneActiveChordVoicesToTargets(targets, 0);
                                 // Also glide held bass to match the committed/hovered column
                                 try { this._updateHeldBassForColumn(column); } catch(_){ }
                                 this._markChordSlideActivity();
-                            } else {
+                                } else {
                                 this.playChordChordsMode(column, e.clientY);
+                                }
                             }
                         }
                         // Do not start per-string swipe processing
@@ -7429,7 +7491,7 @@
                         }
                         return;
                     }
-                    // In Chords mode, a touch in strings area plays the whole chord for that octave
+                    // In Chords mode, a touch in strings area plays or glides the whole chord for that octave
                     if ((this.playMode || 'high-low') === 'chords') {
                         Array.from(e.changedTouches).forEach(touch => {
                             const hit = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -7439,12 +7501,17 @@
                                 this._lastChordSlideX = touch.clientX;
                                 this._lastChordSlideY = touch.clientY;
                                 this._lastChordSlideTime = performance.now(); this._markChordSlideActivity();
-                                if (this._chordSlideEnabled && this._chordsGestureActive && this._chordSlideVoices && this._chordSlideVoices.size){
-                                    this._chordSlideHoverColumn = column; this._chordSlideCommittedColumn = column; this._chordSlideHoverSince = performance.now();
-                                    const targets = this._computeChordSlideTargets(column);
-                                    this._retuneActiveChordVoicesToTargets(targets, 0);
-                                    try { this._updateHeldBassForColumn(column); } catch(_){ }
-                                    this._markChordSlideActivity();
+                                if (this._chordSlideEnabled && (this._chordsGestureActive || this._sustainActive)){
+                                    if (this._chordSlideVoices && this._chordSlideVoices.size){
+                                        this._chordSlideHoverColumn = column; this._chordSlideCommittedColumn = column; this._chordSlideHoverSince = performance.now();
+                                        const targets = this._computeChordSlideTargets(column);
+                                        this._retuneActiveChordVoicesToTargets(targets, 0);
+                                        try { this._updateHeldBassForColumn(column); } catch(_){ }
+                                        this._markChordSlideActivity();
+                                    } else {
+                                        // Seed voices if none exist yet so subsequent taps glide
+                                        this.playChordChordsMode(column, touch.clientY);
+                                    }
                                 } else {
                                     this.playChordChordsMode(column, touch.clientY);
                                 }
@@ -10622,7 +10689,7 @@
                 
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `microtonal-omnichord-config-${new Date().toISOString().split('T')[0]}.json`;
+                link.download = `xenon-config-${new Date().toISOString().split('T')[0]}.json`;
                 link.click();
                 
                 URL.revokeObjectURL(url);
@@ -11482,14 +11549,7 @@
                     // First-time creation
                     keyboard = document.createElement('div');
                     keyboard.className = 'piano-keyboard';
-                    const by = document.createElement('div');
-                    by.className = 'by-fastfast';
-                    by.innerHTML = 'By FAST<span class="fastfast-link" title="Open FASTFAST Bandcamp">FAST</span>';
-                    by.querySelector('.fastfast-link')?.addEventListener('click', (e)=>{
-                        e.stopPropagation();
-                        try { window.open('https://fastfast.bandcamp.com/', '_blank', 'noopener,noreferrer'); } catch(_) { }
-                    });
-                    keyboard.appendChild(by);
+                    // removed legacy FASTFAST overlay
                     // Drag hint
                     const hint = document.createElement('div');
                     hint.className = 'drag-hint';
@@ -11499,17 +11559,7 @@
                 } else {
                     // Clear dynamic children (keys + dots) only
                     keyboard.querySelectorAll('.white-key.root-btn, .black-key.root-btn, .edo-dot').forEach(el=> el.remove());
-                    // Ensure attribution present
-                    if (!keyboard.querySelector('.by-fastfast')) {
-                        const by = document.createElement('div');
-                        by.className = 'by-fastfast';
-                        by.innerHTML = 'By FAST<span class="fastfast-link" title="Open FASTFAST Bandcamp">FAST</span>';
-                        by.querySelector('.fastfast-link')?.addEventListener('click', (e)=>{
-                            e.stopPropagation();
-                            try { window.open('https://fastfast.bandcamp.com/', '_blank', 'noopener,noreferrer'); } catch(_) { }
-                        });
-                        keyboard.appendChild(by);
-                    }
+                    // legacy overlay removed
                     if (!keyboard.querySelector('.drag-hint')) {
                         const hint = document.createElement('div');
                         hint.className = 'drag-hint';
@@ -11936,7 +11986,7 @@
                 }
              }
 
-            // Fade out dots near left/right edges and remove dots overlapping the FASTFAST link area
+            // Fade out dots near left/right edges
             applyDotEdgeFadeAndExclusions(keyboard) {
                 if (!keyboard) return;
                 const dots = Array.from(keyboard.querySelectorAll('.edo-dot'));
@@ -11952,24 +12002,7 @@
                     }
                     d.style.opacity = String(alpha);
                 });
-
-                // Remove dots overlapping the FASTFAST link bounding box
-                const brand = keyboard.querySelector('.by-fastfast');
-                if (brand) {
-                    const kbRect = keyboard.getBoundingClientRect();
-                    const brRect = brand.getBoundingClientRect();
-                    const relLeft = ((brRect.left - kbRect.left) / kbRect.width) * 100;
-                    const relRight = ((brRect.right - kbRect.left) / kbRect.width) * 100;
-                    const relTop = ((brRect.top - kbRect.top) / kbRect.height) * 100;
-                    const relBottom = ((brRect.bottom - kbRect.top) / kbRect.height) * 100;
-                    dots.forEach(d => {
-                        const l = parseFloat(d.style.left || '0');
-                        const t = parseFloat(d.style.top || '0');
-                        if (l >= relLeft && l <= relRight && t >= relTop && t <= relBottom) {
-                            d.remove();
-                        }
-                    });
-                }
+                // no brand exclusion
             }
 
             // Reposition all key & dot centers to be perfectly equidistant while preserving ordering
@@ -13745,7 +13778,8 @@
                     inactivityStopScheduled: false,
                     stopAtBarIndex: null,
                     metronomeOn: false,
-                    _metroLastClickAt: 0
+                    _metroLastClickAt: 0,
+                    holdStopAtAbsTick: null
                 };
             }
 
@@ -13783,7 +13817,7 @@
                     panel.style.cssText = 'position:fixed;right:8px;bottom:8px;width:420px;max-height:40vh;background:rgba(0,0,0,0.7);color:#0f0;font:12px/1.4 monospace;z-index:99999;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.5);display:flex;flex-direction:column;';
                     const bar = document.createElement('div');
                     bar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.1);';
-                    const title = document.createElement('div'); title.textContent = 'Omnichord Debug'; title.style.flex='1';
+                    const title = document.createElement('div'); title.textContent = 'XENON Debug'; title.style.flex='1';
                     const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = !!this._debug; chk.title='Enable debug logging';
                     chk.addEventListener('change', ()=>{ this.setDebug(chk.checked); });
                     const clr = document.createElement('button'); clr.textContent = 'Clear'; clr.style.cssText='background:#222;color:#fff;border:1px solid #444;border-radius:3px;padding:2px 6px;cursor:pointer;';
@@ -13791,7 +13825,7 @@
                     const dl = document.createElement('button'); dl.textContent = 'Download'; dl.style.cssText=clr.style.cssText;
                     dl.addEventListener('click', ()=>{
                         const blob = new Blob([this._debugLogs.join('\n')], {type:'text/plain'});
-                        const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='omnichord-debug.log'; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+                        const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='xenon-debug.log'; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
                     });
                     bar.appendChild(title); bar.appendChild(chk); bar.appendChild(clr); bar.appendChild(dl);
                     const body = document.createElement('div'); body.style.cssText='overflow:auto;padding:8px;flex:1;';
@@ -13807,7 +13841,14 @@
                 this._ensureArpTransport();
                 const bpm = Math.max(20, this._arp?.bpm || this._arpTransport.bpm || 120);
                 const quant = (this._arp?.quant || this._arpTransport.quant || '1/16');
-                const tuplet = Math.max(0, this._arp?.tuplet || 0);
+                // Support merged tuplet values via quant like "tuplet:7"
+                let tuplet = 0;
+                if (typeof quant === 'string' && quant.startsWith('tuplet:')){
+                    const n = parseInt(quant.split(':')[1],10);
+                    tuplet = Number.isFinite(n) && n>0 ? n : 0;
+                } else {
+                    tuplet = Math.max(0, this._arp?.tuplet || 0);
+                }
                 const beatMs = 60000 / bpm;
                 let ticksPerBeat = 4; // default for 1/16
                 let tickMs;
@@ -13914,6 +13955,18 @@
                         }
                     } catch(_) { }
 
+                    // Auto-stop ARP after post-release HOLD duration if scheduled
+                    try {
+                        if (!this._isSequencing && this._arpTransport.holdStopAtAbsTick != null) {
+                            const nowAbs = this._arpTransport.absTickCounter|0;
+                            if (nowAbs >= this._arpTransport.holdStopAtAbsTick) {
+                                this._dbg && this._dbg('ARP:HOLD:STOP', nowAbs);
+                                this._arpTransport.holdStopAtAbsTick = null;
+                                try { this._stopArp(); } catch(_) {}
+                            }
+                        }
+                    } catch(_) { }
+
                     // Play any active ARP voice aligned to global tickCounter
                     try {
                         if (this._arp && this._arp.active && this._arp.seq && this._arp.seq.length){
@@ -13931,7 +13984,7 @@
                                 }catch(_){ }
                             }
                             const tuner = this.currentTuning || 12;
-                            const glideMs = Number.isFinite(this._arp.glideMs) && this._arp.glideMs>0 ? this._arp.glideMs : Math.max(10, Math.min(4000, Number(this._chordGlideMs)||300));
+                            const glideMs = Number.isFinite(this._arp.glideMs) && this._arp.glideMs>0 ? this._arp.glideMs : Math.max(10, Math.min(120000, Number(this._chordGlideMs)||300));
 
                             // Lead note behavior
                             if (f && isFinite(f) && f>0){
@@ -14189,16 +14242,22 @@
             const bpmEl = document.getElementById('arpBpm');
             const quantEl = document.getElementById('arpQuant');
             const chordQuantEl = document.getElementById('chordQuant');
-            const tupletEl = document.getElementById('arpTuplet');
             const patEl = document.getElementById('arpPattern');
             const npcEl = document.getElementById('arpNpc');
             const glideBtn = document.getElementById('arpGlideToggle');
             const glideMsEl = document.getElementById('arpGlideMs');
             if (bpmEl) this._arp.bpm = Math.max(20, Math.min(300, parseInt(bpmEl.value)||120)); this._dbg && this._dbg('ARP:UI', 'bpm=', this._arp.bpm);
-            if (quantEl) this._arp.quant = quantEl.value || '1/16';
-            if (chordQuantEl) this._arp.chordQuant = chordQuantEl.value || '1/4';
+            if (quantEl) {
+                this._arp.quant = quantEl.value || '1/16';
+                if (this._arp.quant.startsWith('tuplet:')){
+                    const n = parseInt(this._arp.quant.split(':')[1],10);
+                    this._arp.tuplet = Number.isFinite(n) && n>0 ? n : 0;
+                } else {
+                    this._arp.tuplet = 0;
+                }
+            }
+            if (chordQuantEl) this._arp.chordQuant = chordQuantEl.value || 'bar:1';
             if (patEl) this._arp.pattern = patEl.value || 'up';
-            this._arp.tuplet = tupletEl ? Math.max(0, parseInt(tupletEl.value)||0) : 0;
             if (npcEl) this._arp.npc = Math.max(1, Math.min(64, parseInt(npcEl.value)||3)); this._dbg && this._dbg('ARP:UI', 'npc=', this._arp.npc);
             this._arp.gatePct = 50;
             if (glideBtn) this._arp.glide = !!glideBtn.classList.contains('active');
@@ -14246,20 +14305,14 @@
     this._arp.seq = seq;
     // Bass disabled in ARP per request
         // Decide when to apply this change based on chord-change quant and bar position
-        const tpBeat = this._arpTransport.ticksPerBeat || 1;
-        const tpBar = this._arpTransport.ticksPerBar || (tpBeat*4);
-        const chordQ = (this._arp && this._arp.chordQuant) ? this._arp.chordQuant : '1/4';
-        const qMap = { '1/1': tpBar, '1/2': tpBar/2, '1/4': tpBar/4, '1/8': tpBar/8, '1/16': tpBar/16 };
-        const qTicks = Math.max(1, Math.floor(qMap[chordQ] || (tpBar/4)));
-        const curTick = this._arpTransport.tickCounter|0;
-        const absTick = this._arpTransport.absTickCounter|0;
-        // Next boundary at chosen quant
-        const offsetInQ = curTick % qTicks;
-        let ticksToBoundary = (offsetInQ === 0) ? 0 : (qTicks - offsetInQ);
-    // Special rule: if we're late in the bar (last beat), wait for the next bar's downbeat; otherwise, change at the next quant boundary
+    const tpBeat = this._arpTransport.ticksPerBeat || 1;
+    const tpBar = this._arpTransport.ticksPerBar || (tpBeat*4);
+    const curTick = this._arpTransport.tickCounter|0;
+    const absTick = this._arpTransport.absTickCounter|0;
+    // Align chord change to the next tick; if we're in the last beat of the bar, wait for the next bar downbeat
     const inLastBeatOfBar = curTick >= (tpBar - tpBeat);
     const ticksToNextBar = (tpBar - (curTick % tpBar)) % tpBar;
-    const targetAbsTick = inLastBeatOfBar ? (absTick + ticksToNextBar) : (absTick + ticksToBoundary);
+    const targetAbsTick = inLastBeatOfBar ? (absTick + ticksToNextBar) : (absTick + 1);
     const alignToCurrentPhase = false; // preserve transport phase so step index reflects current bar position
 
         // Prepare morph mapping for GLIDE mode: index-aligned source→target sets (follow seq order)
@@ -14291,7 +14344,7 @@
                 target: targetFreqs
             }
     };
-    this._dbg && this._dbg('ARP:PENDING', 'atTick=', this._arp.pendingSwitch.atAbsTick, 'q=', this._arp.quant, 'chordQ=', this._arp.chordQuant);
+    this._dbg && this._dbg('ARP:PENDING', 'atTick=', this._arp.pendingSwitch.atAbsTick, 'q=', this._arp.quant, 'hold=', this._arp.chordQuant);
         // Ensure transport is running so scheduled switch will occur
         this._startArpTransport();
         // Visual highlight now
@@ -14544,7 +14597,7 @@
                     const tuner = edo;
                     const f1 = target * Math.pow(2, this.oscillators.osc1.octave + ((this.oscillators.osc1.detune + (this.oscillators.osc1.coarse * (1200 / tuner))) / 1200));
                     const f2 = target * Math.pow(2, this.oscillators.osc2.octave + ((this.oscillators.osc2.detune + (this.oscillators.osc2.coarse * (1200 / tuner))) / 1200));
-                    const glideMs = Math.max(10, Math.min(4000, Number(this._chordGlideMs)||300));
+                    const glideMs = Math.max(10, Math.min(120000, Number(this._chordGlideMs)||300));
                     const timeEnd = ctxNow + glideMs/1000;
                     let glided = false;
                     try {
@@ -14693,8 +14746,24 @@
                 this._arp.bassVoice = null; this._arp.bassLiveFreq = null;
                 // Re-enable per-note panning auto-toggle when ARP voice stops
                 this._suppressPanningAutoToggle = false;
-                // Schedule transport stop at the next bar boundary if no activity resumes
-                this._scheduleTransportStopAfterInactivity();
+                // Schedule a timed hold-stop based on HOLD selector, aligned to bars or beats (skip while sequencing)
+                try {
+                    if (this._isSequencing) return; // sequencing drives progression explicitly
+                    this._ensureArpTransport();
+                    const hold = (this._arp && this._arp.chordQuant) ? this._arp.chordQuant : 'bar:1';
+                    const [kind, valStr] = String(hold).split(':');
+                    const n = Math.max(1, parseInt(valStr||'1',10));
+                    const tpBeat = this._arpTransport.ticksPerBeat || 1;
+                    const tpBar = this._arpTransport.ticksPerBar || (tpBeat*4);
+                    let ticks = tpBar; // default 1 bar
+                    if (kind === 'beat') ticks = n * tpBeat; else if (kind === 'bar') ticks = n * tpBar;
+                    const nowAbs = this._arpTransport.absTickCounter|0;
+                    this._arpTransport.holdStopAtAbsTick = (nowAbs + ticks) >>> 0;
+                    this._dbg && this._dbg('ARP:HOLD', hold, 'ticks=', ticks, 'stopAt=', this._arpTransport.holdStopAtAbsTick);
+                } catch(_) {
+                    // Fallback to inactivity stop if parsing fails
+                    this._scheduleTransportStopAfterInactivity();
+                }
             }
 
             // Reset all rendered string elements' dataset.frequency back to their original pitch
@@ -16801,8 +16870,8 @@
                     { title: "Try ARP mode", text: "Click Arpeggio, set a BPM and Quant, then hold a chord box to hear a pattern.", highlight: "#arpControls" },
                     { title: "Change your sound", text: "Open OSCILLATORS and try Sine/Saw/Square, then tweak ADSR.", highlight: "#oscillatorsSection" },
                     { title: "Add space & motion", text: "Open EFFECTS to add reverb or make the sound move left-right.", highlight: "#effectsSection" },
-                    { title: "Type a sequence", text: "Click SEQUENCE and type chords (like I IV V or C F G). Save as a preset.", highlight: "#openTextChordParserBtn" },
-                    { title: "Save your song", text: "Use the 💾 and ⬇️ buttons to save the session or export as .OMG.", highlight: "#bottomExportOMGBtn" },
+                    { title: "Type a sequence", text: "Click SEQ and type chords (like I IV V or C F G).", highlight: "#openTextChordParserBtn" },
+                    { title: "Save your song", text: "💾 saves the full .OMG session; ⬇️ also exports .OMG.", highlight: "#bottomExportOMGBtn" },
                     { title: "You're ready!", text: "Keep adding chords, strum, and experiment. Music rewards curiosity.", highlight: null }
                 ];
 
@@ -17312,6 +17381,162 @@
         // Initialize the instrument when the page loads
         let omnichord;
     window.addEventListener('load', () => {
+            // === BPM-quantized time controls & editable ms labels ===
+            const TimeGrid = {
+                // Musical divisions including triplets and quintuple subdivision (1/5 bar)
+                divisions: [
+                    '1/32','1/16','1/8','1/8T','1/4','1/4T','1/5bar','1/2','1','2bar','4bar','8bar'
+                ],
+                // Convert a division key to milliseconds for the current bpm
+                toMs(div, bpm){
+                    const beatMs = 60000 / Math.max(1, bpm||120);
+                    const barMs = beatMs * 4; // 4/4
+                    switch(div){
+                        case '1/32': return beatMs/8;
+                        case '1/16': return beatMs/4;
+                        case '1/8T': return (beatMs/3); // triplet 1/8 over beat
+                        case '1/8': return beatMs/2;
+                        case '1/4T': return (2*beatMs/3);
+                        case '1/4': return beatMs;
+                        case '1/5bar': return barMs/5;
+                        case '1/2': return 2*beatMs;
+                        case '1': return 4*beatMs;
+                        case '2bar': return 2*barMs;
+                        case '4bar': return 4*barMs;
+                        case '8bar': return 8*barMs;
+                        default: return Math.max(1, Number(div)||300);
+                    }
+                },
+                nearestDivision(ms, bpm){
+                    let best = '1/16';
+                    let bestErr = Infinity;
+                    for (const d of this.divisions){
+                        const t = this.toMs(d, bpm);
+                        const err = Math.abs(t - ms);
+                        if (err < bestErr){ bestErr = err; best = d; }
+                    }
+                    return best;
+                }
+            };
+            function getBpm(){ const el=document.getElementById('arpBpm'); return el? Number(el.value)||120 : 120; }
+            function formatMs(ms){
+                if (ms >= 1000) return `${(ms/1000).toFixed(ms%1000?2:1)}s`;
+                return `${Math.round(ms)}ms`;
+            }
+            function parseMsText(text){
+                if (!text) return null;
+                const t = String(text).trim().toLowerCase();
+                if (t.endsWith('ms')) return Number(t.replace('ms','').trim());
+                if (t.endsWith('s')) return Number(t.replace('s','').trim())*1000;
+                const n = Number(t);
+                return Number.isFinite(n)? n : null;
+            }
+            function wireQuantizedTimeSlider(sliderId, labelId, opts){
+                const slider = document.getElementById(sliderId);
+                const label = document.getElementById(labelId);
+                if (!slider || !label) return;
+                const minMs = Number(slider.min)||10;
+                const maxMs = Number(slider.max)||120000;
+                let shifting = false; // shift-drag precision flag
+                let recursing = false;
+                // optional sticky division memory (per control)
+                const stickyKey = `div@${labelId}`;
+                let stickyDiv = null;
+                const snap = ()=>{
+                    const bpm = getBpm();
+                    let v = Number(slider.value)||minMs;
+                    if (!shifting){
+                        const div = stickyDiv || TimeGrid.nearestDivision(v, bpm);
+                        v = Math.min(maxMs, Math.max(minMs, TimeGrid.toMs(div, bpm)));
+                        slider.value = String(Math.round(v));
+                        // Persist sticky for glides and other musical time controls
+                        stickyDiv = div; try { sessionStorage.setItem(stickyKey, div); } catch(_) {}
+                    }
+                    if (label){
+                        // For glide controls, show musical division; for others, show ms/s
+                        const showDiv = /glide/i.test(sliderId);
+                        label.textContent = showDiv ? (stickyDiv || TimeGrid.nearestDivision(v,bpm)) : formatMs(v);
+                    }
+                    return v;
+                };
+                // initial render
+                try { stickyDiv = sessionStorage.getItem(stickyKey) || null; } catch(_) {}
+                snap();
+                // respond to slider moves
+                slider.addEventListener('input', ()=>{ 
+                    if (recursing) return; 
+                    const before = Number(slider.value);
+                    const v = snap(); 
+                    if (Math.round(before) !== Math.round(v)){
+                        // propagate quantized value to other listeners
+                        recursing = true;
+                        setTimeout(()=>{ try{ slider.dispatchEvent(new Event('input', {bubbles:false})); } finally { recursing=false; } }, 0);
+                    }
+                });
+                // shift precision
+                slider.addEventListener('pointerdown', (e)=>{ shifting = !!(e.shiftKey); });
+                slider.addEventListener('pointerup', ()=>{ shifting=false; });
+                slider.addEventListener('pointercancel', ()=>{ shifting=false; });
+                // respond to BPM changes to resnap value to the grid
+                const bpmEl = document.getElementById('arpBpm');
+                if (bpmEl){ bpmEl.addEventListener('input', ()=>{ 
+                    const v = snap(); 
+                    recursing = true; 
+                    setTimeout(()=>{ try{ slider.dispatchEvent(new Event('input', {bubbles:false})); } finally { recursing=false; } }, 0);
+                }); }
+                // label typing (accepts ms or s; for glides, also accept division tokens like 1/2, 2bar)
+                label.addEventListener('keydown', (e)=>{
+                    if (e.key === 'Enter'){
+                        e.preventDefault();
+                        const txt = String(label.textContent||'').trim().toLowerCase();
+                        // try division tokens first (e.g., 1/2, 2bar)
+                        let nextMs = null;
+                        if (/(^\d+\/\d+$)|bar$|t$/.test(txt)){
+                            stickyDiv = txt.replace(/\s+/g,'');
+                            // normalize common aliases
+                            const aliases = { '1/1':'1', '1':'1', '1bar':'1', '2bars':'2bar', '4bars':'4bar', '8bars':'8bar' };
+                            stickyDiv = aliases[stickyDiv] || stickyDiv;
+                            nextMs = TimeGrid.toMs(stickyDiv, getBpm());
+                        } else {
+                            const ms = parseMsText(txt);
+                            if (Number.isFinite(ms)) nextMs = ms;
+                        }
+                        if (Number.isFinite(nextMs)){
+                            const clamped = Math.min(maxMs, Math.max(minMs, nextMs));
+                            slider.value = String(Math.round(clamped));
+                            const v = snap();
+                            recursing = true; 
+                            setTimeout(()=>{ try{ slider.dispatchEvent(new Event('input', {bubbles:false})); } finally { recursing=false; } }, 0);
+                        } else { snap(); }
+                        label.blur();
+                    }
+                });
+                label.addEventListener('blur', ()=>{ snap(); });
+            }
+            // Wire key time controls
+            try {
+                wireQuantizedTimeSlider('chordGlideMs', 'chordGlideMsValue');
+                wireQuantizedTimeSlider('arpGlideMs', 'arpGlideMsValue');
+                wireQuantizedTimeSlider('delayTime', 'delayTimeValue');
+                // panning speed uses seconds in UI, still accept ms typing
+                (function(){
+                    const s=document.getElementById('panningSpeed');
+                    const l=document.getElementById('panningSpeedValue');
+                    if (!s||!l) return;
+                    const render=()=>{ l.textContent = formatMs(Number(s.value)||0).replace('ms','ms').replace(/^(\d+(?:\.\d+)?)s$/, '$1s'); };
+                    render();
+                    s.addEventListener('input', render);
+                    // quantize to BPM grid as well
+                    wireQuantizedTimeSlider('panningSpeed','panningSpeedValue');
+                })();
+                // ADSR sliders (attack/decay/release for both OSCs)
+                wireQuantizedTimeSlider('attackSlider','attackValue');
+                wireQuantizedTimeSlider('decaySlider','decayValue');
+                wireQuantizedTimeSlider('releaseSlider','releaseValue');
+                wireQuantizedTimeSlider('osc2AttackSlider','osc2AttackValue');
+                wireQuantizedTimeSlider('osc2DecaySlider','osc2DecayValue');
+                wireQuantizedTimeSlider('osc2ReleaseSlider','osc2ReleaseValue');
+            } catch(_) {}
             omnichord = new MicrotonalOmnichord();
             window.omnichord = omnichord; // Make it globally accessible
             try { console.log('[DEBUG] window.load: omnichord ready; debug=', !!omnichord._debug); } catch(_){ }
@@ -17442,15 +17667,9 @@
                 }, 100);
             };
 
-            // Also expose adjustKeyboardForLogo for resize events
+            // Keyboard logo adjustment no longer needed after rebrand; keep namespace for compatibility
             window.PianoApp = window.PianoApp || {};
-            window.PianoApp.adjustKeyboardForLogo = () => {
-                if (omnichord && typeof omnichord.adjustKeyboardForLogo === 'function') {
-                    omnichord.adjustKeyboardForLogo();
-                }
-            };
-            // Initial adjustment on load
-            if (window.PianoApp.adjustKeyboardForLogo) window.PianoApp.adjustKeyboardForLogo();
+            window.PianoApp.adjustKeyboardForLogo = undefined;
             
             // Initialize new features
             omnichord.initTutorial();
@@ -17459,18 +17678,7 @@
             // Wire bottom bar Save/Import/Export
             const bottomSave = document.getElementById('bottomSaveSeqBtn');
         if (bottomSave) bottomSave.addEventListener('click', () => {
-                try {
-                    const text = omnichord.buildCurrentSequenceString(true);
-                    if (!text) return;
-                    const name = prompt('Preset name?', 'My Sequence');
-                    if (!name) return;
-            const seqEdoEl = document.getElementById('seqEdoInput');
-            const edo = Math.max(5, Math.min(52, parseInt(seqEdoEl?.value || omnichord.currentTuning || 24)));
-            omnichord.saveSequencePreset({ text, name, edo });
-                    // Refresh presets dropdown immediately if open
-            const sel = document.getElementById('seqPresetDropdown');
-            if (sel) omnichord.populateSeqPresetDropdown(sel, omnichord.getSequencePresets());
-                } catch {}
+                try { omnichord.saveSessionAsOMG(); } catch {}
             });
             const bottomExport = document.getElementById('bottomExportOMGBtn');
             if (bottomExport) bottomExport.addEventListener('click', () => { try { omnichord.saveSessionAsOMG(); } catch {} });
@@ -17479,6 +17687,83 @@
                 const input = document.getElementById('loadSessionInput');
                 if (input) input.click();
             });
+
+            // Wire PLAY (one bar per chord) + Loop
+            try {
+                const playBtn = document.getElementById('playSeqBtn');
+                const loopChk = document.getElementById('playLoop');
+                if (playBtn && !playBtn._wired){
+                    playBtn._wired = true;
+                    playBtn.addEventListener('click', ()=>{
+                        try {
+                            const cols = Array.from(document.querySelectorAll('#extensionColumns .extension-column'));
+                            if (!cols.length) return;
+                            this._ensureArpDefaults();
+                            this._ensureArpTransport();
+                            // mark sequencing mode so HOLD and other idle stops don't interfere
+                            this._isSequencing = true;
+                            const tpBar = this._arpTransport.ticksPerBar || 16;
+                            let i = 0;
+                            let nextTimer = null;
+                            const scheduleNext = ()=>{
+                                if (i >= cols.length){
+                                    if (loopChk && loopChk.checked){ i = 0; } else { this._isSequencing = false; return; }
+                                }
+                                const col = cols[i++];
+                                // Trigger ARP start on this column aligned to next bar downbeat
+                                try {
+                                    const curTick = this._arpTransport.tickCounter|0;
+                                    const ticksToNextBar = (tpBar - (curTick % tpBar)) % tpBar;
+                                    const targetAbsTick = (this._arpTransport.absTickCounter|0) + (ticksToNextBar||tpBar);
+                                    // Prepare a quick sequence from column strings
+                                    const rows = Array.from(col.querySelectorAll('.strings-column .string'));
+                                    const npc = Math.max(1, this._arp?.npc|0) || 3;
+                                    const seq = rows.slice(0, npc);
+                                    this._arp.pendingSwitch = {
+                                        atAbsTick: targetAbsTick >>> 0,
+                                        alignPhaseToTickCounter: false,
+                                        seq,
+                                        bassFreq: this._arp.bassFreq,
+                                        column: col,
+                                        mapAsc: seq
+                                    };
+                                    // Ensure HOLD doesn't cut transport during sequencing
+                                    this._arpTransport.holdStopAtAbsTick = null;
+                                    this._startArpTransport();
+                                } catch(_) {}
+                                // Schedule the next chord after exactly 1 bar from that boundary
+                                clearTimeout(nextTimer); nextTimer = setTimeout(scheduleNext, (this._arpTransport.tickMs||250) * tpBar);
+                            };
+                            scheduleNext();
+                        } catch(_) {}
+                    });
+                }
+            } catch(_) {}
+
+        // Auto-hide center brand if controls overflow or a panel is open
+            try {
+                const brandHost = document.getElementById('brandHost');
+                const bar = document.getElementById('bottomBar');
+                const right = document.getElementById('rightControls');
+        const panelHost = document.getElementById('panelHost');
+        const adjustBrand = ()=>{
+                    try {
+            if (!brandHost) return;
+            // Only hide when the GLIDE menus are visible (chord or arp controls shown)
+            const chordCtl = document.getElementById('chordControls');
+            const arpCtl = document.getElementById('arpControls');
+            const chordVisible = chordCtl && window.getComputedStyle(chordCtl).display !== 'none';
+            const arpVisible = arpCtl && window.getComputedStyle(arpCtl).display !== 'none';
+            const hide = !!(chordVisible || arpVisible);
+            brandHost.style.display = hide ? 'none' : 'flex';
+                    } catch(_) {}
+                };
+                window.addEventListener('resize', adjustBrand);
+        // Observe size/content changes to reactively hide brand
+        const mo = new MutationObserver(()=> adjustBrand());
+        if (bar) mo.observe(bar, { childList:true, subtree:true, attributes:true });
+        setTimeout(adjustBrand, 50);
+            } catch(_) {}
             
             // Add event handler for chord name saving (ensure no root names are saved)
             const saveChordNameBtn = document.getElementById('saveChordName');
