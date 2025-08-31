@@ -32,7 +32,7 @@
             /* Use dynamic viewport height to avoid mobile URL bar issues (with small-viewport fallback) */
             height: 100svh;
             height: 100dvh;
-            padding-top: calc(var(--bar-h) + env(safe-area-inset-top));
+            padding-top: calc(120px + env(safe-area-inset-top)); /* Increased for universal menu */
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
             padding-bottom: env(safe-area-inset-bottom);
@@ -457,6 +457,7 @@
             padding: 0; /* no inner gaps */
             overflow: hidden; /* Prevent scrollbars */
             min-height: 0; /* allow shrinking when header grows */
+            max-height: calc(100% - 80px); /* Reserve space for header and footer */
             box-sizing: border-box;
             /* High-contrast backdrop for neon strings */
             background: #000000;
@@ -464,6 +465,9 @@
             background-image: var(--root-tint-gradient, none);
             background-repeat: no-repeat;
             background-size: cover;
+            /* Ensure strings don't overflow into header/footer areas */
+            margin-top: 4px;
+            margin-bottom: 4px;
         }
 
         .note-label {
@@ -807,6 +811,46 @@
             white-space: nowrap;
         }
         .mode-controls .mode-btn.active { background: #3498db; border-color: #2980b9; }
+
+        /* Universal menu and mode button styling */
+        #universalMenu {
+            min-height: 40px;
+        }
+        
+        #modeButtonsStack .mode-btn {
+            background: #2a4858;
+            color: #e8f5ff;
+            border: 1px solid #4a6870;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            min-width: 70px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        
+        #modeButtonsStack .mode-btn:hover {
+            background: #3a5868;
+            border-color: #5a7880;
+        }
+        
+        #modeButtonsStack .mode-btn.active {
+            background: #3498db;
+            border-color: #2980b9;
+            color: #ffffff;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.5);
+        }
+        
+        #topContainer {
+            position: relative;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
 
         /* Ensure panel toggles show a clear active glow (used by BASS/GLIDE buttons) */
         .panel-btn.active {
@@ -1347,81 +1391,48 @@
     <div id="brandFooter" style="position:fixed;left:0;right:0;bottom:0;height:28px;background:#0c2430;border-top:1px solid #254453;display:flex;align-items:center;justify-content:center;z-index:1000;">
             <a id="brandLink" href="https://fastfast.bandcamp.com/" target="_blank" rel="noopener noreferrer" style="color:#e8f5ff;text-decoration:none;font-weight:700;letter-spacing:1px;font-size:14px;text-decoration:none;">XENON</a>
         </div>
-        <!-- New global create chord button (moved out of TUNING panel) -->
-    <button id="createNewChordBtn" class="panel-btn" title="Add Chord" style="font-weight:bold;">+</button>
-        <!-- EDO quick control (5–52) -->
-        <div style="display:flex;align-items:center;gap:6px;">
-        <span style="font-size:12px;color:#9db6c8;">EDO</span>
-        <input id="edoQuickInput" type="number" min="5" max="52" value="24" title="Steps per octave" style="width:56px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 6px;font-size:13px;" />
-        </div>
-    <button class="panel-btn" data-panel="osc" title="Oscillator settings">OSC</button>
-    <button class="panel-btn" data-panel="fx" title="Effects">FX</button>
-    <button id="openTextChordParserBtn" class="panel-btn" title="Type or paste a chord sequence" style="margin-left:6px;">SEQ</button>
-    <div id="rightControls" style="margin-left:auto;display:flex;align-items:center;gap:12px;">
-        <button id="bottomSaveSeqBtn" class="panel-btn" title="Save .OMG (Full Session)" style="background:#10b981;border-color:#34d399;">💾</button>
+    <div id="topContainer" style="position:relative;width:100%;background:var(--bg-panel);border-bottom:2px solid #4a6870;padding:8px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);z-index:1000;">
+        <!-- Universal permanent top menu -->
+        <div id="universalMenu" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <!-- File operations -->
+            <button id="createNewChordBtn" class="panel-btn" title="Add Chord" style="font-weight:bold;">+</button>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:12px;color:#9db6c8;">EDO</span>
+                <input id="edoQuickInput" type="number" min="5" max="52" value="24" title="Steps per octave" style="width:56px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 6px;font-size:13px;" />
+            </div>
+            <button class="panel-btn" data-panel="osc" title="Oscillator settings">OSC</button>
+            <button class="panel-btn" data-panel="fx" title="Effects">FX</button>
+            <button id="openTextChordParserBtn" class="panel-btn" title="Type or paste a chord sequence">SEQ</button>
+            
+            <!-- Session management -->
+            <button id="bottomSaveSeqBtn" class="panel-btn" title="Save .OMG (Full Session)" style="background:#10b981;border-color:#34d399;">💾</button>
             <button id="bottomImportOMGBtn" class="panel-btn" title="Import .OMG session" style="background:#9b59b6;border-color:#8e44ad;">📂</button>
             <button id="bottomExportOMGBtn" class="panel-btn" title="Export full session (.OMG)" style="background:#f59e0b;border-color:#fbbf24;">⬇️</button>
+            <button id="savePresetBtn" class="panel-btn" title="Save current settings as preset" style="background:#3498db;border-color:#2980b9;">PRESET</button>
             
-            <div id="chordControls" style="display:none;align-items:center;gap:6px;">
-                <label for="chordSlide" style="font-size:11px;color:#9db6c8;">SLIDE</label>
-                <input id="chordSlide" type="checkbox" title="Enable voice-leading slide between chords" />
-                <label style="font-size:11px;color:#9db6c8;">HOLD</label>
-                <select id="chordHold" title="Chord hold length (Chord/Slide)" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
-                    <option value="beat:1">1 beat</option>
-                    <option value="beat:2">2 beats</option>
-                    <option value="bar:1" selected>1 bar</option>
-                    <option value="bar:2">2 bars</option>
-                    <option value="bar:4">4 bars</option>
-                    <option value="bar:8">8 bars</option>
-                    <option value="bar:16">16 bars</option>
-                </select>
-                <div class="slider-container" style="margin-left:8px; min-width:140px; display:inline-block; vertical-align:middle;">
-                    <label for="chordGlideMs" style="font-size:11px;color:#9db6c8;">GLIDE</label>
-                    <input type="range" class="synth-slider" id="chordGlideMs" min="0" max="1000" value="500" style="height:20px; width:140px;">
-                    <div class="slider-value" id="chordGlideMsValue" style="font-size:9px;width:64px;text-align:right;" contenteditable="true" title="Type ms or musical token (e.g., 1/4, 2bar). Hold Shift while dragging for fine ms.">1/4</div>
-                </div>
-                <button id="chordBassToggle" class="panel-btn" title="Toggle sustained bass in Chords/Slide">BASS</button>
-            </div>
-            <div id="arpControls" style="display:none;align-items:center;gap:6px;">
-                <label style="font-size:11px;color:#9db6c8;">Pat</label>
-                <select id="arpPattern" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
-                    <option value="up" selected>Up</option>
-                    <option value="down">Down</option>
-                    <option value="updown">Up-Down</option>
-                    <option value="downup">Down-Up</option>
-                    <option value="walk-up">Walk Up</option>
-                    <option value="walk-down">Walk Down</option>
-                    <option value="alt-ends">Alt Ends</option>
-                    <option value="alt-center">Alt Center</option>
-                    <option value="random">Random</option>
-                </select>
-                <label style="font-size:11px;color:#9db6c8;">HOLD</label>
-                <select id="chordQuant" title="Post-release ARP hold length" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
-                    <option value="beat:1">1 beat</option>
-                    <option value="beat:2">2 beats</option>
-                    <option value="bar:1" selected>1 bar</option>
-                    <option value="bar:2">2 bars</option>
-                    <option value="bar:4">4 bars</option>
-                    <option value="bar:8">8 bars</option>
-                    <option value="bar:16">16 bars</option>
-                    <option value="bar:32">32 bars</option>
-                    <option value="bar:64">64 bars</option>
-                </select>
-        <button id="arpGlideToggle" title="Morph ARP between chords" style="background:#1f3744;color:#e8f5ff;border:1px solid #4a6870;border-radius:8px;padding:8px 10px;font-size:14px;cursor:pointer;">GLIDE</button>
-                <div style="display:flex;align-items:center;gap:6px;">
-            <input type="range" id="arpGlideMs" min="0" max="1000" value="500" style="width:160px;">
-            <div id="arpGlideMsValue" class="slider-value" style="font-size:12px;width:64px;text-align:right;" contenteditable="true" title="Type ms or musical token (e.g., 1/4, 2bar). Hold Shift while dragging for fine ms.">1/4</div>
-                </div>
-                <button id="arpBassToggle" class="panel-btn" title="Toggle sustained ARP bass">BASS</button>
-                
-
-            </div>
-            <!-- Global Play controls (visible in both Chord and ARP modes) -->
-            <div id="playControls" style="display:flex;align-items:center;gap:6px;">
+            <!-- Universal settings -->
+            <!-- GLIDE slider removed -->
+            
+            <div style="display:flex;align-items:center;gap:6px;">
                 <label style="font-size:11px;color:#9db6c8;">BPM</label>
-                <input id="arpBpm" type="number" min="20" max="300" value="120" style="width:56px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:12px;"/>
-                <label style="font-size:11px;color:#9db6c8;">Quant</label>
-                <select id="arpQuant" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:12px;">
+                <input id="universalBpm" type="number" min="20" max="300" value="120" style="width:56px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:12px;"/>
+            </div>
+            
+            <div style="display:flex;align-items:center;gap:6px;">
+                <label style="font-size:11px;color:#9db6c8;">TIME</label>
+                <select id="universalTimeSignature" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:12px;">
+                    <option value="4/4">4/4</option>
+                    <option value="3/4">3/4</option>
+                    <option value="2/4">2/4</option>
+                    <option value="6/8">6/8</option>
+                    <option value="7/8">7/8</option>
+                    <option value="5/4">5/4</option>
+                </select>
+            </div>
+            
+            <div style="display:flex;align-items:center;gap:6px;">
+                <label style="font-size:11px;color:#9db6c8;">QUANT</label>
+                <select id="universalQuant" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:12px;">
                     <option value="1/1">1/1</option>
                     <option value="1/2">1/2</option>
                     <option value="1/4">1/4</option>
@@ -1435,12 +1446,84 @@
                     <option value="tuplet:9">9/beat</option>
                     <option value="tuplet:11">11/beat</option>
                 </select>
+            </div>
+            
+            <div style="display:flex;align-items:center;gap:6px;">
                 <label style="font-size:11px;color:#9db6c8;">NPC</label>
-                <input id="arpNpc" type="number" min="1" max="64" value="3" title="Notes Per Cycle (Global for all modes)" style="width:44px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
-                <button id="playSeqBtn" class="panel-btn" title="Play one bar per chord (order)">PLAY</button>
-                <button id="stopSeqBtn" class="panel-btn" title="Stop sequencing immediately">STOP</button>
+                <input id="universalNpc" type="number" min="1" max="64" value="3" title="Notes Per Cycle (Global for all modes)" style="width:44px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
+            </div>
+            
+            <div style="display:flex;align-items:center;gap:6px;">
+                <label style="font-size:11px;color:#9db6c8;">HOLD</label>
+                <select id="universalHold" title="Note/chord/arp hold length" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
+                    <option value="beat:1">1 beat</option>
+                    <option value="beat:2">2 beats</option>
+                    <option value="bar:1" selected>1 bar</option>
+                    <option value="bar:2">2 bars</option>
+                    <option value="bar:4">4 bars</option>
+                    <option value="bar:8">8 bars</option>
+                    <option value="bar:16">16 bars</option>
+                </select>
+            </div>
+            
+            <div style="display:flex;align-items:center;gap:6px;">
+                <label style="font-size:11px;color:#9db6c8;">PATTERN</label>
+                <select id="universalPattern" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
+                    <option value="up" selected>Up</option>
+                    <option value="down">Down</option>
+                    <option value="updown">Up-Down</option>
+                    <option value="downup">Down-Up</option>
+                    <option value="walk-up">Walk Up</option>
+                    <option value="walk-down">Walk Down</option>
+                    <option value="alt-ends">Alt Ends</option>
+                    <option value="alt-center">Alt Center</option>
+                    <option value="random">Random</option>
+                </select>
+            </div>
+            
+            <!-- Transport controls -->
+            <button id="playSeqBtn" class="panel-btn" title="Play one bar per chord (order)">PLAY</button>
+            <button id="stopSeqBtn" class="panel-btn" title="Stop sequencing immediately">STOP</button>
+            
+            <div style="display:flex;align-items:center;gap:6px;">
                 <label style="font-size:11px;color:#9db6c8;">Loop</label>
-                <input id="playLoop" type="checkbox" title="Loop sequence" />
+                <input id="playLoop" type="checkbox" title="Loop sequence" checked />
+            </div>
+        </div>
+        
+        <!-- Mode buttons - vertical stack on left -->
+        <div id="modeButtonsStack" style="position:absolute;left:30px;top:calc(100% + 8px);display:flex;flex-direction:column;gap:4px;z-index:999;">
+            <button id="modeStrum" class="mode-btn active" title="Toggle Strum mode">STRUM</button>
+            <button id="modeChords" class="mode-btn" title="Toggle Chord mode">CHORD</button>
+            <button id="modeArp" class="mode-btn" title="Toggle Arpeggio mode">ARP</button>
+            <button id="universalBass" class="mode-btn" title="Toggle Bass sustain for all modes">BASS</button>
+        </div>
+    </div>
+
+    <div style="padding-top:0px;"> <!-- No extra padding needed now -->
+        <!-- Old create chord button removed - now in universal menu -->
+    <button id="createNewChordBtnOld" class="panel-btn" title="Add Chord" style="display:none;">+</button>
+        <!-- EDO quick control (5–52) - moved to universal menu -->
+        <div style="display:none;">
+        <span style="font-size:12px;color:#9db6c8;">EDO</span>
+        <input id="edoQuickInputOld" type="number" min="5" max="52" value="24" title="Steps per octave" style="width:56px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 6px;font-size:13px;" />
+        </div>
+    <button class="panel-btn" data-panel="osc" title="Oscillator settings" style="display:none;">OSC</button>
+    <button class="panel-btn" data-panel="fx" title="Effects" style="display:none;">FX</button>
+    <button id="openTextChordParserBtnOld" class="panel-btn" title="Type or paste a chord sequence" style="display:none;">SEQ</button>
+    <div id="rightControls" style="margin-left:auto;display:none;"> <!-- Old controls moved to universal menu -->
+        <!-- All controls moved to universal permanent menu above -->
+    </div>
+            <!-- Old mode-specific controls - replaced by universal menu -->
+            <div id="chordControls" style="display:none;">
+                <!-- Controls moved to universal menu -->
+            </div>
+            <div id="arpControls" style="display:none;">
+                <!-- Controls moved to universal menu -->
+            </div>
+            <!-- Old play controls - replaced by universal menu -->
+            <div id="playControls" style="display:none;">
+                <!-- Controls moved to universal menu -->
             </div>
         <label for="masterVolume" style="font-size:14px;color:#9db6c8;">MASTER</label>
         <input type="range" id="masterVolume" min="0" max="10" value="10" style="width:180px; accent-color:#2d9c5d;">
@@ -6722,50 +6805,216 @@
         // Play modes via inline buttons
         this.playMode = this.playMode || 'high-low';
         this.strumMode = this.strumMode || 'up'; // up | down | alternating
+        
+        // Independent mode toggles - can be combined
+        this.strumEnabled = true;  // Default on
+        this.chordsEnabled = false;
+        this.arpEnabled = false;
+        this.bassEnabled = false;
         this.setPlayMode = (mode) => {
             const valid = ['high-low','low-high','alt-ends','alt-center','chords','arp'];
             this.playMode = valid.includes(mode) ? mode : 'high-low';
+            
+            // Sync independent flags with playMode for backward compatibility
+            this.strumEnabled = !['chords','arp'].includes(this.playMode);
+            this.chordsEnabled = (this.playMode === 'chords');
+            this.arpEnabled = (this.playMode === 'arp');
+            
             // Update UI visibility
-            const ac = document.getElementById('arpControls'); if (ac) ac.style.display = (this.playMode === 'arp') ? 'flex' : 'none';
-            const cc = document.getElementById('chordControls'); if (cc) cc.style.display = (this.playMode === 'chords') ? 'flex' : 'none';
+            const ac = document.getElementById('arpControls'); if (ac) ac.style.display = this.arpEnabled ? 'flex' : 'none';
+            const cc = document.getElementById('chordControls'); if (cc) cc.style.display = this.chordsEnabled ? 'flex' : 'none';
             // Reorder strings if strum modes
-            if (!['chords','arp'].includes(this.playMode) && typeof this.applyPlayModeToAllColumns === 'function') this.applyPlayModeToAllColumns();
+            if (this.strumEnabled && typeof this.applyPlayModeToAllColumns === 'function') this.applyPlayModeToAllColumns();
             // Toggle button states
             this.updateModeUI?.();
         };
+        
+        // Sync playMode with independent flags for backward compatibility
+        this.syncPlayMode = () => {
+            if (this.arpEnabled && !this.chordsEnabled) {
+                this.playMode = 'arp';
+            } else if (this.chordsEnabled && !this.arpEnabled) {
+                this.playMode = 'chords';
+            } else if (this.strumEnabled && !this.chordsEnabled && !this.arpEnabled) {
+                // Default strum mode based on strumMode setting
+                this.playMode = (this.strumMode === 'up') ? 'low-high' : 'high-low';
+            } else {
+                // Multiple modes active - prioritize in order: chords > arp > strum
+                if (this.chordsEnabled) this.playMode = 'chords';
+                else if (this.arpEnabled) this.playMode = 'arp';
+                else this.playMode = (this.strumMode === 'up') ? 'low-high' : 'high-low';
+            }
+        };
+        
+        // Independent mode toggles
+        this.toggleStrumMode = () => {
+            // STRUM always stays on, just cycle through UP, DOWN, ALT-CENTERS, ALT-ENDS
+            this.strumEnabled = true; // Always keep strum enabled
+            this.cycleStrumMode(); // Cycle through strum types
+            this.syncPlayMode();
+            this.updateModeUI();
+        };
+        
+        this.toggleChordsMode = () => {
+            this.chordsEnabled = !this.chordsEnabled;
+            // If turning off chords but no other modes active, enable strum
+            if (!this.chordsEnabled && !this.strumEnabled && !this.arpEnabled && !this.bassEnabled) {
+                this.strumEnabled = true;
+            }
+            this.syncPlayMode();
+            this.updateModeUI();
+            // Update panel visibility
+            const cc = document.getElementById('chordControls');
+            if (cc) cc.style.display = this.chordsEnabled ? 'flex' : 'none';
+        };
+        
+        this.toggleArpMode = () => {
+            this.arpEnabled = !this.arpEnabled;
+            // If turning off arp but no other modes active, enable strum
+            if (!this.arpEnabled && !this.strumEnabled && !this.chordsEnabled && !this.bassEnabled) {
+                this.strumEnabled = true;
+            }
+            this.syncPlayMode();
+            this.updateModeUI();
+            // Update panel visibility
+            const ac = document.getElementById('arpControls');
+            if (ac) ac.style.display = this.arpEnabled ? 'flex' : 'none';
+        };
+        
+        this.toggleBassMode = () => {
+            this.bassEnabled = !this.bassEnabled;
+            // If turning off bass but no other modes active, enable strum
+            if (!this.bassEnabled && !this.strumEnabled && !this.chordsEnabled && !this.arpEnabled) {
+                this.strumEnabled = true;
+            }
+            this.syncPlayMode();
+            this.updateModeUI();
+        };
+        
+        // Universal control synchronization
+        this.syncUniversalControls = () => {
+            // Sync universal controls with existing individual controls
+            const universalBpm = document.getElementById('universalBpm');
+            const universalQuant = document.getElementById('universalQuant');
+            const universalNpc = document.getElementById('universalNpc');
+            const universalHold = document.getElementById('universalHold');
+            const universalPattern = document.getElementById('universalPattern');
+            const universalBass = document.getElementById('universalBass');
+            
+            // Get values from existing controls
+            const arpBpm = document.getElementById('arpBpm');
+            const arpQuant = document.getElementById('arpQuant');
+            const arpNpc = document.getElementById('universalNpc');
+            const chordHold = document.getElementById('chordHold');
+            const arpPattern = document.getElementById('universalPattern');
+            const chordBassToggle = document.getElementById('chordBassToggle');
+            
+            // Sync values
+            if (universalBpm && arpBpm) universalBpm.value = arpBpm.value;
+            if (universalQuant && arpQuant) universalQuant.value = arpQuant.value;
+            if (universalNpc && arpNpc) universalNpc.value = arpNpc.value;
+            if (universalHold && chordHold) universalHold.value = chordHold.value;
+            if (universalPattern && arpPattern) universalPattern.value = arpPattern.value;
+            if (universalBass && chordBassToggle) {
+                universalBass.classList.toggle('active', chordBassToggle.classList.contains('active'));
+            }
+        };
+        
+        // Apply universal settings to all individual controls
+        this.applyUniversalSettings = () => {
+            const universalBpm = document.getElementById('universalBpm');
+            const universalQuant = document.getElementById('universalQuant');
+            const universalNpc = document.getElementById('universalNpc');
+            const universalHold = document.getElementById('universalHold');
+            const universalPattern = document.getElementById('universalPattern');
+            
+            // Apply to all existing controls
+            const arpBpm = document.getElementById('arpBpm');
+            const arpQuant = document.getElementById('arpQuant');
+            const arpNpc = document.getElementById('universalNpc');
+            const chordHold = document.getElementById('chordHold');
+            const chordQuant = document.getElementById('chordQuant');
+            const arpPattern = document.getElementById('universalPattern');
+            
+            if (universalBpm) {
+                if (arpBpm) arpBpm.value = universalBpm.value;
+                this.bpm = parseInt(universalBpm.value) || 120;
+            }
+            if (universalQuant) {
+                if (arpQuant) arpQuant.value = universalQuant.value;
+                if (chordQuant) chordQuant.value = universalQuant.value;
+            }
+            if (universalNpc) {
+                if (arpNpc) arpNpc.value = universalNpc.value;
+                const npcValue = parseInt(universalNpc.value) || 3;
+                this.arpNotesPerCycle = npcValue;
+                // Also sync to other NPC-related properties
+                if (this._arp) {
+                    this._arp.npc = npcValue;
+                    this._arp.chordsNpc = npcValue;
+                }
+                // Update any other NPC inputs that might exist
+                const chordNpcInput = document.getElementById('chordNpcInput');
+                if (chordNpcInput) chordNpcInput.value = npcValue;
+            }
+            if (universalHold) {
+                if (chordHold) chordHold.value = universalHold.value;
+                if (chordQuant) chordQuant.value = universalHold.value;
+            }
+            if (universalPattern && arpPattern) {
+                arpPattern.value = universalPattern.value;
+            }
+            // Handle time signature changes
+            const universalTimeSignature = document.getElementById('universalTimeSignature');
+            if (universalTimeSignature) {
+                // Force transport recalculation when time signature changes
+                this._ensureArpTransport();
+            }
+        };
+        
         this.cycleStrumMode = () => {
-            const order = ['up','down','alternating'];
+            const order = ['up','down','alt-centers','alt-ends'];
             const i = order.indexOf(this.strumMode);
             this.strumMode = order[(i+1)%order.length];
             const lbl = document.getElementById('strumLabel');
-            if (lbl) lbl.textContent = this.strumMode === 'alternating' ? 'Alt' : (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1));
+            if (lbl) {
+                if (this.strumMode === 'alt-centers') lbl.textContent = 'Alt-C';
+                else if (this.strumMode === 'alt-ends') lbl.textContent = 'Alt-E';
+                else lbl.textContent = this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1);
+            }
             // Map strum mode to internal playMode ordering
             if (this.strumMode === 'up') this.setPlayMode('low-high');
             else if (this.strumMode === 'down') this.setPlayMode('high-low');
+            else if (this.strumMode === 'alt-centers') this.setPlayMode('alt-center');
             else this.setPlayMode('alt-ends');
         };
         this.updateModeUI = () => {
             const btnStrum = document.getElementById('modeStrum');
             const btnCh = document.getElementById('modeChords');
             const btnAr = document.getElementById('modeArp');
-            if (btnStrum) btnStrum.classList.toggle('active', !['chords','arp'].includes(this.playMode));
-            if (btnCh) btnCh.classList.toggle('active', this.playMode==='chords');
-            if (btnAr) btnAr.classList.toggle('active', this.playMode==='arp');
+            const btnBass = document.getElementById('universalBass');
+            // Independent toggles - show active state for each enabled mode
+            if (btnStrum) btnStrum.classList.toggle('active', this.strumEnabled);
+            if (btnCh) btnCh.classList.toggle('active', this.chordsEnabled);
+            if (btnAr) btnAr.classList.toggle('active', this.arpEnabled);
+            if (btnBass) btnBass.classList.toggle('active', this.bassEnabled);
         };
         // Wire buttons when present
         setTimeout(()=>{
             const btnStrum = document.getElementById('modeStrum');
             const btnCh = document.getElementById('modeChords');
             const btnAr = document.getElementById('modeArp');
+            const btnBass = document.getElementById('universalBass');
             const lbl = document.getElementById('strumLabel');
             if (lbl) lbl.textContent = this.strumMode==='alternating' ? 'Alt' : (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1));
-            if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.cycleStrumMode()); }
-            if (btnCh && !btnCh._wired){ btnCh._wired=true; btnCh.addEventListener('click', ()=> this.setPlayMode('chords')); }
-            if (btnAr && !btnAr._wired){ btnAr._wired=true; btnAr.addEventListener('click', ()=> this.setPlayMode('arp')); }
+            if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.toggleStrumMode()); }
+            if (btnCh && !btnCh._wired){ btnCh._wired=true; btnCh.addEventListener('click', ()=> this.toggleChordsMode()); }
+            if (btnAr && !btnAr._wired){ btnAr._wired=true; btnAr.addEventListener('click', ()=> this.toggleArpMode()); }
+            if (btnBass && !btnBass._wired){ btnBass._wired=true; btnBass.addEventListener('click', ()=> this.toggleBassMode()); }
             this.updateModeUI();
-            // Initialize panels visibility
-            const acInit = document.getElementById('arpControls'); if (acInit) acInit.style.display = (this.playMode === 'arp') ? 'flex' : 'none';
-            const ccInit = document.getElementById('chordControls'); if (ccInit) ccInit.style.display = (this.playMode === 'chords') ? 'flex' : 'none';
+            // Initialize panels visibility based on independent toggles
+            const acInit = document.getElementById('arpControls'); if (acInit) acInit.style.display = this.arpEnabled ? 'flex' : 'none';
+            const ccInit = document.getElementById('chordControls'); if (ccInit) ccInit.style.display = this.chordsEnabled ? 'flex' : 'none';
         }, 0);
 
                 // Fixed strum delay (no menu)
@@ -6794,18 +7043,7 @@
                 this._chordSlideLastDX = 0;
                 this._chordSlideLastDY = 0;
                 this._lastChordSlideDeltaT = 0;
-                // Chord glide duration (ms) configurable via UI
-                this._chordGlideMs = (()=>{ 
-                    const s=document.getElementById('chordGlideMs'); 
-                    if (!s) return 300; 
-                    const bpm = Number(document.getElementById('arpBpm')?.value)||120;
-                    const beatMs = 60000/Math.max(1,bpm);
-                    const leftMs = beatMs/8; const barMs = beatMs*4; const rightMs = barMs*8;
-                    const pos = Number(s.value)||500;
-                    if (pos === 500) return barMs;
-                    if (pos < 500){ const t=pos/500; const k=Math.pow(t,1.6); return leftMs + (barMs-leftMs)*k; }
-                    const t=(pos-500)/500; const k=Math.pow(t,1.2); return barMs + (rightMs-barMs)*k; 
-                })();
+                // Chord glide functionality removed
                 const chordSlideEl = document.getElementById('chordSlide');
                 if (chordSlideEl) {
                     chordSlideEl.addEventListener('change', (e)=>{
@@ -6820,23 +7058,7 @@
                         this._updatePlayStopButtonStates();
                     });
                 }
-                const chordGlideSlider = document.getElementById('chordGlideMs');
-                const chordGlideVal = document.getElementById('chordGlideMsValue');
-                if (chordGlideSlider && !chordGlideSlider._wired){
-                    chordGlideSlider._wired = true;
-                    // Label rendering is handled by the quantized time slider wiring; only update state here
-                    chordGlideSlider.addEventListener('input', (e)=>{
-                        const pos = Number(e.target.value)||500;
-                        const bpm = (this._arpTransport && this._arpTransport.bpm) || (Number(document.getElementById('arpBpm')?.value)||120);
-                        const beatMs = 60000/Math.max(1,bpm);
-                        const leftMs = beatMs/8; // 1/32
-                        const barMs = beatMs*4;
-                        const rightMs = barMs*8;
-                        let v;
-                        if (pos === 500) v = barMs; else if (pos < 500){ const t=pos/500; const k=Math.pow(t,1.6); v = leftMs + (barMs-leftMs)*k; } else { const t=(pos-500)/500; const k=Math.pow(t,1.2); v = barMs + (rightMs-barMs)*k; }
-                        this._chordGlideMs = Math.max(1, v);
-                    });
-                }
+                // chordGlideSlider removed - GLIDE functionality eliminated
 
                 // OSC 2 ADSR controls
                 const osc2AttackSlider = document.getElementById('osc2AttackSlider');
@@ -7331,7 +7553,7 @@
                     if (this.audioContext && this.audioContext.state === 'suspended') {
                         this.audioContext.resume();
                     }
-            if ((this.playMode||'high-low') === 'arp') {
+            if (this.arpEnabled) {
                         const hit = document.elementFromPoint(e.clientX, e.clientY);
                         const column = hit && hit.closest ? hit.closest('.extension-column') : null;
                         if (column) {
@@ -7339,11 +7561,10 @@
                             this._arpGestureActive = true;
                             this._arpLastColumn = column;
                             this._startArp(column, e.clientY);
-                            return;
                         }
                     }
-                    // In Chords mode, tapping the strings area should play or glide the whole chord for the tapped octave
-            if ((this.playMode || 'high-low') === 'chords') {
+                    // In Chords mode, tapping the strings area should play or retune the whole chord for the tapped octave
+            if (this.chordsEnabled) {
                         e.preventDefault();
                         const hit = document.elementFromPoint(e.clientX, e.clientY);
                         const column = hit && hit.closest ? hit.closest('.extension-column') : null;
@@ -7352,14 +7573,15 @@
                 this._lastChordSlideX = e.clientX;
                 this._lastChordSlideY = e.clientY;
                 this._lastChordSlideTime = performance.now(); this._markChordSlideActivity();
-                            // If slide is enabled and we're sustaining, glide to the tapped column; otherwise start and seed voices
+                            // If slide is enabled and we're sustaining, retune to the tapped column; otherwise start and seed voices
                             if (this._chordSlideEnabled && (this._chordsGestureActive || this._sustainActive)){
                                 if (this._chordSlideVoices && this._chordSlideVoices.size){
                                 this._chordSlideHoverColumn = column; this._chordSlideCommittedColumn = column; this._chordSlideHoverSince = performance.now();
                                 const targets = this._computeChordSlideTargets(column);
-                                this._retuneActiveChordVoicesToTargets(targets, 0);
-                                // Also glide held bass to match the committed/hovered column
+                                this._retuneActiveChordVoicesToTargets(targets);
+                                // Also update held bass to match the committed/hovered column
                                 try { this._updateHeldBassForColumn(column); } catch(_){ }
+                                this._markChordSlideActivity();
                                 this._markChordSlideActivity();
                                 } else {
                                 this.playChordChordsMode(column, e.clientY);
@@ -7392,7 +7614,7 @@
                     }
                     if (this.isPlayingStrings) {
                         this.handleStringTrigger(e);
-                    } else if ((this.playMode||'high-low') === 'chords' && this._sustainActive) {
+                    } else if (this.chordsEnabled && this._sustainActive) {
                         // In CHORDS mode while sustaining: if slide is enabled, trigger chords when entering a new box (enter-box behavior)
                         if (this._chordSlideActive) {
                             const hit = document.elementFromPoint(e.clientX, e.clientY);
@@ -7419,24 +7641,24 @@
                                     // Start the new chord immediately at current Y position
                                     this.playChordChordsMode(column, e.clientY);
                                 } else {
-                                    // Continuous bend while staying within a column (throttled): retune and glide bass immediately
+                                    // Continuous bend while staying within a column (throttled): retune bass immediately
                                     this._chordSlideHoverColumn = column; /* hoverSince updated only when pointer slows */
                                     try { this._updateChordSlideContinuously(column); } catch(_) { }
                                 }
                             }
                             else { this._chordSlideHoverColumn = null; }
                             this._lastChordSlideX = e.clientX; this._lastChordSlideY = e.clientY; this._lastChordSlideTime = now;
-                            // Debounce + dwell: when pointer slows or stops for dwellMs, glide once to hovered column
+                            // Debounce + dwell: when pointer slows or stops for dwellMs, retune once to hovered column
                             clearTimeout(this._chordSlideHoverCommitTimer);
                             const dwellMs = Math.max(30, Math.min(200, this._chordSlideDwellMs||80));
                             this._chordSlideHoverCommitTimer = setTimeout(()=>{
                                 try{
-                                    if ((this.playMode||'high-low')==='chords' && this._chordSlideActive && this._chordsGestureActive && this._chordSlideHoverColumn){
+                                    if (this.chordsEnabled && this._chordSlideActive && this._chordsGestureActive && this._chordSlideHoverColumn){
                                         this._chordSlideCommittedColumn = this._chordSlideHoverColumn; this._chordSlideHoverSince = performance.now();
                                         const targets = this._computeChordSlideTargets(this._chordSlideHoverColumn);
-                                        this._retuneActiveChordVoicesToTargets(targets, 0);
+                                        this._retuneActiveChordVoicesToTargets(targets);
                                         console.log('[SLIDE][DWELL] commit to column', this._chordSlideHoverColumn?.dataset?.chordId || this._chordSlideHoverColumn?.dataset?.originalPosition);
-                                        // Glide held bass on dwell commit as well
+                                        // Update held bass on dwell commit as well
                                         try { this._updateHeldBassForColumn(this._chordSlideHoverColumn); } catch(_){ }
                                         this._markChordSlideActivity();
                                     }
@@ -7450,27 +7672,27 @@
                 });
                 
                 document.addEventListener('mouseup', (e) => {
-                    if ((this.playMode||'high-low') === 'arp') { this._stopArp(); this._arpGestureActive = false; this._arpLastColumn = null; }
+                    if (this.arpEnabled) { this._stopArp(); this._arpGestureActive = false; this._arpLastColumn = null; }
                     clearTimeout(this._chordSlideHoverCommitTimer);
                     this.isPlayingStrings = false;
                     this.triggeredStrings.clear();
                     // End of mouse gesture: clear last-hit
                     this._pointerLastStringKey.delete('mouse');
-                    // If in CHORDS slide, settle to final hovered/target column and KEEP SUSTAINING (taps will glide)
-                    if ((this.playMode||'high-low')==='chords' && this._chordSlideActive && this._chordsGestureActive) {
+                    // If in CHORDS slide, settle to final hovered/target column and KEEP SUSTAINING (taps will retune)
+                    if (this.chordsEnabled && this._chordSlideActive && this._chordsGestureActive) {
                         const hit = e ? document.elementFromPoint(e.clientX, e.clientY) : null;
                         let column = hit && hit.closest ? hit.closest('.extension-column') : null;
                         // Prefer committed column (dwelled) to skip intermediates
                         column = this._chordSlideCommittedColumn || this._chordSlideHoverColumn || column || this.currentActiveColumnEl || null;
                         if (column) {
                             const targets = this._computeChordSlideTargets(column);
-                            this._retuneActiveChordVoicesToTargets(targets, 0);
+                            this._retuneActiveChordVoicesToTargets(targets);
                             console.log('[SLIDE][RELEASE] settle to column', column?.dataset?.chordId || column?.dataset?.originalPosition);
-                            // Glide held bass to final column on release commit
+                            // Update held bass to final column on release commit
                             try { this._updateHeldBassForColumn(column); } catch(_){ }
                             this._markChordSlideActivity();
                         }
-                        // Do not stop or clear; keep sustaining so next tap glides smoothly
+                        // Do not stop or clear; keep sustaining so next tap retunes smoothly
                     } else {
                         // Non-slide chords: end notes as before
                         this.stopAllActiveNotes();
@@ -7490,7 +7712,7 @@
                     if (this.audioContext && this.audioContext.state === 'suspended') {
                         this.audioContext.resume();
                     }
-            if ((this.playMode||'high-low') === 'arp') {
+            if (this.arpEnabled) {
                         const all = Array.from(e.touches);
                         // Determine common column from first valid touch
                         let commonCol = null;
@@ -7527,10 +7749,9 @@
                             const t = sameColTouches[0] || e.changedTouches[0];
                             if (t) { this._arpGestureActive = true; this._arpLastColumn = commonCol; this._startArp(commonCol, t.clientY); }
                         }
-                        return;
                     }
                     // In Chords mode, a touch in strings area plays or glides the whole chord for that octave
-                    if ((this.playMode || 'high-low') === 'chords') {
+                    if (this.chordsEnabled) {
                         Array.from(e.changedTouches).forEach(touch => {
                             const hit = document.elementFromPoint(touch.clientX, touch.clientY);
                             const column = hit && hit.closest ? hit.closest('.extension-column') : null;
@@ -7543,7 +7764,7 @@
                                     if (this._chordSlideVoices && this._chordSlideVoices.size){
                                         this._chordSlideHoverColumn = column; this._chordSlideCommittedColumn = column; this._chordSlideHoverSince = performance.now();
                                         const targets = this._computeChordSlideTargets(column);
-                                        this._retuneActiveChordVoicesToTargets(targets, 0);
+                                        this._retuneActiveChordVoicesToTargets(targets);
                                         try { this._updateHeldBassForColumn(column); } catch(_){ }
                                         this._markChordSlideActivity();
                                     } else {
@@ -7573,7 +7794,7 @@
                 extensionColumns.addEventListener('touchmove', (e) => {
                     e.preventDefault();
                     // ARP mode: lateral slide across columns schedules quantized chord switches
-                    if ((this.playMode||'high-low')==='arp' && this._arpGestureActive) {
+                    if (this.arpEnabled && this._arpGestureActive) {
                         const t = e.changedTouches[0] || (e.touches && e.touches[0]);
                         if (t){
                             const h = document.elementFromPoint(t.clientX, t.clientY);
@@ -7583,11 +7804,10 @@
                                 this._startArp(c, t.clientY);
                             }
                         }
-                        return;
                     }
-                    if (this.isPlayingStrings || ((this.playMode||'high-low')==='chords' && this._sustainActive)) {
+                    if (this.isPlayingStrings || (this.chordsEnabled && this._sustainActive)) {
                         // CHORDS mode with slide enabled: trigger chords when entering a new box (enter-box behavior)
-                        if ((this.playMode||'high-low')==='chords' && this._chordSlideActive) {
+                        if (this.chordsEnabled && this._chordSlideActive) {
                             const t = e.changedTouches[0];
                             if (t){
                                 const h = document.elementFromPoint(t.clientX, t.clientY);
@@ -7624,10 +7844,10 @@
                                 const dwellMs = Math.max(30, Math.min(200, this._chordSlideDwellMs||80));
                                 this._chordSlideHoverCommitTimer = setTimeout(()=>{
                                     try{
-                                        if ((this.playMode||'high-low')==='chords' && this._chordSlideActive && this._chordsGestureActive && this._chordSlideHoverColumn){
+                                        if (this.chordsEnabled && this._chordSlideActive && this._chordsGestureActive && this._chordSlideHoverColumn){
                                             this._chordSlideCommittedColumn = this._chordSlideHoverColumn; this._chordSlideHoverSince = performance.now();
                                             const targets = this._computeChordSlideTargets(this._chordSlideHoverColumn);
-                                            this._retuneActiveChordVoicesToTargets(targets, 0);
+                                            this._retuneActiveChordVoicesToTargets(targets);
                                             console.log('[SLIDE][DWELL][touch] commit to column', this._chordSlideHoverColumn?.dataset?.chordId || this._chordSlideHoverColumn?.dataset?.originalPosition);
                                             try { this._updateHeldBassForColumn(this._chordSlideHoverColumn); } catch(_){ }
                                             this._markChordSlideActivity();
@@ -7646,7 +7866,7 @@
                 
     extensionColumns.addEventListener('touchend', (e) => {
                     e.preventDefault();
-            if ((this.playMode||'high-low') === 'arp') { this._stopArp(); this._arpGestureActive = false; this._arpLastColumn = null; }
+            if (this.arpEnabled) { this._stopArp(); this._arpGestureActive = false; this._arpLastColumn = null; }
                     Array.from(e.changedTouches).forEach(touch => {
                         this.activeTouches.delete(touch.identifier);
                         // Clear tracking for this touch pointer
@@ -7657,14 +7877,14 @@
                         this.isPlayingStrings = false;
                         this.triggeredStrings.clear();
             // CHORD slide settle on release: keep sustaining (do not stop/clear) so taps glide
-            if ((this.playMode||'high-low')==='chords' && this._chordSlideActive && this._chordsGestureActive) {
+            if (this.chordsEnabled && this._chordSlideActive && this._chordsGestureActive) {
                 clearTimeout(this._chordSlideHoverCommitTimer);
                 const t = e.changedTouches && e.changedTouches[0];
                 const h = t ? document.elementFromPoint(t.clientX, t.clientY) : null;
                 let c = h && h.closest ? h.closest('.extension-column') : null;
                 // Prefer committed column (dwelled) to skip intermediates
                 c = this._chordSlideCommittedColumn || this._chordSlideHoverColumn || c || this.currentActiveColumnEl || null;
-                if (c){ const targets = this._computeChordSlideTargets(c); this._retuneActiveChordVoicesToTargets(targets, 0); console.log('[SLIDE][RELEASE][touch] settle to column', c?.dataset?.chordId || c?.dataset?.originalPosition); try { this._updateHeldBassForColumn(c); } catch(_){ } this._markChordSlideActivity(); }
+                if (c){ const targets = this._computeChordSlideTargets(c); this._retuneActiveChordVoicesToTargets(targets); console.log('[SLIDE][RELEASE][touch] settle to column', c?.dataset?.chordId || c?.dataset?.originalPosition); try { this._updateHeldBassForColumn(c); } catch(_){ } this._markChordSlideActivity(); }
                 // Keep sustaining; no stop/clear/reset here
             } else {
                 this.stopAllActiveNotes();
@@ -7897,12 +8117,12 @@
                         // For ARP mode, start the arpeggiator from the column on key press
                         const rect = column.getBoundingClientRect();
                         const centerY = rect.top + rect.height / 2;
-                        if ((this.playMode||'high-low') === 'arp') {
+                        if (this.arpEnabled) {
                             this._ensureArpDefaults();
                             // Keyboard start uses single-octave start (no span)
                             this._arp.span = { active:false, yMin:null, yMax:null, octMin:null, octMax:null };
                             this._startArp(column, centerY);
-                        } else if ((this.playMode||'high-low') === 'chords') {
+                        } else if (this.chordsEnabled) {
                             // Chords mode: if slide enabled, glide to this chord over 2 beats; else play immediately
                             if (this._chordSlideEnabled) {
                                 // On first key press, if no active chord, start it immediately
@@ -10763,10 +10983,10 @@
                     holdDuration: document.getElementById('chordHold')?.value || 'bar:1',
                     
                     // Global NPC setting
-                    npc: parseInt(document.getElementById('arpNpc')?.value) || 3,
+                    npc: parseInt(document.getElementById('universalNpc')?.value) || 3,
                     
                     // GLIDE settings
-                    chordGlideMs: this._chordGlideMs || 300,
+                    // chordGlideMs removed - GLIDE functionality eliminated
                     arpGlideEnabled: !!document.getElementById('arpGlideToggle')?.classList.contains('active'),
                     arpGlideMs: parseFloat(document.getElementById('arpGlideMs')?.value) || 500,
                     
@@ -10985,22 +11205,14 @@
                         
                         // Restore global NPC setting
                         if (sessionData.npc !== undefined) {
-                            const npcEl = document.getElementById('arpNpc');
+                            const npcEl = document.getElementById('universalNpc');
                             if (npcEl) {
                                 npcEl.value = String(sessionData.npc);
                                 npcEl.dispatchEvent(new Event('input'));
                             }
                         }
                         
-                        // Restore GLIDE settings
-                        if (sessionData.chordGlideMs !== undefined) {
-                            this._chordGlideMs = sessionData.chordGlideMs;
-                            const glideEl = document.getElementById('chordGlideMs');
-                            if (glideEl) {
-                                glideEl.value = String(sessionData.chordGlideMs);
-                                glideEl.dispatchEvent(new Event('input'));
-                            }
-                        }
+                        // GLIDE settings removed - functionality eliminated
                         if (sessionData.arpGlideEnabled !== undefined) {
                             const arpGlideBtn = document.getElementById('arpGlideToggle');
                             if (arpGlideBtn) {
@@ -11646,66 +11858,12 @@
                     leftControls.appendChild(delta);
                     leftControls.appendChild(down);
                     row.appendChild(leftControls);
-                    // Insert mode controls container right after transpose controls
-                    const modes = document.createElement('div');
-                    modes.className = 'mode-controls';
-                    modes.innerHTML = `
-                        <button id="modeStrum" class="mode-btn" title="Cycle strum direction">Strum: <span id="strumLabel">Up</span></button>
-                        <button id="modeChords" class="mode-btn" title="Chord sustain/slide mode">Chords</button>
-                        <button id="modeArp" class="mode-btn" title="Arpeggiator mode">Arpeggio</button>
-                    `;
-                    row.appendChild(modes);
-                    // Wire mode buttons immediately
-                    try {
-                        const btnStrum = modes.querySelector('#modeStrum');
-                        const btnCh = modes.querySelector('#modeChords');
-                        const btnAr = modes.querySelector('#modeArp');
-                        const lbl = modes.querySelector('#strumLabel');
-                        if (lbl) lbl.textContent = (this.strumMode==='alternating') ? 'Alt' : (this.strumMode? (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1)) : 'Up');
-                        if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.cycleStrumMode()); }
-                        if (btnCh && !btnCh._wired){ btnCh._wired=true; btnCh.addEventListener('click', ()=> this.setPlayMode('chords')); }
-                        if (btnAr && !btnAr._wired){ btnAr._wired=true; btnAr.addEventListener('click', ()=> this.setPlayMode('arp')); }
-                        this.updateModeUI?.();
-                    } catch(_) { }
+                    // Old mode controls removed - now using universal menu mode buttons
+                    // Mode buttons are now handled by universal menu initialization
                 } else {
                     const delta = leftControls.querySelector('#transposeDelta');
                     if (delta) delta.textContent = String(this.transposeDelta || 0);
-                    // Ensure mode controls exist even if row was previously created
-                    if (!row.querySelector('.mode-controls')){
-                        const modes = document.createElement('div');
-                        modes.className = 'mode-controls';
-                        modes.innerHTML = `
-                            <button id="modeStrum" class="mode-btn" title="Cycle strum direction">Strum: <span id=\"strumLabel\">Up</span></button>
-                            <button id="modeChords" class="mode-btn" title="Chord sustain/slide mode">Chords</button>
-                            <button id="modeArp" class="mode-btn" title="Arpeggiator mode">Arpeggio</button>
-                        `;
-                        row.appendChild(modes);
-                        // After injection, refresh wiring/state and wire events
-                        try {
-                            const btnStrum = modes.querySelector('#modeStrum');
-                            const btnCh = modes.querySelector('#modeChords');
-                            const btnAr = modes.querySelector('#modeArp');
-                            const lbl = modes.querySelector('#strumLabel');
-                            if (lbl) lbl.textContent = (this.strumMode==='alternating') ? 'Alt' : (this.strumMode? (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1)) : 'Up');
-                            if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.cycleStrumMode()); }
-                            if (btnCh && !btnCh._wired){ btnCh._wired=true; btnCh.addEventListener('click', ()=> this.setPlayMode('chords')); }
-                            if (btnAr && !btnAr._wired){ btnAr._wired=true; btnAr.addEventListener('click', ()=> this.setPlayMode('arp')); }
-                            this.updateModeUI?.();
-                        } catch(_) { }
-                    } else {
-                        // If controls exist but weren't wired yet, wire them now
-                        try {
-                            const btnStrum = row.querySelector('#modeStrum');
-                            const btnCh = row.querySelector('#modeChords');
-                            const btnAr = row.querySelector('#modeArp');
-                            const lbl = row.querySelector('#strumLabel');
-                            if (lbl) lbl.textContent = (this.strumMode==='alternating') ? 'Alt' : (this.strumMode? (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1)) : 'Up');
-                            if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.cycleStrumMode()); }
-                            if (btnCh && !btnCh._wired){ btnCh._wired=true; btnCh.addEventListener('click', ()=> this.setPlayMode('chords')); }
-                            if (btnAr && !btnAr._wired){ btnAr._wired=true; btnAr.addEventListener('click', ()=> this.setPlayMode('arp')); }
-                            this.updateModeUI?.();
-                        } catch(_) { }
-                    }
+                    // Mode controls removed - using universal menu instead
                 }
                 // Reuse existing keyboard element to avoid layout shift flicker
                 let keyboard = row.querySelector('.piano-keyboard');
@@ -13863,6 +14021,77 @@
                     return chooseBy(mid);
                 } catch(_){ return null; }
             }
+            
+            // Helper: Convert chord root name (like "C", "F#", "Bb") to step number
+            _chordRootNameToStep(rootName, edo = 12) {
+                if (!rootName || typeof rootName !== 'string') return null;
+                
+                // Basic note mapping for 12-EDO (can be extended for other EDOs)
+                const noteMap = {
+                    'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4, 'F': 5,
+                    'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11,
+                    // Support Unicode symbols
+                    'C♯': 1, 'D♭': 1, 'D♯': 3, 'E♭': 3, 'F♯': 6, 'G♭': 6, 'G♯': 8, 'A♭': 8, 'A♯': 10, 'B♭': 10
+                };
+                
+                const cleanRoot = rootName.trim().replace(/[^\w#♯♭b]/g, '');
+                const step12 = noteMap[cleanRoot];
+                
+                if (step12 === undefined) return null;
+                
+                // Convert from 12-EDO to target EDO
+                return Math.round((step12 * edo) / 12);
+            }
+            
+            // Helper: Update bass using specific chord root with GLIDE
+            _updateBassWithChordRoot(columnElement, rootStep) {
+                if (!this.bassEnabled || rootStep === null) return;
+                
+                try {
+                    const edo = this.currentTuning || 12;
+                    const target = this._computeBassFreqInRange(rootStep, (typeof this._heldBassLiveFreq==='number'?this._heldBassLiveFreq:null), edo);
+                    
+                    if (!isFinite(target) || target <= 0) return;
+                    
+                    // If there is no existing bass, start one
+                    if (!this._heldBassVoice) {
+                        // Locally save ADSR and panning, then restore after starting bass
+                        const savedEnv1 = { ...this.envelope };
+                        const savedEnv2 = { ...this.osc2Envelope };
+                        const prevWidth = this.panning ? this.panning.width : null;
+                        
+                        try {
+                            // Minimal, smooth bass envelope
+                            this.envelope.attack = 0.005; this.envelope.decay = 0.05; this.envelope.sustain = 0.95; this.envelope.release = 0.08;
+                            this.osc2Envelope.attack = 0.005; this.osc2Envelope.decay = 0.05; this.osc2Envelope.sustain = 0.95; this.osc2Envelope.release = 0.08;
+                            // Force center pan
+                            if (this.panning) this.panning.width = 0;
+                            this.playFrequency(target, null);
+                        } finally {
+                            // Restore settings
+                            if (this.panning && prevWidth != null) this.panning.width = prevWidth;
+                            Object.assign(this.envelope, savedEnv1);
+                            Object.assign(this.osc2Envelope, savedEnv2);
+                        }
+                        
+                        this._heldBassVoiceKey = target;
+                        const v = this.activeOscillators.get(this._heldBassVoiceKey);
+                        if (v) {
+                            try { if (v.releaseTimeout) { clearTimeout(v.releaseTimeout); v.releaseTimeout = null; } } catch(_){ }
+                            this._heldBassVoice = v; this._heldBassLiveFreq = target;
+                        }
+                    } else {
+                        // Update existing bass to new frequency immediately
+                        if (this._heldBassVoice && this._heldBassVoice.frequency) {
+                            this._heldBassVoice.frequency.setValueAtTime(target, this._heldBassVoice.frequency.context.currentTime);
+                            this._heldBassLiveFreq = target;
+                        }
+                    }
+                } catch(err) {
+                    console.warn('Bass chord root update failed:', err);
+                }
+            }
+            
             getPatternSequence(base, mode){
                 // base: array of string elements ordered low->high (ascending by freq)
                 const asc = base;
@@ -14025,11 +14254,70 @@
                     (this._debugLogs||[]).forEach(m=>{ const el=document.createElement('div'); el.textContent=m; body.appendChild(el); });
                     body.scrollTop = body.scrollHeight;
                 }
+            
+            // PLAY button flashing functions
+            _startPlayButtonFlashing() {
+                // Stop any existing flashing
+                this._stopPlayButtonFlashing();
+                
+                const playBtn = document.getElementById('playSeqBtn');
+                if (!playBtn) return;
+                
+                // Get BPM and calculate beat interval
+                const bpmEl = document.getElementById('universalBpm');
+                const bpm = bpmEl ? parseInt(bpmEl.value) : 120;
+                const beatMs = 60000 / Math.max(20, bpm);
+                
+                // Flash on every beat
+                let isFlashing = false;
+                this._playFlashTimer = setInterval(() => {
+                    if (this._isSequencing) {
+                        isFlashing = !isFlashing;
+                        if (isFlashing) {
+                            playBtn.style.backgroundColor = '#ff6b6b';
+                            playBtn.style.color = '#fff';
+                            playBtn.style.transform = 'scale(1.05)';
+                        } else {
+                            playBtn.style.backgroundColor = '';
+                            playBtn.style.color = '';
+                            playBtn.style.transform = '';
+                        }
+                    } else {
+                        this._stopPlayButtonFlashing();
+                    }
+                }, beatMs / 2); // Flash twice per beat for visual clarity
+            }
+            
+            _stopPlayButtonFlashing() {
+                if (this._playFlashTimer) {
+                    clearInterval(this._playFlashTimer);
+                    this._playFlashTimer = null;
+                }
+                
+                const playBtn = document.getElementById('playSeqBtn');
+                if (playBtn) {
+                    playBtn.style.backgroundColor = '';
+                    playBtn.style.color = '';
+                    playBtn.style.transform = '';
+                }
+            }
+            
             _refreshArpTransportTiming(){
                 this._ensureArpDefaults();
                 this._ensureArpTransport();
-                const bpm = Math.max(20, this._arp?.bpm || this._arpTransport.bpm || 120);
-                const quant = (this._arp?.quant || this._arpTransport.quant || '1/16');
+                
+                // Read current values from UI controls
+                const bpmEl = document.getElementById('arpBpm') || document.getElementById('universalBpm');
+                const quantEl = document.getElementById('arpQuant') || document.getElementById('universalQuant');
+                
+                const bpm = Math.max(20, Number(bpmEl?.value) || this._arp?.bpm || this._arpTransport.bpm || 120);
+                const quant = quantEl?.value || this._arp?.quant || this._arpTransport.quant || '1/16';
+                
+                // Update _arp values to match UI
+                if (this._arp) {
+                    this._arp.bpm = bpm;
+                    this._arp.quant = quant;
+                }
                 // Support merged tuplet values via quant like "tuplet:7"
                 let tuplet = 0;
                 if (typeof quant === 'string' && quant.startsWith('tuplet:')){
@@ -14054,9 +14342,14 @@
                     ticksPerBeat = Math.max(1, Math.round(1/Math.max(1e-6, beatsPerTick)));
                     tickMs = beatMs * beatsPerTick;
                 }
-                const beatsPerBar = 4; // 4/4
-                const ticksPerBar = ticksPerBeat * beatsPerBar;
-                Object.assign(this._arpTransport, { bpm, quant, tuplet, beatMs, tickMs, ticksPerBeat, beatsPerBar, ticksPerBar });
+                // Get time signature from universal control
+                const timeSignatureEl = document.getElementById('universalTimeSignature');
+                const timeSignature = timeSignatureEl ? timeSignatureEl.value : '4/4';
+                const [beatsPerBar, beatUnit] = timeSignature.split('/').map(Number);
+                const effectiveBeatsPerBar = beatsPerBar || 4; // fallback to 4/4
+                
+                const ticksPerBar = ticksPerBeat * effectiveBeatsPerBar;
+                Object.assign(this._arpTransport, { bpm, quant, tuplet, beatMs, tickMs, ticksPerBeat, beatsPerBar: effectiveBeatsPerBar, ticksPerBar, timeSignature });
                 // Update gate based on current tick
                 const gateMs = Math.max(5, Math.floor(((this._arp?.gatePct||50)/100) * tickMs));
                 this._arp.gateMs = gateMs;
@@ -14136,75 +14429,25 @@
                                 } else {
                                     this._arp.morph = null;
                                 }
-                                // If CHORD play: immediately play and sustain all notes in seq once per switch,
-                                // then keep ARP per-tick gating disabled for this HOLD window.
-                                this._arp.mode = ps.mode || 'arp';
+                                // Independent lanes: ARP ticks continue while optional chord sustain layer plays
+                                this._arp.mode = 'arp';
                                 this._arp.npc = Number.isFinite(ps.npc) ? ps.npc : (this._arp.npc||3);
-                                if (this._arp.mode === 'chord'){
+                                if (ps.enableChord) {
                                     try {
-                                        const rows = Array.isArray(this._arp.seq) ? this._arp.seq : [];
-                                        const haveActive = this.activeOscillators && this.activeOscillators.size > 0;
+                                        // Ensure chord voices sustain (no auto-release)
+                                        this._sustainActive = true;
+                                        const rows = Array.isArray(ps.chordRows) ? ps.chordRows : [];
                                         const canSlide = !!this._chordSlideEnabled;
-                                        // Determine HOLD length in ticks to stretch glide across full hold window
-                                        let holdTicks = this._arpTransport.ticksPerBar || 16;
-                                        try {
-                                            const holdSelEl = document.getElementById('chordHold');
-                                            const holdSel = holdSelEl ? String(holdSelEl.value||'bar:1') : (this._arp?.chordsHold || 'bar:1');
-                                            const [kind, valStr] = String(holdSel).split(':');
-                                            const n = Math.max(1, parseInt(valStr||'1',10));
-                                            const tpBeat = this._arpTransport.ticksPerBeat || 1;
-                                            const tpBar = this._arpTransport.ticksPerBar || (tpBeat*4);
-                                            holdTicks = (kind==='beat') ? n*tpBeat : n*tpBar;
-                                        } catch(_) { /* keep default */ }
-                                        // Use GLIDE speed for slide transitions, not HOLD duration
-                                        const glideMs = Math.max(10, Math.min(120000, Number(this._chordGlideMs)||300));
-                                        // In SLIDE mode, always ensure clean transitions by stopping all notes first
-                                        if (canSlide) {
-                                            // Stop all notes to prevent persistence issues
-                                            try { this.stopAllActiveNotes(); } catch(_){}
+                                        const anyActive = !!(this.activeOscillators && this.activeOscillators.size > 0);
+
+                                        // Non-slide mode: hard switch to the new chord at the boundary
+                                        if (!canSlide) {
+                                            try { this.stopAllActiveNotes(); } catch(_){ }
                                             try { if (this._chordSlideVoices) this._chordSlideVoices.clear(); } catch(_){ }
-                                            
-                                            // Start new chord and immediately initiate glide if there are target notes
-                                            const played = new Set();
-                                            const bfLive = this._arp?.bassLiveFreq || this._heldBassLiveFreq || this._heldBassVoiceKey || null;
-                                            const groupId = ((this._chordSlideGroupId||0)+1) >>> 0; this._chordSlideGroupId = groupId;
-                                            const startFreqs = [];
-                                            
-                                            // Play initial chord notes
-                                            rows.forEach(r=>{
-                                                let f = parseFloat(r?.dataset?.frequency);
-                                                if (!f || !isFinite(f) || f<=0){
-                                                    try{
-                                                        const step = parseInt(r.dataset.noteIndex,10);
-                                                        const oct = parseInt(r.dataset.octave,10);
-                                                        const tuning = this.currentTuning || 12;
-                                                        if (Number.isFinite(step)) f = this.getFrequency(((step%tuning)+tuning)%tuning, Number.isFinite(oct)?oct:4, tuning);
-                                                    }catch(_){ f = NaN; }
-                                                }
-                                                const isBass = !!(bfLive && Math.abs((f - bfLive)/bfLive) <= 5e-5);
-                                                if (isFinite(f) && f>0 && !played.has(f) && !isBass){
-                                                    played.add(f);
-                                                    this.playFrequency(f, r);
-                                                    try { if (this._chordSlideVoices) this._chordSlideVoices.set(r, { startFreq: f, startLog2: Math.log2(f), groupId }); } catch(_){ }
-                                                    startFreqs.push(f);
-                                                }
-                                            });
-                                            
-                                            // If this isn't the first chord in sequence, set up glide from previous notes
-                                            // (For first chord, just sustain the notes)
-                                            if (i > 1) {
-                                                try {
-                                                    const targets = this._computeChordSlideTargets(this._arp.column);
-                                                    if (targets && targets.length > 0) {
-                                                        // Retune the just-played notes to glide toward their targets
-                                                        this._retuneActiveChordVoicesToTargets(targets, 0, glideMs);
-                                                    }
-                                                } catch(_) { }
-                                            }
-                                        } else if (haveActive) {
-                                            // Non-slide mode: hard switch
-                                            try { this.stopAllActiveNotes(); } catch(_){}
-                                            try { if (this._chordSlideVoices) this._chordSlideVoices.clear(); } catch(_){ }
+                                        }
+
+                                        // Seed chord voices if nothing is playing yet (first step), otherwise keep sustaining/gliding
+                                        if (!anyActive || !canSlide) {
                                             const played = new Set();
                                             const bfLive = this._arp?.bassLiveFreq || this._heldBassLiveFreq || this._heldBassVoiceKey || null;
                                             const groupId = ((this._chordSlideGroupId||0)+1) >>> 0; this._chordSlideGroupId = groupId;
@@ -14225,43 +14468,15 @@
                                                     try { if (this._chordSlideVoices) this._chordSlideVoices.set(r, { startFreq: f, startLog2: Math.log2(f), groupId }); } catch(_){ }
                                                 }
                                             });
-                                            // After seeding, if we have a previous chord map cached, gently pull towards new targets across HOLD
-                                            try {
-                                                const targets = this._computeChordSlideTargets(this._arp.column);
-                                                this._retuneActiveChordVoicesToTargets(targets, 0, glideMs);
-                                            } catch(_) { }
                                         }
                                     } catch(_){ }
                                 }
                                 this._arp.active = true;
                                 this._arp.pendingSwitch = null;
-                                // Update held bass to follow ARP chord switches without arpeggiation
+                                // Update held bass to follow ARP chord switches without gliding
                                 try {
                                     if (this._arp?.column) {
-                                        // In SLIDE mode, use GLIDE speed; otherwise use HOLD duration for bass transitions
-                                        const useSlideSpeed = !!this._chordSlideEnabled;
-                                        let bassGlideMs;
-                                        
-                                        if (useSlideSpeed) {
-                                            // Use GLIDE speed for smooth bass transitions in SLIDE mode
-                                            bassGlideMs = Math.max(10, Math.min(120000, Number(this._chordGlideMs)||300));
-                                        } else {
-                                            // Use HOLD duration for bass transitions in normal CHORD mode
-                                            const holdSelEl = document.getElementById('chordHold');
-                                            const holdSel = holdSelEl ? String(holdSelEl.value||'bar:1') : (this._arp?.chordsHold || 'bar:1');
-                                            const [kind, valStr] = String(holdSel).split(':');
-                                            const n = Math.max(1, parseInt(valStr||'1',10));
-                                            const tpBeat = this._arpTransport.ticksPerBeat || 1;
-                                            const tpBar = this._arpTransport.ticksPerBar || (tpBeat*4);
-                                            const holdTicks = (kind==='beat') ? n*tpBeat : n*tpBar;
-                                            bassGlideMs = (this._arpTransport.tickMs||250) * holdTicks;
-                                        }
-                                        
-                                        // Temporarily set chord glide ms to bassGlideMs for the update call
-                                        const prev = this._chordGlideMs;
-                                        this._chordGlideMs = bassGlideMs;
                                         this._updateHeldBassForColumn(this._arp.column);
-                                        this._chordGlideMs = prev;
                                     }
                                 } catch(_){ }
                             }
@@ -14283,18 +14498,39 @@
                     // Play any active ARP voice aligned to global tickCounter
                     try {
                         if (this._arp && this._arp.active && this._arp.seq && this._arp.seq.length){
-                            // In CHORD mode, per-tick arpeggio gating is suppressed; voices are sustained from switch to switch
+                            // Suppress per-tick gating while in chord mode; sustain is handled at switch time
                             if (this._arp.mode === 'chord'){
                                 this._arpTransport.lastActiveTick = this._arpTransport.tickCounter;
                                 this._arpTransport.lastActiveAbsTick = this._arpTransport.absTickCounter;
                                 this._arpTransport.inactivityStopScheduled = false;
                                 this._arpTransport.stopAtBarIndex = null;
-                                // Skip the step-gate block entirely
-                            } else {
+                                // Skip the step-gate block entirely in chord mode
+                            } else if (this._arp.mode === 'arp') {
+                            // ARP mode: gate per tick (works in PLAY when ARP is enabled OR during sequencing)
                             const seq = this._arp.seq;
                             const idx = (this._arpTransport.tickCounter - (this._arp.startTickAlign||0));
                             const el = seq[((idx%seq.length)+seq.length)%seq.length];
-                            const gateMs = this._arp.gateMs || Math.max(5, Math.floor(((this._arp.gatePct||50)/100) * this._arpTransport.tickMs));
+                            
+                            // Determine gate duration: use full HOLD if sequencing, otherwise normal gate
+                            let gateMs;
+                            if (this._isSequencing && this._arp.pendingSwitch) {
+                                // During sequencing: sustain ARP notes for the full HOLD duration
+                                const holdSel = document.getElementById('chordHold');
+                                const hold = holdSel ? String(holdSel.value||'bar:1') : 'bar:1';
+                                const [kind, valStr] = String(hold).split(':');
+                                const n = Math.max(1, parseInt(valStr||'1',10));
+                                const tpBar = this._arpTransport.ticksPerBar || 16;
+                                let holdTicks;
+                                if (kind === 'beat') holdTicks = n * (this._arpTransport.ticksPerBeat || 4);
+                                else if (kind === 'tick') holdTicks = n;
+                                else holdTicks = n * tpBar; // default: bar
+                                const totalHoldMs = (this._arpTransport.tickMs||250) * holdTicks;
+                                gateMs = totalHoldMs; // Sustain for full HOLD
+                            } else {
+                                // Normal ARP mode: use standard gate
+                                gateMs = this._arp.gateMs || Math.max(5, Math.floor(((this._arp.gatePct||50)/100) * this._arpTransport.tickMs));
+                            }
+                            
                             let f = el ? parseFloat(el.dataset.frequency) : NaN;
                             if (!f || !isFinite(f) || f<=0){
                                 try{
@@ -14305,13 +14541,14 @@
                                 }catch(_){ }
                             }
                             const tuner = this.currentTuning || 12;
-                            const glideMs = Number.isFinite(this._arp.glideMs) && this._arp.glideMs>0 ? this._arp.glideMs : Math.max(10, Math.min(120000, Number(this._chordGlideMs)||300));
+                            // In PLAY mode, ARP should not glide; enforce instantaneous gates
+                            const glideMs = 0;
 
                             // Lead note behavior
                             if (f && isFinite(f) && f>0){
                                 const bfLive = this._arp?.bassLiveFreq;
                                 const isBassStep = !!(bfLive && Math.abs((f - bfLive) / bfLive) <= 5e-5);
-                                if (this._arp.glide && this._arp.morph && Array.isArray(this._arp.morph.source) && this._arp.morph.source.length){
+                                if (false && this._arp.glide && this._arp.morph && Array.isArray(this._arp.morph.source) && this._arp.morph.source.length){
                                     // Index-aligned mapping: follow NPC order exactly
                                     const idxNorm = ((idx % this._arp.morph.target.length) + this._arp.morph.target.length) % this._arp.morph.target.length;
                                     // Compute morph progress over glideMs from morph.startAbsTick
@@ -14454,8 +14691,28 @@
                     switch(pattern){
                         case 'up': return asc.slice(0, npc);
                         case 'down': return desc.slice(0, npc);
-                        case 'updown': { const a = asc.slice(0, Math.max(npc, asc.length)); return a.concat(a.slice(0, Math.max(1,a.length-1)).reverse()); }
-                        case 'downup': { const d = desc.slice(0, Math.max(npc, desc.length)); return d.concat(d.slice(0, Math.max(1,d.length-1)).reverse()); }
+                        case 'updown': { 
+                            const a = asc.slice(0, npc); 
+                            if (a.length <= 1) return a;
+                            const result = [];
+                            // Add ascending sequence
+                            result.push(...a);
+                            // Add descending sequence (excluding last note to avoid repeat)
+                            const desc = a.slice(0, -1).reverse();
+                            result.push(...desc);
+                            return result.slice(0, npc * 2 - 1); // NPC up + (NPC-1) down
+                        }
+                        case 'downup': { 
+                            const d = desc.slice(0, npc); 
+                            if (d.length <= 1) return d;
+                            const result = [];
+                            // Add descending sequence
+                            result.push(...d);
+                            // Add ascending sequence (excluding last note to avoid repeat)
+                            const asc = d.slice(0, -1).reverse();
+                            result.push(...asc);
+                            return result.slice(0, npc * 2 - 1); // NPC down + (NPC-1) up
+                        }
                         case 'alt-ends': return altEnds(asc).slice(0, npc);
                         case 'alt-center': return altCenter(asc).slice(0, npc);
                         case 'random': return asc.sort(()=>Math.random()-0.5).slice(0, npc);
@@ -14528,14 +14785,26 @@
                     case 'up': return ladderAscRot.slice(0, npc);
                     case 'down': return ladderDescRot.slice(0, npc);
                     case 'updown': {
-                        const a = ladderAscRot.slice();
-                        if (a.length<=1) return a;
-                        return a.concat(a.slice(0, a.length-1).reverse()); // full 1..N..1 shape
+                        const a = ladderAscRot.slice(0, npc);
+                        if (a.length <= 1) return a;
+                        const result = [];
+                        // Add ascending sequence
+                        result.push(...a);
+                        // Add descending sequence (excluding last note to avoid repeat)
+                        const desc = a.slice(0, -1).reverse();
+                        result.push(...desc);
+                        return result; // Return full up-down pattern of length (npc + npc-1)
                     }
                     case 'downup': {
-                        const d = ladderDescRot.slice();
-                        if (d.length<=1) return d;
-                        return d.concat(d.slice(0, d.length-1).reverse());
+                        const d = ladderDescRot.slice(0, npc);
+                        if (d.length <= 1) return d;
+                        const result = [];
+                        // Add descending sequence
+                        result.push(...d);
+                        // Add ascending sequence (excluding last note to avoid repeat)
+                        const asc = d.slice(0, -1).reverse();
+                        result.push(...asc);
+                        return result; // Return full down-up pattern of length (npc + npc-1)
                     }
                     case 'walk-up': return buildWalk(ladderAscRot);
                     case 'walk-down': return buildWalk(ladderDescRot);
@@ -14564,8 +14833,8 @@
             const bpmEl = document.getElementById('arpBpm');
             const quantEl = document.getElementById('arpQuant');
                     const chordQuantSel = document.getElementById('chordQuant');
-            const patEl = document.getElementById('arpPattern');
-            const npcEl = document.getElementById('arpNpc');
+            const patEl = document.getElementById('universalPattern');
+            const npcEl = document.getElementById('universalNpc');
             const glideBtn = document.getElementById('arpGlideToggle');
             const glideMsEl = document.getElementById('arpGlideMs');
             const chordHoldEl = document.getElementById('chordHold');
@@ -14701,7 +14970,7 @@
             // Compute target rows for a chord slide based on nearest-voicing selection
             _getGlobalNpc(){
                 try {
-                    const n1 = parseInt(document.getElementById('arpNpc')?.value||'');
+                    const n1 = parseInt(document.getElementById('universalNpc')?.value||'');
                     const n = Number.isFinite(n1) ? n1 : (this._arp?.npc || 3);
                     return Math.max(1, Math.min(24, n|0));
                 } catch(_) {
@@ -14823,8 +15092,8 @@
 
             // Retune currently active chord voices towards target rows using nearest-neighbor mapping
             // Optional third param glideOverrideMs lets callers (e.g., PLAY) stretch the bend over HOLD length
-            _retuneActiveChordVoicesToTargets(targetRows, velocity=0, glideOverrideMs=null){
-                this._dbg && this._dbg('SLIDE/RETUNE', 'voices=', this._chordSlideVoices?.size||0, 'targets=', targetRows?.length||0, 'glideMs=', this._chordGlideMs);
+            _retuneActiveChordVoicesToTargets(targetRows, velocity=0){
+                this._dbg && this._dbg('SLIDE/RETUNE', 'voices=', this._chordSlideVoices?.size||0, 'targets=', targetRows?.length||0);
                 if (!Array.isArray(targetRows) || targetRows.length===0) return;
                 const ctxNow = this.audioContext?.currentTime || 0;
                 const tuner = this.currentTuning || 12;
@@ -14868,24 +15137,21 @@
                     }
                     if (bestJ >= 0){ used.add(bestJ); mappings.push({ src: s, trg: targets[bestJ] }); }
                 }
-                // Glide duration: allow override (e.g., HOLD-length) else fall back to UI slider
-                const cfg = (glideOverrideMs!=null ? Number(glideOverrideMs) : Number(this._chordGlideMs)) || 300;
-                const glideMs = Math.max(10, Math.min(120000, cfg));
-                const timeEnd = ctxNow + glideMs/1000;
+                // Immediate frequency change (no gliding)
                 for (const {src, trg} of mappings){
                     const v = src.voice;
                     const f1 = trg.f * Math.pow(2, this.oscillators.osc1.octave + ((this.oscillators.osc1.detune + (this.oscillators.osc1.coarse * (1200 / tuner))) / 1200));
                     const f2 = trg.f * Math.pow(2, this.oscillators.osc2.octave + ((this.oscillators.osc2.detune + (this.oscillators.osc2.coarse * (1200 / tuner))) / 1200));
                     try {
-                        if (v.osc1?.frequency?.cancelScheduledValues){ v.osc1.frequency.cancelScheduledValues(ctxNow); v.osc1.frequency.setTargetAtTime(v.osc1.frequency.value, ctxNow, 0.015); v.osc1.frequency.linearRampToValueAtTime(f1, timeEnd); }
-                        if (v.osc2?.frequency?.cancelScheduledValues){ v.osc2.frequency.cancelScheduledValues(ctxNow); v.osc2.frequency.setTargetAtTime(v.osc2.frequency.value, ctxNow, 0.015); v.osc2.frequency.linearRampToValueAtTime(f2, timeEnd); }
+                        if (v.osc1?.frequency?.cancelScheduledValues){ v.osc1.frequency.cancelScheduledValues(ctxNow); v.osc1.frequency.setValueAtTime(f1, ctxNow); }
+                        if (v.osc2?.frequency?.cancelScheduledValues){ v.osc2.frequency.cancelScheduledValues(ctxNow); v.osc2.frequency.setValueAtTime(f2, ctxNow); }
                         // Update last known frequency for subsequent mapping
                         src.stringEl.dataset.frequency = String(trg.f);
                     } catch(_){ this._dbg && this._dbg('SLIDE/RETUNE:ERR'); }
                 }
             }
 
-            // Throttled continuous update while sliding: retune active voices and glide bass immediately
+            // Throttled continuous update while sliding: retune active voices immediately
             _updateChordSlideContinuously(columnEl){
                 this._dbg && this._dbg('SLIDE/CONT', columnEl?.dataset?.chordId || columnEl?.dataset?.originalPosition);
                 const now = performance.now();
@@ -14894,9 +15160,10 @@
                 this._lastChordSlideImmediateAt = now;
                 try {
                     const targets = this._computeChordSlideTargets(columnEl);
+                    // Use immediate change (no glide)
                     this._retuneActiveChordVoicesToTargets(targets, 0);
                 } catch(_){ }
-                // Glide held bass with the same bend rate
+                // Update held bass immediately
                 try { this._updateHeldBassForColumn(columnEl); } catch(_){ this._dbg && this._dbg('BASS/HELD:update:ERR'); }
                 try { this._markChordSlideActivity(); } catch(_){ }
             }
@@ -14905,13 +15172,12 @@
                 this._lastChordSlideTime = performance.now();
                 if (!this._chordSlideActive) return;
                 try { clearTimeout(this._chordSlideIdleTimer); } catch(_) {}
-                // Idle stop should allow long glides to finish: wait base (2000ms) + current glide time
+                // Idle stop after base timeout (no glide timing needed)
                 const baseIdle = Math.max(0, Number(this._chordSlideIdleMs) || 2000);
-                const glide = Math.max(0, Number(this._chordGlideMs) || 300);
-                const ms = Math.max(250, baseIdle + glide);
+                const ms = Math.max(250, baseIdle);
                 this._chordSlideIdleTimer = setTimeout(()=>{
                     try{
-                        if ((this.playMode||'high-low')==='chords' && this._chordSlideActive) {
+                        if (this.chordsEnabled && this._chordSlideActive) {
                             this.stopAllActiveNotes();
                             // Also clear any tracked bass voice so it can be restarted cleanly next time
                             this._chordBassVoice = null; this._lastBassFreq = null;
@@ -14942,10 +15208,10 @@
                 } catch(_) {}
             }
             
-            // Held bass: start or glide a single sustained bass to the column's effective root within G1..C3.
+            // Held bass: start a single sustained bass to the column's effective root within G1..C3.
             _updateHeldBassForColumn(columnElement){
                 this._dbg && this._dbg('BASS/HELD:call', 'enabled=', this._heldBassEnabled, 'col=', columnElement?.dataset?.chordId || columnElement?.dataset?.originalPosition);
-                if (this._heldBassEnabled === false) return;
+                if (this._heldBassEnabled === false || this.bassEnabled === false) return;
                 try{
                     const edo = this.currentTuning || 12;
                     const step = this._getEffectiveColumnRootStep(columnElement);
@@ -14992,27 +15258,23 @@
                         }
                         return;
                     }
-                    // Glide existing bass to new target at the chords glide rate
+                    // Update existing bass to new target immediately
                     const v = this._heldBassVoice || (this._heldBassVoiceKey!=null ? this.activeOscillators.get(this._heldBassVoiceKey) : null);
                     const ctxNow = this.audioContext?.currentTime || 0;
                     const tuner = edo;
                     const f1 = target * Math.pow(2, this.oscillators.osc1.octave + ((this.oscillators.osc1.detune + (this.oscillators.osc1.coarse * (1200 / tuner))) / 1200));
                     const f2 = target * Math.pow(2, this.oscillators.osc2.octave + ((this.oscillators.osc2.detune + (this.oscillators.osc2.coarse * (1200 / tuner))) / 1200));
-                    const glideMs = Math.max(10, Math.min(120000, Number(this._chordGlideMs)||300));
-                    const timeEnd = ctxNow + glideMs/1000;
-                    let glided = false;
+                    let updated = false;
                     try {
                         if (v.osc1?.frequency?.cancelScheduledValues && v.osc2?.frequency?.cancelScheduledValues) {
                             v.osc1.frequency.cancelScheduledValues(ctxNow);
-                            v.osc1.frequency.setTargetAtTime(v.osc1.frequency.value, ctxNow, 0.01);
-                            v.osc1.frequency.linearRampToValueAtTime(f1, timeEnd);
+                            v.osc1.frequency.setValueAtTime(f1, ctxNow);
                             v.osc2.frequency.cancelScheduledValues(ctxNow);
-                            v.osc2.frequency.setTargetAtTime(v.osc2.frequency.value, ctxNow, 0.01);
-                            v.osc2.frequency.linearRampToValueAtTime(f2, timeEnd);
-                            glided = true;
+                            v.osc2.frequency.setValueAtTime(f2, ctxNow);
+                            updated = true;
                         }
-                    } catch(_){ glided = false; }
-                    if (!glided) {
+                    } catch(_){ updated = false; }
+                    if (!updated) {
                         this._dbg && this._dbg('BASS/HELD:restartFallback');
                         // Fall back: stop the old held bass and restart at target
                         try { if (this._heldBassLiveFreq) this.stopFrequency(this._heldBassLiveFreq, null); } catch(_){ }
@@ -15021,7 +15283,7 @@
                         return;
                     }
                     this._heldBassLiveFreq = target;
-                    this._dbg && this._dbg('BASS/HELD:glideOK', target);
+                    this._dbg && this._dbg('BASS/HELD:updateOK', target);
                 } catch(_){ }
             }
             // Removed: header root parser (no independent global bass)
@@ -15082,6 +15344,29 @@
                             }
                         });
                     }
+                                // Hard reset transport so PLAY behaves identically every time
+                                try {
+                                    omnichord._stopArpTransport();
+                                    omnichord._ensureArpTransport();
+                                    const t = omnichord._arpTransport;
+                                    if (t) {
+                                        t.tickCounter = 0;
+                                        t.absTickCounter = 0;
+                                        t.nextAt = ((performance && performance.now) ? performance.now() : Date.now());
+                                        t.running = false;
+                                        t.inactivityStopScheduled = false;
+                                        t.stopAtBarIndex = null;
+                                    }
+                                    if (omnichord._arp) {
+                                        omnichord._arp.pendingSwitch = null;
+                                        omnichord._arp.active = false;
+                                        omnichord._arp.seq = [];
+                                        omnichord._arp.startTickAlign = 0;
+                                        omnichord._arp.morph = null;
+                                    }
+                                    // Stop any lingering voices so we start from silence
+                                    try { omnichord.stopAllActiveNotes(); } catch(_){ }
+                                } catch(_){ }
                     // Chord/Slide Bass toggle
                     const chordBassBtn = document.getElementById('chordBassToggle');
                     if (chordBassBtn && !chordBassBtn._wired){
@@ -15123,6 +15408,8 @@
                 this._arp.active = false;
                 this._arp.seq = [];
                 this._arp.column = null;
+                // Disable sustain so new notes return to normal envelope behavior outside PLAY chord-hold
+                this._sustainActive = false;
                 // Release any octave lock so next gesture can define a new one
                 this._slideOctaveLock = null;
                 // Stop sustained ARP voices (lead + bass)
@@ -15898,6 +16185,15 @@
             }
 
             handleStringTrigger(event, touchId = null) {
+                // During sequencing, just allow STRUM mode - don't affect sequence progression
+                if (this._isSequencing) {
+                    // Force STRUM mode during sequencing
+                    if (this.playMode !== 'strum') {
+                        this.playMode = 'strum';
+                        this.updatePlayModeButtons();
+                    }
+                }
+                
                 // Ensure AudioContext is running on every swipe sample for reliability
                 try {
                     if (this.audioContext && this.audioContext.state === 'suspended') {
@@ -16281,6 +16577,12 @@
             // New: Chords Play Mode implementation
             playChordChordsMode(columnElement, clientY){
                 if (!columnElement) return;
+                
+                // During sequencing, don't change chord progression - just allow strumming
+                if (this._isSequencing) {
+                    return; // Prevent chord changes during PLAY sequence
+                }
+                
                 try { this.ensureAudioContext && this.ensureAudioContext(); } catch(_){}
                 // Sustain gate active until mouseup/touchend
                 this._sustainActive = true;
@@ -16370,6 +16672,47 @@
                 }
 
                 try { this.highlightKeyboardForColumn(columnElement); this.currentActiveColumnEl = columnElement; } catch(_){}
+                
+                // Add automatic HOLD duration for CHORD mode
+                try {
+                    // Clear any existing chord hold timer
+                    if (this._chordHoldTimer) {
+                        clearTimeout(this._chordHoldTimer);
+                        this._chordHoldTimer = null;
+                    }
+                    
+                    // Get HOLD duration from universal control
+                    const holdSelect = document.getElementById('universalHold') || document.getElementById('chordHold');
+                    const holdValue = holdSelect ? holdSelect.value : 'bar:1';
+                    const [kind, valStr] = String(holdValue).split(':');
+                    const n = Math.max(1, parseInt(valStr || '1', 10));
+                    
+                    // Calculate hold duration in milliseconds
+                    const bpmEl = document.getElementById('universalBpm');
+                    const bpm = bpmEl ? parseInt(bpmEl.value) : 120;
+                    const beatMs = 60000 / Math.max(20, bpm);
+                    
+                    // Get time signature
+                    const timeSignatureEl = document.getElementById('universalTimeSignature');
+                    const timeSignature = timeSignatureEl ? timeSignatureEl.value : '4/4';
+                    const [beatsPerBar] = timeSignature.split('/').map(Number);
+                    const barMs = beatMs * (beatsPerBar || 4);
+                    
+                    const holdMs = (kind === 'beat') ? n * beatMs : n * barMs;
+                    
+                    // Set timer to automatically release chord after HOLD duration
+                    this._chordHoldTimer = setTimeout(() => {
+                        if (this._sustainActive && this._chordsGestureActive) {
+                            this._sustainActive = false;
+                            this._chordsGestureActive = false;
+                            this._slideOctaveLock = null;
+                            this.stopAllActiveNotes();
+                        }
+                        this._chordHoldTimer = null;
+                    }, holdMs);
+                } catch(err) {
+                    console.warn('CHORD hold duration setup failed:', err);
+                }
             }
 
             // Determine all chord degrees (EDO steps) for a column's chord model
@@ -17086,21 +17429,48 @@
                 finalMixer.connect(panner);
                 panner.connect(this.gainNode);
                 
-                // OSC 1 ADSR envelope (master ADSR)
-                const osc1AttackTime = currentTime + this.envelope.attack;
-                const osc1DecayTime = osc1AttackTime + this.envelope.decay;
+                // OSC 1 ADSR envelope (master ADSR) - Use different settings for CHORD mode
+                let env1Attack, env1Decay, env1Sustain, env1Release;
+                let env2Attack, env2Decay, env2Sustain, env2Release;
+                
+                if ((this.playMode === 'chords') || (this._sustainActive && this._isSequencing)) {
+                    // CHORD mode: Sustain 100%, Decay to FULL, 300ms Release
+                    env1Attack = this.envelope.attack;
+                    env1Decay = 1000; // Full decay
+                    env1Sustain = 1.0; // 100% sustain
+                    env1Release = 0.3; // 300ms release
+                    
+                    env2Attack = this.osc2Envelope.attack;
+                    env2Decay = 1000; // Full decay
+                    env2Sustain = 1.0; // 100% sustain
+                    env2Release = 0.3; // 300ms release
+                } else {
+                    // PLUCK/ARP/BASS mode: Use normal ADSR settings
+                    env1Attack = this.envelope.attack;
+                    env1Decay = this.envelope.decay;
+                    env1Sustain = this.envelope.sustain;
+                    env1Release = this.envelope.release;
+                    
+                    env2Attack = this.osc2Envelope.attack;
+                    env2Decay = this.osc2Envelope.decay;
+                    env2Sustain = this.osc2Envelope.sustain;
+                    env2Release = this.osc2Envelope.release;
+                }
+                
+                const osc1AttackTime = currentTime + env1Attack;
+                const osc1DecayTime = osc1AttackTime + env1Decay;
                 
                 osc1Envelope.gain.setValueAtTime(0, currentTime);
                 osc1Envelope.gain.linearRampToValueAtTime(1, osc1AttackTime); // Attack
-                osc1Envelope.gain.linearRampToValueAtTime(this.envelope.sustain, osc1DecayTime); // Decay to sustain
+                osc1Envelope.gain.linearRampToValueAtTime(env1Sustain, osc1DecayTime); // Decay to sustain
                 
                 // OSC 2 ADSR envelope (separate OSC 2 ADSR)
-                const osc2AttackTime = currentTime + this.osc2Envelope.attack;
-                const osc2DecayTime = osc2AttackTime + this.osc2Envelope.decay;
+                const osc2AttackTime = currentTime + env2Attack;
+                const osc2DecayTime = osc2AttackTime + env2Decay;
                 
                 osc2Envelope.gain.setValueAtTime(0, currentTime);
                 osc2Envelope.gain.linearRampToValueAtTime(1, osc2AttackTime); // Attack
-                osc2Envelope.gain.linearRampToValueAtTime(this.osc2Envelope.sustain, osc2DecayTime); // Decay to sustain
+                osc2Envelope.gain.linearRampToValueAtTime(env2Sustain, osc2DecayTime); // Decay to sustain
                 
                 osc1.start();
                 osc2.start();
@@ -17157,16 +17527,16 @@
                     element: safeElement,
                     startTime: currentTime,
                     env1: {
-                        attack: this.envelope.attack,
-                        decay: this.envelope.decay,
-                        sustain: this.envelope.sustain,
-                        release: this.envelope.release
+                        attack: env1Attack,
+                        decay: env1Decay,
+                        sustain: env1Sustain,
+                        release: env1Release
                     },
                     env2: {
-                        attack: this.osc2Envelope.attack,
-                        decay: this.osc2Envelope.decay,
-                        sustain: this.osc2Envelope.sustain,
-                        release: this.osc2Envelope.release
+                        attack: env2Attack,
+                        decay: env2Decay,
+                        sustain: env2Sustain,
+                        release: env2Release
                     }
                 });
                 if (safeElement) {
@@ -17775,7 +18145,7 @@
         let omnichord;
     window.addEventListener('load', () => {
             // === BPM-quantized time controls & editable ms labels ===
-            const TimeGrid = {
+            window.TimeGrid = {
                 // Musical divisions including triplets and quintuple subdivision (1/5 bar)
                 divisions: [
                     '1/32','1/16','1/8','1/8T','1/4','1/4T','1/5bar','1/2','1','2bar','4bar','8bar'
@@ -17835,9 +18205,9 @@
             // Map glide slider position (0..1000) to ms: 0=1/32, 500=1 bar, 1000=8 bars
             function glidePosToMs(pos, bpm){
                 pos = Math.max(0, Math.min(1000, Number(pos)||0));
-                const bar = TimeGrid.toMs('1', bpm);
-                const leftMs = TimeGrid.toMs('1/32', bpm);
-                const rightMs = TimeGrid.toMs('8bar', bpm);
+                const bar = window.TimeGrid.toMs('1', bpm);
+                const leftMs = window.TimeGrid.toMs('1/32', bpm);
+                const rightMs = window.TimeGrid.toMs('8bar', bpm);
                 if (pos === 500) return bar;
                 if (pos < 500){
                     const t = pos/500; // 0..1
@@ -17851,9 +18221,9 @@
                 }
             }
             function msToGlidePos(ms, bpm){
-                const bar = TimeGrid.toMs('1', bpm);
-                const leftMs = TimeGrid.toMs('1/32', bpm);
-                const rightMs = TimeGrid.toMs('8bar', bpm);
+                const bar = window.TimeGrid.toMs('1', bpm);
+                const leftMs = window.TimeGrid.toMs('1/32', bpm);
+                const rightMs = window.TimeGrid.toMs('8bar', bpm);
                 ms = Math.max(leftMs, Math.min(rightMs, Number(ms)||bar));
                 if (ms === bar) return 500;
                 if (ms < bar){
@@ -17871,8 +18241,8 @@
                 const label = document.getElementById(labelId);
                 if (!slider || !label) return;
                 const isGlide = /glide/i.test(sliderId);
-                const minMs = isGlide ? TimeGrid.toMs('1/32', getBpm()) : (Number(slider.min)||10);
-                const maxMs = isGlide ? TimeGrid.toMs('8bar', getBpm())  : (Number(slider.max)||120000);
+                const minMs = isGlide ? window.TimeGrid.toMs('1/32', getBpm()) : (Number(slider.min)||10);
+                const maxMs = isGlide ? window.TimeGrid.toMs('8bar', getBpm())  : (Number(slider.max)||120000);
                 let shifting = false; // deprecated local flag; kept for pointer events
                 let recursing = false;
                 // optional sticky division memory (per control)
@@ -17892,8 +18262,8 @@
                     const wantBypass = !!(bypassQuantize || shifting || window.__timeGridShiftPressed || manualMs);
                     if (!wantBypass){
                         // Choose the division nearest to the current slider position
-                        const div = TimeGrid.nearestDivision(v, bpm);
-                        v = Math.min(maxMs, Math.max(minMs, TimeGrid.toMs(div, bpm)));
+                        const div = window.TimeGrid.nearestDivision(v, bpm);
+                        v = Math.min(maxMs, Math.max(minMs, window.TimeGrid.toMs(div, bpm)));
                         if (isGlide){ slider.value = String(msToGlidePos(v, bpm)); } else { slider.value = String(Math.round(v)); }
                         // Persist sticky for glides and other musical time controls
                         stickyDiv = div; try { sessionStorage.setItem(stickyKey, div); } catch(_) {}
@@ -17905,7 +18275,7 @@
                     if (label){
                         // For glides, show musical division when quantized; show ms when bypassing
                         if (isGlide && !wantBypass){
-                            label.textContent = stickyDiv || TimeGrid.nearestDivision(v,bpm);
+                            label.textContent = stickyDiv || window.TimeGrid.nearestDivision(v,bpm);
                         } else {
                             label.textContent = formatMs(v);
                         }
@@ -17917,7 +18287,7 @@
                 // For glides, initialize slider position to reflect current ms value
                 if (isGlide){
                     const bpm = getBpm();
-                    const initMs = stickyDiv ? TimeGrid.toMs(stickyDiv, bpm) : glidePosToMs(Number(slider.value)||500, bpm);
+                    const initMs = stickyDiv ? window.TimeGrid.toMs(stickyDiv, bpm) : glidePosToMs(Number(slider.value)||500, bpm);
                     slider.value = String(msToGlidePos(initMs, bpm));
                 }
                 snap(false);
@@ -17960,7 +18330,7 @@
                             // normalize common aliases
                             const aliases = { '1/1':'1', '1':'1', '1bar':'1', '2bars':'2bar', '4bars':'4bar', '8bars':'8bar' };
                             stickyDiv = aliases[stickyDiv] || stickyDiv;
-                            nextMs = TimeGrid.toMs(stickyDiv, getBpm());
+                            nextMs = window.TimeGrid.toMs(stickyDiv, getBpm());
                             manualMs = false; // return to quantized mode
                         } else {
                             const ms = parseMsText(txt);
@@ -18170,11 +18540,35 @@
                     playBtn._wired = true;
                     playBtn.addEventListener('click', ()=>{
                         try {
+                            // Start PLAY button flashing in time with BPM
+                            omnichord._startPlayButtonFlashing();
+                            
+                            // Sync all transport and ARP settings from UI before starting
+                            omnichord._ensureArpDefaults();
+                            omnichord._ensureArpTransport();
+                            omnichord._refreshArpTransportTiming();
+                            
+                            // Read other UI values that might affect the sequence
+                            const npcEl = document.getElementById('universalNpc');
+                            const patternEl = document.getElementById('universalPattern');
+                            const holdEl = document.getElementById('universalHold') || document.getElementById('chordHold');
+                            
+                            if (omnichord._arp) {
+                                if (npcEl) omnichord._arp.npc = Math.max(1, Number(npcEl.value) || 3);
+                                if (patternEl) omnichord._arp.pattern = patternEl.value || 'up';
+                                if (holdEl) omnichord._arp.chordsHold = holdEl.value || 'bar:1';
+                            }
+                            
                             // Ensure audio is unlocked on user gesture
-                            try { omnichord.ensureAudioContext && omnichord.ensureAudioContext(); } catch(_){ }
+                                    try { omnichord._sustainActive = false; omnichord._chordsGestureActive = false; omnichord._chordSlideActive = false; } catch(_){ }
                             // If a previous sequencing run is active, stop it cleanly first
                             try { if (omnichord._seqTimer) { clearTimeout(omnichord._seqTimer); omnichord._seqTimer = null; } } catch(_){}
                             try { omnichord._isSequencing = false; } catch(_){}
+                            // Don't start if no module is enabled
+                            if (!omnichord.chordsEnabled && !omnichord.arpEnabled && !omnichord.bassEnabled){
+                                omnichord._stopPlayButtonFlashing();
+                                return;
+                            }
                             // Build a row-major ordered list of columns (left-to-right, then next row)
                             let cols = Array.from(document.querySelectorAll('#extensionColumns .extension-column'));
                             if (!cols.length) return;
@@ -18202,13 +18596,27 @@
                                         cols = sortRowMajor(Array.from(document.querySelectorAll('#extensionColumns .extension-column')));
                                         i = 0;
                     } else {
+                                        // LOOP OFF: Stop everything and reset to ready state
                                         try {
-                                            if (omnichord.playMode === 'chords') {
-                                                omnichord.stopAllActiveNotes();
-                                                omnichord._sustainActive = false; omnichord._chordsGestureActive = false; omnichord._chordSlideActive = false;
+                                            // Stop all active notes and reset states
+                                            omnichord.stopAllActiveNotes();
+                                            omnichord._sustainActive = false; 
+                                            omnichord._chordsGestureActive = false; 
+                                            omnichord._chordSlideActive = false;
+                                            
+                                            // Stop ARP transport and clear pending switches
+                                            omnichord._stopArp();
+                                            if (omnichord._arp) {
+                                                omnichord._arp.pendingSwitch = null;
+                                                omnichord._arp.active = false;
                                             }
+                                            
+                                            // Reset sequence to beginning for next play
+                                            i = 0;
                                         } catch(_){ }
-                                        omnichord._isSequencing = false; return;
+                                        omnichord._isSequencing = false; 
+                                        omnichord._stopPlayButtonFlashing();
+                                        return;
                                     }
                                 }
                                 const col = cols[i++];
@@ -18216,6 +18624,20 @@
                                 try {
                                     const curTick = omnichord._arpTransport.tickCounter|0;
                                     const absNow = omnichord._arpTransport.absTickCounter|0;
+                                    
+                                    // Get the column header to extract chord name and root AFTER chord is named
+                                    const header = col.querySelector('.extension-column-header');
+                                    const chordName = header ? header.textContent.trim() : '';
+                                    
+                                    // Extract root note from chord name for bass (e.g., "C7" -> "C", "F#m" -> "F#")
+                                    let chordRoot = null;
+                                    if (chordName) {
+                                        const rootMatch = chordName.match(/^([A-G][#b♯♭]*)/);
+                                        if (rootMatch) {
+                                            chordRoot = rootMatch[1];
+                                        }
+                                    }
+                                    
                                     // Determine HOLD length in ticks once per step - use chordHold as unified HOLD for all modes
                                     const holdSel = document.getElementById('chordHold');
                                     const hold = holdSel ? String(holdSel.value||'bar:1') : (omnichord._arp?.chordsHold || 'bar:1');
@@ -18237,69 +18659,89 @@
                                     }
                                     // Prepare a quick sequence from column strings
                                     const rows = Array.from(col.querySelectorAll('.strings-column .string'));
-                                    // Re-evaluate mode on every step so UI toggles during PLAY take effect without losing time
-                                    const inChordMode = (omnichord.playMode === 'chords');
+                                    // During PLAY, treat module toggles as independent lanes; all align to the same grid
+                                    const chordsOn = !!omnichord.chordsEnabled;
+                                    const arpOn = !!omnichord.arpEnabled;
                                     // Treat NPC as global during PLAY
                                     const npcGlobal = (function(){
-                                        const n1 = parseInt(document.getElementById('arpNpc')?.value||'');
+                                        const n1 = parseInt(document.getElementById('universalNpc')?.value||'');
                                         const n = Number.isFinite(n1)? n1 : (omnichord._arp?.npc||3);
                                         return Math.max(1, Math.min(64, n|0));
                                     })();
-                                    let seq = [];
-                                    let mapAscRef = null;
-                    if (inChordMode) {
-                                        // For CHORD PLAY we sustain a full chord for HOLD; we will signal mode:'chord' and build ladder only for mapping purposes
-                    const ascAll = rows.slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0) - (parseFloat(b.dataset.frequency)||0));
-                    let ladder = ascAll;
-                                        if (typeof omnichord.groupStringsByOctave === 'function'){
-                                            try {
-                                                const { groups } = omnichord.groupStringsByOctave(ascAll);
-                                                // Anchor ladder to last tapped octave if available
-                                                const baseOct = Number.isFinite(omnichord._lastTappedOctave) ? omnichord._lastTappedOctave : 4;
-                        const filtered = groups.filter(g => Array.isArray(g) && g.length && parseInt(g[0]?.dataset?.octave||'0',10) >= baseOct);
-                        ladder = (filtered.length? filtered : groups).flat();
-                                            } catch(_){ /* keep ascAll */ }
-                                        }
-                    // NPC limits the number of chord notes to play/sustain
-                    seq = ladder.slice(0, npcGlobal);
-                                        mapAscRef = ladder;
-                                    } else {
-                                        // ARP mode: anchor to tapped octave but extend upward across octaves as needed for NPC
-                                        const startOct = Number.isFinite(omnichord._lastTappedOctave) ? omnichord._lastTappedOctave : 4;
-                                        const ascAll = rows.slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0) - (parseFloat(b.dataset.frequency)||0));
-                                        // Rotate to first row at or above the start octave
-                                        let rotIndex = ascAll.findIndex(r => (parseInt(r.dataset.octave||'0',10) >= startOct));
-                                        if (rotIndex < 0) rotIndex = 0;
-                                        const rotated = rotIndex > 0 ? (ascAll.slice(rotIndex).concat(ascAll.slice(0, rotIndex))) : ascAll;
-                                        seq = rotated.slice(0, npcGlobal);
-                                        mapAscRef = rotated;
+                                    // Build CHORD ladder (for sustain voices) and ARP ladder independently
+                                    const ascAll = rows.slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0) - (parseFloat(b.dataset.frequency)||0));
+                                    // CHORD ladder: optionally group by octave and anchor to last tapped octave
+                                    let chordLadder = ascAll;
+                                    if (typeof omnichord.groupStringsByOctave === 'function'){
+                                        try {
+                                            const { groups } = omnichord.groupStringsByOctave(ascAll);
+                                            const baseOct = Number.isFinite(omnichord._lastTappedOctave) ? omnichord._lastTappedOctave : 4;
+                                            const filtered = groups.filter(g => Array.isArray(g) && g.length && parseInt(g[0]?.dataset?.octave||'0',10) >= baseOct);
+                                            chordLadder = (filtered.length? filtered : groups).flat();
+                                        } catch(_){ /* keep ascAll */ }
                                     }
+                                    const chordRows = chordLadder.slice(0, npcGlobal);
+                                    
+                                    // ARP ladder: rotate to start octave then take NPC and apply pattern
+                                    const startOct = Number.isFinite(omnichord._lastTappedOctave) ? omnichord._lastTappedOctave : 4;
+                                    let rotIndex = ascAll.findIndex(r => (parseInt(r.dataset.octave||'0',10) >= startOct));
+                                    if (rotIndex < 0) rotIndex = 0;
+                                    const rotated = rotIndex > 0 ? (ascAll.slice(rotIndex).concat(ascAll.slice(0, rotIndex))) : ascAll;
+                                    
+                                    // Apply pattern to generate proper ARP sequence
+                                    let arpSeq = [];
+                                    if (arpOn) {
+                                        const pattern = omnichord._arp?.pattern || 'up';
+                                        const npcSlice = rotated.slice(0, npcGlobal);
+                                        
+                                        switch (pattern) {
+                                            case 'up':
+                                                arpSeq = npcSlice;
+                                                break;
+                                            case 'down':
+                                                arpSeq = npcSlice.slice().reverse();
+                                                break;
+                                            case 'updown':
+                                                if (npcSlice.length <= 1) {
+                                                    arpSeq = npcSlice;
+                                                } else {
+                                                    arpSeq = [...npcSlice];
+                                                    const desc = npcSlice.slice(0, -1).reverse();
+                                                    arpSeq.push(...desc);
+                                                }
+                                                break;
+                                            case 'downup':
+                                                if (npcSlice.length <= 1) {
+                                                    arpSeq = npcSlice;
+                                                } else {
+                                                    const descSeq = npcSlice.slice().reverse();
+                                                    arpSeq = [...descSeq];
+                                                    const asc = descSeq.slice(0, -1).reverse();
+                                                    arpSeq.push(...asc);
+                                                }
+                                                break;
+                                            case 'random':
+                                                arpSeq = npcSlice.slice().sort(() => Math.random() - 0.5);
+                                                break;
+                                            default:
+                                                arpSeq = npcSlice;
+                                        }
+                                    }
+                                    const mapAscRef = rotated;
                                     omnichord._arp.pendingSwitch = {
                                         atAbsTick: targetAbsTick >>> 0,
-                                        alignPhaseToTickCounter: false,
-                                        // For chord mode, we don't want per-tick gating; transport will handle a sustained chord at switch time
-                                        seq,
+                                        alignPhaseToTickCounter: true, // align seq phase to transport tick
+                                        // Run ARP ticks while optionally sustaining a full chord
+                                        seq: arpSeq,
                                         bassFreq: omnichord._arp.bassFreq,
                                         column: col,
                                         mapAsc: mapAscRef,
-                                        mode: inChordMode ? 'chord' : 'arp',
-                                        npc: npcGlobal
+                                        mode: 'arp',
+                                        npc: npcGlobal,
+                                        enableChord: chordsOn,
+                                        chordRows
                                     };
-                                    // For CHORD mode, pre-glide held bass to the next column's root across HOLD
-                                    try {
-                                        if (inChordMode && col) {
-                                            const [kind2, valStr2] = String(hold).split(':');
-                                            const n2 = Math.max(1, parseInt(valStr2||'1',10));
-                                            const tpBeat2 = omnichord._arpTransport.ticksPerBeat || 1;
-                                            const tpBar2 = omnichord._arpTransport.ticksPerBar || (tpBeat2*4);
-                                            const holdTicks2 = (kind2==='beat') ? n2*tpBeat2 : n2*tpBar2;
-                                            const ms2 = (omnichord._arpTransport.tickMs||250) * holdTicks2;
-                                            const prev2 = omnichord._chordGlideMs;
-                                            omnichord._chordGlideMs = ms2;
-                                            omnichord._updateHeldBassForColumn(col);
-                                            omnichord._chordGlideMs = prev2;
-                                        }
-                                    } catch(_){ }
+                                    // Removed eager bass application here to keep bass aligned with transport switch time
                                     // Ensure HOLD doesn't cut transport during sequencing
                                     omnichord._arpTransport.holdStopAtAbsTick = null;
                                     omnichord._startArpTransport();
@@ -18307,7 +18749,23 @@
                                 // Schedule next chord after the configured HOLD length
                                 // Use the same holdTicks computed above to keep cadence consistent
                                 try { if (omnichord._seqTimer) { clearTimeout(omnichord._seqTimer); } } catch(_){}
-                                omnichord._seqTimer = setTimeout(scheduleNext, (omnichord._arpTransport.tickMs||250) * (Number.isFinite(holdTicksForStep)? holdTicksForStep : tpBar));
+                                
+                                const totalHoldMs = (omnichord._arpTransport.tickMs||250) * (Number.isFinite(holdTicksForStep)? holdTicksForStep : tpBar);
+                                
+                                // Simple chord hold: sustain for full HOLD duration, then stop
+                                setTimeout(() => {
+                                    try {
+                                        // End sustain and stop notes at end of HOLD
+                                        omnichord._sustainActive = false;
+                                        if (omnichord.playMode === 'chords') {
+                                            omnichord.stopAllActiveNotes();
+                                        }
+                                    } catch(err) {
+                                        console.warn('Sustain end failed:', err);
+                                    }
+                                }, totalHoldMs);
+                                
+                                omnichord._seqTimer = setTimeout(scheduleNext, totalHoldMs);
                             };
                             scheduleNext();
                         } catch(_) {}
@@ -18406,6 +18864,101 @@
                  });
                  window.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
                  window.addEventListener('click',e=>{ if(open && !host.contains(e.target) && !bar.contains(e.target)) close(); });
+             })();
+             
+             // Initialize universal controls
+             (function() {
+                 // Sync initial values
+                 omnichord.syncUniversalControls();
+                 
+                 // Universal control event handlers
+                 const universalBpm = document.getElementById('universalBpm');
+                 const universalQuant = document.getElementById('universalQuant');
+                 const universalNpc = document.getElementById('universalNpc');
+                 const universalHold = document.getElementById('universalHold');
+                 const universalPattern = document.getElementById('universalPattern');
+                 const universalGlide = document.getElementById('universalGlide');
+                 const universalBass = document.getElementById('universalBass');
+                 const universalTimeSignature = document.getElementById('universalTimeSignature');
+                 
+                 if (universalBpm) {
+                     universalBpm.addEventListener('input', () => {
+                         omnichord.applyUniversalSettings();
+                     });
+                 }
+                 
+                 if (universalTimeSignature) {
+                     universalTimeSignature.addEventListener('change', () => {
+                         omnichord.applyUniversalSettings();
+                     });
+                 }
+                 
+                 if (universalQuant) {
+                     universalQuant.addEventListener('change', () => {
+                         omnichord.applyUniversalSettings();
+                     });
+                 }
+                 
+                 if (universalNpc) {
+                     universalNpc.addEventListener('input', () => {
+                         omnichord.applyUniversalSettings();
+                     });
+                 }
+                 
+                 if (universalHold) {
+                     universalHold.addEventListener('change', () => {
+                         omnichord.applyUniversalSettings();
+                     });
+                 }
+                 
+                 if (universalPattern) {
+                     universalPattern.addEventListener('change', () => {
+                         omnichord.applyUniversalSettings();
+                     });
+                 }
+                 // universalGlide removed
+                 
+                 if (universalBass) {
+                     universalBass.addEventListener('click', () => {
+                         universalBass.classList.toggle('active');
+                         const active = universalBass.classList.contains('active');
+                         
+                         // Apply to all existing bass toggles
+                         const chordBassToggle = document.getElementById('chordBassToggle');
+                         const arpBassToggle = document.getElementById('arpBassToggle');
+                         
+                         if (chordBassToggle) {
+                             chordBassToggle.classList.toggle('active', active);
+                         }
+                         if (arpBassToggle) {
+                             arpBassToggle.classList.toggle('active', active);
+                         }
+                         
+                         // Update bass enabled state
+                         omnichord.bassEnabled = active;
+                     });
+                 }
+                 
+                 // Wire up the new mode buttons in the stack
+                 const modeStrum = document.getElementById('modeStrum');
+                 const modeChords = document.getElementById('modeChords');
+                 const modeArp = document.getElementById('modeArp');
+                 
+                 if (modeStrum && !modeStrum._wired) {
+                     modeStrum._wired = true;
+                     modeStrum.addEventListener('click', () => omnichord.toggleStrumMode());
+                 }
+                 if (modeChords && !modeChords._wired) {
+                     modeChords._wired = true;
+                     modeChords.addEventListener('click', () => omnichord.toggleChordsMode());
+                 }
+                 if (modeArp && !modeArp._wired) {
+                     modeArp._wired = true;
+                     modeArp.addEventListener('click', () => omnichord.toggleArpMode());
+                 }
+                 
+                 // Initial mode UI update
+                 omnichord.updateModeUI();
              })();
     </script>
 </body>
