@@ -2084,7 +2084,7 @@
     </div>
     <!-- Panels host below the top bar -->
     
-    <div id="panelHost" style="position:fixed;top: calc(var(--bar-h) + 6px);left:12px;width:min(95vw, 780px);max-height:70vh;background:#0b2536;border:2px solid #15506a;border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,0.55);padding:18px 20px;display:none;overflow-y:auto;z-index:1200;font-family:var(--retro-font);">
+    <div id="panelHost" style="position:fixed;top: calc(var(--bar-h) + env(safe-area-inset-top) + 6px);left:12px;width:min(95vw, 780px);height: calc(100vh - (var(--bar-h) + env(safe-area-inset-top) + 12px));background:#0b2536;border:2px solid #15506a;border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,0.55);padding:18px 20px;display:none;overflow-y:auto;z-index:1200;font-family:var(--retro-font);">
         <!-- Control Panels migrated here -->
         <div class="panel-content" data-panel="tuning" style="display:none; gap:15px; grid-template-columns:300px;">
             <div class="synth-section" id="tuningSelector" style="padding:8px;">
@@ -2342,7 +2342,7 @@
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Sustain</label>
-                                <input type="range" class="envelope-slider" id="sustainSlider" min="1" max="100" value="50" style="height:18px;">
+                                <input type="range" class="envelope-slider" id="sustainSlider" min="0" max="100" value="0" style="height:18px;">
                                 <div class="slider-value" id="sustainValue" style="font-size:8px;">50%</div>
                             </div>
                             <div class="slider-container">
@@ -2423,7 +2423,7 @@
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Sustain</label>
-                                <input type="range" class="envelope-slider" id="osc2SustainSlider" min="1" max="100" value="50" style="height:18px;">
+                                <input type="range" class="envelope-slider" id="osc2SustainSlider" min="0" max="100" value="0" style="height:18px;">
                                 <div class="slider-value" id="osc2SustainValue" style="font-size:8px;">50%</div>
                             </div>
                             <div class="slider-container">
@@ -2504,7 +2504,7 @@
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Sustain</label>
-                                <input type="range" class="envelope-slider" id="chordSustainSlider" min="1" max="100" value="70" style="height:18px;">
+                                <input type="range" class="envelope-slider" id="chordSustainSlider" min="0" max="100" value="70" style="height:18px;">
                                 <div class="slider-value" id="chordSustainValue" style="font-size:8px;">70%</div>
                             </div>
                             <div class="slider-container">
@@ -2585,7 +2585,7 @@
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Sustain</label>
-                                <input type="range" class="envelope-slider" id="arpSustainSlider" min="1" max="100" value="70" style="height:18px;">
+                                <input type="range" class="envelope-slider" id="arpSustainSlider" min="0" max="100" value="70" style="height:18px;">
                                 <div class="slider-value" id="arpSustainValue" style="font-size:8px;">70%</div>
                             </div>
                             <div class="slider-container">
@@ -2666,7 +2666,7 @@
                             </div>
                             <div class="slider-container">
                                 <label style="font-size:8px;">Sustain</label>
-                                <input type="range" class="envelope-slider" id="bassSustainSlider" min="1" max="100" value="85" style="height:18px;">
+                                <input type="range" class="envelope-slider" id="bassSustainSlider" min="0" max="100" value="85" style="height:18px;">
                                 <div class="slider-value" id="bassSustainValue" style="font-size:8px;">85%</div>
                             </div>
                             <div class="slider-container">
@@ -3006,13 +3006,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     strum1: {
                         // mirrors osc1
                         osc: { type: 'sine', detune: 0, level: 5 * 0.125 / 10, octave: 0, coarse: 0, pulseWidth: 0.5, shapeWidth: 0.5 },
-                        env: { attack: 0.01, decay: 0.2, sustain: 0.7, release: 0.8 },
+                        env: { attack: 0.0, decay: 0.2, sustain: 0.0, release: 0.8 },
                         fxSend: true
                     },
                     strum2: {
                         // mirrors osc2
                         osc: { type: 'sine', detune: -7, level: 5 * 0.125 / 10, octave: 0, coarse: 0, pulseWidth: 0.5, shapeWidth: 0.5 },
-                        env: { attack: 0.005, decay: 0.03, sustain: 0.5, release: 1.0 },
+                        env: { attack: 0.0, decay: 0.03, sustain: 0.0, release: 1.0 },
                         fxSend: true
                     },
                     chord: {
@@ -3804,9 +3804,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         gainNode.gain.setValueAtTime(gainNode.gain.value, this.audioContext.currentTime);
                         gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
                         oscillator.stop(this.audioContext.currentTime + 0.05);
-                    } catch (e) {
-                        // Oscillator might already be stopped
-                    }
+                    } catch(e) { /* ignore stop errors */ }
                 });
                 this.tempChordAudio.clear();
             }
@@ -3961,7 +3959,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const __desc = (__pm === 'low-high') ? false : true;
                     stringFreqs.sort((a,b)=> __desc ? (b.freq - a.freq) : (a.freq - b.freq));
                 } catch(_) {
-                    stringFreqs.sort((a,b)=> b.freq - a.freq);
+                    // Fallback to a stable order if playMode is not available
+                    // Avoid recursion: fall back directly to immediate chord play
+                    try { this.playChordChordsMode(columnElement, clientY); } catch(_){ }
                 }
                 
                 // Calculate string sizing to MATCH main column behavior (fill height uniformly)
@@ -8562,8 +8562,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (sustainSlider) {
                     sustainSlider.addEventListener('input', (e) => {
                         if (this.isActiveChordPianoLocked && this.isActiveChordPianoLocked()) { this.flashPianoLockFeedback && this.flashPianoLockFeedback(); return; }
-                        // 1–100% → 0.01–1.0 level
-                        const pct = Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1));
+                        // 0–100% → 0.00–1.0 level
+                        const pct = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0));
                         this.instruments.strum1.env.sustain = pct / 100;
                         const sustainValue = document.getElementById('sustainValue');
                         if (sustainValue) sustainValue.textContent = `${pct}%`;
@@ -8883,7 +8883,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (osc2SustainSlider) {
                     osc2SustainSlider.addEventListener('input', (e) => {
                         if (this.isActiveChordPianoLocked && this.isActiveChordPianoLocked()) { this.flashPianoLockFeedback && this.flashPianoLockFeedback(); return; }
-                        const pct = Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1));
+                        const pct = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0));
                         this.instruments.strum2.env.sustain = pct / 100;
                         const osc2SustainValue = document.getElementById('osc2SustainValue');
                         if (osc2SustainValue) osc2SustainValue.textContent = `${pct}%`;
@@ -9074,10 +9074,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this.sliderDefaults = {
                     // OSC 1 (STRUM 1)
                     'osc1Level': 5, 'osc1Detune': 0, 'osc1Octave': 0, 'osc1Coarse': 0, 'osc1PulseWidth': 50, 'osc1ShapeWidth': 50,
-                    'attackSlider': 5, 'decaySlider': 200, 'sustainSlider': 50, 'releaseSlider': 1000,
+                    'attackSlider': 0, 'decaySlider': 200, 'sustainSlider': 0, 'releaseSlider': 1000,
                     // OSC 2 (STRUM 2) 
                     'osc2Level': 5, 'osc2Detune': 0, 'osc2Octave': 0, 'osc2Coarse': 0, 'osc2PulseWidth': 50, 'osc2ShapeWidth': 50,
-                    'attack2Slider': 5, 'decay2Slider': 200, 'sustain2Slider': 50, 'release2Slider': 1000,
+                    'attack2Slider': 0, 'decay2Slider': 200, 'sustain2Slider': 0, 'release2Slider': 1000,
                     // CHORD (OSC 3)
                     'chordLevel': 5, 'chordDetune': 0, 'chordOctave': 0, 'chordCoarse': 0, 'chordPulseWidth': 50, 'chordShapeWidth': 50,
                     'chordAttack': 10, 'chordDecay': 200, 'chordSustain': 90, 'chordRelease': 300,
@@ -9135,7 +9135,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 wireVal('chordCoarse', (e)=>{ const v=parseInt(e.target.value)||0; this.instruments.chord.osc.coarse=v; const l=document.getElementById('chordCoarseValue'); if(l) l.textContent=`${v} steps`; });
                 wireVal('chordAttackSlider', (e)=>{ const ms=Math.max(3,parseInt(e.target.value)||10); this.instruments.chord.env.attack=ms/1000; const l=document.getElementById('chordAttackValue'); if(l) l.textContent=`${ms}ms`; });
                 wireVal('chordDecaySlider', (e)=>{ const ms=Math.max(0,parseInt(e.target.value)||200); this.instruments.chord.env.decay=ms/1000; const l=document.getElementById('chordDecayValue'); if(l) l.textContent=`${ms}ms`; });
-                wireVal('chordSustainSlider', (e)=>{ const pct=Math.max(1,Math.min(100,parseInt(e.target.value)||70)); this.instruments.chord.env.sustain=pct/100; const l=document.getElementById('chordSustainValue'); if(l) l.textContent=`${pct}%`; });
+                wireVal('chordSustainSlider', (e)=>{ const pct=Math.max(0,Math.min(100,parseInt(e.target.value)||70)); this.instruments.chord.env.sustain=pct/100; const l=document.getElementById('chordSustainValue'); if(l) l.textContent=`${pct}%`; });
                 wireVal('chordReleaseSlider', (e)=>{ const ms=Math.max(0,parseInt(e.target.value)||500); this.instruments.chord.env.release=ms/1000; const l=document.getElementById('chordReleaseValue'); if(l) l.textContent=`${ms}ms`; });
 
                 // ARP instrument controls
@@ -9147,7 +9147,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 wireVal('arpCoarse', (e)=>{ const v=parseInt(e.target.value)||0; this.instruments.arp.osc.coarse=v; const l=document.getElementById('arpCoarseValue'); if(l) l.textContent=`${v} steps`; });
                 wireVal('arpAttackSlider', (e)=>{ const ms=Math.max(3,parseInt(e.target.value)||10); this.instruments.arp.env.attack=ms/1000; const l=document.getElementById('arpAttackValue'); if(l) l.textContent=`${ms}ms`; });
                 wireVal('arpDecaySlider', (e)=>{ const ms=Math.max(0,parseInt(e.target.value)||200); this.instruments.arp.env.decay=ms/1000; const l=document.getElementById('arpDecayValue'); if(l) l.textContent=`${ms}ms`; });
-                wireVal('arpSustainSlider', (e)=>{ const pct=Math.max(1,Math.min(100,parseInt(e.target.value)||70)); this.instruments.arp.env.sustain=pct/100; const l=document.getElementById('arpSustainValue'); if(l) l.textContent=`${pct}%`; });
+                wireVal('arpSustainSlider', (e)=>{ const pct=Math.max(0,Math.min(100,parseInt(e.target.value)||70)); this.instruments.arp.env.sustain=pct/100; const l=document.getElementById('arpSustainValue'); if(l) l.textContent=`${pct}%`; });
                 wireVal('arpReleaseSlider', (e)=>{ const ms=Math.max(0,parseInt(e.target.value)||500); this.instruments.arp.env.release=ms/1000; const l=document.getElementById('arpReleaseValue'); if(l) l.textContent=`${ms}ms`; });
 
                 wireVal('bassShapeWidth', (e)=>{ const pct=Math.max(0,Math.min(100,parseInt(e.target.value)||50)); this.instruments.bass.osc.shapeWidth=pct/100; const l=document.getElementById('bassShapeWidthValue'); if(l) l.textContent=`${pct}%`; });
@@ -9158,7 +9158,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 wireVal('bassCoarse', (e)=>{ const v=parseInt(e.target.value)||0; this.instruments.bass.osc.coarse=v; const l=document.getElementById('bassCoarseValue'); if(l) l.textContent=`${v} steps`; });
                 wireVal('bassAttackSlider', (e)=>{ const ms=Math.max(3,parseInt(e.target.value)||5); this.instruments.bass.env.attack=ms/1000; const l=document.getElementById('bassAttackValue'); if(l) l.textContent=`${ms}ms`; });
                 wireVal('bassDecaySlider', (e)=>{ const ms=Math.max(0,parseInt(e.target.value)||80); this.instruments.bass.env.decay=ms/1000; const l=document.getElementById('bassDecayValue'); if(l) l.textContent=`${ms}ms`; });
-                wireVal('bassSustainSlider', (e)=>{ const pct=Math.max(1,Math.min(100,parseInt(e.target.value)||85)); this.instruments.bass.env.sustain=pct/100; const l=document.getElementById('bassSustainValue'); if(l) l.textContent=`${pct}%`; });
+                wireVal('bassSustainSlider', (e)=>{ const pct=Math.max(0,Math.min(100,parseInt(e.target.value)||85)); this.instruments.bass.env.sustain=pct/100; const l=document.getElementById('bassSustainValue'); if(l) l.textContent=`${pct}%`; });
                 wireVal('bassReleaseSlider', (e)=>{ const ms=Math.max(0,parseInt(e.target.value)||120); this.instruments.bass.env.release=ms/1000; const l=document.getElementById('bassReleaseValue'); if(l) l.textContent=`${ms}ms`; });
 
                 // FX Send checkboxes
@@ -18069,29 +18069,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
             }
             
-            // Execute the actual chord change (extracted from original logic)
+            // Execute the actual chord change: route through transport pendingSwitch for parity with PLAY
             _executeChordChange(columnElement, clientY) {
                 try {
-                    // Stop only current chord voices (preserve held bass)
-                    if (this._chordSlideVoices && this._chordSlideVoices.size){
-                        const toStop = new Set();
-                        this._chordSlideVoices.forEach(v => { if (v && Number.isFinite(v.startFreq)) toStop.add(v.startFreq); });
-                        toStop.forEach(f=>{ try { this.stopFrequency(f, null); } catch(_){} });
-                        this._chordSlideVoices.clear();
-                    }
-                    // Also proactively stop any lingering CHORD-lane voices to avoid overlap
-                    try {
-                        if (this.activeChordOscillators && this.activeChordOscillators.size) {
-                            const keys = Array.from(this.activeChordOscillators.keys());
-                            keys.forEach(k => { try { this.stopFrequency(k, null, 'chord'); } catch(_){} });
-                        }
-                    } catch(_) {}
-                } catch(_){}
-                
-                // Trigger the new chord
-                this.playChordChordsMode(columnElement, clientY);
-                
-                console.log(`[QUANTIZE] Executed chord change to ${columnElement?.dataset?.chordId || 'unknown'}`);
+                    this._scheduleQuantizedChordChange(columnElement, clientY, 0);
+                } catch (e) {
+                    // Fallback to immediate play if scheduling fails
+                    try { this.playChordChordsMode(columnElement, clientY); } catch(_) {}
+                }
             }
             
             // Schedule quantized chord change for ARP mode (preserves transport position and NPC)
@@ -19602,7 +19587,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } catch(_) { return null; }
             }
 
-            // Build ascending NPC chord tones starting from the tapped degree across octaves 3..5
+            // Build NPC chord tones constrained to a single octave (C3..C5), respecting transpose and voice-leading
             _buildNpcHighChordFromTap(columnElement, tapInfo, npc) {
                 try {
                     const out = [];
@@ -19610,134 +19595,62 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const edo = this.currentTuning || 12;
                     const all = Array.from(columnElement.querySelectorAll('.strings-column .string'));
                     if (!all.length) return out;
-                    // Index rows by octave and step
+
+                    // Map rows by (octave|relativeStep) where relativeStep is against current effective root
                     const byKey = new Map();
+                    const effRoot = this._getEffectiveColumnRootStep(columnElement);
                     for (const r of all) {
                         const o = parseInt(r.dataset.octave||'NaN', 10);
                         if (!Number.isFinite(o)) continue;
-                        let st = parseInt(r.dataset.edoStep||r.dataset.interval||'NaN', 10);
-                        if (!Number.isFinite(st)) {
-                            const nAbs = parseInt(r.dataset.noteIndex||'NaN', 10);
-                            if (!Number.isFinite(nAbs)) continue;
-                            const rootAbs = this._getEffectiveColumnRootStep(columnElement);
-                            st = ((nAbs - rootAbs) % edo + edo) % edo;
-                        } else {
-                            st = ((st % edo) + edo) % edo;
-                        }
+                        const nAbs = parseInt(r.dataset.noteIndex||'NaN', 10);
+                        if (!Number.isFinite(nAbs)) continue;
+                        const st = ((nAbs - effRoot) % edo + edo) % edo;
                         byKey.set(o + '|' + st, r);
                     }
-                    // Degree order rotated to start at tapped degree
+
+                    // Desired degrees (unique, semitone-ordered), relative to the chord model (and thus effRoot)
                     let degs = this._getChordDegreesForColumn(columnElement) || [];
                     degs = Array.from(new Set(degs.map(s => ((s%edo)+edo)%edo)));
                     degs.sort((a,b)=> this.stepToSemitone(a, edo) - this.stepToSemitone(b, edo));
-                    
-                    // Get transposition info for octave-aware lookup
-                    const currentRoot = this._getEffectiveColumnRootStep(columnElement);
-                    
-                    // Get the chord model to find original root
-                    const id = columnElement.dataset.chordId;
-                    let idx = -1;
-                    if (id) idx = (this.chordExtensions || []).findIndex(c => (String(c.id)===String(id)));
-                    if (idx < 0 && columnElement.dataset.originalPosition != null) {
-                        const op = parseInt(columnElement.dataset.originalPosition,10);
-                        if (!isNaN(op) && op >= 0) idx = op;
-                    }
-                    const chordModel = (idx>=0)? this.chordExtensions[idx] : null;
-                    const originalRoot = (chordModel?.fixedRootStepAbs != null) ? chordModel.fixedRootStepAbs : 0;
-                    const transposeOffset = ((currentRoot - originalRoot) % edo + edo) % edo;
-                    
-                    console.log('[CHORD DEBUG] Original degrees:', degs, 'currentRoot:', currentRoot, 'originalRoot:', originalRoot, 'transposeOffset:', transposeOffset);
-                    console.log('[CHORD DEBUG] Keeping original degrees for octave-aware lookup');
-                    
-                    const start = Number.isFinite(tapInfo.step) ? tapInfo.step : (degs[0]||0);
-                    const i0 = degs.indexOf(start);
-                    if (i0 > 0) degs = degs.slice(i0).concat(degs.slice(0, i0));
-                    // Base octave within 3..5 (C3 to C5 range for chords)
-                    let baseOct = Number.isFinite(tapInfo.octave) ? tapInfo.octave : 4;
-                    baseOct = Math.max(3, Math.min(5, baseOct));
-                    const maxOct = 5;
+
                     const want = Math.max(1, Math.min(64, npc|0));
-                    
-                    // DEBUG: Log what we're looking for
-                    console.log('[CHORD DEBUG] Looking for degrees:', degs, 'in octaves', baseOct, 'to', maxOct, 'with transpose offset:', transposeOffset);
-                    console.log('[CHORD DEBUG] ByKey map has keys:', Array.from(byKey.keys()).sort());
-                    
-                    for (let o = baseOct; o <= maxOct && out.length < want; o++) {
-                        for (const d of degs) {
-                            if (out.length >= want) break;
-                            
-                            // Calculate the transposed step, handling octave overflow properly
-                            let transposedStep = d + transposeOffset;
-                            let targetOctave = o;
-                            
-                            // Handle octave wrapping: if transposedStep goes beyond edo range,
-                            // adjust the octave accordingly to maintain the original octave relationship
-                            while (transposedStep >= edo) {
-                                transposedStep -= edo;
-                                targetOctave += 1;
-                            }
-                            while (transposedStep < 0) {
-                                transposedStep += edo;
-                                targetOctave -= 1;
-                            }
-                            
-                            // Clamp to chord octave range (C3-C5)
-                            targetOctave = Math.max(3, Math.min(5, targetOctave));
-                            
-                            const key = targetOctave + '|' + transposedStep;
-                            const r = byKey.get(key);
-                            console.log('[CHORD DEBUG] Degree', d, 'in octave', o, '+ transpose', transposeOffset, '→ step', transposedStep, 'in octave', targetOctave, 'key:', key, 'found:', !!r);
-                            
-                            if (r && !out.includes(r)) {
-                                out.push(r);
-                            }
+                    const take = Math.min(want, degs.length);
+
+                    // Determine a single target octave in [3..5] for all tones
+                    const octFromTap = Number.isFinite(tapInfo.octave) ? tapInfo.octave : 4;
+                    const lastAvg = (this._lastChordVoicing && Number.isFinite(this._lastChordVoicing.avgOctave))
+                        ? this._lastChordVoicing.avgOctave : null;
+                    const clamp35 = (o)=> Math.max(3, Math.min(5, o|0));
+
+                    // Candidate octave order: nearest to last voicing, then tap, then center (4), then edges
+                    const cand = [];
+                    if (lastAvg != null) cand.push(clamp35(Math.round(lastAvg)));
+                    cand.push(clamp35(octFromTap));
+                    cand.push(4, 3, 5);
+                    // Deduplicate preserving order
+                    const candOcts = Array.from(new Set(cand));
+
+                    // Try to find an octave that contains all requested degrees
+                    let chosenRows = null;
+                    let bestPartial = { rows: [], matches: -1, octave: null };
+                    for (const o of candOcts) {
+                        const rows = [];
+                        let matches = 0;
+                        for (let i=0;i<take;i++){
+                            const d = degs[i];
+                            const r = byKey.get(o + '|' + d);
+                            if (r) { rows.push(r); matches++; }
                         }
+                        if (matches === take) { chosenRows = rows; break; }
+                        if (matches > bestPartial.matches) bestPartial = { rows, matches, octave: o };
                     }
-                    
-                    // EXTENDED SEARCH: If we didn't find enough notes, expand the octave range within C3-C5
-                    if (out.length < Math.min(want, degs.length)) {
-                        console.log('[CHORD DEBUG] Not enough notes found (', out.length, '/', Math.min(want, degs.length), '), expanding octave search');
-                        for (let o = 3; o <= 5 && out.length < Math.min(want, degs.length); o++) {
-                            for (const d of degs) {
-                                if (out.length >= Math.min(want, degs.length)) break;
-                                
-                                // Calculate the transposed step, handling octave overflow properly
-                                let transposedStep = d + transposeOffset;
-                                let targetOctave = o;
-                                
-                                // Handle octave wrapping to maintain original octave relationship
-                                while (transposedStep >= edo) {
-                                    transposedStep -= edo;
-                                    targetOctave += 1;
-                                }
-                                while (transposedStep < 0) {
-                                    transposedStep += edo;
-                                    targetOctave -= 1;
-                                }
-                                
-                                // Clamp to chord octave range (C3-C5)
-                                targetOctave = Math.max(3, Math.min(5, targetOctave));
-                                
-                                const key = targetOctave + '|' + transposedStep;
-                                const r = byKey.get(key);
-                                
-                                if (r && !out.includes(r)) {
-                                    console.log('[CHORD DEBUG] Extended search found degree', d, 'in octave', o, '→ step', transposedStep, 'in octave', targetOctave, 'key:', key);
-                                    out.push(r);
-                                }
-                            }
-                        }
+
+                    if (!chosenRows) {
+                        // Use the octave with the most matches to keep voicing consistent within a single octave
+                        chosenRows = bestPartial.rows;
                     }
-                    if (!out.length) {
-                        // Fallback: low->high within window, starting near tap
-                        const pool = all.filter(r=>{ const o=parseInt(r.dataset.octave||'NaN',10); return Number.isFinite(o) && o>=3 && o<=5; })
-                                        .sort((a,b)=> (parseFloat(a.dataset.frequency)||0) - (parseFloat(b.dataset.frequency)||0));
-                        const fTap = parseFloat(tapInfo.row.dataset.frequency||'NaN');
-                        const startIdx = Number.isFinite(fTap) ? Math.max(0, pool.findIndex(r=> (parseFloat(r.dataset.frequency)||0) >= fTap)) : 0;
-                        for (let i=startIdx; i<pool.length && out.length<want; i++) out.push(pool[i]);
-                        for (let i=0; i<startIdx && out.length<want; i++) out.push(pool[i]);
-                    }
-                    return out.slice(0, want);
+
+                    return Array.isArray(chosenRows) ? chosenRows.slice(0, take) : [];
                 } catch(_) { return []; }
             }
 
@@ -20491,7 +20404,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         panValue = 0;
                         break;
                 }
-                
+                // Ensure BASS is always mono/center
+                if (sourceType === 'bass') panValue = 0;
                 panner.pan.setValueAtTime(panValue, currentTime);
                 
                 // FX Send routing based on instrument setting
