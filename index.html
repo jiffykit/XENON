@@ -329,8 +329,12 @@
         }
 
         .chord-name {
-            flex: 1;
+            /* Only as wide as its text */
+            flex: 0 0 auto;
+            display: inline-block;
+            white-space: nowrap;
             text-align: center;
+            margin: 0 auto; /* center within flex container without stretching */
         }
 
         .lock-button {
@@ -440,10 +444,8 @@
             pointer-events: auto;
         }
         
-        /* Prevent touch-pressed class from affecting extension headers - force original colors */
+        /* Prevent touch-pressed class from altering header colors; preserve root-based background */
         .extension-header.touch-pressed {
-            background: rgba(0, 0, 0, 0.5) !important;
-            background-image: var(--root-tint-gradient, none) !important;
             transform: none !important;
             transition: none !important;
         }
@@ -1784,7 +1786,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 12000;
         }
 
         .modal-content {
@@ -1840,6 +1842,11 @@
             background: rgba(143, 179, 211, 0.15) !important;
             border-radius: 8px !important;
         }
+
+    /* TIME modal compact styles */
+    #timeModal .modal-content { width: min(92vw, 520px); }
+    #timeModal .time-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    #timeModal label { font-size:11px; color:#9db6c8; }
 
         #tutorialOverlay {
             backdrop-filter: blur(2px);
@@ -1942,79 +1949,6 @@
     </style>
 </head>
 <body>
-    <!-- Lightweight Settings Modal -->
-    <div id="settingsModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 11000; align-items: center; justify-content: center;">
-        <div style="background:#0c2430; color:#e8f5ff; border:2px solid #2b5567; border-radius:10px; width: min(520px, 92vw); max-width: 92vw; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom: 1px solid #2b5567;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-weight:700; letter-spacing:0.5px;">Settings</span>
-                </div>
-                <button id="settingsCloseBtn" class="panel-btn" style="background:#e74c3c;border-color:#c0392b;">×</button>
-            </div>
-            <div style="padding:12px 14px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <label style="display:flex; align-items:center; gap:8px;">
-                    <span style="width:90px; font-size:12px; color:#9db6c8;">BPM</span>
-                    <input id="setBpm" type="number" min="20" max="300" style="flex:1; background:#2a4858; color:#e8f5ff; border:1px solid #4a6870; border-radius:4px; padding:6px;">
-                </label>
-                <label style="display:flex; align-items:center; gap:8px;">
-                    <span style="width:90px; font-size:12px; color:#9db6c8;">QUANT</span>
-                    <select id="setQuant" style="flex:1; background:#2a4858; color:#e8f5ff; border:1px solid #4a6870; border-radius:4px; padding:6px;">
-                        <option value="1/1">1/1</option>
-                        <option value="1/2">1/2</option>
-                        <option value="1/4">1/4</option>
-                        <option value="1/8">1/8</option>
-                        <option value="1/16">1/16</option>
-                        <option value="1/32">1/32</option>
-                        <option value="1/8T">1/8T</option>
-                        <option value="1/16T">1/16T</option>
-                        <option value="tuplet:5">5/beat</option>
-                        <option value="tuplet:7">7/beat</option>
-                        <option value="tuplet:9">9/beat</option>
-                        <option value="tuplet:11">11/beat</option>
-                    </select>
-                </label>
-                <label style="display:flex; align-items:center; gap:8px;">
-                    <span style="width:90px; font-size:12px; color:#9db6c8;">HOLD</span>
-                    <select id="setHold" style="flex:1; background:#2a4858; color:#e8f5ff; border:1px solid #4a6870; border-radius:4px; padding:6px;">
-                        <option value="beat:1">1 beat</option>
-                        <option value="beat:2">2 beats</option>
-                        <option value="bar:1">1 bar</option>
-                        <option value="bar:2">2 bars</option>
-                        <option value="bar:4">4 bars</option>
-                        <option value="bar:8">8 bars</option>
-                        <option value="bar:16">16 bars</option>
-                    </select>
-                </label>
-                <label style="display:flex; align-items:center; gap:8px;">
-                    <span style="width:90px; font-size:12px; color:#9db6c8;">NPC</span>
-                    <input id="setNpc" type="number" min="1" max="64" style="flex:1; background:#2a4858; color:#e8f5ff; border:1px solid #4a6870; border-radius:4px; padding:6px;">
-                </label>
-                <label style="display:flex; align-items:center; gap:8px; grid-column: span 2;">
-                    <span style="width:90px; font-size:12px; color:#9db6c8;">ARP</span>
-                    <select id="setPattern" style="flex:1; background:#2a4858; color:#e8f5ff; border:1px solid #4a6870; border-radius:4px; padding:6px;">
-                        <option value="up">Up</option>
-                        <option value="down">Down</option>
-                        <option value="updown">Up-Down</option>
-                        <option value="downup">Down-Up</option>
-                        <option value="walk-up">Walk Up</option>
-                        <option value="walk-down">Walk Down</option>
-                        <option value="alt-ends">Alt Ends</option>
-                        <option value="alt-center">Alt Center</option>
-                        <option value="random">Random</option>
-                    </select>
-                </label>
-                <label style="display:flex; align-items:center; gap:8px; grid-column: span 2;">
-                    <input id="setInvertStrings" type="checkbox" style="transform: scale(1.2);">
-                    <span style="font-size:12px; color:#9db6c8;">Orientation: invert strings (flip top/bottom)</span>
-                </label>
-                <div style="grid-column: span 2; display:flex; gap:8px; justify-content:flex-end; padding-top:6px;">
-                    <button id="settingsResetBtn" class="panel-btn" title="Reset to factory defaults" style="background:#9b59b6;border-color:#8e44ad;">Reset</button>
-                    <button id="settingsCancelBtn" class="panel-btn" style="background:#7f8c8d;border-color:#95a5a6;">Cancel</button>
-                    <button id="settingsSaveBtn" class="panel-btn" style="background:#10b981;border-color:#34d399;">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
     <!-- Top control bar (moved from bottom); uses CSS var --bar-h and safe-area insets -->
     <div id="bottomBar" style="position:fixed;top:0;left:0;right:0;height:var(--bar-h);display:none;align-items:center;justify-content:flex-start;gap:14px;padding:0 calc(18px + env(safe-area-inset-right)) 0 calc(18px + env(safe-area-inset-left));background:#081a28;border-bottom:2px solid #123447;z-index:9600;font-family:var(--retro-font);">
         <!-- Centered brand -->
@@ -2039,87 +1973,9 @@
             <button class="panel-btn mobile-row-1" data-panel="fx" title="Effects">FX</button>
             <button id="openTextChordParserBtn" class="panel-btn mobile-row-1" title="Type or paste a chord sequence">SEQ</button>
             <button id="playStopToggleBtn" class="panel-btn mobile-row-1" title="Play/Stop sequence" style="background:#27ae60;border-color:#2ecc71;">PLAY</button>
+            <button id="openTimeModalBtn" class="panel-btn mobile-row-1" title="Tempo, time signature and sequencing options">TIME</button>
             
-            <!-- ROW 2: BPM TIME SIG QUANT PATTERN HOLD -->
-            <div class="mobile-row-2" style="display:flex;align-items:center;gap:6px;">
-                <label style="font-size:11px;color:#9db6c8;">BPM</label>
-                <input id="universalBpm" type="number" min="20" max="300" value="120" style="width:56px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:12px;"/>
-            </div>
-            
-            <div class="mobile-row-2" style="display:flex;align-items:center;gap:6px;">
-                <label style="font-size:11px;color:#9db6c8;">TIME</label>
-                <select id="universalTimeSignature" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:12px;">
-                    <option value="4/4">4/4</option>
-                    <option value="3/4">3/4</option>
-                    <option value="2/4">2/4</option>
-                    <option value="6/8">6/8</option>
-                    <option value="7/8">7/8</option>
-                    <option value="5/4">5/4</option>
-                </select>
-            </div>
-            
-            <div class="mobile-row-2" style="display:flex;align-items:center;gap:6px;">
-                <label style="font-size:11px;color:#9db6c8;">QUANT</label>
-                <select id="universalQuant" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:4px 6px;font-size:12px;">
-                    <option value="1/1">1/1</option>
-                    <option value="1/2">1/2</option>
-                    <option value="1/4">1/4</option>
-                    <option value="1/8">1/8</option>
-                    <option value="1/16" selected>1/16</option>
-                    <option value="1/32">1/32</option>
-                    <option value="1/8T">1/8T</option>
-                    <option value="1/16T">1/16T</option>
-                    <option value="tuplet:5">5/beat</option>
-                    <option value="tuplet:7">7/beat</option>
-                    <option value="tuplet:9">9/beat</option>
-                    <option value="tuplet:11">11/beat</option>
-                </select>
-            </div>
-            
-            <div class="mobile-row-2" style="display:flex;align-items:center;gap:6px;">
-                <label style="font-size:11px;color:#9db6c8;">PATTERN</label>
-                <select id="universalPattern" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
-                    <option value="up" selected>Up</option>
-                    <option value="down">Down</option>
-                    <option value="updown">Up-Down</option>
-                    <option value="downup">Down-Up</option>
-                    <option value="walk-up">Walk Up</option>
-                    <option value="walk-down">Walk Down</option>
-                    <option value="alt-ends">Alt Ends</option>
-                    <option value="alt-center">Alt Center</option>
-                    <option value="random">Random</option>
-                </select>
-            </div>
-            
-            <!-- HOLD moved to row 2 -->
-            <div class="mobile-row-2" style="display:flex;align-items:center;gap:6px;">
-                <label style="font-size:11px;color:#9db6c8;">HOLD</label>
-                <select id="universalHold" title="Note/chord/arp hold length" style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;">
-                    <option value="beat:1">1 beat</option>
-                    <option value="beat:2">2 beats</option>
-                    <option value="bar:1" selected>1 bar</option>
-                    <option value="bar:2">2 bars</option>
-                    <option value="bar:4">4 bars</option>
-                    <option value="bar:8">8 bars</option>
-                    <option value="bar:16">16 bars</option>
-                </select>
-                <!-- Hidden element with chordHold ID for backward compatibility -->
-                <select id="chordHold" style="display:none;">
-                    <option value="bar:1" selected>1 bar</option>
-                </select>
-            </div>
-            
-            <!-- LOOP control added to row 2 -->
-            <div class="mobile-row-2" style="display:flex;align-items:center;gap:6px;">
-                <label style="font-size:11px;color:#9db6c8;">LOOP</label>
-                <input id="playLoop" type="checkbox" title="Loop sequence playback" checked style="transform:scale(1.2);" />
-            </div>
-            
-            <!-- NPC added back to row 2 -->
-            <div class="mobile-row-2" style="display:flex;align-items:center;gap:6px;">
-                <label style="font-size:11px;color:#9db6c8;">NPC</label>
-                <input id="universalNpc" type="number" min="1" max="64" value="3" title="Notes Per Cycle (Global for all modes)" style="width:44px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:3px 4px;font-size:11px;"/>
-            </div>
+            <!-- TIME submenu moved to modal -->
             
             <!-- ROW 3: KBD, SAVE PRESET, SAVE OMG, LOAD OMG, DICE, ? -->
             <!-- Keyboard toggle first in row 3 -->
@@ -2132,7 +1988,6 @@
             <button id="bottomExportOMGBtn" class="panel-btn mobile-row-3" title="Export full session (.XEN)" style="background:#10b981;border-color:#34d399;">SAVE XEN</button>
             <button id="bottomImportOMGBtn" class="panel-btn mobile-row-3" title="Import .XEN session" style="background:#9b59b6;border-color:#8e44ad;">LOAD XEN</button>
             <button id="randomDiceButton" class="panel-btn mobile-row-3" title="Randomize Settings">🎲</button>
-            <button id="openSettingsBtn" class="panel-btn mobile-row-3" title="Open Settings">⚙</button>
             <button id="tutorialButton" class="panel-btn mobile-row-3" title="Start Tutorial">?</button>
             
             <!-- MASTER slider moved to main menu line -->
@@ -2147,9 +2002,89 @@
     <div style="padding-top:0px;"> <!-- No extra padding needed now -->
     </div>
     </div>
+    <!-- TIME submenu modal -->
+    <div id="timeModal" style="display:none;" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <h3 style="margin:0; font-size:16px; color:#8fb3d3;">Time & Sequencing</h3>
+                <button id="closeTimeModalBtn" class="osc-btn" style="background:#9b59b6;border-color:#8e44ad;">Close</button>
+            </div>
+            <div class="time-grid">
+                <div>
+                    <label style="font-size:11px;color:#9db6c8;">BPM</label>
+                    <input id="universalBpm" type="number" min="20" max="300" value="120" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;"/>
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#9db6c8;">TIME SIGNATURE</label>
+                    <select id="universalTimeSignature" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;">
+                        <option value="4/4">4/4</option>
+                        <option value="3/4">3/4</option>
+                        <option value="2/4">2/4</option>
+                        <option value="6/8">6/8</option>
+                        <option value="7/8">7/8</option>
+                        <option value="5/4">5/4</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#9db6c8;">QUANT</label>
+                    <select id="universalQuant" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;">
+                        <option value="1/1">1/1</option>
+                        <option value="1/2">1/2</option>
+                        <option value="1/4">1/4</option>
+                        <option value="1/8">1/8</option>
+                        <option value="1/16" selected>1/16</option>
+                        <option value="1/32">1/32</option>
+                        <option value="1/8T">1/8T</option>
+                        <option value="1/16T">1/16T</option>
+                        <option value="tuplet:5">5/beat</option>
+                        <option value="tuplet:7">7/beat</option>
+                        <option value="tuplet:9">9/beat</option>
+                        <option value="tuplet:11">11/beat</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#9db6c8;">PATTERN</label>
+                    <select id="universalPattern" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;">
+                        <option value="up" selected>Up</option>
+                        <option value="down">Down</option>
+                        <option value="updown">Up-Down</option>
+                        <option value="downup">Down-Up</option>
+                        <option value="walk-up">Walk Up</option>
+                        <option value="walk-down">Walk Down</option>
+                        <option value="alt-ends">Alt Ends</option>
+                        <option value="alt-center">Alt Center</option>
+                        <option value="random">Random</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#9db6c8;">HOLD</label>
+                    <select id="universalHold" title="Note/chord/arp hold length" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;">
+                        <option value="beat:1">1 beat</option>
+                        <option value="beat:2">2 beats</option>
+                        <option value="bar:1" selected>1 bar</option>
+                        <option value="bar:2">2 bars</option>
+                        <option value="bar:4">4 bars</option>
+                        <option value="bar:8">8 bars</option>
+                        <option value="bar:16">16 bars</option>
+                    </select>
+                    <select id="chordHold" style="display:none;">
+                        <option value="bar:1" selected>1 bar</option>
+                    </select>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; padding-top:18px;">
+                    <label style="font-size:11px;color:#9db6c8;">LOOP</label>
+                    <input id="playLoop" type="checkbox" title="Loop sequence playback" checked style="transform:scale(1.2);" />
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#9db6c8;">NPC</label>
+                    <input id="universalNpc" type="number" min="1" max="64" value="3" title="Notes Per Cycle (Global for all modes)" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;"/>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Panels host below the top bar -->
     
-    <div id="panelHost" style="position:fixed;top: calc(var(--bar-h) + 6px);left:12px;width:min(95vw, 780px);max-height:55vh;background:#0b2536;border:2px solid #15506a;border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,0.55);padding:18px 20px;display:none;overflow-y:auto;z-index:650;font-family:var(--retro-font);">
+    <div id="panelHost" style="position:fixed;top: calc(var(--bar-h) + 6px);left:12px;width:min(95vw, 780px);max-height:70vh;background:#0b2536;border:2px solid #15506a;border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,0.55);padding:18px 20px;display:none;overflow-y:auto;z-index:1200;font-family:var(--retro-font);">
         <!-- Control Panels migrated here -->
         <div class="panel-content" data-panel="tuning" style="display:none; gap:15px; grid-template-columns:300px;">
             <div class="synth-section" id="tuningSelector" style="padding:8px;">
@@ -2970,10 +2905,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
     
 
     <script>
-        // Console logging: ENABLED by default. To mute, set localStorage.muteConsole = '1'.
+        // Console logging: DISABLED by default. To enable, set localStorage.muteConsole = '0'.
         (function(){
             try {
-                const shouldMute = (typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('muteConsole') === '1');
+                const flag = (typeof window !== 'undefined' && window.localStorage) ? window.localStorage.getItem('muteConsole') : null;
+                // Default to muted unless explicitly set to '0'
+                const shouldMute = (flag !== '0');
                 if (shouldMute && window.console) {
                     const methods = ['log','info','debug','warn','error','trace','group','groupCollapsed','groupEnd','time','timeEnd','table'];
                     methods.forEach(function(m){ if (typeof window.console[m] === 'function') window.console[m] = function(){}; });
@@ -2988,11 +2925,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         class MicrotonalOmnichord { 
             constructor() {
                 // Debug instrumentation (console-only)
-                this._debug = true;
+                this._debug = false;
                 this._debugLogs = [];
                 this._debugMax = 500;
                 this._debugUI = false; // keep panel off; use console logs only
-                try { console.log('[DEBUG] XENON constructor: debug ON'); } catch(_){ }
+                try { /* debug muted by default */ } catch(_){ }
                 this.audioContext = null;
                 this.gainNode = null;
                 // Initialize separate oscillator pools for independent playback
@@ -3102,6 +3039,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // Custom oscillator wavetable cache
                 this._customWaveCache = new Map();
+                // Touch/click gesture defaults
+                this.touchGestures = {
+                    longPressDelay: 550,
+                    chordNameLongPressDelay: 300
+                };
                 
                 
                 // Store original UI state for piano lock system
@@ -3748,6 +3690,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     try { this.highlightKeyboardForColumn(column); } catch(_) {}
                     // Scroll into view slightly
                     try { column.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'}); } catch(_){ }
+                    // Immediately focus the chord name for typing a symbol (e.g., Dm, Em7)
+                    try {
+                        const nameEl = column.querySelector('.extension-header .chord-name');
+                        if (nameEl) {
+                            nameEl.setAttribute('contenteditable', 'true');
+                            nameEl.setAttribute('spellcheck', 'false');
+                            nameEl.focus();
+                            // Select all text for quick overwrite
+                            const sel = window.getSelection && window.getSelection();
+                            if (sel && document.createRange) {
+                                const range = document.createRange();
+                                range.selectNodeContents(nameEl);
+                                sel.removeAllRanges();
+                                sel.addRange(range);
+                            }
+                        }
+                    } catch (_) {}
                 }
             }
             
@@ -4570,9 +4529,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const header = document.createElement('div');
                     header.className = 'extension-header';
                     
-                    // Create chord name span
+                    // Create chord name span (inline-editable)
                     const chordName = document.createElement('span');
                     chordName.className = 'chord-name';
+                    chordName.setAttribute('contenteditable', 'true');
+                    chordName.setAttribute('spellcheck', 'false');
                     
                     // Check if this chord extension is locked and preserve its locked name
                     if (chordExt.isLocked && chordExt.lockedData) {
@@ -4627,25 +4588,63 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         column.dataset.localTranspose = String(nextLocal);
                         chordExt.localTranspose = nextLocal; // persist for regeneration
 
-                        // Compute displayed root = fixed root + local transpose (do not bake into intervals)
-                        const baseRoot = typeof chordExt.fixedRootStepAbs === 'number' ? chordExt.fixedRootStepAbs : 0;
-                        const displayRoot = norm((baseRoot % edoNow) + nextLocal, edoNow);
-
-                        // Update the header chord name by re-rooting its label while preserving tail/quality
+                        // Recompute label from absolute steps, mirroring global path
                         try {
-                            const mRoot = (chordExt.name || '').match(/^([A-G])([#b]?)([\^v↑↓]*)(.*)$/);
-                            const tail = mRoot ? (mRoot[4] || '') : '';
-                            const newRootName = this.getRootNameForStep(displayRoot, edoNow) || String(displayRoot);
-                            const newName = `${newRootName}${tail}`.trim();
-                            chordName.textContent = newName;
-                            chordName.dataset.lockedName = newName;
-                            chordExt.name = newName;
+                            // Prefer locked semantics for naming if this column is locked
+                            const locked = (this.lockedChords?.get(column)) || chordExt.lockedData || null;
+                            const hasFixed = (typeof chordExt.fixedRootStepAbs === 'number') && !!chordExt.fixedRootTuning;
+                            const modelEdo = locked ? (locked.lockedTuning || edoNow) : (hasFixed ? (chordExt.fixedRootTuning || edoNow) : edoNow);
+                            const mapStep = (step, srcEdo, dstEdo) => {
+                                const cents = ((step % srcEdo + srcEdo) % srcEdo) * (1200 / srcEdo);
+                                const dst = Math.round(cents / (1200 / dstEdo));
+                                return ((dst % dstEdo) + dstEdo) % dstEdo;
+                            };
+                            const localDeltaModel = (modelEdo === edoNow) ? nextLocal : mapStep(nextLocal, edoNow, modelEdo);
+                            if (locked) {
+                                // For locked chords: name within locked tuning; do not add global transpose into the text
+                                const baseRootModel = ((locked.lockedRoot ?? 0) % modelEdo + modelEdo) % modelEdo;
+                                const effRootModel = (((baseRootModel) + localDeltaModel) % modelEdo + modelEdo) % modelEdo;
+                                const rootName = this.getRootNameForStep(effRootModel, modelEdo);
+                                const rawLockedName = (locked.chordName || '').trim();
+                                const rest = rawLockedName.replace(/^[A-G][#b]?\s*/, '');
+                                const label = `${rootName}${rest}`;
+                                chordName.textContent = label;
+                                chordName.dataset.lockedName = label;
+                                chordExt.name = label;
+                            } else {
+                                // Unlocked or fixed-root chords: compute abs steps and let naming apply global delta exactly once
+                                const baseRootModel = hasFixed
+                                    ? (chordExt.fixedRootStepAbs || 0)
+                                    : (((this.currentRoot || 0) % modelEdo) + modelEdo) % modelEdo;
+                                const effRootModel = (((baseRootModel) + localDeltaModel) % modelEdo + modelEdo) % modelEdo;
+                                const degreeStepsModel = chordExt.isCustom
+                                    ? chordExt.intervals.map(iv => ((iv % modelEdo) + modelEdo) % modelEdo)
+                                    : chordExt.intervals.map(iv => this.mapIntervalToEDO(iv, modelEdo));
+                                // Build absolute steps: transposed root + each interval from the transposed root
+                                const absModel = [effRootModel, ...degreeStepsModel.map(d => (effRootModel + d) % modelEdo)];
+                                const absNow = (modelEdo === edoNow) ? absModel.map(s => ((s%edoNow)+edoNow)%edoNow)
+                                                                    : absModel.map(s => mapStep(s, modelEdo, edoNow));
+                                const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow);
+                                chordName.textContent = recomputed;
+                                chordName.dataset.lockedName = recomputed;
+                                chordExt.name = recomputed;
+                            }
                         } catch(_) {}
 
                         // Do not mutate chord intervals or fixed root; regenerate strings using new local transpose
                         const oldContainer = column.querySelector('.strings-column');
                         if (oldContainer) oldContainer.remove();
-                        this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+                        
+                        // Regenerate this column using the same logic as regenerateAllColumnsPreservingLocks
+                        const isLocked = this.lockedChords && this.lockedChords.has(column);
+                        if (isLocked) {
+                            const lockedChord = this.lockedChords.get(column);
+                            this.generateStringsForColumnWithLockedSettings(column, chordExt.intervals, lockedChord);
+                        } else {
+                            // For unlocked columns, regenerate using current global settings and the chord model
+                            console.log('🔧 DEBUG ACTIVE PATH: About to call generateStringsForColumn with intervals:', chordExt.intervals, 'isCustom:', chordExt.isCustom, 'chordName:', chordExt.name);
+                            this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+                        }
 
                         // Update keyboard highlighting
                         try { this.highlightKeyboardForColumn(column); } catch {}
@@ -4717,22 +4716,53 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         header.style.color = text;
                     } catch {}
                     
-                    header.addEventListener('click', (e) => {
-                        // Don't interfere with header action buttons
-                        if (
-                            e.target.classList.contains('lock-button') ||
-                            e.target.classList.contains('chord-action-button') ||
-                            
-                            (e.target.tagName === 'BUTTON')
-                        ) {
-                            return; // Let the buttons handle their own clicks
-                        }
-                        
-                        console.log('?? Chord header clicked:', chordExt.name);
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
+                    // Editing behavior: Enter to apply, Escape to cancel selection
+                    const applyTypedName = () => {
+                        try {
+                            const raw = (chordName.textContent || '').trim();
+                            if (!raw) return;
+                            const added = (typeof this.addChordFromName === 'function') ? this.addChordFromName(raw) : null;
+                            if (!added || !added.chord) {
+                                // Unknown symbol -> brief visual error
+                                const prevOutline = chordName.style.outline;
+                                chordName.style.outline = '2px solid #e74c3c';
+                                setTimeout(()=> { chordName.style.outline = prevOutline; }, 600);
+                                // Keep the text but don't change model
+                                return;
+                            }
+                            // Replace current model entry in-place with parsed result
+                            let idx = (typeof column.dataset.originalPosition !== 'undefined') ? parseInt(column.dataset.originalPosition,10) : -1;
+                            if (isNaN(idx) || idx < 0) idx = (this.chordExtensions||[]).indexOf(chordExt);
+                            if (idx >= 0) {
+                                // addChordFromName appends; remove the appended copy and use it to replace in place
+                                const parsed = added.chord;
+                                try { if (this.chordExtensions[this.chordExtensions.length-1] === parsed) this.chordExtensions.pop(); } catch(_){ }
+                                // Preserve position and local transpose
+                                parsed.position = chordExt.position;
+                                parsed.localTranspose = chordExt.localTranspose || 0;
+                                this.chordExtensions.splice(idx, 1, parsed);
+                                // Keep DOM dataset mapping consistent
+                                column.dataset.chordId = parsed.id || column.dataset.chordId;
+                                column.dataset.originalPosition = String(idx);
+                                // Update name display to normalized parsed name
+                                chordName.textContent = parsed.name;
+                                // Regenerate strings for this column
+                                const old = column.querySelector('.strings-column');
+                                if (old) old.remove();
+                                this.generateStringsForColumn(column, parsed.intervals, parsed.isCustom || false);
+                                // Save and refresh click/lock states
+                                try { this.saveChordConfiguration?.(); } catch(_){}
+                            }
+                        } catch (err) { console.error('applyTypedName error:', err); }
+                    };
+                    chordName.addEventListener('keydown', (ev)=>{
+                        if (ev.key === 'Enter') { ev.preventDefault(); applyTypedName(); chordName.blur(); }
+                        else if (ev.key === 'Escape') { ev.preventDefault(); chordName.blur(); }
                     });
+                    // Allow short tap on chord name to bubble so header can play; only long-press enters edit
+                    chordName.addEventListener('click', (e)=>{ /* allow bubble for playback */ });
+                    chordName.addEventListener('mousedown', (e)=>{ /* allow bubble for playback */ });
+                    chordName.addEventListener('touchstart', (e)=>{ /* allow bubble for playback */ }, {passive:true});
                     
                     // Apply the same per-column root accent logic again (post-append)
                     try {
@@ -4955,7 +4985,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 console.log('=== TRANSPOSE DEBUG END ===');
                 // Refresh keyboard labels and chord-tone highlights
                 try { this.generateRootButtons(); } catch (_) {}
-                // Rename headers (build from each chord's fixed-root baseline; include global/local transpose; map via nearest-neighbor)
+                // Rename headers (build from each chord's fixed-root baseline; include LOCAL transpose only here; map via nearest-neighbor)
+                // Note: computeFullChordNameFromAbsoluteSteps will apply the GLOBAL transpose when forming the label,
+                // so we must NOT bake the global delta into abs steps here to avoid double application.
                 document.querySelectorAll('.extension-column').forEach(col => {
                     const nameEl = col.querySelector('.extension-header .chord-name');
                     if (!nameEl) return;
@@ -4985,9 +5017,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         };
                         // Convert deltas if model EDO differs
                         const localDeltaModel = (modelEdo === edoNow) ? localDeltaNow : mapStep(localDeltaNow, edoNow, modelEdo);
-                        const globalDeltaModel = (modelEdo === edoNow) ? globalDeltaNow : mapStep(globalDeltaNow, edoNow, modelEdo);
-                        // Effective root in model's EDO after transpose
-                        const effRootModel = (((model.fixedRootStepAbs || 0) + localDeltaModel + globalDeltaModel) % modelEdo + modelEdo) % modelEdo;
+                        // Do NOT bake global delta here; the naming function applies it when computing the label
+                        const effRootModel = (((model.fixedRootStepAbs || 0) + localDeltaModel) % modelEdo + modelEdo) % modelEdo;
                         // Build degree steps in model's EDO
                         const degreeStepsModel = model.isCustom
                             ? model.intervals.map(iv => ((iv % modelEdo) + modelEdo) % modelEdo)
@@ -6037,7 +6068,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             text: item.text, 
             edo: Math.max(5, Math.min(52, parseInt(item.edo||this.currentTuning||24))), 
             fx: item.fx || null,
-            sequenceOrder: item.sequenceOrder || null // Save the sequence order
+            // Prefer explicit sequenceOrder; accept chordNames for backward compatibility
+            sequenceOrder: (item.sequenceOrder && Array.isArray(item.sequenceOrder) && item.sequenceOrder.length)
+                ? item.sequenceOrder
+                : (Array.isArray(item.chordNames) && item.chordNames.length ? item.chordNames : null)
         };
                 list.unshift(entry);
                 try { localStorage.setItem(key, JSON.stringify(list.slice(0,100))); } catch(_) {}
@@ -10052,7 +10086,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this._keyboardHandler = (e) => {
                     // Allow typing in inputs/textareas without hijacking
                     const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
-                    if (tag === 'INPUT' || tag === 'TEXTAREA' || e.isComposing) return;
+                    // Also allow typing in contenteditable chord name fields
+                    const isEditable = (()=>{
+                        try {
+                            if (!e.target) return false;
+                            if (e.target.isContentEditable) return true;
+                            if (typeof e.target.closest === 'function') {
+                                const el = e.target.closest('[contenteditable="true"]');
+                                if (el) return true;
+                            }
+                        } catch(_) {}
+                        return false;
+                    })();
+                    if (tag === 'INPUT' || tag === 'TEXTAREA' || isEditable || e.isComposing) return;
 
                     // In TOUCH (slide) mode, disable keyboard-triggered playback entirely
                     if (this._chordSlideEnabled) return;
@@ -10152,7 +10198,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Stop playback on number key release for ARP/Chords (press-to-start/release-to-stop parity with mouse/touch)
                 this._keyboardKeyupHandler = (e) => {
                     const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
-                    if (tag === 'INPUT' || tag === 'TEXTAREA' || e.isComposing) return;
+                    const isEditable = (()=>{
+                        try {
+                            if (!e.target) return false;
+                            if (e.target.isContentEditable) return true;
+                            if (typeof e.target.closest === 'function') {
+                                const el = e.target.closest('[contenteditable="true"]');
+                                if (el) return true;
+                            }
+                        } catch(_) {}
+                        return false;
+                    })();
+                    if (tag === 'INPUT' || tag === 'TEXTAREA' || isEditable || e.isComposing) return;
                     // In TOUCH (slide) mode, ignore key releases as well
                     if (this._chordSlideEnabled) return;
                     const key = e.key;
@@ -10257,24 +10314,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
             
             addTouchGesturesToElements() {
-                // Add gestures to chord buttons in extension columns
+                // Add gestures to chord string buttons
                 document.querySelectorAll('.chord-btn').forEach(btn => {
                     this.addTouchGestureToElement(btn, 'chord');
                     this.addClickGestureToElement(btn, 'chord');
                 });
-                
-                // SKIP extension headers - they're handled by addSimpleClickHandlers() for chord name context menu
-                console.log('Skipping extension headers - handled by addSimpleClickHandlers for chord name context menu');
-                
-                // SKIP extension columns too - let the headers handle all interactions to avoid conflicts
-                console.log('Skipping extension columns - headers handle all interactions to avoid conflicts');
-                
+
+                // Add gestures to extension headers (tap to play; long-press on name to edit)
+                document.querySelectorAll('.extension-header').forEach(header => {
+                    this.addTouchGestureToElement(header, 'chord');
+                    this.addClickGestureToElement(header, 'chord');
+                });
+
                 // Add gestures to palette chords
                 document.querySelectorAll('.palette-chord').forEach(chord => {
                     this.addTouchGestureToElement(chord, 'palette');
                     this.addClickGestureToElement(chord, 'palette');
                 });
-                
+
                 // Add gestures to root chord buttons
                 document.querySelectorAll('.root-btn').forEach(btn => {
                     this.addTouchGestureToElement(btn, 'root');
@@ -10402,7 +10459,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 // Add click event listener for regular mouse clicks (using capture phase for higher priority)
                 element.addEventListener('click', (e) => {
-                    // Show context menu for chord headers or extension columns
+                    // For chord headers or columns, short click plays; do not open context menus
                     if (type === 'chord' && (element.classList.contains('extension-header') || element.classList.contains('extension-column'))) {
                         e.preventDefault();
                         e.stopPropagation();
@@ -10428,7 +10485,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         e.preventDefault();
                         e.stopPropagation();
                         e.stopImmediatePropagation();
-                        // Show context menu for palette chords
+                        // Play palette chord on click
                         this.handleClick(element, type, e.clientX, e.clientY);
                         return false; // Ensure event stops here
                     }
@@ -10439,16 +10496,31 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 element.addEventListener('mousedown', (e) => {
                     // Only handle left click (button 0)
                     if (e.button === 0 && type === 'chord' && (element.classList.contains('extension-header') || element.classList.contains('extension-column'))) {
-                        // For chord name buttons (extension-header), use 200ms delay
+                        // For chord name buttons (extension-header), use shorter delay and enter edit only if on the text span
                         if (element.classList.contains('extension-header')) {
                             element.dataset.mouseDownTime = Date.now();
                             element.dataset.mouseDownX = e.clientX;
                             element.dataset.mouseDownY = e.clientY;
                             
-                            // Start timer for 200ms long press
+                            // Start timer for long press on header; only edit if target is .chord-name
                             element.dataset.mouseLongPressTimer = setTimeout(() => {
                                 element.dataset.isMouseLongPress = 'true';
-                                this.handleLongPress(element, type, e.clientX, e.clientY);
+                                // If the exact text span was pressed, enter inline edit
+                                const target = e.target;
+                                if (target && target.classList && target.classList.contains('chord-name')) {
+                                    try {
+                                        target.setAttribute('contenteditable','true');
+                                        target.focus();
+                                        const range = document.createRange();
+                                        range.selectNodeContents(target);
+                                        const sel = window.getSelection();
+                                        sel.removeAllRanges();
+                                        sel.addRange(range);
+                                    } catch(_){ }
+                                } else {
+                                    // Otherwise treat as long-press hold (no context menu)
+                                    this.handleLongPress(element, type, e.clientX, e.clientY);
+                                }
                             }, this.touchGestures.chordNameLongPressDelay);
                         } else {
                             // Regular behavior for other chord elements
@@ -10491,7 +10563,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (element.dataset.isMouseLongPress === 'true') {
                                 delete element.dataset.isMouseLongPress;
                             } else if (holdTime < this.touchGestures.chordNameLongPressDelay) {
-                                // Short click - treat as normal tap
+                                // Short click - treat as normal tap to play
                                 this.handleNormalTap(element, type);
                             }
                             
@@ -10513,7 +10585,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
             
             handleClick(element, type, x, y) {
-                // For chords and palette items, trigger a strum instead of a context menu
+                // For chords and palette items, trigger playback (strum or sustained chord)
                     if (type === 'chord' && (element.classList.contains('extension-header') || element.classList.contains('extension-column'))) {
                     const column = element.classList.contains('extension-column') ? element : element.closest('.extension-column');
                     if (!column) { console.error('Could not find parent column'); return; }
@@ -10568,15 +10640,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (type === 'chord') {
                     // Check if this is an extension header (chord name button)
                     if (element.classList.contains('extension-header')) {
-                        // Get the column data from the parent column
-                        const column = element.closest('.extension-column');
-                        if (column) {
-                            // Extract the chord data for the chord name context menu
-                            const chordData = this.getChordDataFromColumn(column, element);
-                            
-                            if (chordData) {
+                        // Only enter edit mode if the long-press happened on the chord-name span
+                        try {
+                            const target = document.elementFromPoint(x, y);
+                            const nameEl = element.querySelector('.chord-name');
+                            if (target && nameEl && (target === nameEl || nameEl.contains(target))) {
+                                nameEl.setAttribute('contenteditable','true');
+                                nameEl.focus();
+                                const range = document.createRange();
+                                range.selectNodeContents(nameEl);
+                                const sel = window.getSelection();
+                                sel.removeAllRanges();
+                                sel.addRange(range);
                             }
-                        }
+                        } catch(_) { /* no-op */ }
                     } else {
                         // Fallback to original logic for other chord elements
                         const columnData = this.getColumnDataFromElement(element);
@@ -13047,6 +13124,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     currentQuality: this.currentQuality,
                     currentTuning: this.currentTuning,
                     gamelanMode: this.gamelanMode,
+                    // Global transpose state
+                    transposeDelta: this.transposeDelta || 0,
                     
                     // ==== PIANO LOCK DATA - COMPLETE PRESERVATION ====
                     pianoLockedChords: this.pianoLockedChords ? Array.from(this.pianoLockedChords.entries()) : [],
@@ -13110,6 +13189,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // ==== TRANSPORT AND TIMING - COMPLETE ====
                     bpm: parseInt(document.getElementById('universalBpm')?.value) || 120,
                     quantize: document.getElementById('universalQuant')?.value || 'beat:1',
+                    timeSignature: document.getElementById('universalTimeSignature')?.value || '4/4',
+                    pattern: document.getElementById('universalPattern')?.value || 'up',
+                    loop: !!document.getElementById('playLoop')?.checked,
                     holdDuration: document.getElementById('chordHold')?.value || 'bar:1',
                     universalHold: document.getElementById('universalHold')?.value || 'bar:1',
                     npc: parseInt(document.getElementById('universalNpc')?.value) || 3,
@@ -13287,6 +13369,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (sessionData.currentQuality !== undefined) this.currentQuality = sessionData.currentQuality;
                         if (sessionData.currentTuning !== undefined) this.currentTuning = sessionData.currentTuning;
                         if (sessionData.gamelanMode !== undefined) this.gamelanMode = sessionData.gamelanMode;
+                        if (sessionData.transposeDelta !== undefined) this.transposeDelta = sessionData.transposeDelta;
                         
                         // ==== LOCKED CHORDS RESTORATION ====
                         if (sessionData.lockedChords && sessionData.lockedChords.length > 0) {
@@ -13411,6 +13494,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const el = document.getElementById('universalQuant');
                             if (el) { el.value = sessionData.quantize; el.dispatchEvent(new Event('change')); }
                         }
+                        if (sessionData.timeSignature !== undefined) {
+                            const el = document.getElementById('universalTimeSignature');
+                            if (el) { el.value = sessionData.timeSignature; el.dispatchEvent(new Event('change')); }
+                        }
+                        if (sessionData.pattern !== undefined) {
+                            const el = document.getElementById('universalPattern');
+                            if (el) { el.value = sessionData.pattern; el.dispatchEvent(new Event('change')); }
+                        }
+                        if (sessionData.loop !== undefined) {
+                            const el = document.getElementById('playLoop');
+                            if (el) { el.checked = !!sessionData.loop; el.dispatchEvent(new Event('change')); }
+                        }
                         if (sessionData.holdDuration !== undefined) {
                             const el = document.getElementById('chordHold');
                             if (el) { el.value = sessionData.holdDuration; el.dispatchEvent(new Event('change')); }
@@ -13460,6 +13555,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         }
                         
+                        // Update transpose UI label if present
+                        try {
+                            const deltaEl = document.getElementById('transposeDelta');
+                            if (deltaEl && typeof this.transposeDelta === 'number') {
+                                deltaEl.textContent = String(this.transposeDelta);
+                            }
+                        } catch(_) {}
+
                         // Checkboxes
                         if (sessionData.chordSlideEnabled !== undefined) {
                             const el = document.getElementById('chordSlide');
@@ -14868,15 +14971,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     return !wasLocked;
                 });
                 
-                console.log('?? Found', unlockedExtensions.length, 'unlocked extensions to regenerate');
+                // unlocked extensions to regenerate: count logged disabled
                 
                 // Generate new columns for unlocked extensions with the new root
                 unlockedExtensions.forEach(ext => {
-                    console.log('?? Regenerating column for unlocked extension:', ext.name);
+                    // regenerating column for unlocked extension
                     this.generateSingleChordColumn(ext, container);
                 });
                 
-                console.log('?? Completed regeneration - preserved', lockedColumns.length, 'locked chords, regenerated', unlockedExtensions.length, 'unlocked chords');
+                // regeneration complete; logs suppressed
             }
             
             generateSingleChordColumn(chordExt, container) {
@@ -14937,22 +15040,35 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const nextLocal = norm(prevLocal + delta, edoNow);
                     column.dataset.localTranspose = String(nextLocal);
                     chordExt.localTranspose = nextLocal; // persist
-                    // Relabel using EDO-aware root naming and strip any prior arrows
+                    // Relabel: for custom (“+”) chords, recompute from absolute steps (matches SEQ semantics);
+                    // for others, keep the lightweight root-respell.
                     try {
                         const baseRoot = typeof chordExt.fixedRootStepAbs === 'number' ? chordExt.fixedRootStepAbs : 0;
-                        const displayRoot = norm((baseRoot % edoNow) + nextLocal, edoNow);
-                        const mRoot = (chordExt.name || '').match(/^([A-G])([#b]?)([\^v↑↓]*)(.*)$/);
-                        const tail = mRoot ? (mRoot[4] || '') : '';
-                        const newRootName = this.getRootNameForStep(displayRoot, edoNow) || String(displayRoot);
-                        const newName = `${newRootName}${tail}`.trim();
-                        chordName.textContent = newName;
-                        chordName.dataset.lockedName = newName;
-                        chordExt.name = newName;
+                        const effRoot = norm((baseRoot % edoNow) + nextLocal, edoNow);
+                        if (chordExt.isCustom && Array.isArray(chordExt.intervals) && chordExt.intervals.length > 0) {
+                            // Build absolute steps: transposed root + each interval from the transposed root
+                            const absNow = [effRoot, ...chordExt.intervals.map(iv => norm(effRoot + iv, edoNow))];
+                            const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow) || chordExt.name;
+                            chordName.textContent = recomputed;
+                            chordName.dataset.lockedName = recomputed;
+                            chordExt.name = recomputed;
+                        } else {
+                            const mRoot = (chordExt.name || '').match(/^([A-G])([#b]?)([\^v↑↓]*)(.*)$/);
+                            const tail = mRoot ? (mRoot[4] || '') : '';
+                            const newRootName = this.getRootNameForStep(effRoot, edoNow) || String(effRoot);
+                            const newName = `${newRootName}${tail}`.trim();
+                            chordName.textContent = newName;
+                            chordName.dataset.lockedName = newName;
+                            chordExt.name = newName;
+                        }
                     } catch(_) {}
                     // Re-render strings with offset applied at playback time
                     const oldContainer = column.querySelector('.strings-column');
                     if (oldContainer) oldContainer.remove();
-                    this.generateStringsForColumn(column, this.getChordIntervals(chordExt.extensions || []), chordExt.isCustom || false);
+                        // IMPORTANT: For custom (“+”) chords, always use the stored custom intervals
+                        // to avoid wiping strings due to empty extension-derived intervals
+                        console.log('🔧 DEBUG: About to call generateStringsForColumn with intervals:', chordExt.intervals, 'isCustom:', chordExt.isCustom);
+                        this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
                     Promise.resolve().then(()=>{ _pressGuard = false; });
                 };
                 const onPointer = (delta)=> (e)=>{ e.preventDefault(); e.stopPropagation(); applyLocalTranspose(delta); };
@@ -14976,33 +15092,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 header.style.color = 'white';
                 header.style.border = `1px solid ${qualityColor.border}`;
                 
-                // Add context menu handlers
-                header.addEventListener('click', (e) => {
-                    // Don't interfere with header action buttons
-                    if (
-                        e.target.classList.contains('lock-button') ||
-                        e.target.classList.contains('chord-action-button') ||
-                        e.target.tagName === 'BUTTON'
-                    ) {
-                        return; // Let the buttons handle their own clicks
-                    }
-                    
-                    console.log('?? Single chord header clicked:', chordExt.name);
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const columnData = {
-                        name: chordExt.name,
-                        extensions: chordExt.extensions || [],
-                        quality: chordExt.name.toLowerCase(),
-                        id: chordExt.name.toLowerCase().replace(/\s+/g, '_'),
-                        intervals: this.getChordIntervals(chordExt.extensions || []),
-                        isCustom: chordExt.isCustom || false
-                    };
-                    
-                    this.currentEditingColumn = columnData;
-                    this.showColumnContextMenu(e.clientX, e.clientY);
-                });
+                // Short click on header handled by generic gesture routing elsewhere
                 
                 column.appendChild(header);
                 
@@ -15024,21 +15114,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
             
             preserveLockedChordsAndRegenerate() {
-                console.log('?? Preserving locked chords before regeneration');
                 
                 // Store current locked chords before regeneration
                 if (this.lockedChords && this.lockedChords.size > 0) {
                     this.savedLockedChords = Array.from(this.lockedChords.values());
-                    console.log('?? Saved', this.savedLockedChords.length, 'locked chords before regeneration');
                     
                     // Store the original root before any changes occur
                     const originalRoot = this.currentRoot;
-                    console.log('?? Original root before regeneration:', originalRoot);
                     
                     // CRITICAL: Preserve the chord extensions that are locked
                     // Don't let them get overwritten during regeneration
                     this.savedLockedChords.forEach(lockedChord => {
-                        console.log('?? Preserving chord extension for locked chord:', lockedChord.chordName, 'with locked root:', lockedChord.lockedRoot);
+                        // preserve locked chord extension
                         
                         // Find the corresponding chord extension and mark it as locked
                         const chordExtension = this.chordExtensions.find(ext => {
@@ -15058,9 +15145,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Mark this extension as locked so it won't be modified
                             chordExtension.isLocked = true;
                             chordExtension.lockedData = lockedChord;
-                            console.log('?? Marked chord extension as locked:', chordExtension.name, 'for locked chord:', lockedChord.chordName);
+                            // marked as locked
                         } else {
-                            console.warn('?? Could not find chord extension for locked chord:', lockedChord.chordName);
+                            // could not find chord extension for locked chord
                         }
                     });
                 }
@@ -15068,7 +15155,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Store current piano locked chords before regeneration
                 if (this.pianoLockedChords && this.pianoLockedChords.size > 0) {
                     this.savedPianoLockedChords = Array.from(this.pianoLockedChords.values());
-                    console.log('🎹 Saved', this.savedPianoLockedChords.length, 'piano locked chords before regeneration');
                     
                     // Mark chord extensions as piano locked
                     this.savedPianoLockedChords.forEach(pianoLockedData => {
@@ -15076,7 +15162,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (chordExtension) {
                             chordExtension.isPianoLocked = true;
                             chordExtension.pianoLockedData = pianoLockedData;
-                            console.log('🎹 Marked chord extension as piano locked:', chordExtension.name);
                         }
                     });
                 }
@@ -15120,7 +15205,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Map chord extensions to identifiers for hiding (per-instance)
                 const chordIds = this.chordExtensions.map((chord, index) => {
                     const id = (chord.id || (chord.name + '_' + index)).toLowerCase().replace(/\s+/g, '_');
-                    console.log(`Mapping chord ${index}: "${chord.name}" -> ID: "${id}"`);
                     return id;
                 });
                 
@@ -15128,15 +15212,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const visibleExtensions = this.chordExtensions.filter((chordExt, index) => {
                     const chordId = chordIds[index];
                     const isVisible = !this.hiddenColumns.includes(chordId);
-                    console.log(`Extension ${index}: "${chordExt.name}" (ID: ${chordId}) - Visible: ${isVisible}`);
                     return isVisible;
                 });
                 
-                console.log('?? Visible extensions:', visibleExtensions.length, 'chords:', visibleExtensions.map(c => c.name));
+                // console debug removed
                 
                 // If no visible extensions, show empty interface (only locked chords should be loaded)
                 if (visibleExtensions.length === 0) {
-                    console.log('?? No visible extensions - showing empty interface');
+                    // No visible extensions - showing empty interface
                     // Show message for empty state
                     container.innerHTML = `
                         <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: #8fb3d3; font-size: 16px; text-align: center; flex-direction: column;">
@@ -15165,7 +15248,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
 
                 // Always use simple layout - one column per chord type (no more variants)
-                console.log('Creating modern chord layout - each chord gets its own column');
+                // Creating modern chord layout - each chord gets its own column
                 visibleExtensions.forEach((chordExt, extensionIndex) => {
                     // Render repeat marker as a special thin column
                     if (chordExt.isRepeatMarker) {
@@ -15247,9 +15330,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const header = document.createElement('div');
                     header.className = 'extension-header';
                     
-                    // Create chord name span
+                    // Create chord name span (inline-editable)
                     const chordName = document.createElement('span');
                     chordName.className = 'chord-name';
+                    chordName.setAttribute('contenteditable', 'true');
+                    chordName.setAttribute('spellcheck', 'false');
                     
                     // Check if this chord extension is locked and preserve its locked name
                     if (chordExt.isLocked && chordExt.lockedData) {
@@ -15311,23 +15396,41 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         column.dataset.localTranspose = String(nextLocal);
                         chordExt.localTranspose = nextLocal; // persist to model
 
-                        // Relabel root: base fixed root + local
+                        // Relabel using full chord computation like global transpose
                         const baseRoot = typeof chordExt.fixedRootStepAbs === 'number' ? chordExt.fixedRootStepAbs : 0;
-                        const displayRoot = norm((baseRoot % edoNow) + nextLocal, edoNow);
+                        const effRoot = norm((baseRoot % edoNow) + nextLocal, edoNow);
                         try {
-                            const mRoot = (chordExt.name || '').match(/^([A-G])([#b]?)([\^v↑↓]*)(.*)$/);
-                            const tail = mRoot ? (mRoot[4] || '') : '';
-                            const newRootName = this.getRootNameForStep(displayRoot, edoNow) || String(displayRoot);
-                            const newName = `${newRootName}${tail}`.trim();
-                            chordName.textContent = newName;
-                            chordName.dataset.lockedName = newName;
-                            chordExt.name = newName;
+                            if (chordExt.isCustom && Array.isArray(chordExt.intervals) && chordExt.intervals.length > 0) {
+                                // Build absolute steps: transposed root + each interval from the transposed root
+                                const absNow = [effRoot, ...chordExt.intervals.map(iv => norm(effRoot + iv, edoNow))];
+                                const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow) || chordExt.name;
+                                chordName.textContent = recomputed;
+                                chordName.dataset.lockedName = recomputed;
+                                chordExt.name = recomputed;
+                            } else {
+                                const mRoot = (chordExt.name || '').match(/^([A-G])([#b]?)([\^v↑↓]*)(.*)$/);
+                                const tail = mRoot ? (mRoot[4] || '') : '';
+                                const newRootName = this.getRootNameForStep(effRoot, edoNow) || String(effRoot);
+                                const newName = `${newRootName}${tail}`.trim();
+                                chordName.textContent = newName;
+                                chordName.dataset.lockedName = newName;
+                                chordExt.name = newName;
+                            }
                         } catch(_) {}
 
-                        // Re-render strings using the same intervals, offset applied at playback
+                        // Re-render strings: trigger proper regeneration like global transpose does
                         const oldContainer = column.querySelector('.strings-column');
                         if (oldContainer) oldContainer.remove();
-                        this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+                        
+                        // Regenerate this column using the same logic as regenerateAllColumnsPreservingLocks
+                        const isLocked = this.lockedChords && this.lockedChords.has(column);
+                        if (isLocked) {
+                            const lockedChord = this.lockedChords.get(column);
+                            this.generateStringsForColumnWithLockedSettings(column, chordExt.intervals, lockedChord);
+                        } else {
+                            // For unlocked columns, regenerate using current global settings and the chord model
+                            this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+                        }
                         try { this.currentActiveColumnEl = column; this.highlightKeyboardForColumn(column); } catch {}
                         Promise.resolve().then(()=>{ _pressGuard = false; });
                     };
@@ -15362,35 +15465,52 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     header.style.color = 'white';
                     header.style.border = `1px solid ${qualityColor.border}`;
                     
-                    // Add context menu handlers
+                    // Inline editing: Enter to apply, ESC to cancel
+                    const applyTypedName = () => {
+                        try {
+                            const raw = (chordName.textContent || '').trim();
+                            if (!raw) return;
+                            const added = (typeof this.addChordFromName === 'function') ? this.addChordFromName(raw) : null;
+                            if (!added || !added.chord) {
+                                const prevOutline = chordName.style.outline;
+                                chordName.style.outline = '2px solid #e74c3c';
+                                setTimeout(()=> { chordName.style.outline = prevOutline; }, 600);
+                                return;
+                            }
+                            let idx = (typeof column.dataset.originalPosition !== 'undefined') ? parseInt(column.dataset.originalPosition,10) : -1;
+                            if (isNaN(idx) || idx < 0) idx = (this.chordExtensions||[]).indexOf(chordExt);
+                            if (idx >= 0) {
+                                const parsed = added.chord;
+                                try { if (this.chordExtensions[this.chordExtensions.length-1] === parsed) this.chordExtensions.pop(); } catch(_){ }
+                                parsed.position = chordExt.position;
+                                parsed.localTranspose = chordExt.localTranspose || 0;
+                                this.chordExtensions.splice(idx, 1, parsed);
+                                column.dataset.chordId = parsed.id || column.dataset.chordId;
+                                column.dataset.originalPosition = String(idx);
+                                chordName.textContent = parsed.name;
+                                const old = column.querySelector('.strings-column');
+                                if (old) old.remove();
+                                this.generateStringsForColumn(column, parsed.intervals, parsed.isCustom || false);
+                                try { this.saveChordConfiguration?.(); } catch(_){}
+                            }
+                        } catch (err) { console.error('applyTypedName error:', err); }
+                    };
+                    chordName.addEventListener('keydown', (ev)=>{
+                        if (ev.key === 'Enter') { ev.preventDefault(); applyTypedName(); chordName.blur(); }
+                        else if (ev.key === 'Escape') { ev.preventDefault(); chordName.blur(); }
+                    });
+                    chordName.addEventListener('click', (e)=>{ e.stopPropagation(); });
+                    chordName.addEventListener('mousedown', (e)=>{ e.stopPropagation(); });
+                    chordName.addEventListener('touchstart', (e)=>{ e.stopPropagation(); }, {passive:true});
+
+                    // Header short click: play chord/arp (handled by generic gesture router)
                     header.addEventListener('click', (e) => {
-                        // Don't interfere with header action buttons
                         if (
                             e.target.classList.contains('lock-button') ||
-                            
                             e.target.classList.contains('chord-action-button') ||
                             e.target.tagName === 'BUTTON'
-                        ) {
-                            return; // Let the buttons handle their own clicks
-                        }
-                        
-                        console.log('🎵 Chord header clicked:', chordExt.name);
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        const columnData = {
-                            name: chordExt.name,
-                            extensions: chordExt.extensions || [],
-                            quality: chordExt.name.toLowerCase(),
-                            id: chordIds[this.chordExtensions.indexOf(chordExt)],
-                            isCustom: false,
-                            originalName: chordExt.name,
-                            extensionIndex: this.chordExtensions.indexOf(chordExt),
-                            intervals: chordExt.intervals
-                        };
-                        
-                        this.currentEditingColumn = columnData;
-                        this.showColumnContextMenu(e.clientX, e.clientY);
+                        ) return;
+                        this.handleClick(header, 'chord', e.clientX, e.clientY);
                     });
                     
                     column.appendChild(header);
@@ -15399,22 +15519,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     header.appendChild(chordName);
                     header.appendChild(buttonsContainer);
                     
-                    // Header click handler (simplified)
-                    header.addEventListener('click', (e) => {
-                        // Don't interfere with header action buttons
-                        if (
-                            e.target.classList.contains('lock-button') ||
-                            
-                            e.target.classList.contains('chord-action-button') ||
-                            e.target.tagName === 'BUTTON'
-                        ) {
-                            return; // Let the buttons handle their own clicks
-                        }
-                        
-                        console.log('🎵 Chord header clicked:', chordExt.name);
-                        e.preventDefault();
-                        e.stopPropagation();
-                    });
+                    // Remove duplicate simplified handler; playback handled above
                     
                     column.appendChild(header);
                     
@@ -15448,11 +15553,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 // Add click handlers after rendering
                 setTimeout(() => {
-                    console.log('✅ generateExtensionColumns finished, adding click handlers...');
                     this.addSimpleClickHandlers();
                     this.restoreLockedChordStates(); // Restore locked chord states
                     this.restorePianoLockStates(); // Restore piano lock states
-                    console.log('✅ Click handlers and all locked states restored!');
                 }, 100);
             }
             
@@ -15460,7 +15563,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             restorePianoLockStates() {
                 if (!this.pianoLockedChords) return;
 
-                console.log('🎹 Restoring piano lock states for', this.pianoLockedChords.size, 'locked chords');
+                // restoring piano lock states
 
                 const columns = Array.from(document.querySelectorAll('.extension-column'));
                 // Clear previous visual markers
@@ -15604,12 +15707,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             // Root selection: leftmost (lowest) note unless a clear major/minor triad exists on another pitch;
             // slash only when bass is the (flat/neutral) seventh
             computeFullChordNameFromAbsoluteSteps(absSteps, edo = (this.currentTuning || 12), preferredBassAbs = null){
-                if (!Array.isArray(absSteps) || absSteps.length < 2) return '';
+                if (!Array.isArray(absSteps) || absSteps.length < 1) return '';
                 // Apply global transpose to reflect what you hear
                 const t = (this.transposeDelta || 0) % edo;
                 const norm = absSteps.map(s => (((s + t) % edo) + edo) % edo);
                 const steps = Array.from(new Set(norm));
-                if (steps.length < 2) return '';
+                if (steps.length < 2) {
+                    const rootOnly = steps[0] ?? 0;
+                    return this.getRootNameForStep(rootOnly, edo);
+                }
 
                 // Bass candidate: prefer provided; else lowest by 12-TET approximation (leftmost)
                 const bassAbs = (preferredBassAbs != null)
@@ -15783,7 +15889,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
 
             generateStringsForColumn(column, intervals, isCustomChord = false) {
-                // If no tones yet, render an empty strings container and exit
+                // Resolve lock/model first so we can recover intervals if caller passed empty
+                const lockedChord = this.lockedChords?.get(column);
+                let model = null;
+                try {
+                    // Prefer stable ID mapping first
+                    const id = column.dataset.chordId;
+                    let idx = -1;
+                    if (id) idx = (this.chordExtensions||[]).findIndex(c=> c && (String(c.id)===String(id)));
+                    if (idx < 0 && column.dataset.originalPosition != null) {
+                        const op = parseInt(column.dataset.originalPosition,10);
+                        if (!isNaN(op) && op >= 0) idx = op;
+                    }
+                    if (idx >= 0) model = (this.chordExtensions||[])[idx];
+                } catch(_) {}
+                // Fallback: if no intervals were provided, recover them from the model
+                if (!intervals || !Array.isArray(intervals) || intervals.length === 0) {
+                    const recovered = model && Array.isArray(model.intervals) ? model.intervals : null;
+                    if (recovered && recovered.length > 0) {
+                        intervals = recovered;
+                    }
+                }
+                // If still empty, render an empty strings container and exit
                 if (!intervals || !Array.isArray(intervals) || intervals.length === 0) {
                     const oldContainer = column.querySelector('.strings-column');
                     if (oldContainer) oldContainer.remove();
@@ -15803,21 +15930,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this.ensureStringsFullyVisible(stringsContainer);
                     return;
                 }
-                // Check if this column has locked settings
-                const lockedChord = this.lockedChords?.get(column);
-                // Resolve model index for per-chord fixed root, if any
-                let model = null;
-                try {
-                    // Prefer stable ID mapping first
-                    const id = column.dataset.chordId;
-                    let idx = -1;
-                    if (id) idx = (this.chordExtensions||[]).findIndex(c=> c && (String(c.id)===String(id)));
-                    if (idx < 0 && column.dataset.originalPosition != null) {
-                        const op = parseInt(column.dataset.originalPosition,10);
-                        if (!isNaN(op) && op >= 0) idx = op;
-                    }
-                    if (idx >= 0) model = (this.chordExtensions||[])[idx];
-                } catch(_) {}
 
                 // If exact frequencies were captured for this column, render snapshot and exit
                 // But skip snapshot if a local per-column transpose is active, so arrows take effect
@@ -15859,6 +15971,40 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 const noteNames = this.getNoteNames();
                 const tuningSize = currentTuning || this.getTuningStepsPerOctave();
+
+                // Ensure header label matches actual notes after local transpose (no global baked into label)
+                // Skip locked chords (they preserve exact label)
+                try {
+                    if (!lockedChord) {
+                        const nameEl = column.querySelector('.extension-header .chord-name');
+                        if (nameEl && model && Array.isArray(model.intervals) && model.intervals.length > 0) {
+                            const edoNow = this.currentTuning || tuningSize || 12;
+                            const modelEdo = model.fixedRootTuning || edoNow;
+                            const mapStep = (step, srcEdo, dstEdo) => {
+                                const cents = ((step % srcEdo + srcEdo) % srcEdo) * (1200 / srcEdo);
+                                const dst = Math.round(cents / (1200 / dstEdo));
+                                return ((dst % dstEdo) + dstEdo) % dstEdo;
+                            };
+                            const localDeltaNow = ((+column.dataset.localTranspose || 0) % edoNow + edoNow) % edoNow;
+                            const localDeltaModel = (modelEdo === edoNow) ? localDeltaNow : mapStep(localDeltaNow, edoNow, modelEdo);
+                            const baseRootModel = (typeof model.fixedRootStepAbs === 'number') ? ((model.fixedRootStepAbs % modelEdo) + modelEdo) % modelEdo : 0;
+                            const effRootModel = (((baseRootModel) + localDeltaModel) % modelEdo + modelEdo) % modelEdo;
+                            // Build degree steps in model's EDO
+                            const degreeStepsModel = model.isCustom
+                                ? model.intervals.map(iv => ((iv % modelEdo) + modelEdo) % modelEdo)
+                                : model.intervals.map(iv => this.mapIntervalToEDO(iv, modelEdo));
+                            const absModel = [effRootModel, ...degreeStepsModel.map(d => (effRootModel + d) % modelEdo)];
+                            const absNow = (modelEdo === edoNow) ? absModel.map(s => ((s%edoNow)+edoNow)%edoNow)
+                                                                : absModel.map(s => mapStep(s, modelEdo, edoNow));
+                            const recomputedLabel = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow);
+                            if (recomputedLabel) {
+                                nameEl.textContent = recomputedLabel;
+                                nameEl.dataset.lockedName = recomputedLabel;
+                                try { model.name = recomputedLabel; } catch(_) {}
+                            }
+                        }
+                    }
+                } catch(_) {}
 
                 // For unlocked, non-fixed-root chords: derive pitch from base currentRoot plus global/local transpose deltas
                 // This guarantees audio shifts by exact EDO steps on global transpose, independent of header text parsing.
@@ -18525,6 +18671,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     };
 
                     const onPressStart = (e) => {
+                        // Avoid starting drag while editing a header text
+                        const t = e.target;
+                        if (t && (t.getAttribute && t.getAttribute('contenteditable') === 'true')) return;
                         if (!canStartFrom(e.target)) return;
                         const p = getPointer(e);
                         startX = p.clientX; startY = p.clientY;
@@ -18654,7 +18803,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         column.style.width = '';
                         column.style.height = '';
 
-                        if (deleteIntent) {
+            if (deleteIntent) {
                             deleteIntent = false;
                             // remove column and update data (do not recreate nodes for others)
                             const idx = this.getIndexFromColumn ? this.getIndexFromColumn(column) : Array.from(container.children).indexOf(column);
@@ -18663,6 +18812,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 column.remove();
                                 this.normalizeChordPositions?.();
                                 this.saveChordConfiguration?.();
+                                // Regenerate to recalc columns and ensure gap removal and sizing
+                                try {
+                                    if (typeof this.preserveLockedChordsAndRegenerate === 'function') {
+                                        this.preserveLockedChordsAndRegenerate();
+                                    } else if (typeof this.generateExactChordColumns === 'function' && (this.chordExtensions||[]).some(c=>c.isCustom)) {
+                                        this.generateExactChordColumns();
+                                    } else if (typeof this.generateExtensionColumns === 'function') {
+                                        this.generateExtensionColumns();
+                                    }
+                                } catch(_) {}
                             }
                             if (placeholder) placeholder.remove();
                             return;
@@ -18806,7 +18965,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
             addSimpleClickHandlers() {
                 // Simple click handlers no longer needed - drag system handles tap and hold
-                console.log('?? Simple click handlers disabled - using drag system for tap/hold');
+                // debug removed
             }
 
             stopAllActiveNotes() {
@@ -18985,16 +19144,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
 
             handlePaletteStringTrigger(event) {
-                console.log('handlePaletteStringTrigger called at', event.clientX, event.clientY);
                 const elements = document.elementsFromPoint(event.clientX, event.clientY);
                 const stringElement = elements.find(el => el.classList.contains('string') && el.dataset.paletteIndex !== undefined);
-                console.log('Found string element:', stringElement, 'frequency:', stringElement?.dataset?.frequency);
                 
                 if (stringElement) {
                     const stringIndex = stringElement.dataset.index;
                     const paletteIndex = stringElement.dataset.paletteIndex;
                     const rawFrequency = stringElement.dataset.frequency;
-                    console.log('Raw frequency data:', rawFrequency, 'type:', typeof rawFrequency);
                     
                     // Throttle triggering per string to avoid audio spam but maintain responsiveness
                     const now = performance.now();
@@ -19003,7 +19159,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     
                     if (now - lastTrigger > minInterval && !this.paletteTriggeredStrings.has(stringIndex)) {
                         const frequency = parseFloat(rawFrequency);
-                        console.log('Parsed frequency:', frequency, 'isValid:', !isNaN(frequency) && isFinite(frequency));
                         
                         if (!isNaN(frequency) && isFinite(frequency)) {
                             this.playFrequency(frequency, stringElement, 'chord');
@@ -19015,10 +19170,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             setTimeout(() => {
                                 this.paletteTriggeredStrings.delete(stringIndex);
                             }, 20);
-                            
-                            console.log('Palette string triggered:', frequency, 'Hz from palette chord', paletteIndex);
                         } else {
-                            console.error('Invalid frequency for palette string:', rawFrequency, 'parsed as:', frequency);
+                            // invalid frequency - no-op
                         }
                     }
                 }
@@ -19499,10 +19652,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const start = Number.isFinite(tapInfo.step) ? tapInfo.step : (degs[0]||0);
                     const i0 = degs.indexOf(start);
                     if (i0 > 0) degs = degs.slice(i0).concat(degs.slice(0, i0));
-                    // Base octave within 3..6 (C3 to C6 range for chords)
+                    // Base octave within 3..5 (C3 to C5 range for chords)
                     let baseOct = Number.isFinite(tapInfo.octave) ? tapInfo.octave : 4;
-                    baseOct = Math.max(3, Math.min(6, baseOct));
-                    const maxOct = 6;
+                    baseOct = Math.max(3, Math.min(5, baseOct));
+                    const maxOct = 5;
                     const want = Math.max(1, Math.min(64, npc|0));
                     
                     // DEBUG: Log what we're looking for
@@ -19528,8 +19681,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 targetOctave -= 1;
                             }
                             
-                            // Clamp to chord octave range (C3-C6)
-                            targetOctave = Math.max(3, Math.min(6, targetOctave));
+                            // Clamp to chord octave range (C3-C5)
+                            targetOctave = Math.max(3, Math.min(5, targetOctave));
                             
                             const key = targetOctave + '|' + transposedStep;
                             const r = byKey.get(key);
@@ -19541,10 +19694,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                     }
                     
-                    // EXTENDED SEARCH: If we didn't find enough notes, expand the octave range within C3-C6
+                    // EXTENDED SEARCH: If we didn't find enough notes, expand the octave range within C3-C5
                     if (out.length < Math.min(want, degs.length)) {
                         console.log('[CHORD DEBUG] Not enough notes found (', out.length, '/', Math.min(want, degs.length), '), expanding octave search');
-                        for (let o = 3; o <= 6 && out.length < Math.min(want, degs.length); o++) {
+                        for (let o = 3; o <= 5 && out.length < Math.min(want, degs.length); o++) {
                             for (const d of degs) {
                                 if (out.length >= Math.min(want, degs.length)) break;
                                 
@@ -19562,8 +19715,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     targetOctave -= 1;
                                 }
                                 
-                                // Clamp to chord octave range (C3-C6)
-                                targetOctave = Math.max(3, Math.min(6, targetOctave));
+                                // Clamp to chord octave range (C3-C5)
+                                targetOctave = Math.max(3, Math.min(5, targetOctave));
                                 
                                 const key = targetOctave + '|' + transposedStep;
                                 const r = byKey.get(key);
@@ -21637,7 +21790,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 text: sequenceText, 
                                 name: finalName, 
                                 edo: omnichord.currentTuning || 24,
-                                chordNames: visualChords // Save the actual displayed chord names
+                                sequenceOrder: visualChords // Save the actual displayed chord names in visual order
                             });
                             console.log('Visual chord sequence saved as preset:', finalName, '| Chords:', visualChords);
                             alert(`Chord sequence saved as preset: "${finalName}"`);
@@ -22821,7 +22974,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                  let open=null;
                  function show(id){
                      panels.forEach(p=>{p.style.display = (p.dataset.panel===id)?'grid':'none';});
-                     host.style.display='block';
+                    host.style.display='block';
+                    // Ensure panel is visible at top of viewport
+                    try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_) {}
                  }
                  function close(){ 
                      host.style.display='none'; 
@@ -22931,132 +23086,50 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                      modeChordArp._wired = true;
                      modeChordArp.addEventListener('click', () => omnichord.toggleChordArpMode());
                  }
+                // TIME modal wiring
+                (function(){
+                    const timeBtn = document.getElementById('openTimeModalBtn');
+                    const modal = document.getElementById('timeModal');
+                    const closeBtn = document.getElementById('closeTimeModalBtn');
+                    if (timeBtn && modal) {
+                        timeBtn.addEventListener('click', () => { modal.style.display = 'flex'; });
+                        if (closeBtn) closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+                        if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+                    }
+                })();
                  
                  // Ensure background clock is running silently
                  try { omnichord._startArpTransport(); } catch(_) {}
                  // Initial mode UI update
                  omnichord.updateModeUI();
              })();
-
-            // Settings modal wiring: open/close, load/save, persistence, orientation toggle
-            (function(){
-                const modal = document.getElementById('settingsModal');
-                const openBtn = document.getElementById('openSettingsBtn');
-                const closeBtn = document.getElementById('settingsCloseBtn');
-                const cancelBtn = document.getElementById('settingsCancelBtn');
-                const saveBtn = document.getElementById('settingsSaveBtn');
-                const resetBtn = document.getElementById('settingsResetBtn');
-                const setBpm = document.getElementById('setBpm');
-                const setQuant = document.getElementById('setQuant');
-                const setHold = document.getElementById('setHold');
-                const setNpc = document.getElementById('setNpc');
-                const setPattern = document.getElementById('setPattern');
-                const setInvertStrings = document.getElementById('setInvertStrings');
-
-                if (!modal || !openBtn) return;
-
-                // Helper to copy universal -> modal fields
-                const loadFromUniversal = ()=>{
-                    const uBpm = document.getElementById('universalBpm');
-                    const uQuant = document.getElementById('universalQuant');
-                    const uHold = document.getElementById('universalHold');
-                    const uNpc = document.getElementById('universalNpc');
-                    const uPattern = document.getElementById('universalPattern');
-                    if (setBpm && uBpm) setBpm.value = String(uBpm.value||'120');
-                    if (setQuant && uQuant) setQuant.value = String(uQuant.value||'bar');
-                    if (setHold && uHold) setHold.value = String(uHold.value||'bar:1');
-                    if (setNpc && uNpc) setNpc.value = String(uNpc.value||'3');
-                    if (setPattern && uPattern) setPattern.value = String(uPattern.value||'up');
-                    // Invert preference from storage
-                    try {
-                        const prefs = JSON.parse(localStorage.getItem('omniSettings')||'{}');
-                        if (setInvertStrings) setInvertStrings.checked = !!prefs.invertStrings;
-                    } catch(_) { if (setInvertStrings) setInvertStrings.checked = false; }
-                };
-
-                const open = ()=>{ loadFromUniversal(); modal.style.display = 'flex'; };
-                const close = ()=>{ modal.style.display = 'none'; };
-
-                openBtn.addEventListener('click', open);
-                if (closeBtn) closeBtn.addEventListener('click', close);
-                if (cancelBtn) cancelBtn.addEventListener('click', close);
-                modal.addEventListener('click', (e)=>{ if (e.target === modal) close(); });
-                window.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && modal.style.display!=='none') close(); });
-
-                // Apply settings back to universal controls
-                const applyToUniversal = ()=>{
-                    const uBpm = document.getElementById('universalBpm');
-                    const uQuant = document.getElementById('universalQuant');
-                    const uHold = document.getElementById('universalHold');
-                    const uNpc = document.getElementById('universalNpc');
-                    const uPattern = document.getElementById('universalPattern');
-                    if (uBpm && setBpm) uBpm.value = String(Math.max(20, Math.min(300, parseInt(setBpm.value)||120)));
-                    if (uQuant && setQuant) uQuant.value = String(setQuant.value||'bar');
-                    if (uHold && setHold) uHold.value = String(setHold.value||'bar:1');
-                    if (uNpc && setNpc) uNpc.value = String(Math.max(1, Math.min(64, parseInt(setNpc.value)||3)));
-                    if (uPattern && setPattern) uPattern.value = String(setPattern.value||'up');
-                    // Trigger application
-                    try { omnichord.applyUniversalSettings(); } catch(_) {}
-                    try { omnichord.updateModeUI(); } catch(_) {}
-                };
-
-                // Invert strings orientation toggle
-                const applyInvertStrings = (on)=>{
-                    // CSS-level inversion using flex-direction reverse on strings containers
-                    const root = document.documentElement;
-                    if (on) root.classList.add('invert-strings'); else root.classList.remove('invert-strings');
-                    // Live-update existing columns
-                    document.querySelectorAll('.strings-column').forEach(el=>{
-                        el.style.flexDirection = on ? 'column-reverse' : 'column';
-                    });
-                };
-
-                if (saveBtn) saveBtn.addEventListener('click', ()=>{
-                    applyToUniversal();
-                    // Persist preferences
-                    const prefs = {
-                        bpm: document.getElementById('universalBpm')?.value,
-                        quant: document.getElementById('universalQuant')?.value,
-                        hold: document.getElementById('universalHold')?.value,
-                        npc: document.getElementById('universalNpc')?.value,
-                        pattern: document.getElementById('universalPattern')?.value,
-                        invertStrings: !!(setInvertStrings && setInvertStrings.checked)
-                    };
-                    try { localStorage.setItem('omniSettings', JSON.stringify(prefs)); } catch(_) {}
-                    applyInvertStrings(prefs.invertStrings);
-                    close();
-                });
-
-                if (resetBtn) resetBtn.addEventListener('click', ()=>{
-                    try { localStorage.removeItem('omniSettings'); } catch(_) {}
-                    // Factory defaults
-                    if (setBpm) setBpm.value = '120';
-                    if (setQuant) setQuant.value = 'bar';
-                    if (setHold) setHold.value = 'bar:1';
-                    if (setNpc) setNpc.value = '3';
-                    if (setPattern) setPattern.value = 'up';
-                    if (setInvertStrings) setInvertStrings.checked = false;
-                });
-
-                // On boot, load saved preferences and apply
-                try {
-                    const prefs = JSON.parse(localStorage.getItem('omniSettings')||'{}');
-                    if (prefs && typeof prefs === 'object') {
-                        const uBpm = document.getElementById('universalBpm');
-                        const uQuant = document.getElementById('universalQuant');
-                        const uHold = document.getElementById('universalHold');
-                        const uNpc = document.getElementById('universalNpc');
-                        const uPattern = document.getElementById('universalPattern');
-                        if (uBpm && prefs.bpm) uBpm.value = String(prefs.bpm);
-                        if (uQuant && prefs.quant) uQuant.value = String(prefs.quant);
-                        if (uHold && prefs.hold) uHold.value = String(prefs.hold);
-                        if (uNpc && prefs.npc) uNpc.value = String(prefs.npc);
-                        if (uPattern && prefs.pattern) uPattern.value = String(prefs.pattern);
-                        try { omnichord.applyUniversalSettings(); } catch(_) {}
-                        applyInvertStrings(!!prefs.invertStrings);
-                    }
-                } catch(_) {}
-            })();
+    </script>
+    <script>
+    // Ensure TIME button opens the modal even if earlier setup didn't wire it
+    (function(){
+        const bind = () => {
+            const btn = document.getElementById('openTimeModalBtn');
+            const modal = document.getElementById('timeModal');
+            const closeBtn = document.getElementById('closeTimeModalBtn');
+            if (!btn || !modal) return false;
+            if (!btn._wiredTime) {
+                btn._wiredTime = true;
+                btn.addEventListener('click', () => { modal.style.display = 'flex'; });
+            }
+            if (closeBtn && !closeBtn._wiredTime) {
+                closeBtn._wiredTime = true;
+                closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+            }
+            if (!modal._wiredBackdrop) {
+                modal._wiredBackdrop = true;
+                modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+            }
+            return true;
+        };
+        if (!bind()) {
+            document.addEventListener('DOMContentLoaded', bind, { once: true });
+        }
+    })();
     </script>
 </body>
 </html>
