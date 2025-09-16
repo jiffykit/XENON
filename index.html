@@ -2079,6 +2079,10 @@
                     <label style="font-size:11px;color:#9db6c8;">NPC</label>
                     <input id="universalNpc" type="number" min="1" max="64" value="3" title="Notes Per Cycle (Global for all modes)" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;"/>
                 </div>
+                <div>
+                    <label style="font-size:11px;color:#9db6c8;">SWING (%)</label>
+                    <input id="universalSwing" type="number" min="0" max="75" value="0" title="Swing amount applied to off-beats in ARP" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;"/>
+                </div>
             </div>
         </div>
     </div>
@@ -2277,11 +2281,56 @@
                     <button class="osc-btn osc-tab-btn" data-tab="arp">ARP</button>
                     <button class="osc-btn osc-tab-btn" data-tab="bass">BASS</button>
                 </div>
+                <!-- MIDI Settings: Octave + Velocity -->
+                <div id="midiSettingsRow" style="display:flex; gap:10px; align-items:flex-end; margin:6px 0 10px 0; flex-wrap:wrap;">
+                    <div style="display:flex; flex-direction:column; gap:4px; min-width:150px;">
+                        <label for="midiOctaveOffset" style="font-size:11px; color:#9db6c8;">MIDI Octave Offset</label>
+                        <select id="midiOctaveOffset" title="Transpose outgoing MIDI in octaves" style="background:#0d2938; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:6px 8px;">
+                            <option value="-3">-3</option>
+                            <option value="-2">-2</option>
+                            <option value="-1">-1</option>
+                            <option value="0" selected>0</option>
+                            <option value="1">+1</option>
+                            <option value="2">+2</option>
+                            <option value="3">+3</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px; min-width:180px;">
+                        <label for="midiDefaultVelocity" style="font-size:11px; color:#9db6c8;">MIDI Default Velocity</label>
+                        <input id="midiDefaultVelocity" type="number" min="1" max="127" value="100" title="Default velocity for outgoing MIDI" style="width:100%;background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:6px 8px;font-size:13px;" />
+                    </div>
+                </div>
                 <!-- STRUM 1 tab - OSC 1 only -->
                 <div id="tab-strum1" style="display:block; border:1px solid #4a6870; border-radius:4px; padding:8px; background:rgba(42,72,88,0.2);">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                         <h5 style="font-size:12px; margin:0; color:#8fb3d3;">STRUM 1</h5>
                         <span style="font-size:10px; color:#9db6c8; background:#203848; border:1px solid #4a6870; padding:2px 6px; border-radius:4px;">OSC 1</span>
+                    </div>
+                    <div class="midi-per-section" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px 0;align-items:flex-end;">
+                        <div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">
+                            <label style="font-size:10px;color:#9db6c8;">MIDI IN</label>
+                            <input id="midiIn-strum1" type="number" min="0" max="15" value="0" title="Listen on MIDI input channel (0-15; 0=omni)" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">
+                            <label style="font-size:10px;color:#9db6c8;">MIDI OUT</label>
+                            <input id="midiOut-strum1" type="number" min="1" max="16" value="1" title="Send on MIDI output channel (1-16)" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:3px;min-width:130px;">
+                            <label style="font-size:10px;color:#9db6c8;">MIDI OCTAVE</label>
+                            <select id="midiOct-strum1" title="Per-section octave transpose for outgoing MIDI" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;">
+                                <option value="-3">-3</option>
+                                <option value="-2">-2</option>
+                                <option value="-1">-1</option>
+                                <option value="0" selected>0</option>
+                                <option value="1">+1</option>
+                                <option value="2">+2</option>
+                                <option value="3">+3</option>
+                            </select>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:3px;min-width:150px;">
+                            <label style="font-size:10px;color:#9db6c8;">MIDI VELOCITY</label>
+                            <input id="midiVel-strum1" type="number" min="1" max="127" value="100" title="Default velocity for this section" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                        </div>
                     </div>
                         <div class="oscillator-controls" style="margin-bottom:8px;">
                             <div class="osc-btn active" data-wave="sine" data-osc="1" style="font-size:11px; padding:6px 8px;">Sin</div>
@@ -2365,6 +2414,32 @@
                             <h5 style="font-size:12px; margin:0; color:#8fb3d3;">STRUM 2</h5>
                             <span style="font-size:10px; color:#9db6c8; background:#203848; border:1px solid #4a6870; padding:2px 6px; border-radius:4px;">OSC 2</span>
                         </div>
+                        <div class="midi-per-section" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px 0;align-items:flex-end;">
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI IN</label>
+                                <input id="midiIn-strum2" type="number" min="0" max="15" value="0" title="Listen on MIDI input channel (0-15; 0=omni)" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI OUT</label>
+                                <input id="midiOut-strum2" type="number" min="1" max="16" value="2" title="Send on MIDI output channel (1-16)" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:130px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI OCTAVE</label>
+                                <select id="midiOct-strum2" title="Per-section octave transpose for outgoing MIDI" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;">
+                                    <option value="-3">-3</option>
+                                    <option value="-2">-2</option>
+                                    <option value="-1">-1</option>
+                                    <option value="0" selected>0</option>
+                                    <option value="1">+1</option>
+                                    <option value="2">+2</option>
+                                    <option value="3">+3</option>
+                                </select>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:150px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI VELOCITY</label>
+                                <input id="midiVel-strum2" type="number" min="1" max="127" value="100" title="Default velocity for this section" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
+                        </div>
                         <div class="oscillator-controls" style="margin-bottom:8px;">
                             <div class="osc-btn active" data-wave="sine" data-osc="2" style="font-size:11px; padding:6px 8px;">Sin</div>
                             <div class="osc-btn" data-wave="sawtooth" data-osc="2" style="font-size:11px; padding:6px 8px;">Saw</div>
@@ -2445,6 +2520,32 @@
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                             <h5 style="font-size:12px; margin:0; color:#8fb3d3;">CHORD</h5>
                             <span style="font-size:10px; color:#9db6c8; background:#203848; border:1px solid #4a6870; padding:2px 6px; border-radius:4px;">OSC 3</span>
+                        </div>
+                        <div class="midi-per-section" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px 0;align-items:flex-end;">
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI IN</label>
+                                <input id="midiIn-chord" type="number" min="0" max="15" value="0" title="Listen on MIDI input channel (0-15; 0=omni)" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI OUT</label>
+                                <input id="midiOut-chord" type="number" min="1" max="16" value="3" title="Send on MIDI output channel (1-16)" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:130px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI OCTAVE</label>
+                                <select id="midiOct-chord" title="Per-section octave transpose for outgoing MIDI" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;">
+                                    <option value="-3">-3</option>
+                                    <option value="-2">-2</option>
+                                    <option value="-1">-1</option>
+                                    <option value="0" selected>0</option>
+                                    <option value="1">+1</option>
+                                    <option value="2">+2</option>
+                                    <option value="3">+3</option>
+                                </select>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:150px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI VELOCITY</label>
+                                <input id="midiVel-chord" type="number" min="1" max="127" value="100" title="Default velocity for this section" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
                         </div>
                         <div class="oscillator-controls" style="margin-bottom:8px;">
                             <div class="osc-btn active" data-wave="sine" data-inst="chord" style="font-size:11px; padding:6px 8px;">Sin</div>
@@ -2527,6 +2628,32 @@
                             <h5 style="font-size:12px; margin:0; color:#8fb3d3;">ARP</h5>
                             <span style="font-size:10px; color:#9db6c8; background:#203848; border:1px solid #4a6870; padding:2px 6px; border-radius:4px;">OSC 5</span>
                         </div>
+                        <div class="midi-per-section" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px 0;align-items:flex-end;">
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI IN</label>
+                                <input id="midiIn-arp" type="number" min="0" max="15" value="0" title="Listen on MIDI input channel (0-15; 0=omni)" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI OUT</label>
+                                <input id="midiOut-arp" type="number" min="1" max="16" value="4" title="Send on MIDI output channel (1-16)" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:130px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI OCTAVE</label>
+                                <select id="midiOct-arp" title="Per-section octave transpose for outgoing MIDI" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;">
+                                    <option value="-3">-3</option>
+                                    <option value="-2">-2</option>
+                                    <option value="-1">-1</option>
+                                    <option value="0" selected>0</option>
+                                    <option value="1">+1</option>
+                                    <option value="2">+2</option>
+                                    <option value="3">+3</option>
+                                </select>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:150px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI VELOCITY</label>
+                                <input id="midiVel-arp" type="number" min="1" max="127" value="100" title="Default velocity for this section" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
+                        </div>
                         <div class="oscillator-controls" style="margin-bottom:8px;">
                             <div class="osc-btn active" data-wave="sine" data-inst="arp" style="font-size:11px; padding:6px 8px;">Sin</div>
                             <div class="osc-btn" data-wave="sawtooth" data-inst="arp" style="font-size:11px; padding:6px 8px;">Saw</div>
@@ -2607,6 +2734,32 @@
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                             <h5 style="font-size:12px; margin:0; color:#8fb3d3;">BASS</h5>
                             <span style="font-size:10px; color:#9db6c8; background:#203848; border:1px solid #4a6870; padding:2px 6px; border-radius:4px;">OSC 4</span>
+                        </div>
+                        <div class="midi-per-section" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px 0;align-items:flex-end;">
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI IN</label>
+                                <input id="midiIn-bass" type="number" min="0" max="15" value="0" title="Listen on MIDI input channel (0-15; 0=omni)" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:110px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI OUT</label>
+                                <input id="midiOut-bass" type="number" min="1" max="16" value="5" title="Send on MIDI output channel (1-16)" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:130px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI OCTAVE</label>
+                                <select id="midiOct-bass" title="Per-section octave transpose for outgoing MIDI" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;">
+                                    <option value="-3">-3</option>
+                                    <option value="-2">-2</option>
+                                    <option value="-1">-1</option>
+                                    <option value="0" selected>0</option>
+                                    <option value="1">+1</option>
+                                    <option value="2">+2</option>
+                                    <option value="3">+3</option>
+                                </select>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:3px;min-width:150px;">
+                                <label style="font-size:10px;color:#9db6c8;">MIDI VELOCITY</label>
+                                <input id="midiVel-bass" type="number" min="1" max="127" value="100" title="Default velocity for this section" style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                            </div>
                         </div>
                         <div class="oscillator-controls" style="margin-bottom:8px;">
                             <div class="osc-btn active" data-wave="sine" data-inst="bass" style="font-size:11px; padding:6px 8px;">Sin</div>
@@ -2703,6 +2856,7 @@
                     <button id="modeStrum" class="mode-btn" title="Cycle Strum order (UP/DOWN/ALT)" style="width:70px;padding:6px 8px;font-size:10px;">STRUM UP</button>
                     <button id="modeChordArp" class="mode-btn" title="Toggle between CHORD and ARP output" style="width:70px;padding:6px 8px;font-size:10px;">ARP</button>
                     <button id="universalBass" class="mode-btn active" title="Toggle Bass sustain for all modes" style="width:70px;padding:6px 8px;font-size:10px;">BASS</button>
+                    <button id="midiToggle" class="mode-btn" title="Enable Web MIDI in/out" style="width:70px;padding:6px 8px;font-size:10px;">MIDI</button>
                 </div>
                 
                 <!-- Centered middle section with keyboard toggle -->
@@ -4405,6 +4559,32 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (!(ext.isSeparator || ext.name === '|')) return i;
                     }
                     return -1;
+                })();
+                // Wire OSC1/OSC2 sliders to MIDI tuning (coarse/fine+octave)
+                (function(){
+                    try {
+                        const g = (id)=> document.getElementById(id);
+                        const ch1 = ()=> (window.midi?.channelMap?.osc1) || 1;
+                        const ch2 = ()=> (window.midi?.channelMap?.osc2) || 1;
+                        const send1 = ()=>{
+                            if (!window.midi || !window.midi.enabled) return;
+                            const oct = parseInt(g('osc1Octave')?.value||'0',10)||0;
+                            const coarse = parseInt(g('osc1Coarse')?.value||'0',10)||0;
+                            const fine = parseFloat(g('osc1Detune')?.value||'0')||0;
+                            window.midi.setCoarseTune((oct*12)+coarse, ch1());
+                            window.midi.setFineTune(fine, ch1());
+                        };
+                        const send2 = ()=>{
+                            if (!window.midi || !window.midi.enabled) return;
+                            const oct = parseInt(g('osc2Octave')?.value||'0',10)||0;
+                            const coarse = parseInt(g('osc2Coarse')?.value||'0',10)||0;
+                            const fine = parseFloat(g('osc2Detune')?.value||'0')||0;
+                            window.midi.setCoarseTune((oct*12)+coarse, ch2());
+                            window.midi.setFineTune(fine, ch2());
+                        };
+                        ['osc1Octave','osc1Coarse','osc1Detune'].forEach(id=>{ const el=g(id); if (el && !el._wiredMidi){ el._wiredMidi=true; el.addEventListener('input', send1); }});
+                        ['osc2Octave','osc2Coarse','osc2Detune'].forEach(id=>{ const el=g(id); if (el && !el._wiredMidi){ el._wiredMidi=true; el.addEventListener('input', send2); }});
+                    } catch(_){}
                 })();
                 const hasExplicitOuterStart = (firstIdx >= 0) && !!visibleExtensions[firstIdx].isRepeatMarker && (visibleExtensions[firstIdx].name === '[') && ((visibleExtensions[firstIdx].nestLevel || 0) === 0);
                 const hasExplicitOuterEnd = (lastIdx >= 0) && !!visibleExtensions[lastIdx].isRepeatMarker && ((visibleExtensions[lastIdx].name === ']') || (/^\]x\d+$/.test(visibleExtensions[lastIdx].name || ''))) && ((visibleExtensions[lastIdx].nestLevel || 0) === 0);
@@ -8115,13 +8295,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Create simple reverb
                     this.createReverb();
                     
-                    // Create wet/dry gain nodes for reverb
-            this.wetGainNode = this.audioContext.createGain();
-            this.dryGainNode = this.audioContext.createGain();
-            // Clamp wet to [0,1] to avoid accidental mute
-            const wet = Math.max(0, Math.min(1, Number.isFinite(this.reverb.wet) ? this.reverb.wet : 0.3));
-            this.wetGainNode.gain.value = wet;
-            this.dryGainNode.gain.value = 1.0 - wet;
+            // Create wet gain for reverb send and a master-controlled dry output gain
+        this.wetGainNode = this.audioContext.createGain();
+        this.dryGainNode = this.audioContext.createGain();
+        // Clamp wet to [0,1]
+        const wet = Math.max(0, Math.min(1, Number.isFinite(this.reverb.wet) ? this.reverb.wet : 0.0));
+        this.wetGainNode.gain.value = wet; // Amount sent into reverb
+        // Dry path is governed by master volume, not (1-wet)
+        this.dryGainNode.gain.value = this.masterVolume;
                     
                     // Create reverb filters: HP then LP after convolver
                     this.reverbHpNode = this.audioContext.createBiquadFilter();
@@ -8241,14 +8422,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this.wetGainNode.connect(this.reverbNode);
                     this.reverbNode.connect(this.reverbHpNode);
                     this.reverbHpNode.connect(this.reverbFilterNode);
-                    this.reverbFilterNode.connect(this.audioContext.destination);
+                    // Add a dedicated reverb output gain so MASTER affects reverb too
+                    this.reverbOutGain = this.audioContext.createGain();
+                    this.reverbOutGain.gain.value = this.masterVolume;
+                    this.reverbFilterNode.connect(this.reverbOutGain);
+                    this.reverbOutGain.connect(this.audioContext.destination);
 
                     // Helper to bypass convolver when wet=0 to save CPU
                     this.updateReverbRouting = () => {
                         try {
                             const isWet = (this.reverb?.wet || 0) > 0.0001;
                             // Ensure base connections exist
-                            if (!this.wetGainNode || !this.reverbNode || !this.reverbFilterNode || !this.reverbHpNode) return;
+                            if (!this.wetGainNode || !this.reverbNode || !this.reverbFilterNode || !this.reverbHpNode || !this.reverbOutGain) return;
                             // Disconnect all from wet chain first
                             try { this.wetGainNode.disconnect(); } catch {}
                             try { this.reverbNode.disconnect(); } catch {}
@@ -8259,7 +8444,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 this.wetGainNode.connect(this.reverbNode);
                                 this.reverbNode.connect(this.reverbHpNode);
                                 this.reverbHpNode.connect(this.reverbFilterNode);
-                                this.reverbFilterNode.connect(this.audioContext.destination);
+                                this.reverbFilterNode.connect(this.reverbOutGain);
                             } else {
                                 // Keep wetGainNode disconnected when wet=0
                                 // Dry path already connected
@@ -8601,6 +8786,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Also update dry gain node for FX-bypassed instruments
                         if (this.dryGainNode) {
                             this.dryGainNode.gain.value = this.masterVolume;
+                        }
+                        // Reverb output should follow master as well
+                        if (this.reverbOutGain) {
+                            this.reverbOutGain.gain.value = this.masterVolume;
                         }
                         const masterVolumeValue = document.getElementById('masterVolumeValue');
                         if (masterVolumeValue) {
@@ -9290,7 +9479,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         this.reverb.wet = e.target.value / 10; // 0-10 scale to 0-1
                         if (this.wetGainNode && this.dryGainNode) {
                             this.wetGainNode.gain.value = this.reverb.wet;
-                            this.dryGainNode.gain.value = 1.0 - this.reverb.wet;
+                            this.dryGainNode.gain.value = this.masterVolume;
                         }
                         // Bypass reverb processing when wet=0%
                         if (typeof this.updateReverbRouting === 'function') this.updateReverbRouting();
@@ -9322,7 +9511,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             this.wetGainNode.connect(this.reverbNode);
                             this.reverbNode.connect(this.reverbHpNode);
                             this.reverbHpNode.connect(this.reverbFilterNode);
-                            this.reverbFilterNode.connect(this.audioContext.destination);
+                            if (!this.reverbOutGain) this.reverbOutGain = this.audioContext.createGain();
+                            this.reverbOutGain.gain.value = this.masterVolume;
+                            this.reverbFilterNode.connect(this.reverbOutGain);
+                            this.reverbOutGain.connect(this.audioContext.destination);
                             if (typeof this.updateReverbRouting === 'function') this.updateReverbRouting();
                         }
                     });
@@ -9349,7 +9541,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             this.wetGainNode.connect(this.reverbNode);
                             this.reverbNode.connect(this.reverbHpNode);
                             this.reverbHpNode.connect(this.reverbFilterNode);
-                            this.reverbFilterNode.connect(this.audioContext.destination);
+                            if (!this.reverbOutGain) this.reverbOutGain = this.audioContext.createGain();
+                            this.reverbOutGain.gain.value = this.masterVolume;
+                            this.reverbFilterNode.connect(this.reverbOutGain);
+                            this.reverbOutGain.connect(this.audioContext.destination);
                             if (typeof this.updateReverbRouting === 'function') this.updateReverbRouting();
                         }
                     });
@@ -10197,6 +10392,36 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 window.addEventListener('keydown', this._keyboardHandler, true);
                 // Stop playback on number key release for ARP/Chords (press-to-start/release-to-stop parity with mouse/touch)
                 this._keyboardKeyupHandler = (e) => {
+                    // Global ESC panic (always active, cancels everything immediately)
+                    if (e.key === 'Escape') {
+                        try {
+                            // Stop internal audio and sequencing
+                            this.stopAllActiveNotes();
+                            this._sustainActive = false;
+                            this._chordsGestureActive = false;
+                            this._chordSlideActive = false;
+                            try { this._stopArp(); } catch(_) {}
+
+                            // Kill any lingering audio nodes
+                            if (this.audioContext) {
+                                try {
+                                    Object.values(this.activeNotes || {}).forEach(noteGroup => {
+                                        if (Array.isArray(noteGroup)) {
+                                            noteGroup.forEach(note => {
+                                                if (note && note.stop) note.stop(0);
+                                                if (note && note.disconnect) note.disconnect();
+                                            });
+                                        }
+                                    });
+                                    this.activeNotes = {};
+                                } catch(_) {}
+                            }
+
+                            // Send MIDI All Notes Off across channels if available
+                            try { if (window.midi && window.midi.enabled && typeof window.midi.allNotesOff === 'function') window.midi.allNotesOff(); } catch(_) {}
+                        } catch(_) {}
+                        return;
+                    }
                     const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
                     const isEditable = (()=>{
                         try {
@@ -16727,6 +16952,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     bpm: 120,
                     quant: '1/8',
                     tuplet: 0,
+                    swingPct: (function(){
+                        try { const v = localStorage.getItem('xen_swing_pct'); return Math.max(0, Math.min(75, v!=null? parseFloat(v): 0)); } catch(_) { return 0; }
+                    })(),
+                    isTriplet: false,
                     beatMs: 500,
                     tickMs: 250,
                     ticksPerBeat: 2,
@@ -16853,9 +17082,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Read current values from UI controls (universal only)
                 const bpmEl = document.getElementById('universalBpm');
                 const quantEl = document.getElementById('universalQuant');
+                const swingEl = document.getElementById('universalSwing');
                 
                 const bpm = Math.max(20, Number(bpmEl?.value) || this._arp?.bpm || this._arpTransport.bpm || 120);
                 const quant = quantEl?.value || this._arp?.quant || this._arpTransport.quant || '1/16';
+                let swingPct = this._arpTransport.swingPct || 0;
+                if (swingEl && swingEl.value != null) {
+                    const sv = parseFloat(swingEl.value);
+                    if (isFinite(sv)) swingPct = Math.max(0, Math.min(75, sv));
+                }
                 
                 // Update _arp values to match UI
                 if (this._arp) {
@@ -16885,6 +17120,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const beatsPerTick = tri(quant) ? ((4/div) * (2/3)) : (4/div);
                     ticksPerBeat = Math.max(1, Math.round(1/Math.max(1e-6, beatsPerTick)));
                     tickMs = beatMs * beatsPerTick;
+                    this._arpTransport.isTriplet = tri(quant);
                 }
                 // Get time signature from universal control
                 const timeSignatureEl = document.getElementById('universalTimeSignature');
@@ -16893,6 +17129,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const effectiveBeatsPerBar = beatsPerBar || 4; // fallback to 4/4
                 
                 const ticksPerBar = ticksPerBeat * effectiveBeatsPerBar;
+                // Disable swing when using tuplets or triplets
+                if (tuplet > 0 || this._arpTransport.isTriplet) swingPct = 0;
+                this._arpTransport.swingPct = swingPct;
                 Object.assign(this._arpTransport, { bpm, quant, tuplet, beatMs, tickMs, ticksPerBeat, beatsPerBar: effectiveBeatsPerBar, ticksPerBar, timeSignature });
                 // Update gate based on current tick
                 const gateMs = Math.max(5, Math.floor(((this._arp?.gatePct||50)/100) * tickMs));
@@ -16931,6 +17170,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const ps = this._arp.pendingSwitch;
                             const nowAbs = this._arpTransport.absTickCounter|0;
                             if (ps.atAbsTick != null && nowAbs >= ps.atAbsTick) {
+                                // In PLAY sequencing, hard-cut previous chord and bass at the boundary
+                                try {
+                                    if (this._isSequencing) {
+                                        try { this.stopAllActiveNotes(); } catch(_){ }
+                                        try { if (this._heldBassLiveFreq) this.stopFrequency(this._heldBassLiveFreq, null, 'bass'); } catch(_){ }
+                                        try { if (this._arp?.bassLiveFreq) this.stopFrequency(this._arp.bassLiveFreq, null, 'bass'); } catch(_){ }
+                                        try { this._heldBassVoice = null; this._heldBassLiveFreq = null; this._heldBassVoiceKey = null; } catch(_){ }
+                                        try { if (this._arp){ this._arp.bassVoice = null; this._arp.bassLiveFreq = null; } } catch(_){ }
+                                    }
+                                } catch(_){ }
                                 // Align new sequence to current transport phase if requested
                                 if (ps.alignPhaseToTickCounter) {
                                     this._arp.startTickAlign = this._arpTransport.tickCounter;
@@ -17132,7 +17381,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Advance transport tick and schedule next, correcting drift
                     this._arpTransport.tickCounter = (this._arpTransport.tickCounter + 1) % (this._arpTransport.ticksPerBar||64);
                     this._arpTransport.absTickCounter = (this._arpTransport.absTickCounter + 1) >>> 0; // keep as non-negative int
-                    this._arpTransport.nextAt += this._arpTransport.tickMs;
+                    // Apply swing to the next interval if eligible
+                    let nextDelta = this._arpTransport.tickMs;
+                    const tpb = this._arpTransport.ticksPerBeat||1;
+                    const swingPct = Math.max(0, Math.min(75, this._arpTransport.swingPct||0));
+                    if (swingPct > 0 && (tpb % 2 === 0) && !this._arpTransport.isTriplet && (this._arpTransport.tuplet||0)===0) {
+                        const withinBeat = this._arpTransport.tickCounter % tpb;
+                        const swingShift = (swingPct/100) * this._arpTransport.tickMs; // proportion of half-pair
+                        if ((withinBeat % 2) === 0) {
+                            nextDelta = this._arpTransport.tickMs + swingShift; // lengthen first of pair
+                        } else {
+                            nextDelta = Math.max(1, this._arpTransport.tickMs - swingShift); // shorten second of pair
+                        }
+                    }
+                    this._arpTransport.nextAt += nextDelta;
                     // If inactivity is scheduled and still no active ARP voice, stop after a full empty bar at bar boundary
                     // Keep transport running if metronome is on
                     if (!this._arpTransport.metronomeOn && this._arpTransport.inactivityStopScheduled && (!this._arp || !this._arp.active)){
@@ -20444,6 +20706,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     env1Attack = e1.attack; env1Decay = e1.decay; env1Sustain = e1.sustain; env1Release = e1.release;
                     env2Attack = (e2?.attack ?? e1.attack); env2Decay = (e2?.decay ?? e1.decay); env2Sustain = (e2?.sustain ?? e1.sustain); env2Release = (e2?.release ?? e1.release);
                 }
+                // Prevent zero-attack degenerate ramps (some browsers ignore ramp-to at same time)
+                const minAttack = 0.003; // 3ms
+                env1Attack = Math.max(minAttack, Number(env1Attack) || 0);
+                env2Attack = Math.max(minAttack, Number(env2Attack) || 0);
                 
                 const osc1AttackTime = currentTime + env1Attack;
                 const osc1DecayTime = osc1AttackTime + env1Decay;
@@ -20480,7 +20746,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Update audio context nodes if available
                     if (this.wetGainNode && this.dryGainNode) {
                         this.wetGainNode.gain.value = this.reverb.wet;
-                        this.dryGainNode.gain.value = 1.0 - this.reverb.wet;
+                        this.dryGainNode.gain.value = this.masterVolume;
                     }
                     if (this.reverbFilterNode) {
                         this.reverbFilterNode.frequency.value = this.reverb.filterCutoff;
@@ -21234,7 +21500,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (this.reverb) this.reverb.wet = reverbWet;
                     if (this.wetGainNode && this.dryGainNode) {
                         this.wetGainNode.gain.value = reverbWet;
-                        this.dryGainNode.gain.value = 1 - reverbWet;
+                        this.dryGainNode.gain.value = this.masterVolume;
                     }
                     if (typeof this.updateReverbRouting === 'function') this.updateReverbRouting();
                     const reverbWetValue = document.getElementById('reverbWetValue');
@@ -21517,6 +21783,558 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             omnichord = new MicrotonalOmnichord();
             window.omnichord = omnichord; // Make it globally accessible
             try { console.log('[DEBUG] window.load: omnichord ready; debug=', !!omnichord._debug); } catch(_){ }
+
+            // Minimal Web MIDI manager providing init/send/receive APIs and integration
+            (function(){
+                class WebMIDIManager {
+                    constructor() {
+                        this.enabled = false;
+                        this.midiAccess = null;
+                        this.inputs = new Map();
+                        this.outputs = new Map();
+                        this.inputHandler = null;
+                        this.channelMap = { strum:1, strum1:1, strum2:2, chord:3, arp:4, bass:5, osc1:7, osc2:8, default:6 };
+                        this.noteState = new Map(); // key: `${note}@${ch}` -> {ts}
+                        this.sustain = false; // CC64 >= 64
+                        this.deferredOff = new Set(); // keys to send off when sustain released
+                        this._idleTimer = null;
+                        this._idleMs = 10000; // 10s PANIC after no interaction
+                        this.octaveOffset = 0; // UI-controlled MIDI octave transpose
+                        this.defaultVelocity = 100; // UI-controlled default velocity
+                        // Per-source octave transpose (octaves, always 12 semitones per octave for MIDI)
+                        this.perSourceOctave = { strum1:0, strum2:0, chord:0, arp:0, bass:0, osc1:0, osc2:0, default:0 };
+                        // Per-source default velocity (overrides global if set)
+                        this.perSourceVelocity = { strum1:100, strum2:100, chord:100, arp:100, bass:100, osc1:100, osc2:100, default:100 };
+                        // Per-section MIDI IN channel filter (0=omni)
+                        this.inputChannelMap = { strum1:0, strum2:0, chord:0, arp:0, bass:0, default:0 };
+                        this.currentProgram = 0;
+                    }
+                    async init() {
+                        if (!('requestMIDIAccess' in navigator)) {
+                            console.warn('Web MIDI not supported in this browser');
+                            return false;
+                        }
+                        try {
+                            this.midiAccess = await navigator.requestMIDIAccess({ sysex:false });
+                        } catch (e) {
+                            console.warn('Web MIDI access denied:', e);
+                            return false;
+                        }
+                        this.refreshPorts();
+                        this.midiAccess.onstatechange = () => this.refreshPorts();
+                        this.enabled = true;
+                        return true;
+                    }
+                    refreshPorts() {
+                        this.inputs.clear();
+                        this.outputs.clear();
+                        if (!this.midiAccess) return;
+                        for (const input of this.midiAccess.inputs.values()) {
+                            this.inputs.set(input.id, input);
+                            input.onmidimessage = (ev)=>this._handleMIDIMessage(ev);
+                        }
+                        for (const output of this.midiAccess.outputs.values()) {
+                            this.outputs.set(output.id, output);
+                        }
+                        console.log(`[MIDI] Inputs: ${this.inputs.size}, Outputs: ${this.outputs.size}`);
+                    }
+                    onInput(cb){ this.inputHandler = cb; }
+                    sendRaw(data, timestamp=0, channel=1) {
+                        if (!this.enabled || this.outputs.size === 0) return;
+                        const status = data[0];
+                        const isChanMsg = (status & 0xF0) >= 0x80 && (status & 0xF0) <= 0xE0;
+                        const msg = isChanMsg ? [ (status & 0xF0) | ((channel-1) & 0x0F), data[1] ?? 0, data[2] ?? 0 ] : data;
+                        for (const out of this.outputs.values()) {
+                            try { out.send(msg, timestamp || undefined); } catch(_) {}
+                        }
+                    }
+                    // Normalize note and channel so that final MIDI note stays within 0..127.
+                    // If note overflows >127 (or <0), subtract/add EDO steps and move to adjacent channels.
+                    // Assumes receiving instrument tunes adjacent channels in octave steps for current EDO.
+                    normalizeNoteChannel(note, channel){
+                        try {
+                            const edo = (window?.omnichord?.currentTuning|0) || 12;
+                            // Global MIDI octave offset uses 12 semitones per octave
+                            let n = (note|0) + ((this.octaveOffset|0) * 12);
+                            let ch = channel|0;
+                            if (!Number.isFinite(n) || !Number.isFinite(ch) || edo <= 0) {
+                                return { note: Math.max(0, Math.min(127, n|0)), channel: Math.min(16, Math.max(1, ch||1)) };
+                            }
+                            // Shift up while above 127 by subtracting one EDO octave per extra channel
+                            while (n > 127 && edo > 0) { n -= edo; ch += 1; }
+                            // Shift down while below 0 by adding one EDO octave per previous channel
+                            while (n < 0 && edo > 0) { n += edo; ch -= 1; }
+                            // Wrap channel into 1..16 to stay valid
+                            if (ch < 1) ch = ((ch % 16) + 16);
+                            if (ch > 16) ch = ((ch - 1) % 16) + 1;
+                            // Final clamp for safety
+                            n = Math.max(0, Math.min(127, n|0));
+                            ch = Math.min(16, Math.max(1, ch|0));
+                            return { note: n, channel: ch };
+                        } catch(_) {
+                            return { note: Math.max(0, Math.min(127, note|0)), channel: Math.min(16, Math.max(1, channel||1)) };
+                        }
+                    }
+                    sendNoteOn(note, velocity=100, channel=1) {
+                        const norm = this.normalizeNoteChannel(note, channel);
+                        const n = norm.note;
+                        channel = norm.channel;
+                        const vRaw = Number.isFinite(velocity) ? velocity : this.defaultVelocity;
+                        const v = Math.max(1, Math.min(127, Math.round(vRaw)));
+                        this.sendRaw([0x90, n & 0x7F, v], 0, channel);
+                        this.noteState.set(`${n}@${channel}`, { ts: performance.now() });
+                    }
+                    sendNoteOff(note, channel=1) {
+                        const norm = this.normalizeNoteChannel(note, channel);
+                        const n = norm.note;
+                        channel = norm.channel;
+                        this.sendRaw([0x80, n & 0x7F, 0], 0, channel);
+                        this.noteState.delete(`${n}@${channel}`);
+                    }
+                    sendProgramChange(program=0, channel=1) {
+                        const p = Math.max(0, Math.min(127, Math.round(program)));
+                        this.sendRaw([0xC0, p & 0x7F, 0], 0, channel);
+                    }
+                    sendCC(cc, value, channel=1) {
+                        const v = Math.max(0, Math.min(127, Math.round(value)));
+                        this.sendRaw([0xB0, cc & 0x7F, v], 0, channel);
+                    }
+                    // RPN helpers for tuning
+                    selectRPN(msb, lsb, channel=1){ this.sendCC(101, msb & 0x7F, channel); this.sendCC(100, lsb & 0x7F, channel); }
+                    rpnNull(channel=1){ this.sendCC(101, 127, channel); this.sendCC(100, 127, channel); }
+                    dataEntry(msb, lsb=null, channel=1){ this.sendCC(6, msb & 0x7F, channel); if (lsb!=null) this.sendCC(38, lsb & 0x7F, channel); }
+                    setFineTune(cents=0, channel=1){
+                        const v = Math.max(-100, Math.min(100, Number(cents)||0));
+                        const val14 = Math.round((v/100) * 8192) + 8192; // 0..16383
+                        const msb = (val14 >> 7) & 0x7F; const lsb = val14 & 0x7F;
+                        this.selectRPN(0,1,channel); this.dataEntry(msb, lsb, channel); this.rpnNull(channel);
+                    }
+                    setCoarseTune(semitones=0, channel=1){
+                        const s = Math.max(-64, Math.min(63, Math.round(Number(semitones)||0)));
+                        const msb = 64 + s; // 0..127, 64=0
+                        this.selectRPN(0,2,channel); this.dataEntry(msb, null, channel); this.rpnNull(channel);
+                    }
+                    allNotesOff() {
+                        // Send All Notes Off (CC123) on all 16 channels (do not cut sounds)
+                        for (let ch = 1; ch <= 16; ch++) {
+                            this.sendCC(123, 0, ch);
+                        }
+                        // Clear local note state and deferred offs
+                        this.noteState.clear();
+                        this.deferredOff.clear();
+                    }
+                    markActivity() {
+                        if (this._idleTimer) clearTimeout(this._idleTimer);
+                        this._idleTimer = setTimeout(()=>{
+                            // Do not panic while sustain held; re-arm timer instead
+                            if (this.sustain) { this.markActivity(); return; }
+                            try {
+                                this.allNotesOff();
+                            } catch(_) {}
+                        }, this._idleMs);
+                    }
+                    _handleMIDIMessage(ev){
+                        const [status, d1=0, d2=0] = ev.data || [];
+                        const type = status & 0xF0; const ch = (status & 0x0F) + 1;
+                        const payload = { status, type, channel: ch, data1: d1, data2: d2, timeStamp: ev.timeStamp };
+                        // Basic per-section input filtering: if any section specifies a non-omni channel
+                        // and the message channel doesn't match any, drop it from inputHandler.
+                        try {
+                            const ins = this.inputChannelMap || {};
+                            const filters = Object.values(ins).filter(v => Number.isFinite(v) && v>0 && v<=16);
+                            let pass = true;
+                            if (filters.length>0){ pass = filters.includes(ch); }
+                            if (this.inputHandler && pass) this.inputHandler(payload);
+                        } catch(_){ if (this.inputHandler) try { this.inputHandler(payload); } catch(_) {}
+                        }
+                        this.markActivity();
+                    }
+                }
+
+                const midi = new WebMIDIManager();
+                window.midi = midi;
+
+                // Wire MIDI toggle button
+                const midiBtn = document.getElementById('midiToggle');
+                if (midiBtn && !midiBtn._wired) {
+                    midiBtn._wired = true;
+                    midiBtn.addEventListener('click', async ()=>{
+                        if (!midi.enabled) {
+                            const ok = await midi.init();
+                            if (ok) {
+                                midiBtn.classList.add('active');
+                                try {
+                                    const oc = window.omnichord;
+                                    if (oc) {
+                                        if (oc._preMidiMasterVolume === undefined) oc._preMidiMasterVolume = oc.masterVolume;
+                                        if (oc.gainNode) oc.gainNode.gain.value = oc.volume * oc.masterVolume;
+                                        if (oc.dryGainNode) oc.dryGainNode.gain.value = oc.masterVolume;
+                                        if (oc.reverbOutGain) oc.reverbOutGain.gain.value = oc.masterVolume;
+                                    }
+                                } catch(_) {}
+                            }
+                        } else {
+                            midi.enabled = false; midiBtn.classList.remove('active');
+                            try {
+                                // When MIDI is off, restore MASTER so all oscillators are heard
+                                const oc = window.omnichord;
+                                if (oc) {
+                                    const restore = (typeof oc._preMidiMasterVolume === 'number') ? oc._preMidiMasterVolume : oc.masterVolume;
+                                    oc.masterVolume = restore;
+                                    if (oc.gainNode) oc.gainNode.gain.value = oc.volume * oc.masterVolume;
+                                    if (oc.dryGainNode) oc.dryGainNode.gain.value = oc.masterVolume;
+                                    if (oc.reverbOutGain) oc.reverbOutGain.gain.value = oc.masterVolume;
+                                }
+                            } catch(_) {}
+                        }
+                        midi.markActivity();
+                    });
+                }
+                // Program change UI removed per request
+
+                // Helper: map internal frequency to MIDI note based on current EDO steps
+                // Anchor: C4 = MIDI 60. Each EDO step => +1 MIDI note.
+                function freqToMidiNote(freq){
+                    try {
+                        const oc = window.omnichord;
+                        const tuning = oc?.currentTuning || 12;
+                        // C in current tuning (semitone 0 -> step in EDO), octave 4
+                        const cStep = typeof oc?.semitoneToStep === 'function' ? oc.semitoneToStep(0, tuning) : 0;
+                        const c4 = typeof oc?.getFrequency === 'function' ? oc.getFrequency(cStep, 4, tuning) : 261.6256; // fallback C4
+                        const stepDiff = Math.round(tuning * Math.log2(freq / c4));
+                        const midi = 60 + stepDiff; // C4 anchor, 1 step per EDO unit
+                        return midi; // do not clamp here; allow overflow handling later
+                    } catch(_) {
+                        // Fallback to A440 mapping if anything goes wrong
+                        const n = 69 + 12 * Math.log2(freq / 440);
+                        return Math.round(n);
+                    }
+                }
+                function channelForSource(src){ return midi.channelMap[src] || midi.channelMap.default; }
+
+                // Hook play/stop to mirror MIDI out with minimal intrusion
+                const _playFrequency = omnichord.playFrequency.bind(omnichord);
+                omnichord.playFrequency = async function(frequency, element, sourceType='default'){
+                    // Send MIDI Note On first to avoid race with quick releases
+                    try {
+                        if (midi.enabled) {
+                            const note = freqToMidiNote(frequency);
+                            let targets = (sourceType === 'strum') ? ['strum1','strum2'] : [sourceType];
+                            if (sourceType === 'default') {
+                                // Mirror to all five primary sections so oscillators still fire independently
+                                targets = ['strum1','strum2','chord','arp','bass'];
+                            }
+                            const velInput = document.getElementById('midiDefaultVelocity');
+                            const vGlobal = velInput ? Math.max(1, Math.min(127, parseInt(velInput.value||'100',10))) : 100;
+                            midi.defaultVelocity = vGlobal;
+                            const octSel = document.getElementById('midiOctaveOffset');
+                            midi.octaveOffset = octSel ? (parseInt(octSel.value||'0',10) || 0) : 0;
+                            // Helper to derive decay ms per target instrument
+                            const decayMsFor = (t) => {
+                                try {
+                                    const ins = omnichord.instruments || {};
+                                    if (t === 'strum1') return Math.max(0, Math.round(((ins.strum1?.env?.decay) ?? omnichord.envelope?.decay ?? 0.2) * 1000));
+                                    if (t === 'strum2') return Math.max(0, Math.round(((ins.strum2?.env?.decay) ?? omnichord.osc2Envelope?.decay ?? 0.05) * 1000));
+                                    if (t === 'chord')  return Math.max(0, Math.round(((ins.chord?.env?.decay)  ?? 0.2) * 1000));
+                                    if (t === 'arp')    return Math.max(0, Math.round(((ins.arp?.env?.decay)    ?? 0.2) * 1000));
+                                    if (t === 'bass')   return Math.max(0, Math.round(((ins.bass?.env?.decay)   ?? 0.08) * 1000));
+                                    return 200;
+                                } catch(_) { return 200; }
+                            };
+                            for (const tgt of targets) {
+                                const chBase = channelForSource(tgt);
+                                const perOct = (midi.perSourceOctave && Number.isFinite(midi.perSourceOctave[tgt])) ? (midi.perSourceOctave[tgt]|0) : 0;
+                                const effNote = note + (perOct * 12);
+                                const norm = midi.normalizeNoteChannel(effNote, chBase);
+                                const nNote = norm.note; const nCh = norm.channel;
+                                const key = `${nNote}@${nCh}`;
+                                if ((tgt === 'strum1' || tgt === 'strum2') && midi.noteState.has(key) && !midi.sustain) {
+                                    midi.sendNoteOff(nNote, nCh);
+                                }
+                                if (tgt === 'chord' && midi.noteState.has(key) && !midi.sustain) {
+                                    midi.sendNoteOff(nNote, nCh);
+                                }
+                                const perV = (midi.perSourceVelocity && Number.isFinite(midi.perSourceVelocity[tgt])) ? (midi.perSourceVelocity[tgt]|0) : vGlobal;
+                                const useV = Math.max(1, Math.min(127, perV));
+                                midi.sendNoteOn(nNote, useV, nCh);
+                                // Schedule Note Off based on musical intent per section
+                                const epsilonMs = 8;
+                                let offDelay = Math.max(10, decayMsFor(tgt)|0);
+                                try {
+                                    if (tgt === 'chord') {
+                                        // HOLD-based duration for chords (e.g., 1 BAR)
+                                        const bpmEl = document.getElementById('universalBpm');
+                                        const bpm = bpmEl ? (parseFloat(bpmEl.value)||120) : (omnichord._arpTransport?.bpm || 120);
+                                        const beatMs = 60000 / Math.max(1, bpm);
+                                        const tsEl = document.getElementById('timeSignatureSelect');
+                                        const timeSignature = tsEl ? tsEl.value : (omnichord._arpTransport?.timeSignature || '4/4');
+                                        const [beatsPerBar] = String(timeSignature).split('/').map(Number);
+                                        const barMs = beatMs * (beatsPerBar || 4);
+                                        const holdSel = document.getElementById('universalHold') || document.getElementById('chordHold');
+                                        const holdVal = holdSel ? String(holdSel.value||'bar:1') : 'bar:1';
+                                        const [kind, valStr] = holdVal.split(':');
+                                        const n = Math.max(1, parseInt(valStr||'1',10));
+                                        const holdMs = (kind === 'beat') ? n*beatMs : n*barMs;
+                                        offDelay = Math.max(10, Math.floor(holdMs - epsilonMs));
+                                    } else if (tgt === 'arp') {
+                                        // QUANT-based duration for ARP (e.g., 1/8 note)
+                                        try { if (typeof omnichord._ensureArpTransport === 'function') omnichord._ensureArpTransport(); } catch(_) {}
+                                        let quantMs = omnichord._arpTransport?.tickMs;
+                                        if (!quantMs || !Number.isFinite(quantMs)) {
+                                            const quantEl = document.getElementById('universalQuant');
+                                            const bpmEl = document.getElementById('universalBpm');
+                                            const bpm = bpmEl ? (parseFloat(bpmEl.value)||120) : (omnichord._arpTransport?.bpm || 120);
+                                            const q = quantEl?.value || omnichord._arpTransport?.quant || '1/16';
+                                            if (typeof omnichord._parseQuantToMs === 'function') {
+                                                quantMs = omnichord._parseQuantToMs(q, bpm);
+                                            } else {
+                                                const beatMs = 60000 / Math.max(1, bpm);
+                                                const base = String(q).replace('T','');
+                                                const map = { '1/1':1, '1/2':2, '1/4':4, '1/8':8, '1/16':16, '1/32':32 };
+                                                const div = map[base] || 8;
+                                                quantMs = beatMs * (4/div);
+                                                if (String(q).endsWith('T')) quantMs *= 2/3;
+                                            }
+                                        }
+                                        offDelay = Math.max(10, Math.floor(quantMs - epsilonMs));
+                                    }
+                                } catch(_) {}
+                                setTimeout(()=>{
+                                    try {
+                                        if (!midi.enabled) return;
+                                        midi.sendNoteOff(nNote, nCh);
+                                    } catch(_) {}
+                                }, offDelay);
+                            }
+                        }
+                    } catch(_) {}
+                    await _playFrequency(frequency, element, sourceType);
+                    try { midi.markActivity(); } catch(_) {}
+                };
+
+                const _stopFrequency = omnichord.stopFrequency.bind(omnichord);
+                omnichord.stopFrequency = function(frequency, element, sourceType='default'){
+                    try {
+                        if (midi.enabled) {
+                            const note = freqToMidiNote(frequency);
+                            let targets = (sourceType === 'strum') ? ['strum1','strum2'] : [sourceType];
+                            if (sourceType === 'default') {
+                                targets = ['strum1','strum2','chord','arp','bass'];
+                            }
+                            for (const tgt of targets) {
+                                // Do not send immediate Note Off for CHORD/ARP; allow HOLD/QUANT timers to release
+                                if (tgt === 'chord' || tgt === 'arp') continue;
+                                const chBase = channelForSource(tgt);
+                                const perOct = (midi.perSourceOctave && Number.isFinite(midi.perSourceOctave[tgt])) ? (midi.perSourceOctave[tgt]|0) : 0;
+                                const effNote = note + (perOct * 12);
+                                const norm = midi.normalizeNoteChannel(effNote, chBase);
+                                const nNote = norm.note; const nCh = norm.channel;
+                                midi.sendNoteOff(nNote, nCh);
+                            }
+                        }
+                    } catch(_) {}
+                    try { midi.markActivity(); } catch(_) {}
+                    return _stopFrequency(frequency, element, sourceType);
+                };
+
+                // Map keyboard modifiers to MIDI pedals during playback
+                (function(){
+                    try {
+                        if (window.__midiPedalsHooked) return;
+                        window.__midiPedalsHooked = true;
+                        const usedChannels = ()=>{
+                            const s = new Set(Object.values(midi.channelMap||{}));
+                            // Always include default channel
+                            s.add(midi.channelMap?.default||5);
+                            // Also include any channels currently holding notes (for overflow splitting)
+                            try {
+                                for (const key of midi.noteState.keys()){
+                                    const parts = String(key).split('@');
+                                    const ch = parseInt(parts[1]||'0',10);
+                                    if (ch>=1 && ch<=16) s.add(ch);
+                                }
+                            } catch(_){}
+                            return Array.from(s);
+                        };
+                        const sendSustain = (on)=>{ try { for (const ch of usedChannels()) midi.sendCC(64, on?127:0, ch); } catch(_){} };
+                        const sendSoft = (on)=>{ try { for (const ch of usedChannels()) midi.sendCC(67, on?127:0, ch); } catch(_){} };
+                        const flushDeferred = ()=>{}; // No-op: avoid abrupt kills on pedal release
+                        window.addEventListener('keydown', (e)=>{
+                            if (!midi.enabled) return;
+                            // SHIFT: sustain pedal on (edge only, ignore repeats)
+                            if (e.key === 'Shift' && !e.repeat){
+                                if (!window.__sustainKeyDown){
+                                    window.__sustainKeyDown = true;
+                                    midi.sustain = true;
+                                    sendSustain(true);
+                                }
+                            }
+                            if (e.key === 'Control' && !window.__softPedalDown){
+                                window.__softPedalDown = true; sendSoft(true);
+                            }
+                            // ALT+C: toggle CHORD/ARP mode
+                            if (e.altKey && (e.key === 'c' || e.key === 'C')){
+                                try { if (window.omnichord && typeof window.omnichord.toggleChordArpMode === 'function') window.omnichord.toggleChordArpMode(); } catch(_) {}
+                                e.preventDefault();
+                            }
+                            // ALT+B: toggle Bass
+                            if (e.altKey && (e.key === 'b' || e.key === 'B')){
+                                try { if (window.omnichord && typeof window.omnichord.toggleBassMode === 'function') window.omnichord.toggleBassMode(); } catch(_) {}
+                                e.preventDefault();
+                            }
+                            // ALT +/−: octave up/down for ARP and CHORD MIDI
+                            if (e.altKey && !e.repeat){
+                                const plus = (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd');
+                                const minus = (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract');
+                                if (plus || minus){
+                                    const delta = plus ? 1 : -1;
+                                    try {
+                                        midi.perSourceOctave = midi.perSourceOctave || {};
+                                        midi.perSourceOctave.chord = (midi.perSourceOctave.chord||0) + delta;
+                                        midi.perSourceOctave.arp   = (midi.perSourceOctave.arp||0) + delta;
+                                        const chordSel = document.getElementById('midiOct-chord');
+                                        if (chordSel){
+                                            const newVal = String(Math.max(-3, Math.min(3, parseInt(chordSel.value||'0',10) + delta)));
+                                            chordSel.value = newVal;
+                                        }
+                                        const arpSel = document.getElementById('midiOct-arp');
+                                        if (arpSel){
+                                            const newVal = String(Math.max(-3, Math.min(3, parseInt(arpSel.value||'0',10) + delta)));
+                                            arpSel.value = newVal;
+                                        }
+                                    } catch(_) {}
+                                    e.preventDefault();
+                                }
+                            }
+                            // ArrowUp: start mod wheel ramp while held
+                            if (e.key === 'ArrowUp' && !window.__modWheelRampActive){
+                                window.__modWheelRampActive = true;
+                                try { if (!window.__modWheelVal) window.__modWheelVal = 0; } catch(_) {}
+                                try { if (window.__modWheelTimer) { clearInterval(window.__modWheelTimer); window.__modWheelTimer = null; } } catch(_){ }
+                                window.__modWheelTimer = setInterval(()=>{
+                                    try {
+                                        window.__modWheelVal = Math.min(127, (window.__modWheelVal||0) + 5);
+                                        for (const ch of usedChannels()) midi.sendCC(1, window.__modWheelVal, ch);
+                                        if (window.__modWheelVal >= 127){
+                                            clearInterval(window.__modWheelTimer); window.__modWheelTimer = null;
+                                        }
+                                    } catch(_) {}
+                                }, 40);
+                                e.preventDefault();
+                            }
+                        }, {passive:true});
+                        window.addEventListener('keyup', (e)=>{
+                            if (!midi.enabled) return;
+                            // SHIFT: sustain pedal off on keyup
+                            if (e.key === 'Shift'){
+                                if (window.__sustainKeyDown){ window.__sustainKeyDown = false; }
+                                if (midi.sustain){ midi.sustain=false; sendSustain(false); }
+                            }
+                            if (e.key === 'Control' && window.__softPedalDown){
+                                window.__softPedalDown = false; sendSoft(false);
+                            }
+                            // Stop mod wheel ramp, reset to 0
+                            if (e.key === 'ArrowUp'){
+                                try { if (window.__modWheelTimer){ clearInterval(window.__modWheelTimer); window.__modWheelTimer = null; } } catch(_) {}
+                                try { window.__modWheelRampActive = false; window.__modWheelVal = 0; for (const ch of usedChannels()) midi.sendCC(1, 0, ch); } catch(_) {}
+                                e.preventDefault();
+                            }
+                        }, {passive:true});
+                        window.addEventListener('blur', ()=>{
+                            if (!midi.enabled) return;
+                            if (midi.sustain){ midi.sustain=false; sendSustain(false); }
+                            if (window.__softPedalDown){ window.__softPedalDown=false; sendSoft(false); }
+                        });
+                    } catch(_){}
+                })();
+                // Incoming MIDI → chord selection + mod wheel strum
+                const baseNote = 0; // C-2 (MIDI 0)
+                const maxSlots = 32; // 32 slots starting at C-2
+                let heldChordSlot = null;
+                midi.onInput((msg)=>{
+                    if (!midi.enabled) return;
+                    const { type, data1, data2 } = msg;
+                    if (type === 0x90 && data2 > 0) { // Note On
+                        const idx = data1 - baseNote; // 0..31
+                        if (idx >= 0 && idx < maxSlots) {
+                            heldChordSlot = idx;
+                            try { omnichord.playChordByIndex(idx); } catch(_) {}
+                        }
+                    } else if (type === 0x80 || (type === 0x90 && data2 === 0)) { // Note Off
+                        const idx = data1 - baseNote;
+                        if (idx >= 0 && idx < maxSlots) {
+                            heldChordSlot = null;
+                            try { omnichord.stopAllActiveNotes(); } catch(_) {}
+                        }
+                    } else if (type === 0xB0) { // CC
+                        if (data1 === 64) { // Sustain pedal
+                            midi.sustain = data2 >= 64;
+                        } else if (data1 === 1) { // Mod wheel → strum
+                            if (heldChordSlot != null) {
+                                // Map CC value to a brief strum gesture across current column
+                                const columns = document.querySelectorAll('.extension-column');
+                                const col = columns[heldChordSlot] || null;
+                                if (col) {
+                                    const rect = col.getBoundingClientRect();
+                                    const y = rect.top + (1 - (data2/127)) * rect.height;
+                                    try { omnichord.playChordStrum(col, {name:'MIDI'}, y-8, y+8); } catch(_) {}
+                                }
+                            }
+                        }
+                    }
+                });
+                // Wire per-section MIDI controls (IN/OUT/OCTAVE/VELOCITY)
+                ;(function(){
+                    try {
+                        const sections = ['strum1','strum2','chord','arp','bass'];
+                        for (const sec of sections){
+                            const inEl = document.getElementById(`midiIn-${sec}`);
+                            const outEl = document.getElementById(`midiOut-${sec}`);
+                            const octEl = document.getElementById(`midiOct-${sec}`);
+                            const velEl = document.getElementById(`midiVel-${sec}`);
+                            if (inEl){ inEl.addEventListener('change', ()=>{ midi.inputChannelMap[sec] = Math.max(0, Math.min(15, parseInt(inEl.value||'0',10)|0)); }); }
+                            if (outEl){ outEl.addEventListener('change', ()=>{ midi.channelMap[sec] = Math.max(1, Math.min(16, parseInt(outEl.value||'1',10)|0)); }); }
+                            if (octEl){ octEl.addEventListener('change', ()=>{ midi.perSourceOctave[sec] = Math.max(-3, Math.min(3, parseInt(octEl.value||'0',10)|0)); }); }
+                            if (velEl){ velEl.addEventListener('change', ()=>{ midi.perSourceVelocity[sec] = Math.max(1, Math.min(127, parseInt(velEl.value||'100',10)|0)); }); }
+                            // Initialize from defaults
+                            if (inEl) inEl.value = String(midi.inputChannelMap[sec] ?? 0);
+                            if (outEl) outEl.value = String(midi.channelMap[sec] ?? 1);
+                            if (octEl) octEl.value = String(midi.perSourceOctave[sec] ?? 0);
+                            if (velEl) velEl.value = String(midi.perSourceVelocity[sec] ?? midi.defaultVelocity ?? 100);
+                        }
+                    } catch(_) {}
+                })();
+
+                // Keyboard hotkeys for MIDI velocity: [,] down 5, [.] up 5
+                (function(){
+                    try {
+                        if (window.__midiVelHotkeys) return; window.__midiVelHotkeys = true;
+                        const adjust = (delta)=>{
+                            const inp = document.getElementById('midiDefaultVelocity');
+                            let v = Number.isFinite(parseInt(inp?.value||'0',10)) ? (parseInt(inp.value,10)) : midi.defaultVelocity||100;
+                            v = Math.max(1, Math.min(127, v + delta));
+                            if (inp) inp.value = String(v);
+                            midi.defaultVelocity = v;
+                            // If per-section velocities match old global, update them too for convenience
+                            try {
+                                const sections = ['strum1','strum2','chord','arp','bass'];
+                                for (const sec of sections){
+                                    const el = document.getElementById(`midiVel-${sec}`);
+                                    if (el){
+                                        const cur = parseInt(el.value||'0',10);
+                                        if (cur === (v - delta)) { el.value = String(v); midi.perSourceVelocity[sec] = v; }
+                                    }
+                                }
+                            } catch(_) {}
+                        };
+                        window.addEventListener('keydown', (e)=>{
+                            if (!midi.enabled) return;
+                            if (e.key === ',') { e.preventDefault(); adjust(-5); }
+                            else if (e.key === '.') { e.preventDefault(); adjust(+5); }
+                        }, {passive:false});
+                    } catch(_){}
+                })();
+            })();
 
             // Force 24-EDO at startup before any parsing/sequencing occurs
             try {
@@ -22954,6 +23772,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                          omnichord.applyUniversalSettings();
                      });
                  }
+                 // Wire MIDI settings controls if present
+                 try {
+                     const midiOctSel = document.getElementById('midiOctaveOffset');
+                     const midiVelInput = document.getElementById('midiDefaultVelocity');
+                     if (midiOctSel && !midiOctSel._wired) {
+                         midiOctSel._wired = true;
+                         midiOctSel.addEventListener('change', ()=>{
+                             try { midi.octaveOffset = parseInt(midiOctSel.value||'0',10) || 0; } catch(_) {}
+                         });
+                     }
+                     if (midiVelInput && !midiVelInput._wired) {
+                         midiVelInput._wired = true;
+                         midiVelInput.addEventListener('input', ()=>{
+                             try {
+                                 const v = Math.max(1, Math.min(127, parseInt(midiVelInput.value||'100',10)));
+                                 midi.defaultVelocity = v;
+                             } catch(_) {}
+                         });
+                     }
+                 } catch(_) {}
                  
                  if (universalTimeSignature) {
                      universalTimeSignature.addEventListener('change', () => {
@@ -22976,6 +23814,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                  if (universalHold) {
                      universalHold.addEventListener('change', () => {
                          omnichord.applyUniversalSettings();
+                     });
+                 }
+                 // Swing control (ARP)
+                 const universalSwing = document.getElementById('universalSwing');
+                 if (universalSwing && !universalSwing._wired) {
+                     universalSwing._wired = true;
+                     try {
+                         const saved = localStorage.getItem('xen_swing_pct');
+                         if (saved != null) universalSwing.value = String(Math.max(0, Math.min(75, parseFloat(saved)||0)));
+                     } catch(_) {}
+                     universalSwing.addEventListener('input', ()=>{
+                         try {
+                             const v = Math.max(0, Math.min(75, parseFloat(universalSwing.value||'0')));
+                             if (!omnichord._arpTransport) omnichord._ensureArpTransport();
+                             if (omnichord._arpTransport) omnichord._arpTransport.swingPct = v;
+                             try { localStorage.setItem('xen_swing_pct', String(v)); } catch(_) {}
+                         } catch(_) {}
                      });
                  }
                  
