@@ -23070,11 +23070,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         // First, check if we're at a bracket marker position
                                         if (sequenceIndex < allCols.length && allCols[sequenceIndex].classList.contains('repeat-marker-column')) {
                                             console.log('🎵 Found bracket marker at current index, handling bracket logic first');
-                                            const nextIndex = handleBracketLogic(sequenceIndex);
+                                            let nextIndex = handleBracketLogic(sequenceIndex);
+                                            // Collapse successive markers so we land on a real chord (or end)
+                                            while (nextIndex !== -1 && nextIndex < allCols.length && !allCols[nextIndex].classList.contains('extension-column')) {
+                                                const advanced = handleBracketLogic(nextIndex);
+                                                if (advanced === nextIndex) break; // safety to prevent infinite loop
+                                                nextIndex = advanced;
+                                            }
                                             if (nextIndex !== -1) {
                                                 sequenceIndex = nextIndex;
                                                 console.log('🎵 Bracket logic set new sequenceIndex to:', sequenceIndex);
-                                                // Continue processing from the new index
                                             }
                                         }
                                         
@@ -23082,9 +23087,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         if (sequenceIndex >= allCols.length) {
                                             // End-of-sequence; handled after scheduling block
                                         } else if (!allCols[sequenceIndex].classList.contains('extension-column')) {
-                                            // Not currently on a chord: find the first chord from here (handles '[' at 0, etc.)
-                                            const resolved = findNextChordIndex(sequenceIndex);
-                                            if (resolved === -1) {
+                                            // Not currently on a chord: resolve to the next real chord (skip markers)
+                                            let resolved = findNextChordIndex(sequenceIndex);
+                                            // If we hit a marker, run its logic until we reach a chord or end
+                                            while (resolved !== -1 && resolved < allCols.length && !allCols[resolved].classList.contains('extension-column')) {
+                                                const advanced = handleBracketLogic(resolved);
+                                                if (advanced === resolved) break; // safety
+                                                resolved = (advanced >= 0 ? advanced : -1);
+                                                if (resolved !== -1 && resolved < allCols.length && !allCols[resolved].classList.contains('extension-column')) {
+                                                    // Try to find the next chord again from the new position
+                                                    resolved = findNextChordIndex(resolved);
+                                                }
+                                            }
+                                            if (resolved === -1 || resolved >= allCols.length) {
                                                 // Reached end of sequence
                                                 if (loopChk && loopChk.checked){
                                                     console.log('🎵 Looping back to start');
@@ -23322,6 +23337,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             if (isBracketMarker) {
                                                 console.log('🎵 Found bracket/repeat marker at index', scanIndex, '- calling handleBracketLogic');
                                                 nextIndex = handleBracketLogic(scanIndex);
+                                                // Collapse successive markers so nextIndex lands on a chord or end
+                                                while (nextIndex !== -1 && nextIndex < allCols.length && !allCols[nextIndex].classList.contains('extension-column')) {
+                                                    const advanced = handleBracketLogic(nextIndex);
+                                                    if (advanced === nextIndex) break; // safety
+                                                    nextIndex = advanced;
+                                                }
                                                 foundBracketLogic = true;
                                                 break;
                                             } else if (scanCol.classList.contains('extension-column')) {
