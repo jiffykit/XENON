@@ -2016,31 +2016,38 @@
                 </div>
                 <div>
                     <label style="font-size:11px;color:#9db6c8;">TIME SIGNATURE</label>
-                    <select id="universalTimeSignature" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;">
-                        <option value="4/4">4/4</option>
-                        <option value="3/4">3/4</option>
-                        <option value="2/4">2/4</option>
-                        <option value="6/8">6/8</option>
-                        <option value="7/8">7/8</option>
-                        <option value="5/4">5/4</option>
-                    </select>
+                    <input id="universalTimeSignature" list="tsOptions" type="text" value="4/4" placeholder="e.g., 7/8 or 2/3" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;" />
+                    <datalist id="tsOptions">
+                        <option value="4/4"></option>
+                        <option value="3/4"></option>
+                        <option value="2/4"></option>
+                        <option value="6/8"></option>
+                        <option value="7/8"></option>
+                        <option value="5/4"></option>
+                        <option value="2/3"></option>
+                    </datalist>
                 </div>
                 <div>
                     <label style="font-size:11px;color:#9db6c8;">QUANT</label>
-                    <select id="universalQuant" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;">
-                        <option value="1/1">1/1</option>
-                        <option value="1/2">1/2</option>
-                        <option value="1/4">1/4</option>
-                        <option value="1/8">1/8</option>
-                        <option value="1/16" selected>1/16</option>
-                        <option value="1/32">1/32</option>
-                        <option value="1/8T">1/8T</option>
-                        <option value="1/16T">1/16T</option>
-                        <option value="tuplet:5">5/beat</option>
-                        <option value="tuplet:7">7/beat</option>
-                        <option value="tuplet:9">9/beat</option>
-                        <option value="tuplet:11">11/beat</option>
-                    </select>
+                    <input id="universalQuant" list="quantOptions" type="text" value="1/16" placeholder="1/16, 1/8T, tuplet:5/4" style="width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;" />
+                    <datalist id="quantOptions">
+                        <option value="1/1"></option>
+                        <option value="1/2"></option>
+                        <option value="1/4"></option>
+                        <option value="1/8"></option>
+                        <option value="1/16"></option>
+                        <option value="1/32"></option>
+                        <option value="1/8T"></option>
+                        <option value="1/16T"></option>
+                        <option value="tuplet:5"></option>
+                        <option value="tuplet:7"></option>
+                        <option value="tuplet:9"></option>
+                        <option value="tuplet:11"></option>
+                        <option value="tuplet:5/2"></option>
+                        <option value="tuplet:5/4"></option>
+                        <option value="tuplet:5/8"></option>
+                        <option value="tuplet:7/4"></option>
+                    </datalist>
                 </div>
                 <div>
                     <label style="font-size:11px;color:#9db6c8;">PATTERN</label>
@@ -2055,6 +2062,7 @@
                         <option value="alt-center">Alt Center</option>
                         <option value="random">Random</option>
                     </select>
+                    <input id="universalPatternText" type="text" placeholder="Custom: 1[23]1[23]1[56]1[x]" style="margin-top:6px;width:100%;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 8px;font-size:13px;" />
                 </div>
                 <div>
                     <label style="font-size:11px;color:#9db6c8;">HOLD</label>
@@ -10091,8 +10099,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const bpm = bpmEl ? parseInt(bpmEl.value) : 120;
                         const beatMs = 60000 / Math.max(20, bpm);
                         const tsEl = document.getElementById('universalTimeSignature');
-                        const [beatsPerBar] = (tsEl ? tsEl.value : '4/4').split('/').map(Number);
-                        const barMs = beatMs * (beatsPerBar || 4);
+                        const tsRaw = tsEl ? String(tsEl.value||'4/4') : '4/4';
+                        let tsNum=4, tsDen=4; try { const [n,d]=tsRaw.split('/').map(v=>parseInt(v,10)); if(Number.isFinite(n)&&n>0) tsNum=n; if(Number.isFinite(d)&&d>0) tsDen=d; } catch(_) {}
+                        const beatsPerBar = (tsNum * 4) / tsDen;
+                        const barMs = beatMs * beatsPerBar;
                         const holdMs = (kind==='beat') ? n*beatMs : n*barMs;
                         if (!this._isSequencing && now - (this._lastInteractionAt||0) > holdMs) {
                             try {
@@ -10126,8 +10136,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const bpm = bpmEl ? parseInt(bpmEl.value) : 120;
                         const beatMs = 60000 / Math.max(20, bpm);
                         const tsEl = document.getElementById('universalTimeSignature');
-                        const [beatsPerBar] = (tsEl ? tsEl.value : '4/4').split('/').map(Number);
-                        const barMs = beatMs * (beatsPerBar || 4);
+                        const tsRaw = tsEl ? String(tsEl.value||'4/4') : '4/4';
+                        let tsNum=4, tsDen=4; try { const [n,d]=tsRaw.split('/').map(v=>parseInt(v,10)); if(Number.isFinite(n)&&n>0) tsNum=n; if(Number.isFinite(d)&&d>0) tsDen=d; } catch(_) {}
+                        const beatsPerBar = (tsNum * 4) / tsDen;
+                        const barMs = beatMs * beatsPerBar;
                         const holdMs = (kind==='beat') ? n*beatMs : n*barMs;
                         if (!this._isSequencing && now - (this._lastInteractionAt||0) > holdMs) {
                             try {
@@ -10161,8 +10173,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const bpm = bpmEl ? parseInt(bpmEl.value) : 120;
                         const beatMs = 60000 / Math.max(20, bpm);
                         const tsEl = document.getElementById('universalTimeSignature');
-                        const [beatsPerBar] = (tsEl ? tsEl.value : '4/4').split('/').map(Number);
-                        const barMs = beatMs * (beatsPerBar || 4);
+                        const tsRaw = tsEl ? String(tsEl.value||'4/4') : '4/4';
+                        let tsNum=4, tsDen=4; try { const [n,d]=tsRaw.split('/').map(v=>parseInt(v,10)); if(Number.isFinite(n)&&n>0) tsNum=n; if(Number.isFinite(d)&&d>0) tsDen=d; } catch(_) {}
+                        const beatsPerBar = (tsNum * 4) / tsDen;
+                        const barMs = beatMs * beatsPerBar;
                         const holdMs = (kind==='beat') ? n*beatMs : n*barMs;
                         if (!this._isSequencing && now - (this._lastInteractionAt||0) > holdMs) {
                             try {
@@ -10386,6 +10400,44 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         } catch (e) {
                             console.error('Error handling SPACE key:', e);
                         }
+                        return;
+                    }
+
+                    // R key: Re-randomize arpeggiator pattern at next quant edge
+                    if ((key === 'r' || key === 'R')) {
+                        try {
+                            // Only act when ARP is engaged or a sequence is active
+                            const patEl = document.getElementById('universalPattern');
+                            const pat = (patEl && patEl.value) ? patEl.value : (this._arp?.pattern||'up');
+                            if (!this._arpTransport) this._ensureArpTransport();
+                            if (!this._arp) this._ensureArpDefaults();
+                            // If no column context, ignore
+                            const col = this._arp?.column || this.currentActiveColumnEl || null;
+                            if (!col) return;
+                            // Build a fresh sequence using 'random' regardless of current pattern
+                            const rowsAll = Array.from(col.querySelectorAll('.strings-column .string'));
+                            const within = rowsAll.filter(r => {
+                                const o = parseInt(r.dataset.octave||'0',10);
+                                return o>=5 && o<=9;
+                            });
+                            const npc = Math.max(1, (this._getGlobalNpc ? this._getGlobalNpc() : (this._arp?.npc|0) || 3));
+                            const seq = this._buildArpSequence(within, 'random', null).slice(0, npc);
+                            // Queue for next tick to avoid phase break
+                            const tpBar = this._arpTransport.ticksPerBar || 16;
+                            const curTick = this._arpTransport.tickCounter|0;
+                            const absTick = this._arpTransport.absTickCounter|0;
+                            const targetAbsTick = absTick + 1;
+                            this._arp.pendingSwitch = {
+                                atAbsTick: targetAbsTick >>> 0,
+                                alignPhaseToTickCounter: false,
+                                seq,
+                                bassFreq: this._arp.bassFreq,
+                                column: col,
+                                mapAsc: within.slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0)-(parseFloat(b.dataset.frequency)||0)).slice(0, npc)
+                            };
+                            // Ensure transport
+                            this._startArpTransport();
+                        } catch(_) {}
                         return;
                     }
                 };
@@ -17098,20 +17150,38 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this._arp.bpm = bpm;
                     this._arp.quant = quant;
                 }
-                // Support merged tuplet values via quant like "tuplet:7"
-                let tuplet = 0;
+                // Parse time signature now to compute bar math early
+                const timeSignatureEl = document.getElementById('universalTimeSignature');
+                const tsRaw = timeSignatureEl ? String(timeSignatureEl.value||'4/4') : '4/4';
+                let tsNum = 4, tsDen = 4;
+                try {
+                    const [n,d] = tsRaw.split('/').map(v=>parseInt(v,10));
+                    if (Number.isFinite(n) && n>0) tsNum = n;
+                    if (Number.isFinite(d) && d>0) tsDen = d;
+                } catch(_) {}
+                // Support merged tuplet values via quant like "tuplet:7" or "tuplet:7/8"
+                let tupletN = 0;
+                let tupletDen = 4; // base against quarter unless specified
                 if (typeof quant === 'string' && quant.startsWith('tuplet:')){
-                    const n = parseInt(quant.split(':')[1],10);
-                    tuplet = Number.isFinite(n) && n>0 ? n : 0;
+                    const spec = quant.slice(7);
+                    const parts = spec.split('/');
+                    const n = parseInt(parts[0],10);
+                    const d = parts[1] != null ? parseInt(parts[1],10) : (tsDen || 4);
+                    if (Number.isFinite(n) && n>0) tupletN = n; else tupletN = 0;
+                    if (Number.isFinite(d) && d>0) tupletDen = d; else tupletDen = 4;
                 } else {
-                    tuplet = Math.max(0, this._arp?.tuplet || 0);
+                    tupletN = Math.max(0, this._arp?.tuplet || 0);
+                    tupletDen = 4;
                 }
                 const beatMs = 60000 / bpm;
-                let ticksPerBeat = 4; // default for 1/16
+                let ticksPerBeat = 4; // default grid approximating 1/16
                 let tickMs;
-                if (tuplet > 0){
-                    ticksPerBeat = tuplet; // N notes per beat
-                    tickMs = beatMs / tuplet;
+                if (tupletN > 0){
+                    // Tuplet relative to note 1/tupletDen (quarter-relative base 4)
+                    const noteMs = beatMs * (4/tupletDen);
+                    tickMs = noteMs / tupletN;
+                    ticksPerBeat = Math.max(1, Math.round(beatMs / tickMs));
+                    this._arpTransport.isTriplet = false;
                 } else {
                     const tri = q => q.endsWith('T');
                     const base = quant.replace('T','');
@@ -17123,17 +17193,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     tickMs = beatMs * beatsPerTick;
                     this._arpTransport.isTriplet = tri(quant);
                 }
-                // Get time signature from universal control
-                const timeSignatureEl = document.getElementById('universalTimeSignature');
-                const timeSignature = timeSignatureEl ? timeSignatureEl.value : '4/4';
-                const [beatsPerBar, beatUnit] = timeSignature.split('/').map(Number);
-                const effectiveBeatsPerBar = beatsPerBar || 4; // fallback to 4/4
-                
-                const ticksPerBar = ticksPerBeat * effectiveBeatsPerBar;
+                // Effective beats-per-bar in quarter-beats: N * 4 / D
+                const effectiveBeatsPerBar = (tsNum * 4) / tsDen;
+                // Prefer integer ticksPerBar for stable modulo; round from duration ratio
+                const ticksPerBar = Math.max(1, Math.round((beatMs * effectiveBeatsPerBar) / tickMs));
                 // Disable swing when using tuplets or triplets
-                if (tuplet > 0 || this._arpTransport.isTriplet) swingPct = 0;
+                if (tupletN > 0 || this._arpTransport.isTriplet) swingPct = 0;
                 this._arpTransport.swingPct = swingPct;
-                Object.assign(this._arpTransport, { bpm, quant, tuplet, beatMs, tickMs, ticksPerBeat, beatsPerBar: effectiveBeatsPerBar, ticksPerBar, timeSignature });
+                const timeSignature = `${tsNum}/${tsDen}`;
+                Object.assign(this._arpTransport, { bpm, quant, tuplet: tupletN, beatMs, tickMs, ticksPerBeat, beatsPerBar: effectiveBeatsPerBar, ticksPerBar, timeSignature });
                 // Update gate based on current tick
                 const gateMs = Math.max(5, Math.floor(((this._arp?.gatePct||50)/100) * tickMs));
                 this._arp.gateMs = gateMs;
@@ -17291,7 +17359,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     } catch(_) { }
 
                     // Play any active ARP voice aligned to global tickCounter
-                    try {
                         if (this._arp && this._arp.active && this._arp.seq && this._arp.seq.length){
                             // Suppress per-tick gating while in chord mode; sustain is handled at switch time
                             if (this._arp.mode === 'chord'){
@@ -17309,63 +17376,44 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Determine gate duration: ARP steps use quant-based gate (HOLD controls chord switching)
                             const gateMs = this._arp.gateMs || Math.max(5, Math.floor(((this._arp.gatePct||50)/100) * this._arpTransport.tickMs));
                             
-                            let f = el ? parseFloat(el.dataset.frequency) : NaN;
-                            if (!f || !isFinite(f) || f<=0){
-                                try{
-                                    const step = parseInt(el.dataset.noteIndex,10);
-                                    const oct = parseInt(el.dataset.octave,10);
-                                    const tuning = this.currentTuning || 12;
-                                    if (Number.isFinite(step)) f = this.getFrequency(((step%tuning)+tuning)%tuning, Number.isFinite(oct)?oct:4, tuning);
-                                }catch(_){ }
+                            if (el == null) {
+                                // Rest step: do nothing but still advance
+                                this._arpTransport.lastActiveTick = this._arpTransport.tickCounter;
+                                this._arpTransport.lastActiveAbsTick = this._arpTransport.absTickCounter;
+                                this._arpTransport.inactivityStopScheduled = false;
+                                this._arpTransport.stopAtBarIndex = null;
+                                // No early return; allow scheduler to continue
                             }
-                            const tuner = this.currentTuning || 12;
-                            // In PLAY mode, ARP should not glide; enforce instantaneous gates
-                            const glideMs = 0;
-
-                            // Lead note behavior
-                            if (f && isFinite(f) && f>0){
+                            // Support chords-per-step: el can be a Node or an array of Nodes
+                            const playOne = (node)=>{
+                                let f = node ? parseFloat(node.dataset.frequency) : NaN;
+                                if (!f || !isFinite(f) || f<=0){
+                                    try{
+                                        const step = parseInt(node.dataset.noteIndex,10);
+                                        const oct = parseInt(node.dataset.octave,10);
+                                        const tuning = this.currentTuning || 12;
+                                        if (Number.isFinite(step)) f = this.getFrequency(((step%tuning)+tuning)%tuning, Number.isFinite(oct)?oct:4, tuning);
+                                    }catch(_){ }
+                                }
                                 const bfLive = this._arp?.bassLiveFreq;
                                 const isBassStep = !!(bfLive && Math.abs((f - bfLive) / bfLive) <= 5e-5);
-                                if (false && this._arp.glide && this._arp.morph && Array.isArray(this._arp.morph.source) && this._arp.morph.source.length){
-                                    // Index-aligned mapping: follow NPC order exactly
-                                    const idxNorm = ((idx % this._arp.morph.target.length) + this._arp.morph.target.length) % this._arp.morph.target.length;
-                                    // Compute morph progress over glideMs from morph.startAbsTick
-                                    const startAt = this._arp.morph.startAbsTick || 0;
-                                    const ticksSince = Math.max(0, (this._arpTransport.absTickCounter|0) - startAt);
-                                    const tMs = ticksSince * (this._arpTransport.tickMs||0);
-                                    const p = Math.max(0, Math.min(1, tMs / glideMs));
-                                    const a = this._arp.morph.source[idxNorm] ?? f;
-                                    const b = this._arp.morph.target[idxNorm] ?? f;
-                                    const cur = a * Math.pow(2, (Math.log2(b/a) * p)); // exponential interp in frequency domain
-                                    // Persist current morph position for chaining
-                                    try { if (this._arp.morph.currentTargets) this._arp.morph.currentTargets[idxNorm] = cur; } catch(_){ }
-                                    const isBassCur = !!(bfLive && Math.abs((cur - bfLive) / bfLive) <= 5e-5);
-                                    // Skip gating if this step would duplicate the sustained bass
-                                    if (!isBassCur) {
-                                        this.playFrequency(cur, null, 'arp');
-                                        setTimeout(()=>{
-                                            try {
-                                                const bf = this._arp?.bassLiveFreq;
-                                                if (!bf || Math.abs((cur - bf)/bf) > 5e-5) {
-                                                    this.stopFrequency(cur, null, 'arp');
-                                                }
-                                            } catch(_) { /* ignore */ }
-                                        }, gateMs);
-                                    }
-                                } else {
-                                    // Gate only if not the sustained bass pitch
-                                    if (!isBassStep) {
-                                        this.playFrequency(f, null, 'arp');
-                                        setTimeout(()=>{
-                                            try {
-                                                const bf = this._arp?.bassLiveFreq;
-                                                if (!bf || Math.abs((f - bf)/bf) > 5e-5) {
-                                                    this.stopFrequency(f, null, 'arp');
-                                                }
-                                            } catch(_) { /* ignore */ }
-                                        }, gateMs);
-                                    }
+                                if (f && isFinite(f) && f>0 && !isBassStep){
+                                    this.playFrequency(f, null, 'arp');
+                                    setTimeout(()=>{
+                                        try {
+                                            const bf = this._arp?.bassLiveFreq;
+                                            if (!bf || Math.abs((f - bf)/bf) > 5e-5) {
+                                                this.stopFrequency(f, null, 'arp');
+                                            }
+                                        } catch(_) { /* ignore */ }
+                                    }, gateMs);
                                 }
+                            };
+                            if (Array.isArray(el)) {
+                                el.forEach(node => playOne(node));
+                            } else {
+                                playOne(el);
+                            }
                             }
 
                             // Bass disabled in ARP slide per request
@@ -17377,8 +17425,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             this._arpTransport.inactivityStopScheduled = false;
                             this._arpTransport.stopAtBarIndex = null;
                             }
-                        }
-                    } catch(_){ }
                     // Advance transport tick and schedule next, correcting drift
                     this._arpTransport.tickCounter = (this._arpTransport.tickCounter + 1) % (this._arpTransport.ticksPerBar||64);
                     this._arpTransport.absTickCounter = (this._arpTransport.absTickCounter + 1) >>> 0; // keep as non-negative int
@@ -17469,6 +17515,56 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // so NPC can exceed chord size: e.g., C3,E3,G3,C4,E4,G4 for NPC=6
                 const safeAsc = rows.slice().sort((a,b)=> (parseFloat(a?.dataset?.frequency)||0)-(parseFloat(b?.dataset?.frequency)||0));
                 const npc = Math.max(1, (this._getGlobalNpc ? this._getGlobalNpc() : (this._arp?.npc|0)) || 1);
+                // Custom typed numeric pattern support: "1[23]1[23]1[56]1[x]" etc.
+                try {
+                    const txtEl = document.getElementById('universalPatternText');
+                    const txt = txtEl ? String(txtEl.value||'').trim() : '';
+                    if (txt) {
+                        // Build a 1-indexed pool from ascending ladder (spanning octaves already)
+                        const pool = safeAsc;
+                        const tokens = [];
+                        let i=0; const N = txt.length;
+                        while (i<N) {
+                            const ch = txt[i];
+                            if (ch === ' ') { i++; continue; }
+                            if (ch === 'x' || ch === 'X') { tokens.push(null); i++; continue; }
+                            if (ch === '[') {
+                                i++;
+                                const group = [];
+                                while (i<N && txt[i] !== ']') {
+                                    const c = txt[i];
+                                    if (/[0-9]/.test(c)) {
+                                        let num = c; i++;
+                                        while (i<N && /[0-9]/.test(txt[i])) { num += txt[i++]; }
+                                        const idx = parseInt(num,10);
+                                        if (Number.isFinite(idx) && idx>=1 && idx<=pool.length) group.push(pool[idx-1]);
+                                        continue;
+                                    } else if (c === 'x' || c === 'X') {
+                                        // rest within group ignored (no sound)
+                                        i++;
+                                        continue;
+                                    } else if (c === ' ') { i++; continue; }
+                                    else { i++; }
+                                }
+                                if (i<N && txt[i] === ']') i++;
+                                tokens.push(group.length? group : null);
+                                continue;
+                            }
+                            if (/[0-9]/.test(ch)) {
+                                let num = ch; i++;
+                                while (i<N && /[0-9]/.test(txt[i])) { num += txt[i++]; }
+                                const idx = parseInt(num,10);
+                                if (Number.isFinite(idx) && idx>=1 && idx<=pool.length) tokens.push(pool[idx-1]); else tokens.push(null);
+                                continue;
+                            }
+                            // Unknown char: skip
+                            i++;
+                        }
+                        // For custom typed patterns, play exactly the typed sequence.
+                        // Transport modulo handles repetition at QUANT rate independent of bar length.
+                        if (tokens.length > 0) return tokens;
+                    }
+                } catch(_) {}
                 const altEnds = (arr)=>{ const a=arr.slice(); const out=[]; let i=0,j=a.length-1; while(i<=j){ if(i<=j) out.push(a[i++]); if(i<=j) out.push(a[j--]); } return out; };
                 const altCenter = (arr)=>{ const a=arr.slice(); const mid=Math.floor((a.length-1)/2); const out=[]; let l=mid, r=mid+1; if(a.length%2===1){ out.push(a[mid]); l=mid-1; r=mid+1; } while(l>=0 || r<a.length){ if(r<a.length) out.push(a[r++]); if(l>=0) out.push(a[l--]); } return out; };
 
@@ -19761,11 +19857,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const bpm = bpmEl ? parseInt(bpmEl.value) : 120;
                     const beatMs = 60000 / Math.max(20, bpm);
                     
-                    // Get time signature
+                    // Get time signature with denominator awareness
                     const timeSignatureEl = document.getElementById('universalTimeSignature');
-                    const timeSignature = timeSignatureEl ? timeSignatureEl.value : '4/4';
-                    const [beatsPerBar] = timeSignature.split('/').map(Number);
-                    const barMs = beatMs * (beatsPerBar || 4);
+                    const tsRaw = timeSignatureEl ? String(timeSignatureEl.value||'4/4') : '4/4';
+                    let tsNum=4, tsDen=4; try { const [n,d] = tsRaw.split('/').map(x=>parseInt(x,10)); if(Number.isFinite(n)&&n>0) tsNum=n; if(Number.isFinite(d)&&d>0) tsDen=d; } catch(_) {}
+                    const beatsPerBar = (tsNum * 4) / tsDen;
+                    const barMs = beatMs * beatsPerBar;
                     // HOLD strictly defines duration; enforce minimum of one quant step (1/8) so fastest change is 1/8 note
                     const quantMinMs = beatMs * 0.5; // 1/8 of 4/4 beat
                     const baseHoldMs = (kind === 'beat') ? n * beatMs : n * barMs;
@@ -21556,7 +21653,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Convert a division key to milliseconds for the current bpm
                 toMs(div, bpm){
                     const beatMs = 60000 / Math.max(1, bpm||120);
-                    const barMs = beatMs * 4; // 4/4
+                    let barMs;
+                    try {
+                        const tsEl = document.getElementById('universalTimeSignature');
+                        const raw = tsEl ? String(tsEl.value||'4/4') : '4/4';
+                        const [n,d] = raw.split('/').map(v=>parseInt(v,10));
+                        const tsNum = (Number.isFinite(n) && n>0) ? n : 4;
+                        const tsDen = (Number.isFinite(d) && d>0) ? d : 4;
+                        const beatsPerBar = (tsNum * 4) / tsDen;
+                        barMs = beatMs * beatsPerBar;
+                    } catch(_) { barMs = beatMs * 4; }
                     switch(div){
                         case '1/32': return beatMs/8;
                         case '1/16': return beatMs/4;
@@ -23257,35 +23363,53 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         let arpSeq = [];
                                         if (arpOn) {
                                             const pattern = omnichord._arp?.pattern || 'up';
-                                            const npcSlice = rotated2.slice(0, npcGlobal);
-                                            
-                                            switch (pattern) {
-                                                case 'up':
-                                                    arpSeq = npcSlice;
-                                                    break;
-                                                case 'down':
-                                                    arpSeq = npcSlice.slice().reverse();
-                                                    break;
-                                                case 'updown':
-                                                    arpSeq = npcSlice;
-                                                    if (npcSlice.length > 2) {
-                                                        const desc = npcSlice.slice(1, -1).reverse();
-                                                        arpSeq.push(...desc);
-                                                    }
-                                                    break;
-                                                case 'downup':
-                                                    const descSeq = npcSlice.slice().reverse();
-                                                    arpSeq = descSeq;
-                                                    if (descSeq.length > 2) {
-                                                        const asc = descSeq.slice(1, -1).reverse();
-                                                        arpSeq.push(...asc);
-                                                    }
-                                                    break;
-                                                case 'random':
-                                                    arpSeq = npcSlice.slice().sort(() => Math.random() - 0.5);
-                                                    break;
-                                                default:
-                                                    arpSeq = npcSlice;
+                                            // If a custom pattern text is present, map digits/groups to the current chord NPC pool
+                                            // Otherwise, prefer higher-octave rows as source
+                                            let sourceRows = ascHigh.length ? ascHigh : ascAll;
+                                            try {
+                                                const txtEl = document.getElementById('universalPatternText');
+                                                const hasCustom = !!(txtEl && String(txtEl.value||'').trim());
+                                                if (hasCustom) sourceRows = chordRows.length ? chordRows : sourceRows;
+                                            } catch(_) { /* keep default sourceRows */ }
+                                            try {
+                                                // Reuse central pattern engine (supports walk/alt/custom typed patterns)
+                                                const built = omnichord._buildArpSequence(sourceRows, pattern, null) || [];
+                                                if (built.length) {
+                                                    // Keep built as-is; transport loops over it via modulo
+                                                    arpSeq = built;
+                                                }
+                                            } catch(_) { /* fallback below */ }
+                                            if (!arpSeq.length) {
+                                                // Fallback to simple patterns
+                                                const npcSlice = rotated2.slice(0, npcGlobal);
+                                                switch (pattern) {
+                                                    case 'up':
+                                                        arpSeq = npcSlice;
+                                                        break;
+                                                    case 'down':
+                                                        arpSeq = npcSlice.slice().reverse();
+                                                        break;
+                                                    case 'updown':
+                                                        arpSeq = npcSlice;
+                                                        if (npcSlice.length > 2) {
+                                                            const desc = npcSlice.slice(1, -1).reverse();
+                                                            arpSeq.push(...desc);
+                                                        }
+                                                        break;
+                                                    case 'downup':
+                                                        const descSeq = npcSlice.slice().reverse();
+                                                        arpSeq = descSeq;
+                                                        if (descSeq.length > 2) {
+                                                            const asc = descSeq.slice(1, -1).reverse();
+                                                            arpSeq.push(...asc);
+                                                        }
+                                                        break;
+                                                    case 'random':
+                                                        arpSeq = npcSlice.slice().sort(() => Math.random() - 0.5);
+                                                        break;
+                                                    default:
+                                                        arpSeq = npcSlice;
+                                                }
                                             }
                                         }
                                         const mapAscRef = rotated2;
@@ -23962,6 +24086,29 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                          omnichord.applyUniversalSettings();
                          omnichord.updateModeUI(); // Update strum button text when pattern changes
                      });
+                 }
+                 const universalPatternText = document.getElementById('universalPatternText');
+                 if (universalPatternText && !universalPatternText._wired) {
+                     universalPatternText._wired = true;
+                     const handler = ()=>{
+                         try {
+                             omnichord.applyUniversalSettings();
+                             // Rebuild ARP sequence on next edge if active
+                             if (omnichord._arp && omnichord._arp.column) {
+                                 const col = omnichord._arp.column;
+                                 const rowsAll = Array.from(col.querySelectorAll('.strings-column .string'));
+                                 const within = rowsAll.filter(r => { const o=parseInt(r.dataset.octave||'0',10); return o>=5 && o<=9; });
+                                 const npc = Math.max(1, (omnichord._getGlobalNpc ? omnichord._getGlobalNpc() : (omnichord._arp?.npc|0) || 3));
+                                 const seq = omnichord._buildArpSequence(within, omnichord._arp.pattern||'up', null).slice(0, npc);
+                                 if (!omnichord._arpTransport) omnichord._ensureArpTransport();
+                                 const absTick = omnichord._arpTransport.absTickCounter|0;
+                                 omnichord._arp.pendingSwitch = { atAbsTick: (absTick+1)>>>0, alignPhaseToTickCounter:false, seq, bassFreq:omnichord._arp.bassFreq, column:col };
+                                 omnichord._startArpTransport();
+                             }
+                         } catch(_) {}
+                     };
+                     universalPatternText.addEventListener('change', handler);
+                     universalPatternText.addEventListener('input', (e)=>{ if (e.inputType==='insertReplacementText') handler(); });
                  }
                  
                  // Bass button is wired earlier via omnichord.toggleBassMode
