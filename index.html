@@ -2030,14 +2030,14 @@
             
             <!-- TIME submenu moved to modal -->
             
-            <!-- ROW 3: KBD, SAVE PRESET, SAVE OMG, LOAD OMG, DICE, ? -->
+            <!-- ROW 3: KBD, SAVE XEN, LOAD XEN, DICE, ? (PRESET button removed in favor of full-session XEN save) -->
             <!-- Keyboard toggle first in row 3 -->
             <div class="mobile-row-3" style="display:flex;align-items:center;gap:6px;">
                 <label style="font-size:11px;color:#9db6c8;">KBD</label>
                 <input id="keyboardToggleMenu" type="checkbox" title="Show/Hide Piano Keyboard" checked />
             </div>
             
-            <button id="bottomSaveSeqBtn" class="panel-btn mobile-row-3" title="Save Chord Sequence as Preset" style="background:#f59e0b;border-color:#fbbf24;">PRESET</button>
+            <!-- PRESET button removed (all state now captured by SAVE XEN). Sequence preset logic still accessible via advanced panels. -->
             <button id="bottomExportOMGBtn" class="panel-btn mobile-row-3" title="Export full session (.XEN)" style="background:#10b981;border-color:#34d399;">SAVE XEN</button>
             <button id="bottomImportOMGBtn" class="panel-btn mobile-row-3" title="Import .XEN session" style="background:#9b59b6;border-color:#8e44ad;">LOAD XEN</button>
             <button id="randomDiceButton" class="panel-btn mobile-row-3" title="Randomize Settings">🎲</button>
@@ -14713,8 +14713,43 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 URL.revokeObjectURL(url);
             }
             
-            saveSessionAsOMG() {
-                // Save COMPLETE session state - EVERY VARIABLE for exact workspace replication
+            /**
+             * Export the COMPLETE application state as a versioned .xen file.
+             * Schema (version 2.1):
+             * {
+             *   fileType: 'Xenmicord Session',
+             *   schemaVersion: '2.1',       // explicit schema version (previous used 'version')
+             *   appVersion: 'Xenmicord v2.0',
+             *   savedDate: ISOString,
+             *   chordExtensions: [...], customChords: [...], lockedChords: [...], paletteChords: [...],
+             *   currentRoot, currentQuality, currentTuning, gamelanMode, transposeDelta,
+             *   pianoLockedChords: [ [id, data], ... ], preloadedPresets: [ [id, synthState], ... ], pianoLockPresetCounter,
+             *   hiddenColumns, splitExtendedChordsAcrossOctaves, playMode, strumEnabled, chordsEnabled, arpEnabled, bassEnabled,
+             *   oscillators: { osc1, osc2 }, envelope, osc2Envelope,
+             *   instruments: { strum1:{osc,env,fxSend}, strum2:{...}, chord:{...}, arp:{...}, bass:{...} },
+             *   volume, masterVolume,
+             *   bpm, quantize, timeSignature, pattern, loop, holdDuration, universalHold, npc,
+             *   arpSettings: { npc, chordsNpc, chordQuant, chordsHold, pattern, gateMs, gatePct, glide, glideMs, active, seq, column },
+             *   _isSequencing, _sustainActive, _chordsGestureActive,
+             *   strumDelayMs, strumMode,
+             *   chordSlideEnabled, _chordSlideEnabled, _chordGlideMs,
+             *   heldBassEnabled, _heldBassEnabled,
+             *   fx: { drive:{amount,mix,hp,lp}, delay:{timeMs,feedback,lp,hp,mix}, filters:{low,high,q}, reverb:{wet,room,decay,lp,hp}, panning:{mode,width,speedMs,alternateState,rotationAngle} },
+             *   reverb, panning,
+             *   textChordInput,
+             *   drums: { active, patterns: { index: number[][] }, laneControls:[{vol,fx,midi,pPitch,pAtk,pDec}...], bass:[{npc,len,on}...] },
+             *   midi: { outputPortMap, inputChannelMap, perSourceOctave, perSourceVelocity, defaultVelocity, octaveOffset, channelMap },
+             *   sequencePresets, instrumentPresets, effectsPresets,
+             *   currentActiveColumnEl: { chordName, index } | null,
+             *   visualChordSequence: [ { name, intervals, position:{ index } } ],
+             *   legacy: { version: '2.0' } // retained for backward compatibility
+             * }
+             *
+             * Backward compatibility:
+             *  - Older .omg or .xen with fileType 'OMG-nichord Session' or missing schemaVersion are translated.
+             *  - Fields absent in legacy are defaulted.
+             */
+            exportXenState() {
                 const sessionData = {
                     // ==== CHORD DATA ====
                     chordExtensions: this.chordExtensions,
@@ -14792,6 +14827,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     quantize: document.getElementById('universalQuant')?.value || 'beat:1',
                     timeSignature: document.getElementById('universalTimeSignature')?.value || '4/4',
                     pattern: document.getElementById('universalPattern')?.value || 'up',
+                    // Persist custom typed pattern (if any) from companion text field
+                    patternText: document.getElementById('universalPatternText')?.value || '',
                     loop: !!document.getElementById('playLoop')?.checked,
                     holdDuration: document.getElementById('chordHold')?.value || 'bar:1',
                     universalHold: document.getElementById('universalHold')?.value || 'bar:1',
@@ -14984,9 +15021,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     
                     // ==== SESSION METADATA ====
                     savedDate: new Date().toISOString(),
-                    version: '2.0',
                     fileType: 'Xenmicord Session',
-                    appVersion: 'Xenmicord v2.0'
+                    appVersion: 'Xenmicord v2.0',
+                    schemaVersion: '2.1',
+                    legacy: { version: '2.0' }
                 };
                 
                 const dataStr = JSON.stringify(sessionData, null, 2);
@@ -15002,34 +15040,30 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 console.log('🎵 Complete session saved as .XEN file');
             }
+            // Legacy alias (kept for any external references still calling old method name)
+            saveSessionAsOMG() { return this.exportXenState(); }
             
-            loadSessionFromOMG(event) {
-                const file = event.target.files[0];
+            importXenState(event) {
+                const file = event?.target?.files ? event.target.files[0] : event;
                 if (!file) return;
-                
-                // Check file extension (accept both .xen and .omg for backward compatibility)
-                const fileName = file.name.toLowerCase();
+                const fileName = (file.name||'').toLowerCase();
                 if (!fileName.endsWith('.xen') && !fileName.endsWith('.omg')) {
                     alert('Please select a .XEN session file (or .OMG for legacy support)');
                     return;
                 }
-                
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
                         const sessionData = JSON.parse(e.target.result);
-                        
-                        // Verify it's a valid session file (support both new and old formats)
                         const isNewFormat = sessionData.fileType === 'Xenmicord Session';
                         const isLegacyFormat = sessionData.fileType === 'OMG-nichord Session';
-                        
                         if (!isNewFormat && !isLegacyFormat) {
                             alert('Invalid session file format');
                             return;
                         }
-                        
                         console.log('🎵 Loading session file:', sessionData);
-                        
+                        // Stop transport/playback if active (safety)
+                        try { if (this.stop) this.stop(); } catch(_) {}
                         // COMPLETE RESTORATION - EVERY VARIABLE
                         
                         // ==== CHORD DATA ====
@@ -15172,6 +15206,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (sessionData.pattern !== undefined) {
                             const el = document.getElementById('universalPattern');
                             if (el) { el.value = sessionData.pattern; el.dispatchEvent(new Event('change')); }
+                        }
+                        // Restore custom pattern text BEFORE NPC/other dependent recalcs, then trigger handler
+                        if (sessionData.patternText !== undefined) {
+                            const txt = document.getElementById('universalPatternText');
+                            if (txt) { txt.value = sessionData.patternText; txt.dispatchEvent(new Event('change')); }
                         }
                         if (sessionData.loop !== undefined) {
                             const el = document.getElementById('playLoop');
@@ -15348,15 +15387,46 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // ==== REGENERATE UI ====
                         this.regenerateChordGrid();
                         this.syncOscillatorUI();
-                        
+
+                        // ---- SILENCE AFTER LOAD (prevent auto drum/arp start) ----
+                        try {
+                            // Stop any lingering voices
+                            this.stopAll && this.stopAll();
+                        } catch(_) {}
+                        try { this.stopAllDrums && this.stopAllDrums(); } catch(_) {}
+                        try { this._stopArpTransport && this._stopArpTransport(); } catch(_) {}
+                        try { this._isSequencing = false; } catch(_) {}
+                        try { this.isPlaying = false; } catch(_) {}
+                        try { this.playMode = this.playMode; } catch(_) {}
+                        // Clear any queued next chord / bass state
+                        try { this._pendingArpChord = null; } catch(_){ }
+                        try { this._heldBassVoice = null; } catch(_){ }
+                        // Reflect play button UI if present
+                        try {
+                            const playBtn = document.getElementById('playButton');
+                            if (playBtn) {
+                                playBtn.classList.remove('active');
+                                playBtn.textContent = 'PLAY';
+                            }
+                        } catch(_) {}
+                        // Ensure drum transport indicator off
+                        try {
+                            const drumPlay = document.getElementById('drumPlayButton');
+                            if (drumPlay) {
+                                drumPlay.classList.remove('active');
+                                drumPlay.textContent = 'DRUMS';
+                            }
+                        } catch(_) {}
+                        // ---- END SILENCE AFTER LOAD ----
+
                         // ==== VISUAL CHORD SEQUENCE RESTORATION (if available) ====
                         if (sessionData.visualChordSequence && sessionData.visualChordSequence.length > 0) {
                             console.log('🎵 Restoring visual chord sequence:', sessionData.visualChordSequence.length, 'chords');
                             // The regenerateChordGrid() above should handle this through the restored chordExtensions
                         }
                         
-                        console.log('✅ Complete session restoration completed');
-                        alert(isNewFormat ? 'Xenmicord session loaded successfully!' : 'Legacy OMG session loaded successfully!');
+                        console.log('✅ Session restoration completed (silent)');
+                        // Optionally restart playback in a safe state (left stopped for user to decide)
                         
                     } catch (error) {
                         console.error('Error loading session file:', error);
@@ -15366,6 +15436,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 reader.readAsText(file);
             }
+            // Legacy alias
+            loadSessionFromOMG(event){ return this.importXenState(event); }
             
             syncOscillatorUI() {
                 // Sync all oscillator and envelope UI elements with current state
@@ -17331,6 +17403,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this.restoreLockedChordStates(); // Restore locked chord states
                     this.restorePianoLockStates(); // Restore piano lock states
                 }, 100);
+            }
+
+            /**
+             * regenerateChordGrid
+             * Compatibility shim expected by newer persistence import path.
+             * Attempts to regenerate the chord columns while preserving any
+             * locked chord / piano lock state. Falls back progressively.
+             */
+            regenerateChordGrid() {
+                try {
+                    if (typeof this.preserveLockedChordsAndRegenerate === 'function') {
+                        return this.preserveLockedChordsAndRegenerate();
+                    }
+                    if (typeof this.generateExtensionColumns === 'function') {
+                        return this.generateExtensionColumns();
+                    }
+                    console.warn('regenerateChordGrid(): no chord generation function available');
+                } catch (e) {
+                    console.error('regenerateChordGrid() failed:', e);
+                }
             }
             
             // Restore piano lock button states after column regeneration
@@ -23762,26 +23854,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const midi = new WebMIDIManager();
                 window.midi = midi;
 
+                // Prevent duplicate initialization during session import or re-entrant UI wiring
+                if (!window._xenMidiInitGuard) window._xenMidiInitGuard = { prompted:false };
+
                 // Wire MIDI toggle button
                 const midiBtn = document.getElementById('midiToggle');
                 if (midiBtn && !midiBtn._wired) {
                     midiBtn._wired = true;
                     midiBtn.addEventListener('click', async ()=>{
                         if (!midi.enabled) {
+                            // Skip if already initializing to avoid double errors
+                            if (midi._initializing) return;
+                            midi._initializing = true;
                             const ok = await midi.init();
+                            midi._initializing = false;
                             if (ok) {
                                 midiBtn.classList.add('active');
-                                // Prompt if no loopMIDI-like device detected
-                                try {
-                                    const outsArr = Array.from(midi.outputs.values());
-                                    const hasLoop = outsArr.some(o => String(o.name||'').toLowerCase().includes('loopmidi'));
-                                    if (outsArr.length === 0 || !hasLoop) {
-                                        const msg = 'No loopMIDI device detected. To route MIDI to other apps, install loopMIDI:\nhttps://www.tobias-erichsen.de/software/loopmidi.html';
-                                        if (window.confirm(msg)) {
-                                            try { window.open('https://www.tobias-erichsen.de/software/loopmidi.html', '_blank'); } catch(_) {}
-                                        }
-                                    }
-                                } catch(_) {}
+                                // loopMIDI prompt removed per user request (silent initialization)
                                 try {
                                     const oc = window.omnichord;
                                     if (oc) {
@@ -24343,106 +24432,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             omnichord.initTutorial();
             omnichord.initRandomDice();
             try { omnichord.wireEffectsPresetsUI(); } catch {}
-            // Wire bottom bar Save/Import/Export
-            const bottomSave = document.getElementById('bottomSaveSeqBtn');
-        if (bottomSave) bottomSave.addEventListener('click', () => {
-                try { 
-                    // Save current VISUAL chord sequence from canvas as preset
-                    const getVisualChordSequence = () => {
-                        const columns = Array.from(document.querySelectorAll('#extensionColumns .extension-column'));
-                        if (!columns.length) return null;
-                        
-                        // Sort columns in visual order (left-to-right, top-to-bottom)
-                        const sortRowMajor = (list) => list.sort((a,b)=>{
-                            const ra = a.getBoundingClientRect();
-                            const rb = b.getBoundingClientRect();
-                            // Consider elements on the same visual row if their tops are close
-                            const dy = Math.round(ra.top - rb.top);
-                            if (Math.abs(dy) > 4) return dy; // different rows: top first
-                            return ra.left - rb.left; // same row: left to right
-                        });
-                        
-                        const sortedColumns = sortRowMajor(columns);
-                        
-                        // Extract ACTUAL DISPLAYED chord names from visual columns
-                        const chordNames = sortedColumns.map(col => {
-                            const header = col.querySelector('.extension-column-header');
-                            if (!header) return null;
-                            
-                            const chordNameEl = header.querySelector('.chord-name');
-                            const chordName = chordNameEl ? chordNameEl.textContent.trim() : '';
-                            if (!chordName || chordName === 'New Chord') return null;
-                            
-                            return chordName; // Return the actual displayed name (F6, A^m, G7, etc.)
-                        }).filter(Boolean);
-                        
-                        return chordNames;
-                    };
-                    
-                    const visualChords = getVisualChordSequence();
-                    
-                    if (visualChords && visualChords.length > 0) {
-                        // Create default name from chord names
-                        const defaultName = visualChords.join(' ');
-                        const presetName = prompt('Enter a name for this chord sequence preset:', defaultName);
-                        
-                        if (presetName !== null) { // User didn't cancel
-                            const finalName = presetName.trim() || defaultName;
-                            
-                            // Save as simple chord sequence (just the chord names)
-                            const sequenceText = visualChords.join(' ');
-                            omnichord.saveSequencePreset({ 
-                                text: sequenceText, 
-                                name: finalName, 
-                                edo: omnichord.currentTuning || 24,
-                                sequenceOrder: visualChords // Save the actual displayed chord names in visual order
-                            });
-                            console.log('Visual chord sequence saved as preset:', finalName, '| Chords:', visualChords);
-                            alert(`Chord sequence saved as preset: "${finalName}"`);
-                        }
-                    } else {
-                        // Fallback to text area if no visual chords
-                        const textarea = document.getElementById('textChordInput');
-                        const textSequence = textarea ? textarea.value.trim() : '';
-                        if (textSequence) {
-                            const extractChordNames = (sequence) => {
-                                const lines = sequence.split('\n').filter(line => line.trim());
-                                const chordNames = lines.map(line => {
-                                    const match = line.match(/^([A-G][#b♯♭]*[a-zA-Z0-9]*)\s*:/);
-                                    return match ? match[1] : null;
-                                }).filter(Boolean);
-                                return chordNames.join(' ');
-                            };
-                            
-                            const defaultName = extractChordNames(textSequence) || 'My Sequence';
-                            const presetName = prompt('Enter a name for this chord sequence preset:', defaultName);
-                            
-                            if (presetName !== null) {
-                                const finalName = presetName.trim() || defaultName;
-                                omnichord.saveSequencePreset({ 
-                                    text: textSequence, 
-                                    name: finalName, 
-                                    edo: omnichord.currentTuning || 24
-                                });
-                                console.log('Text chord sequence saved as preset:', finalName);
-                                alert(`Chord sequence saved as preset: "${finalName}"`);
-                            }
-                        } else {
-                            alert('No chord sequence found. Please add chords to the canvas or text area first.');
-                        }
-                    }
-                } catch(e) { 
-                    console.error('Error saving chord sequence preset:', e);
-                    alert('Error saving preset: ' + e.message);
-                }
-            });
-            const bottomExport = document.getElementById('bottomExportOMGBtn');
-            if (bottomExport) bottomExport.addEventListener('click', () => { try { omnichord.saveSessionAsOMG(); } catch {} });
-            const bottomImport = document.getElementById('bottomImportOMGBtn');
-            if (bottomImport) bottomImport.addEventListener('click', () => {
-                const input = document.getElementById('loadSessionInput');
-                if (input) input.click();
-            });
+            // Wire bottom bar SAVE XEN / LOAD XEN
+            (function(){
+                const bottomExport = document.getElementById('bottomExportOMGBtn');
+                if (bottomExport) bottomExport.addEventListener('click', () => { try { omnichord.exportXenState(); } catch(e){ console.error('Export failed', e);} });
+                const bottomImport = document.getElementById('bottomImportOMGBtn');
+                if (bottomImport) bottomImport.addEventListener('click', () => {
+                    const input = document.getElementById('loadSessionInput');
+                    if (input) input.click();
+                });
+                const fileInput = document.getElementById('loadSessionInput');
+                if (fileInput) fileInput.onchange = (e)=> { try { omnichord.importXenState(e); } catch(err){ console.error('Import failed', err); }};
+            })();
 
             // Synchronize HOLD controls (universalHold with chordHold)
             try {
