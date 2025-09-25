@@ -24903,14 +24903,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 // Reached end of sequence
                                                 if (loopChk && loopChk.checked){
                                                     console.log('🎵 Looping back to start');
-                                                    try { omnichord.stopAllActiveNotes(); } catch(_){ }
-                                                    try { omnichord._stopArp(); } catch(_){ }
-                                                    try { if (omnichord._arp) { omnichord._arp.pendingSwitch = null; } } catch(_){ }
+                                                    // Do NOT clear pending switch or stop transport here; allow the current
+                                                    // chord switch to occur, then wrap cleanly on the next scheduleNext call.
                                                     _resetStandaloneRepeatCounters();
-                                                    // Ensure we reset to the actual first chord index, not a cached value
+                                                    // Reset to actual first chord index for the next step after hold
                                                     sequenceIndex = startIdx;
                                                     bracketStack = [];
-                                                    // Force immediate playback of first chord to prevent wraparound bugs
+                                                    // Pre-resolve first chord index so the following step lands on a real chord
                                                     const nextResolved = findNextChordIndex(startIdx);
                                                     if (nextResolved !== -1 && nextResolved < allCols.length) {
                                                         sequenceIndex = nextResolved;
@@ -24950,12 +24949,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         if (sequenceIndex >= allCols.length) {
                                             if (loopChk && loopChk.checked){
                                                 console.log('🎵 Looping back to start');
-                                                try { omnichord.stopAllActiveNotes(); } catch(_){ }
-                                                try { omnichord._stopArp(); } catch(_){ }
-                                                try { if (omnichord._arp) { omnichord._arp.pendingSwitch = null; } } catch(_){ }
+                                                // Do not stop/clear ARP here; allow current switch to complete
                                                 _resetStandaloneRepeatCounters();
                                                 sequenceIndex = startIdx;
                                                 bracketStack = [];
+                                                // Pre-resolve first chord index to ensure we land on a real chord
+                                                const nextResolved = findNextChordIndex(startIdx);
+                                                if (nextResolved !== -1 && nextResolved < allCols.length) {
+                                                    sequenceIndex = nextResolved;
+                                                }
                                             } else {
                                                 try {
                                                     omnichord.stopAllActiveNotes();
@@ -25045,8 +25047,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         // During PLAY, treat module toggles as independent lanes; all align to the same grid
                                         const chordsOn = !!omnichord.chordsEnabled;
                                         const arpOn = !!omnichord.arpEnabled;
-                                        // Treat NPC as global during PLAY
-                                        const npcGlobal = (function(){
+                                        // Determine NPC: include all unique chord degrees (tensions) during PLAY
+                                        const npcUI = (function(){
                                             const n1 = parseInt(document.getElementById('universalNpc')?.value||'');
                                             const n = Number.isFinite(n1)? n1 : (omnichord._arp?.npc||3);
                                             return Math.max(1, Math.min(64, n|0));
@@ -25068,7 +25070,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 chordLadder = (filtered.length? filtered : groups).flat();
                                             } catch(_){ /* keep ascAll */ }
                                         }
-                                        const chordRows = chordLadder.slice(0, npcGlobal);
+                                        // Expand to all available unique chord degrees so tensions are included
+                                        let npcEffective = npcUI;
+                                        try {
+                                            const edo = omnichord.currentTuning||12;
+                                            const norm = (x)=> ((x%edo)+edo)%edo;
+                                            const rootAbs = (typeof omnichord._getEffectiveColumnRootStep === 'function') ? omnichord._getEffectiveColumnRootStep(col) : (omnichord.currentRoot||0);
+                                            const steps = rows.map(r=> parseInt(r.dataset.noteIndex,10)).filter(n=>Number.isFinite(n));
+                                            const uniqDeg = Array.from(new Set(steps.map(st=> norm(st - rootAbs))));
+                                            if (uniqDeg.length > npcEffective) npcEffective = uniqDeg.length;
+                                        } catch(_) { /* keep npcEffective */ }
+                                        const chordRows = chordLadder.slice(0, npcEffective);
                                         
                                         // ARP ladder: rotate to start octave then take NPC and apply pattern
                                         const startOctRaw = Number.isFinite(omnichord._lastTappedOctave) ? omnichord._lastTappedOctave : 4;
@@ -25082,25 +25094,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         let arpSeq = [];
                                         if (arpOn) {
                                             const pattern = omnichord._arp?.pattern || 'up';
-                                            // If a custom pattern text is present, map digits/groups to the current chord NPC pool
-                                            // Otherwise, prefer higher-octave rows as source
-                                            let sourceRows = ascHigh.length ? ascHigh : ascAll;
+                                            // Use builder only for custom typed patterns; otherwise, build from npcEffective so tensions are included
+                                            let usedBuilder = false;
                                             try {
                                                 const txtEl = document.getElementById('universalPatternText');
                                                 const hasCustom = !!(txtEl && String(txtEl.value||'').trim());
-                                                if (hasCustom) sourceRows = chordRows.length ? chordRows : sourceRows;
-                                            } catch(_) { /* keep default sourceRows */ }
-                                            try {
-                                                // Reuse central pattern engine (supports walk/alt/custom typed patterns)
-                                                const built = omnichord._buildArpSequence(sourceRows, pattern, null) || [];
-                                                if (built.length) {
-                                                    // Keep built as-is; transport loops over it via modulo
-                                                    arpSeq = built;
+                                                if (hasCustom) {
+                                                    const sourceRows = chordRows.length ? chordRows : (ascHigh.length ? ascHigh : ascAll);
+                                                    const built = omnichord._buildArpSequence(sourceRows, pattern, null) || [];
+                                                    if (built.length) { arpSeq = built; usedBuilder = true; }
                                                 }
-                                            } catch(_) { /* fallback below */ }
-                                            if (!arpSeq.length) {
-                                                // Fallback to simple patterns
-                                                const npcSlice = rotated2.slice(0, npcGlobal);
+                                            } catch(_) { /* fall through to pattern fallback */ }
+                                            if (!usedBuilder) {
+                                                // Fallback to simple patterns over the available degrees, limited to UI NPC
+                                                const npcSlice = rotated2.slice(0, npcUI);
                                                 switch (pattern) {
                                                     case 'up':
                                                         arpSeq = npcSlice;
@@ -25115,7 +25122,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                             arpSeq.push(...desc);
                                                         }
                                                         break;
-                                                    case 'downup':
+                                                    case 'downup': {
                                                         const descSeq = npcSlice.slice().reverse();
                                                         arpSeq = descSeq;
                                                         if (descSeq.length > 2) {
@@ -25123,6 +25130,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                             arpSeq.push(...asc);
                                                         }
                                                         break;
+                                                    }
                                                     case 'random':
                                                         arpSeq = npcSlice.slice().sort(() => Math.random() - 0.5);
                                                         break;
@@ -25141,7 +25149,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             column: col,
                                             mapAsc: mapAscRef,
                                             mode: 'arp',
-                                            npc: npcGlobal,
+                                            npc: npcUI,
                                             enableChord: chordsOn,
                                             chordRows
                                         };
@@ -25211,9 +25219,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         if (sequenceIndex >= allCols.length) {
                                             if (loopChk && loopChk.checked){
                                                 console.log('🎵 Looping back to start after reaching end');
-                                                try { omnichord.stopAllActiveNotes(); } catch(_){ }
-                                                try { omnichord._stopArp(); } catch(_){ }
-                                                try { if (omnichord._arp) { omnichord._arp.pendingSwitch = null; } } catch(_){ }
+                                                // Allow the current chord to sound fully; wrap indices only
                                                 _resetStandaloneRepeatCounters();
                                                 sequenceIndex = startIdx;
                                                 bracketStack = [];
@@ -25447,116 +25453,99 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     let arpSeq = [];
                                     if (arpOn) {
                                         const pattern = omnichord._arp?.pattern || 'up';
-                                        const npcSlice = rotated.slice(0, npcGlobal);
-                                        
-                                        switch (pattern) {
-                                            case 'up':
-                                                arpSeq = npcSlice;
-                                                break;
-                                            case 'down':
-                                                arpSeq = npcSlice.slice().reverse();
-                                                break;
-                                            case 'updown':
-                                                if (npcSlice.length <= 1) {
-                                                    arpSeq = npcSlice;
-                                                } else {
-                                                    arpSeq = [...npcSlice];
-                                                    // Add descending (excluding first and last to avoid repeats)
-                                                    if (npcSlice.length > 2) {
-                                                        const desc = npcSlice.slice(1, -1).reverse();
-                                                        arpSeq.push(...desc);
-                                                    }
-                                                }
-                                                break;
-                                            case 'downup':
-                                                if (npcSlice.length <= 1) {
-                                                    arpSeq = npcSlice;
-                                                } else {
-                                                    const descSeq = npcSlice.slice().reverse();
-                                                    arpSeq = [...descSeq];
-                                                    // Add ascending (excluding first and last to avoid repeats)
-                                                    if (descSeq.length > 2) {
-                                                        const asc = descSeq.slice(1, -1).reverse();
-                                                        arpSeq.push(...asc);
-                                                    }
-                                                }
-                                                break;
-                                            case 'walk-up': {
-                                                // UUD UUD ... with boundary bounce (exclude endpoints on reversal)
-                                                const L = npcSlice.length;
-                                                if (L <= 2) {
+                                        // Prefer central builder only when a custom pattern text is provided
+                                        let usedBuilder = false;
+                                        try {
+                                            const txtEl = document.getElementById('universalPatternText');
+                                            const hasCustom = !!(txtEl && String(txtEl.value||'').trim());
+                                            if (hasCustom) {
+                                                const sourceRows = ascHigh.length ? ascHigh : ascAll;
+                                                const built = omnichord._buildArpSequence(sourceRows, pattern, null) || [];
+                                                if (built.length) { arpSeq = built; usedBuilder = true; }
+                                            }
+                                        } catch(_) { /* fallback to simple patterns */ }
+                                        if (!usedBuilder) {
+                                            const npcSlice = rotated.slice(0, npcGlobal);
+                                            switch (pattern) {
+                                                case 'up':
                                                     arpSeq = npcSlice;
                                                     break;
-                                                }
-                                                const motif = [1, 1, -1];
-                                                let idx = 0;
-                                                arpSeq = [npcSlice[idx]];
-                                                let m = 0;
-                                                while (arpSeq.length < npcGlobal) {
-                                                    let step = motif[m % motif.length];
-                                                    let next = idx + step;
-                                                    if (next >= L) { next = L - 2; step = -1; m = (m + 1) % motif.length; }
-                                                    else if (next < 0) { next = 1; step = 1; m = (m + 1) % motif.length; }
-                                                    else { m = (m + 1) % motif.length; }
-                                                    idx = next;
-                                                    arpSeq.push(npcSlice[idx]);
-                                                }
-                                                break;
-                                            }
-                                            case 'walk-down': {
-                                                // DDU DDU ... with boundary bounce (exclude endpoints on reversal)
-                                                const L = npcSlice.length;
-                                                if (L <= 2) {
+                                                case 'down':
                                                     arpSeq = npcSlice.slice().reverse();
                                                     break;
+                                                case 'updown':
+                                                    if (npcSlice.length <= 1) {
+                                                        arpSeq = npcSlice;
+                                                    } else {
+                                                        arpSeq = [...npcSlice];
+                                                        if (npcSlice.length > 2) {
+                                                            const desc = npcSlice.slice(1, -1).reverse();
+                                                            arpSeq.push(...desc);
+                                                        }
+                                                    }
+                                                    break;
+                                                case 'downup':
+                                                    if (npcSlice.length <= 1) {
+                                                        arpSeq = npcSlice;
+                                                    } else {
+                                                        const descSeq = npcSlice.slice().reverse();
+                                                        arpSeq = [...descSeq];
+                                                        if (descSeq.length > 2) {
+                                                            const asc = descSeq.slice(1, -1).reverse();
+                                                            arpSeq.push(...asc);
+                                                        }
+                                                    }
+                                                    break;
+                                                case 'walk-up': {
+                                                    const L = npcSlice.length;
+                                                    if (L <= 2) { arpSeq = npcSlice; break; }
+                                                    const motif = [1, 1, -1];
+                                                    let idx = 0; arpSeq = [npcSlice[idx]]; let m = 0;
+                                                    while (arpSeq.length < npcGlobal) {
+                                                        let step = motif[m % motif.length];
+                                                        let next = idx + step;
+                                                        if (next >= L) { next = L - 2; step = -1; m = (m + 1) % motif.length; }
+                                                        else if (next < 0) { next = 1; step = 1; m = (m + 1) % motif.length; }
+                                                        else { m = (m + 1) % motif.length; }
+                                                        idx = next; arpSeq.push(npcSlice[idx]);
+                                                    }
+                                                    break;
                                                 }
-                                                const motif = [-1, -1, 1];
-                                                let idx = 0;
-                                                arpSeq = [npcSlice[idx]];
-                                                let m = 0;
-                                                while (arpSeq.length < npcGlobal) {
-                                                    let step = motif[m % motif.length];
-                                                    let next = idx + step;
-                                                    if (next >= L) { next = L - 2; step = -1; m = (m + 1) % motif.length; }
-                                                    else if (next < 0) { next = 1; step = 1; m = (m + 1) % motif.length; }
-                                                    else { m = (m + 1) % motif.length; }
-                                                    idx = next;
-                                                    arpSeq.push(npcSlice[idx]);
+                                                case 'walk-down': {
+                                                    const L = npcSlice.length;
+                                                    if (L <= 2) { arpSeq = npcSlice.slice().reverse(); break; }
+                                                    const motif = [-1, -1, 1];
+                                                    let idx = 0; arpSeq = [npcSlice[idx]]; let m = 0;
+                                                    while (arpSeq.length < npcGlobal) {
+                                                        let step = motif[m % motif.length];
+                                                        let next = idx + step;
+                                                        if (next >= L) { next = L - 2; step = -1; m = (m + 1) % motif.length; }
+                                                        else if (next < 0) { next = 1; step = 1; m = (m + 1) % motif.length; }
+                                                        else { m = (m + 1) % motif.length; }
+                                                        idx = next; arpSeq.push(npcSlice[idx]);
+                                                    }
+                                                    break;
                                                 }
-                                                break;
+                                                case 'random':
+                                                    arpSeq = npcSlice.slice().sort(() => Math.random() - 0.5);
+                                                    break;
+                                                case 'alt-ends': {
+                                                    const a = npcSlice.slice();
+                                                    const out = []; let i = 0, j = a.length - 1;
+                                                    while (i <= j) { if (i <= j) out.push(a[i++]); if (i <= j) out.push(a[j--]); }
+                                                    arpSeq = out; break;
+                                                }
+                                                case 'alt-center': {
+                                                    const a = npcSlice.slice(); const out = [];
+                                                    if (a.length === 0) { arpSeq = out; break; }
+                                                    const mid = Math.floor((a.length - 1) / 2); let l = mid, r = mid + 1;
+                                                    if (a.length % 2 === 1) { out.push(a[mid]); l = mid - 1; r = mid + 1; }
+                                                    while (l >= 0 || r < a.length) { if (r < a.length) out.push(a[r++]); if (l >= 0) out.push(a[l--]); }
+                                                    arpSeq = out; break;
+                                                }
+                                                default:
+                                                    arpSeq = npcSlice;
                                             }
-                                            case 'random':
-                                                arpSeq = npcSlice.slice().sort(() => Math.random() - 0.5);
-                                                break;
-                                            case 'alt-ends': {
-                                                // Alternate from ends inward: low, high, low+1, high-1, ...
-                                                const a = npcSlice.slice();
-                                                const out = [];
-                                                let i = 0, j = a.length - 1;
-                                                while (i <= j) {
-                                                    if (i <= j) out.push(a[i++]);
-                                                    if (i <= j) out.push(a[j--]);
-                                                }
-                                                arpSeq = out;
-                                                break;
-                                            }
-                                            case 'alt-center': {
-                                                // Start at center, then alternate right/left: mid, mid+1, mid-1, ...
-                                                const a = npcSlice.slice();
-                                                const out = [];
-                                                if (a.length === 0) { arpSeq = out; break; }
-                                                const mid = Math.floor((a.length - 1) / 2);
-                                                let l = mid, r = mid + 1;
-                                                if (a.length % 2 === 1) { out.push(a[mid]); l = mid - 1; r = mid + 1; }
-                                                while (l >= 0 || r < a.length) {
-                                                    if (r < a.length) out.push(a[r++]);
-                                                    if (l >= 0) out.push(a[l--]);
-                                                }
-                                                arpSeq = out;
-                                                break;
-                                            }
-                                            default:
-                                                arpSeq = npcSlice;
                                         }
                                     }
                                     const mapAscRef = rotated;
