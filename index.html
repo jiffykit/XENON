@@ -3828,6 +3828,72 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         document.addEventListener('mousemove', onMove);
                         document.addEventListener('mouseup', onUp);
                     });
+                    // Touch drag support for bass pills in bass modal grid
+                    st.addEventListener('touchstart', (e) => {
+                        if (st._touchDragActive) return; // prevent duplicate synthetic mouse
+                        st._touchDragActive = true;
+                        try { e.preventDefault(); } catch(_) {}
+                        const touch = e.touches && e.touches[0] ? e.touches[0] : null;
+                        if (!touch) { st._touchDragActive = false; return; }
+                        const activeId = touch.identifier;
+                        const startIdx = sIdx;
+                        const steps = Array.from(lane.querySelectorAll('.bass-step'));
+                        const wasActive = st.classList.contains('active');
+
+                        let isDragging = false;
+                        let dragStarted = false;
+
+                        const applyLen = (toIdx) => {
+                            const len = Math.max(1, (toIdx|0) - startIdx + 1);
+                            st.classList.add('active');
+                            st.dataset.npc = st.dataset.npc || '1';
+                            st.dataset.len = String(len);
+                            for (let k=0;k<steps.length;k++){
+                                if (k>startIdx && k<=startIdx+len-1) { steps[k].dataset.tie='1'; steps[k].classList.remove('active'); }
+                                else if (k>startIdx) { delete steps[k].dataset.tie; }
+                            }
+                        };
+                        const onMove = (ev) => {
+                            try { ev.preventDefault(); } catch(_) {}
+                            if (!dragStarted) { dragStarted = true; isDragging = true; }
+                            const tlist = ev.touches || [];
+                            let t=null; for (let j=0;j<tlist.length;j++){ if (tlist[j].identifier===activeId){ t=tlist[j]; break; } }
+                            if (!t) return;
+                            const rect = lane.getBoundingClientRect();
+                            const x = Math.max(0, Math.min(rect.width, t.clientX - rect.left));
+                            const idx = Math.max(startIdx, Math.min(stepsPerBar-1, Math.floor((x/rect.width)*stepsPerBar)));
+                            applyLen(idx);
+                            try { computeBassPatternFromGrid(); } catch(_){}
+                            try { rebuildBassTieOverlays(lane); } catch(_){}
+                        };
+                        const onEnd = (ev) => {
+                            const changed = ev.changedTouches || [];
+                            let ended=false; for (let j=0;j<changed.length;j++){ if (changed[j].identifier===activeId){ ended=true; break; } }
+                            if (!ended) return;
+                            document.removeEventListener('touchmove', onMove, { passive: false });
+                            document.removeEventListener('touchend', onEnd);
+                            document.removeEventListener('touchcancel', onEnd);
+
+                            if (!isDragging) {
+                                if (wasActive) {
+                                    st.classList.remove('active');
+                                    st.dataset.npc = '';
+                                    delete st.dataset.len;
+                                    steps.forEach((s, i) => { if (i>startIdx) delete s.dataset.tie; });
+                                } else {
+                                    st.classList.add('active');
+                                    st.dataset.npc = '1';
+                                    st.dataset.len = '1';
+                                }
+                            }
+                            try { computeBassPatternFromGrid(); } catch(_){}
+                            try { rebuildBassTieOverlays(lane); } catch(_){}
+                            isDragging = false; dragStarted = false; st._touchDragActive = false;
+                        };
+                        document.addEventListener('touchmove', onMove, { passive: false });
+                        document.addEventListener('touchend', onEnd);
+                        document.addEventListener('touchcancel', onEnd);
+                    }, { passive: false });
                     
                     lane.appendChild(st);
                 }
@@ -6143,6 +6209,50 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     document.addEventListener('mousemove', onMove);
                                     document.addEventListener('mouseup', onUp);
                                 });
+                                // Touch drag-to-extend sustain (ties)
+                                s.addEventListener('touchstart', (e) => {
+                                    if (s._touchDragActive) return; // prevent duplicate via synthetic mouse
+                                    s._touchDragActive = true;
+                                    try { e.preventDefault(); } catch(_) {}
+                                    const touch = e.touches && e.touches[0] ? e.touches[0] : null;
+                                    if (!touch) { s._touchDragActive = false; return; }
+                                    const activeId = touch.identifier;
+                                    const startIdx = i;
+                                    const steps = Array.from(lane.querySelectorAll('.drum-step'));
+                                    const applyLen = (toIdx) => {
+                                        const len = Math.max(1, (toIdx|0) - startIdx + 1);
+                                        s.dataset.len = String(len);
+                                        for (let k = 0; k < steps.length; k++) {
+                                            if (k > startIdx && k <= startIdx + len - 1) steps[k].dataset.tie = '1';
+                                            else if (k > startIdx) delete steps[k].dataset.tie;
+                                        }
+                                    };
+                                    const onMove = (ev) => {
+                                        try { ev.preventDefault(); } catch(_) {}
+                                        const tlist = ev.touches || [];
+                                        let t = null; for (let j=0;j<tlist.length;j++){ if (tlist[j].identifier === activeId) { t = tlist[j]; break; } }
+                                        if (!t) return;
+                                        const rect = lane.getBoundingClientRect();
+                                        const x = Math.max(0, Math.min(rect.width, t.clientX - rect.left));
+                                        const idx = Math.max(0, Math.min(stepsPerBar-1, Math.floor((x / rect.width) * stepsPerBar)));
+                                        applyLen(idx);
+                                        try { this.rebuildBassTieOverlays(lane); } catch(_){ }
+                                    };
+                                    const onEnd = (ev) => {
+                                        const changed = ev.changedTouches || [];
+                                        let ended = false; for (let j=0;j<changed.length;j++){ if (changed[j].identifier === activeId) { ended = true; break; } }
+                                        if (!ended) return;
+                                        document.removeEventListener('touchmove', onMove, { passive: false });
+                                        document.removeEventListener('touchend', onEnd);
+                                        document.removeEventListener('touchcancel', onEnd);
+                                        s._touchDragActive = false;
+                                        try { this.rebuildBassTieOverlays(lane); } catch(_){ }
+                                        try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch(_){ }
+                                    };
+                                    document.addEventListener('touchmove', onMove, { passive: false });
+                                    document.addEventListener('touchend', onEnd);
+                                    document.addEventListener('touchcancel', onEnd);
+                                }, { passive: false });
 
                                 // Click: quick root on empty, second click opens change, rest → root
                                 s.addEventListener('click', (e) => {
@@ -6478,6 +6588,68 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     document.addEventListener('mousemove', move);
                                     document.addEventListener('mouseup', up);
                                 });
+                                // Touch drag for pattern non-bass rows
+                                st.addEventListener('touchstart', (e)=>{
+                                    if (st._touchDragActive) return; // avoid duplicate via synthetic mouse
+                                    st._touchDragActive = true;
+                                    try { e.preventDefault(); } catch(_) {}
+                                    if (st.dataset.tie === '1') { st._touchDragActive = false; return; }
+                                    const startIdx = parseInt(st.dataset.step||'0',10) || 0;
+                                    const stepsLocal = Array.from(lane.querySelectorAll('.pattern-step'));
+                                    let isDragging = false; let dragStarted = false;
+                                    const wasActive = st.classList.contains('active');
+                                    const touch = e.touches && e.touches[0] ? e.touches[0] : null; if (!touch) { st._touchDragActive=false; return; }
+                                    const activeId = touch.identifier;
+                                    const applyLen = (toIdx) => {
+                                        const len = Math.max(1, toIdx - startIdx + 1);
+                                        st.classList.add('active');
+                                        st.dataset.len = String(len);
+                                        for (let k=0;k<stepsLocal.length;k++){
+                                            if (k>startIdx && k<=startIdx+len-1) { stepsLocal[k].dataset.tie='1'; stepsLocal[k].classList.remove('active'); }
+                                            else if (k>startIdx) { delete stepsLocal[k].dataset.tie; }
+                                        }
+                                        persistRow(rIdx);
+                                        try { rebuildPatternTieOverlays(lane); } catch(_){}
+                                    };
+                                    const move = (ev)=>{
+                                        try { ev.preventDefault(); } catch(_) {}
+                                        if (!dragStarted) { dragStarted = true; isDragging = true; }
+                                        const tlist = ev.touches || [];
+                                        let t=null; for (let j=0;j<tlist.length;j++){ if (tlist[j].identifier===activeId){ t=tlist[j]; break; } }
+                                        if (!t) return;
+                                        const rect = lane.getBoundingClientRect();
+                                        const x = Math.max(0, Math.min(rect.width, t.clientX - rect.left));
+                                        const idx = Math.max(startIdx, Math.min(stepsLocal.length-1, Math.floor((x/rect.width)*stepsLocal.length)));
+                                        applyLen(idx);
+                                    };
+                                    const end = (ev)=>{
+                                        const changed = ev.changedTouches || [];
+                                        let ended=false; for (let j=0;j<changed.length;j++){ if (changed[j].identifier===activeId){ ended=true; break; } }
+                                        if (!ended) return;
+                                        document.removeEventListener('touchmove', move, { passive: false });
+                                        document.removeEventListener('touchend', end);
+                                        document.removeEventListener('touchcancel', end);
+                                        // Click behavior if no drag
+                                        if (!isDragging) {
+                                            if (wasActive) {
+                                                st.classList.remove('active');
+                                                delete st.dataset.len;
+                                                for (let k=startIdx+1;k<stepsLocal.length;k++) { delete stepsLocal[k].dataset.tie; }
+                                            } else {
+                                                st.classList.add('active');
+                                                st.dataset.len = '1';
+                                            }
+                                        }
+                                        persistRow(rIdx);
+                                        try { rebuildPatternTieOverlays(lane); } catch(_){}
+                                        try { if (typeof window.omnichord?._saveDrumPattern==='function') window.omnichord._saveDrumPattern(); } catch(_){ }
+                                        try { if (patternGrid._recomputePatternText) patternGrid._recomputePatternText(); } catch(_){ }
+                                        isDragging = false; dragStarted = false; st._touchDragActive = false;
+                                    };
+                                    document.addEventListener('touchmove', move, { passive: false });
+                                    document.addEventListener('touchend', end);
+                                    document.addEventListener('touchcancel', end);
+                                }, { passive: false });
                                 
                                 // RIGHT CLICK remove note and ties
                                 st.addEventListener('contextmenu',(e)=>{
@@ -6589,6 +6761,49 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     document.addEventListener('mousemove', onMove);
                                     document.addEventListener('mouseup', onUp);
                                 });
+                                // Touch drag for pattern bass lane
+                                st.addEventListener('touchstart', (e) => {
+                                    if (st._touchDragActive) return;
+                                    st._touchDragActive = true;
+                                    try { e.preventDefault(); } catch(_) {}
+                                    const touch = e.touches && e.touches[0] ? e.touches[0] : null;
+                                    if (!touch) { st._touchDragActive=false; return; }
+                                    const activeId = touch.identifier;
+                                    const startIdx = sIdx;
+                                    const steps = Array.from(lane.querySelectorAll('.pattern-step'));
+                                    const applyLen = (toIdx) => {
+                                        const len = Math.max(1, (toIdx|0) - startIdx + 1);
+                                        st.dataset.len = String(len);
+                                        for (let k=0;k<steps.length;k++) {
+                                            if (k>startIdx && k<= startIdx+len-1) steps[k].dataset.tie='1'; else if (k>startIdx) delete steps[k].dataset.tie;
+                                        }
+                                    };
+                                    const onMove = (ev) => {
+                                        try { ev.preventDefault(); } catch(_) {}
+                                        const tlist = ev.touches || [];
+                                        let t=null; for (let j=0;j<tlist.length;j++){ if (tlist[j].identifier===activeId){ t=tlist[j]; break; } }
+                                        if (!t) return;
+                                        const rect = lane.getBoundingClientRect();
+                                        const x = Math.max(0, Math.min(rect.width, t.clientX - rect.left));
+                                        const idx = Math.max(0, Math.min(stepsPerBar-1, Math.floor((x/rect.width)*stepsPerBar)));
+                                        applyLen(idx);
+                                        try { if (typeof window.omnichord?.rebuildBassTieOverlays === 'function') window.omnichord.rebuildBassTieOverlays(lane); } catch(_){ }
+                                    };
+                                    const onEnd = (ev) => {
+                                        const changed = ev.changedTouches || [];
+                                        let ended=false; for (let j=0;j<changed.length;j++){ if (changed[j].identifier===activeId){ ended=true; break; } }
+                                        if (!ended) return;
+                                        document.removeEventListener('touchmove', onMove, { passive: false });
+                                        document.removeEventListener('touchend', onEnd);
+                                        document.removeEventListener('touchcancel', onEnd);
+                                        st._touchDragActive = false;
+                                        try { if (typeof window.omnichord?.rebuildBassTieOverlays === 'function') window.omnichord.rebuildBassTieOverlays(lane); } catch(_){ }
+                                        try { if (typeof window.omnichord?._saveDrumPattern==='function') window.omnichord._saveDrumPattern(); } catch(_){ }
+                                    };
+                                    document.addEventListener('touchmove', onMove, { passive: false });
+                                    document.addEventListener('touchend', onEnd);
+                                    document.addEventListener('touchcancel', onEnd);
+                                }, { passive: false });
                                 st.addEventListener('click', (e) => {
                                     e.preventDefault();
                                     const prev = (st.dataset.npc||'');
@@ -29785,6 +30000,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     
                     function dragMouseDown(e) {
                         e = e || window.event;
+                        // Ignore drag if the touch/click is on the close button
+                        try { if (e.target && e.target.closest && e.target.closest('.modal-close')) return; } catch(_){ }
                         e.preventDefault();
                         pos3 = e.clientX;
                         pos4 = e.clientY;
@@ -29793,6 +30010,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                     
                     function dragTouchStart(e) {
+                        // Ignore drag if the touch is on the close button
+                        try { const t = (e.touches && e.touches[0]) ? e.touches[0].target : e.target; if (t && t.closest && t.closest('.modal-close')) return; } catch(_){ }
                         e.preventDefault();
                         const touch = e.touches[0];
                         pos3 = touch.clientX;
@@ -29829,6 +30048,36 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         document.ontouchend = null;
                         document.ontouchmove = null;
                     }
+                }
+                
+                // Global touch/pointer support for modal close buttons (red X)
+                if (!window._modalCloseTouchWired) {
+                    window._modalCloseTouchWired = true;
+                    const invokeClose = (btn) => {
+                        try {
+                            // Prefer inline onclick via .click()
+                            if (btn && typeof btn.click === 'function') { btn.click(); return; }
+                        } catch(_) {}
+                        // Fallback: hide the nearest modal container
+                        try {
+                            const modal = btn.closest('.floating-modal') || btn.closest('[id$="Modal"]');
+                            if (modal) modal.style.display = 'none';
+                        } catch(_) {}
+                    };
+                    const handler = (e) => {
+                        try {
+                            const target = e.target;
+                            if (!target) return;
+                            const btn = target.closest && target.closest('.modal-close');
+                            if (!btn) return;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            invokeClose(btn);
+                        } catch(_) {}
+                    };
+                    // Use capture to beat draggable header handlers; passive must be false to allow preventDefault
+                    document.addEventListener('touchend', handler, { capture: true, passive: false });
+                    document.addEventListener('pointerup', handler, { capture: true, passive: false });
                 }
                 
                 // Simple sidebar button handler function (define only if not already defined earlier)
