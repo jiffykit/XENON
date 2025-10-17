@@ -2308,7 +2308,7 @@
     </div>
     <!-- TIME modal removed -->
     <!-- Floating FX Modal (reuses original FX panel content) -->
-    <div id="fxModal" class="floating-modal" style="top:120px; left:160px; width:900px; height:640px; display:none; overflow:hidden;">
+    <div id="fxModal" class="floating-modal" style="top:120px; left:160px; width:417px; height:846px; display:none; overflow:hidden;">
         <div class="modal-header">
             <span>Effects</span>
             <div style="display:flex; gap:6px; align-items:center;">
@@ -2470,7 +2470,7 @@
     </div>
 
     <!-- Floating OSC Modal (reuses original OSC panel content) -->
-    <div id="oscModal" class="floating-modal" style="top:80px; left:220px; width:1000px; height:700px; display:none; overflow:hidden;">
+    <div id="oscModal" class="floating-modal" style="top:80px; left:220px; width:412px; height:803px; display:none; overflow:hidden;">
         <div class="modal-header">
             <span>Oscillators</span>
             <div style="display:flex; gap:6px; align-items:center;">
@@ -4083,6 +4083,115 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 document.removeEventListener('touchend', closeDragElement);
                 document.removeEventListener('touchmove', elementDragTouch);
             }
+        }
+
+        // Make transport modal draggable by any non-interactive area
+        function makeTransportDraggable() {
+            const el = document.getElementById('transportModal');
+            if (!el || el._dragWired) return;
+            el._dragWired = true;
+            el.style.touchAction = 'none';
+
+            let dragging = false;
+            let startX = 0, startY = 0;
+            let origLeft = 0, origTop = 0;
+
+            const isInteractive = (target) => {
+                return !!(target.closest('button, input, select, textarea, label, a, [role="button"], .mix-btn, .osc-btn, .mode-btn, .panel-btn, .sidebar-btn, .modal-close'));
+            };
+
+            const onMouseDown = (e) => {
+                if (isInteractive(e.target)) return;
+                e.preventDefault();
+                const rect = el.getBoundingClientRect();
+                // Convert from right-anchored to left on first drag
+                if (!el._convertedToLeft) {
+                    el.style.left = rect.left + 'px';
+                    el.style.top = rect.top + 'px';
+                    el.style.right = 'auto';
+                    el._convertedToLeft = true;
+                }
+                dragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                origLeft = parseInt(el.style.left || rect.left + 'px');
+                origTop = parseInt(el.style.top || rect.top + 'px');
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+                document.body.style.cursor = 'grabbing';
+            };
+
+            const onMouseMove = (e) => {
+                if (!dragging) return;
+                e.preventDefault();
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                let nextLeft = origLeft + dx;
+                let nextTop = origTop + dy;
+                // Clamp to viewport
+                const rect = el.getBoundingClientRect();
+                const w = rect.width, h = rect.height;
+                nextLeft = Math.max(0, Math.min(window.innerWidth - w, nextLeft));
+                nextTop = Math.max(0, Math.min(window.innerHeight - h, nextTop));
+                el.style.left = nextLeft + 'px';
+                el.style.top = nextTop + 'px';
+            };
+
+            const onMouseUp = () => {
+                dragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                document.body.style.cursor = 'default';
+            };
+
+            const onTouchStart = (e) => {
+                if (isInteractive(e.target)) return;
+                const t = e.touches && e.touches[0];
+                if (!t) return;
+                e.preventDefault();
+                const rect = el.getBoundingClientRect();
+                if (!el._convertedToLeft) {
+                    el.style.left = rect.left + 'px';
+                    el.style.top = rect.top + 'px';
+                    el.style.right = 'auto';
+                    el._convertedToLeft = true;
+                }
+                dragging = true;
+                startX = t.clientX;
+                startY = t.clientY;
+                origLeft = parseInt(el.style.left || rect.left + 'px');
+                origTop = parseInt(el.style.top || rect.top + 'px');
+                document.addEventListener('touchmove', onTouchMove, { passive: false });
+                document.addEventListener('touchend', onTouchEnd, { passive: false });
+                document.body.style.cursor = 'grabbing';
+            };
+
+            const onTouchMove = (e) => {
+                if (!dragging) return;
+                const t = e.touches && e.touches[0];
+                if (!t) return;
+                e.preventDefault();
+                const dx = t.clientX - startX;
+                const dy = t.clientY - startY;
+                let nextLeft = origLeft + dx;
+                let nextTop = origTop + dy;
+                const rect = el.getBoundingClientRect();
+                const w = rect.width, h = rect.height;
+                nextLeft = Math.max(0, Math.min(window.innerWidth - w, nextLeft));
+                nextTop = Math.max(0, Math.min(window.innerHeight - h, nextTop));
+                el.style.left = nextLeft + 'px';
+                el.style.top = nextTop + 'px';
+            };
+
+            const onTouchEnd = () => {
+                dragging = false;
+                document.removeEventListener('touchmove', onTouchMove);
+                document.removeEventListener('touchend', onTouchEnd);
+                document.body.style.cursor = 'default';
+            };
+
+            el.addEventListener('mousedown', onMouseDown);
+            el.addEventListener('touchstart', onTouchStart, { passive: false });
         }
         
         // Make bracket markers and chord columns draggable for section rearrangement
@@ -12878,6 +12987,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                     
                     // Initialize keyboard modal with keys visible
+                    // Make transport draggable by non-interactive background
+                    try { if (typeof makeTransportDraggable === 'function') makeTransportDraggable(); } catch(_) {}
                     if (typeof bringModalToFront === 'function') {
                         bringModalToFront('keyboardModal');
                     }
@@ -12988,8 +13099,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             } else if (this.arpEnabled && !this.chordsEnabled) {
                 this.playMode = 'arp';
             } else {
-                // Both off: STRUM-only
-                this.playMode = (this.strumMode === 'up') ? 'low-high' : 'high-low';
+                // Both off: STRUM-only — honour full strum order set including ALT CENTRE/ENDS
+                switch (this.strumMode) {
+                    case 'up':
+                        this.playMode = 'low-high';
+                        break;
+                    case 'down':
+                        this.playMode = 'high-low';
+                        break;
+                    case 'alt-centers':
+                        this.playMode = 'alt-center';
+                        break;
+                    case 'alt-ends':
+                        this.playMode = 'alt-ends';
+                        break;
+                    case 'rotate-voicing':
+                        // Do not change playMode ordering; rotation affects voicing, not order
+                        this.playMode = this.playMode || 'high-low';
+                        break;
+                    default:
+                        this.playMode = 'high-low';
+                }
             }
         };
         
@@ -13222,44 +13352,52 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         };
         
         this.cycleStrumMode = () => {
-            const order = ['up','down','alt-centers','alt-ends'];
+            const order = ['up','down','alt-centers','alt-ends','rotate-voicing'];
             const i = order.indexOf(this.strumMode);
             this.strumMode = order[(i+1)%order.length];
             const lbl = document.getElementById('strumLabel');
             if (lbl) {
-                if (this.strumMode === 'alt-centers') lbl.textContent = 'Alt-C';
-                else if (this.strumMode === 'alt-ends') lbl.textContent = 'Alt-E';
+                // Prefer human-friendly labels
+                if (this.strumMode === 'alt-centers') lbl.textContent = 'ALT CENTRE';
+                else if (this.strumMode === 'alt-ends') lbl.textContent = 'ALT ENDS';
+                else if (this.strumMode === 'rotate-voicing') lbl.textContent = 'ROTATE VOICING';
                 else lbl.textContent = this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1);
             }
             // Map strum mode to internal playMode ordering
             if (this.strumMode === 'up') this.setPlayMode('low-high');
             else if (this.strumMode === 'down') this.setPlayMode('high-low');
             else if (this.strumMode === 'alt-centers') this.setPlayMode('alt-center');
-            else this.setPlayMode('alt-ends');
+            else if (this.strumMode === 'alt-ends') this.setPlayMode('alt-ends');
+            else if (this.strumMode === 'rotate-voicing') {
+                // Keep current ordering; toggle a flag for future voicing rotation logic
+                this.rotateVoicing = true;
+            }
         };
         this.updateModeUI = () => {
             const btnStrum = document.getElementById('modeStrum');
+            const sidebarStrum = document.getElementById('strumBtn');
             const btnChordArp = document.getElementById('modeChordArp');
             const btnBass = document.getElementById('universalBass');
             
             // Update strum button text based on current strum mode
-            if (btnStrum) {
-                btnStrum.classList.toggle('active', this.strumEnabled);
-                // Always show strum as active and update text based on mode
-                btnStrum.classList.add('active');
-                
-                // Set STRUM button text based on actual strumMode (not ARP pattern)
+            const applyStrumLabel = (el) => {
+                if (!el) return;
+                el.classList.add('active'); // always ON visually
                 let strumText = 'STRUM UP';
                 switch (this.strumMode) {
                     case 'up': strumText = 'STRUM UP'; break;
                     case 'down': strumText = 'STRUM DOWN'; break;
-                    case 'alternating': strumText = 'STRUM ALT'; break;
-                    case 'alt-centers': strumText = 'STRUM ALT'; break;
-                    case 'alt-ends': strumText = 'STRUM ALT'; break;
+                    case 'alt-centers': strumText = 'STRUM ALT CENTRE'; break;
+                    case 'alt-ends': strumText = 'STRUM ALT ENDS'; break;
+                    case 'rotate-voicing': strumText = 'STRUM ROTATE VOICING'; break;
                     default: strumText = 'STRUM UP'; break;
                 }
-                btnStrum.textContent = strumText;
-            }
+                el.textContent = strumText;
+                // Optional: title tooltip
+                el.title = 'Cycle strum order (UP/DOWN/ALT CENTRE/ALT ENDS/ROTATE VOICING)';
+            };
+            applyStrumLabel(btnStrum);
+            applyStrumLabel(sidebarStrum);
             
             // CHORD/ARP 4-state toggle (OFF / CHORDS / ARP / ARP+CHORDS)
             if (btnChordArp) {
@@ -13277,11 +13415,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         // Wire buttons when present
         setTimeout(()=>{
             const btnStrum = document.getElementById('modeStrum');
+            const sidebarStrum = document.getElementById('strumBtn');
             const btnChordArp = document.getElementById('modeChordArp');
             const btnBass = document.getElementById('universalBass');
             const lbl = document.getElementById('strumLabel');
-            if (lbl) lbl.textContent = this.strumMode==='alternating' ? 'Alt' : (this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1));
+            if (lbl) {
+                if (this.strumMode === 'alt-centers') lbl.textContent = 'ALT CENTRE';
+                else if (this.strumMode === 'alt-ends') lbl.textContent = 'ALT ENDS';
+                else if (this.strumMode === 'rotate-voicing') lbl.textContent = 'ROTATE VOICING';
+                else lbl.textContent = this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1);
+            }
             if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.toggleStrumMode()); }
+            // Sidebar STRUM cycles too via sidebarBtnClick('strum'); ensure label initializes
+            if (sidebarStrum && !sidebarStrum._initLabel){ sidebarStrum._initLabel=true; }
             if (btnChordArp && !btnChordArp._wired){ btnChordArp._wired=true; btnChordArp.addEventListener('click', ()=> this.toggleChordArpMode()); }
             if (btnBass && !btnBass._wired){ btnBass._wired=true; btnBass.addEventListener('click', ()=> this.toggleBassMode()); }
             this.syncPlayMode();
