@@ -4573,6 +4573,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 modal.style.display = 'block';
                 modal.style.zIndex = '10001';
                 console.log('Brought modal to front:', modalId, 'z-index:', modal.style.zIndex);
+
+                // Ensure modal is draggable (by header) the first time it is brought to front
+                try {
+                    if (!modal._draggableSet) {
+                        const hasHeader = !!modal.querySelector && modal.querySelector('.modal-header');
+                        if (hasHeader && typeof makeDraggable === 'function') {
+                            makeDraggable(modal);
+                            modal._draggableSet = true;
+                        }
+                    }
+                } catch(_) {}
             }
         }
 
@@ -5320,6 +5331,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 }
                             } catch(_) {}
                         }
+                        // Bar-boundary resync for independent pattern transport so it aligns to global bar start
+                        try {
+                            const pt = window._patternTransport;
+                            if (pt && pt.running) {
+                                pt.tickCounter = 0;
+                                pt.absTickCounter = 0;
+                                const now = (performance && performance.now) ? performance.now() : Date.now();
+                                const step = Math.max(1, pt.stepMs||120);
+                                pt.nextAt = now + step;
+                            }
+                        } catch(_) {}
                     }
                     const stepIdx = Math.floor((curTick / tpBar) * steps) | 0;
                     if (!this._drums) this._drums = { stepsPerBar: steps, lastStep: -1 };
@@ -8880,6 +8902,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (openBtn && modal) {
                     openBtn.addEventListener('click', () => {
                         modal.style.display = 'block';
+                        // Make draggable on first open
+                        try {
+                            if (!modal._draggableSet && typeof makeDraggable === 'function') { makeDraggable(modal); modal._draggableSet = true; }
+                        } catch(_) {}
                         // Populate presets each open to pick up new saves/deletes
                         try { if (seqSelect) this.populateSeqPresetDropdown(seqSelect, this.getSequencePresets()); } catch(_) {}
                         // Initialize EDO field to current tuning
@@ -8890,6 +8916,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
                 // Update any locked column header tooltips
                 if (closeBtn) closeBtn.addEventListener('click', ()=> { if(modal) modal.style.display='none'; });
+                // Touch-close support (be responsive on touch screens)
+                if (closeBtn && !closeBtn._touchCloseWired) {
+                    closeBtn._touchCloseWired = true;
+                    closeBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); e.stopPropagation(); if(modal) modal.style.display='none'; }, { passive: false });
+                }
                 // Create Sequence now builds from textarea
                 if (parseBtn) parseBtn.addEventListener('click', ()=> this.createSequenceFromTextarea());
                 // Live preview of unique chords palette
@@ -28420,7 +28451,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     console.log('🎵 SYNC: Drum pattern counters reset to 0');
                                 }
                                 
-                                // 5. START ALL SYSTEMS SIMULTANEOUSLY
+                                // 5. BUILD ONE-LOOP LOOKAHEAD PLAN AND START ALL SYSTEMS SIMULTANEOUSLY
                                 console.log('🎵 SYNC: Starting all transport systems together...');
                                 
                                 // Start sequencing mode
@@ -28507,6 +28538,79 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // Use bracket-aware sequencing instead of pre-expansion
                                 let sequenceIndex = startIdx;
                                 let bracketStack = []; // Stack to track bracket positions and repeat counts
+                                
+                                // One-loop lookahead planner: pre-walk current DOM to a concrete plan of columns for one full cycle
+                                const buildOneLoopPlan = () => {
+                                    try {
+                                        let plan = [];
+                                        let idx = startIdx;
+                                        let stack = [];
+                                        const maxIter = Math.max(1, allCols.length * 32); // safety
+                                        let iter = 0;
+                                        const pushChord = (i) => { if (i>=0 && i<allCols.length && allCols[i].classList.contains('extension-column')) plan.push(i); };
+                                        while (iter++ < maxIter) {
+                                            if (idx < 0 || idx >= allCols.length) break;
+                                            const node = allCols[idx];
+                                            const text = (node.textContent||'').trim();
+                                            if (node.classList.contains('extension-column')) {
+                                                pushChord(idx);
+                                                idx++;
+                                            } else if (node.classList.contains('repeat-marker-column')) {
+                                                if (text === '[') {
+                                                    // find matching end at same level
+                                                    const startLevel = Number(node.dataset.nestLevel||0);
+                                                    let depth = 0; let endIndex = -1; let repeatCount = null;
+                                                    for (let j = idx+1; j < allCols.length; j++) {
+                                                        const sc = allCols[j];
+                                                        if (!sc.classList.contains('repeat-marker-column')) continue;
+                                                        const st = (sc.textContent||'').trim();
+                                                        const lvl = Number(sc.dataset.nestLevel||0);
+                                                        if (st === '[' && lvl > startLevel) depth++;
+                                                        else if ((st === ']' || /^\]x(\d+)$/.test(st))) {
+                                                            if (lvl > startLevel) { if (depth>0) depth--; }
+                                                            else if (lvl === startLevel && depth === 0) { endIndex = j; if (/^\]x(\d+)$/.test(st)) repeatCount = parseInt(st.match(/^\]x(\d+)$/)[1],10); break; }
+                                                        }
+                                                    }
+                                                    const contentStart = idx+1;
+                                                    const contentEnd = (endIndex>=0? endIndex: idx);
+                                                    const rep = (repeatCount==null?1: Math.max(1, repeatCount||1));
+                                                    // collect chords within once, then repeat
+                                                    let inner = [];
+                                                    for (let k = contentStart; k < contentEnd; k++) { if (allCols[k].classList.contains('extension-column')) inner.push(k); }
+                                                    for (let r=0; r<rep; r++) { plan.push(...inner); }
+                                                    idx = (endIndex>=0? endIndex+1: idx+1);
+                                                } else if (text === ']') {
+                                                    idx++;
+                                                } else if (/^\]x(\d+)$/.test(text)) {
+                                                    idx++;
+                                                } else if (/^[xX](\d+)$/.test(text)) {
+                                                    // repeat last chord N-1 more times
+                                                    const n = parseInt(text.slice(1),10);
+                                                    if (Number.isFinite(n) && n>1 && plan.length>0) {
+                                                        const last = plan[plan.length-1];
+                                                        for (let r=1; r<n; r++) plan.push(last);
+                                                    }
+                                                    idx++;
+                                                } else {
+                                                    idx++;
+                                                }
+                                            } else {
+                                                idx++;
+                                            }
+                                            // End condition for a single visual cycle: if we walked past the last element and plan has something, stop
+                                            if (idx >= allCols.length) break;
+                                        }
+                                        // Fallback: if plan empty but we have a chord, seed at least first chord to avoid dead start
+                                        if (!plan.length) {
+                                            const fc = allCols.findIndex(el=> el.classList.contains('extension-column'));
+                                            if (fc>=0) plan.push(fc);
+                                        }
+                                        return plan;
+                                    } catch(e){ console.warn('One-loop plan build error', e); return []; }
+                                };
+                                
+                                let oneLoopPlan = buildOneLoopPlan();
+                                let planPos = 0;
                                 
                                 const findNextChordIndex = (startIndex) => {
                                     console.log('🎵 Looking for bracket markers starting from index:', startIndex);
@@ -28807,6 +28911,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 console.log('🎵 Resolved to first chord at index:', sequenceIndex);
                                             }
                                         }
+
+                                        // Use one-loop lookahead plan to choose CURRENT chord index deterministically
+                                        try {
+                                            if (Array.isArray(oneLoopPlan) && oneLoopPlan.length) {
+                                                const selIdx = oneLoopPlan[Math.min(planPos, oneLoopPlan.length-1)];
+                                                if (Number.isFinite(selIdx)) {
+                                                    sequenceIndex = selIdx;
+                                                }
+                                            }
+                                        } catch(_){ }
                                         
                                         // Safety check after resolution
                                         if (sequenceIndex >= allCols.length) {
@@ -28814,6 +28928,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 console.log('🎵 Looping back to start');
                                                 // Do not stop/clear ARP here; allow current switch to complete
                                                 _resetStandaloneRepeatCounters();
+                                                // Rebuild one-loop plan at loop boundary so edits apply NEXT cycle
+                                                try { oneLoopPlan = buildOneLoopPlan(); planPos = 0; } catch(_){ planPos = 0; }
                                                 sequenceIndex = startIdx;
                                                 bracketStack = [];
                                                 // Pre-resolve first chord index to ensure we land on a real chord
@@ -29095,6 +29211,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 console.log('🎵 Looping back to start after reaching end');
                                                 // Allow the current chord to sound fully; wrap indices only
                                                 _resetStandaloneRepeatCounters();
+                                                try { oneLoopPlan = buildOneLoopPlan(); planPos = 0; } catch(_){ planPos = 0; }
                                                 sequenceIndex = startIdx;
                                                 bracketStack = [];
                                             } else {
@@ -29129,6 +29246,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         const barMs = beatMs * beatsPerBar;
                                         const totalHoldMs = (kind === 'beat') ? (beatMs * n) : (barMs * n);
                                         
+                                        // Advance lookahead plan position now that we've scheduled this step
+                                        try { planPos = (planPos + 1) % Math.max(1, oneLoopPlan.length); } catch(_){ }
                                         // Wait for the hold duration, then schedule next
                                         omnichord._seqTimer = setTimeout(scheduleNext, totalHoldMs);
                                     } catch (err) {
@@ -29625,11 +29744,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (typeof window.omnichord === 'undefined') return;
                         try {
                             omnichord._ensureArpTransport();
-                            const tpBeat = Math.max(1, omnichord._arpTransport.ticksPerBeat||1);
-                            const nowAbs = omnichord._arpTransport.absTickCounter|0;
-                            omnichord._arpTransport.deferApplyAtAbsTick = (nowAbs + (2*tpBeat)) >>> 0;
-                            const cur = omnichord._arpTransport.deferFlags || {};
-                            omnichord._arpTransport.deferFlags = Object.assign(cur, flags||{});
+                            const t = omnichord._arpTransport;
+                            const tpBeat = Math.max(1, t.ticksPerBeat||1);
+                            const tpBar = Math.max(tpBeat, t.ticksPerBar||((t.beatsPerBar||4) * tpBeat));
+                            const curTick = t.tickCounter|0;
+                            const nowAbs = t.absTickCounter|0;
+                            const ticksToNextBar = (tpBar - (curTick % tpBar)) % tpBar;
+                            // Always apply on the NEXT bar boundary (never immediately)
+                            const offset = (ticksToNextBar === 0 ? tpBar : ticksToNextBar);
+                            t.deferApplyAtAbsTick = (nowAbs + offset) >>> 0;
+                            const cur = t.deferFlags || {};
+                            t.deferFlags = Object.assign(cur, flags||{});
                         } catch(_) { /* ignore */ }
                     }
                  
