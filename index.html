@@ -5544,6 +5544,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Enable pattern and show modal
                         showPatternModal();
                         try { window.ensurePatternTransport && window.ensurePatternTransport(); } catch(_) {}
+                        // If PLAY is already running, start pattern playback on the next bar
+                        try {
+                            const omni = window.omnichord;
+                            const isPlaying = !!(omni && omni._arpTransport && omni._arpTransport.running);
+                            if (isPlaying) {
+                                const pt = window._patternTransport;
+                                if (pt && typeof pt.start === 'function') {
+                                    // pt.start() already aligns to the NEXT bar when alignToTransport=true
+                                    pt.start({ alignToTransport: true, preBufferMs: 80 });
+                                } else if (pt) {
+                                    // Minimal fallback: mark running; phase will be aligned by pt.start when available
+                                    pt.running = true;
+                                    if (typeof pt.kick === 'function') pt.kick();
+                                }
+                            }
+                        } catch(_) {}
                         // Make sure pattern grid handlers are attached and overlays don’t block entry
                         try {
                             const pg = document.getElementById('patternGrid');
@@ -5605,6 +5621,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try { window.omnichord.updateModeUI && window.omnichord.updateModeUI(); } catch(_) {}
                         }
                         showBassModal();
+                        // If PLAY is running, ensure transport timing refreshes on the next bar so BASS denominators work
+                        try {
+                            const omni = window.omnichord;
+                            const isPlaying = !!(omni && omni._arpTransport && omni._arpTransport.running);
+                            if (isPlaying) {
+                                const scheduleDeferred = window.scheduleDeferred;
+                                if (typeof scheduleDeferred === 'function') scheduleDeferred({ transport: true });
+                            }
+                        } catch(_) {}
                     } else {
                         // Disable bass and close modal
                         const modal = document.getElementById('bassModal');
@@ -25951,30 +25976,39 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (!Array.isArray(targetRows) || targetRows.length===0) return;
                 const ctxNow = this.audioContext?.currentTime || 0;
                 const tuner = this.currentTuning || 12;
-                // Gather active voices from map that are still sounding
+                // Gather active voices from the CHORD oscillator pool.
+                // IMPORTANT: do not rely solely on _chordSlideVoices (it can drift across loop boundaries),
+                // otherwise "extra" voices may go untracked and persist.
                 const activePairs = [];
-                if (this._chordSlideVoices && this._chordSlideVoices.size){
-                    for (const [stringEl, meta] of this._chordSlideVoices.entries()){
-                        // Prefer CHORD lane voices; fall back to default pool for safety
-                        let voice = null;
-                        let poolKey = null;
-                        try {
-                            if (this.activeChordOscillators && this.activeChordOscillators.size) {
-                                for (const [k, v] of this.activeChordOscillators.entries()) {
-                                    if (v && v.element === stringEl) { voice = v; poolKey = k; break; }
-                                }
-                            }
-                            if (!voice && this.activeOscillators && this.activeOscillators.size) {
-                                for (const [k, v] of this.activeOscillators.entries()) {
-                                    if (v && v.element === stringEl) { voice = v; poolKey = k; break; }
-                                }
-                            }
-                        } catch(_) { voice = null; }
-                        const f = parseFloat(stringEl?.dataset?.frequency);
-                        if (!voice || !isFinite(f) || f<=0) continue;
-                        activePairs.push({ stringEl, meta, voice, poolKey, curFreq: f, curLog: Math.log2(f) });
+                const metaByEl = new Map();
+                try {
+                    if (this._chordSlideVoices && this._chordSlideVoices.size) {
+                        for (const [el, meta] of this._chordSlideVoices.entries()) metaByEl.set(el, meta);
                     }
+                } catch(_) {}
+
+                const chOsc = (this.instruments && this.instruments.chord && this.instruments.chord.osc)
+                    ? this.instruments.chord.osc
+                    : (this.oscillators ? this.oscillators.osc1 : { octave: 0, detune: 0, coarse: 0 });
+                const totalDetuneCents = (chOsc.detune || 0) + ((chOsc.coarse || 0) * (1200 / tuner));
+                const chordMultiplier = Math.pow(2, (chOsc.octave || 0) + (totalDetuneCents / 1200));
+
+                const pool = (this.activeChordOscillators && this.activeChordOscillators.size)
+                    ? this.activeChordOscillators
+                    : (this.activeOscillators || null);
+                if (!pool || pool.size === 0) return;
+
+                for (const [k, v] of pool.entries()) {
+                    if (!v) continue;
+                    const oscHz = (v.osc1 && v.osc1.frequency) ? Number(v.osc1.frequency.value) : NaN;
+                    if (!isFinite(oscHz) || oscHz <= 0) continue;
+                    const baseHz = oscHz / Math.max(1e-9, chordMultiplier);
+                    if (!isFinite(baseHz) || baseHz <= 0) continue;
+                    const el = v.element || null;
+                    const meta = el ? (metaByEl.get(el) || null) : null;
+                    activePairs.push({ stringEl: el, meta, voice: v, poolKey: k, curFreq: baseHz, curLog: Math.log2(baseHz) });
                 }
+
                 if (!activePairs.length) return;
                 try {
                     if (window.DEBUG_CHOIR_SLIDE) {
@@ -26043,22 +26077,25 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try {
                                 const v = pool && pool.get(keyHz);
                                 if (v) {
-                                    const f1 = trg.f * Math.pow(2, this.oscillators.osc1.octave + ((this.oscillators.osc1.detune + (this.oscillators.osc1.coarse * (1200 / tuner))) / 1200));
-                                    const f2 = trg.f * Math.pow(2, this.oscillators.osc2.octave + ((this.oscillators.osc2.detune + (this.oscillators.osc2.coarse * (1200 / tuner))) / 1200));
+                                    const chOsc = (this.instruments && this.instruments.chord && this.instruments.chord.osc)
+                                        ? this.instruments.chord.osc
+                                        : (this.oscillators ? this.oscillators.osc1 : { octave: 0, detune: 0, coarse: 0 });
+                                    const totalDetuneCents = (chOsc.detune || 0) + ((chOsc.coarse || 0) * (1200 / tuner));
+                                    const fCh = trg.f * Math.pow(2, (chOsc.octave || 0) + (totalDetuneCents / 1200));
                                     const t0 = this.audioContext?.currentTime || 0;
                                     if (v.osc1?.frequency?.cancelScheduledValues) {
                                         const p = v.osc1.frequency;
                                         p.cancelScheduledValues(t0);
-                                        p.setValueAtTime(Math.max(1e-6, Number(p.value)||f1), t0);
-                                        if (glide > 0) p.exponentialRampToValueAtTime(Math.max(1e-6, f1), t0 + glide);
-                                        else p.setValueAtTime(Math.max(1e-6, f1), t0);
+                                        p.setValueAtTime(Math.max(1e-6, Number(p.value)||fCh), t0);
+                                        if (glide > 0) p.exponentialRampToValueAtTime(Math.max(1e-6, fCh), t0 + glide);
+                                        else p.setValueAtTime(Math.max(1e-6, fCh), t0);
                                     }
                                     if (v.osc2?.frequency?.cancelScheduledValues) {
                                         const p = v.osc2.frequency;
                                         p.cancelScheduledValues(t0);
-                                        p.setValueAtTime(Math.max(1e-6, Number(p.value)||f2), t0);
-                                        if (glide > 0) p.exponentialRampToValueAtTime(Math.max(1e-6, f2), t0 + glide);
-                                        else p.setValueAtTime(Math.max(1e-6, f2), t0);
+                                        p.setValueAtTime(Math.max(1e-6, Number(p.value)||fCh), t0);
+                                        if (glide > 0) p.exponentialRampToValueAtTime(Math.max(1e-6, fCh), t0 + glide);
+                                        else p.setValueAtTime(Math.max(1e-6, fCh), t0);
                                     }
                                 }
                             } catch(_) {}
@@ -26081,35 +26118,49 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 for (const {src, trg} of mappings){
                     const v = src.voice;
-                    const f1 = trg.f * Math.pow(2, this.oscillators.osc1.octave + ((this.oscillators.osc1.detune + (this.oscillators.osc1.coarse * (1200 / tuner))) / 1200));
-                    const f2 = trg.f * Math.pow(2, this.oscillators.osc2.octave + ((this.oscillators.osc2.detune + (this.oscillators.osc2.coarse * (1200 / tuner))) / 1200));
+                    const chOsc = (this.instruments && this.instruments.chord && this.instruments.chord.osc)
+                        ? this.instruments.chord.osc
+                        : (this.oscillators ? this.oscillators.osc1 : { octave: 0, detune: 0, coarse: 0 });
+                    const totalDetuneCents = (chOsc.detune || 0) + ((chOsc.coarse || 0) * (1200 / tuner));
+                    const fCh = trg.f * Math.pow(2, (chOsc.octave || 0) + (totalDetuneCents / 1200));
                     try {
                         try {
                             if (window.DEBUG_CHOIR_SLIDE) {
                                 const curHz = v?.osc1?.frequency ? Number(v.osc1.frequency.value) : null;
-                                console.log('[CHOIR] retune:voice', { fromHz: curHz, toHz: f1, glideSec: glide });
+                                console.log('[CHOIR] retune:voice', { fromHz: curHz, toHz: fCh, glideSec: glide });
                             }
                         } catch(_) {}
                         if (v.osc1?.frequency?.cancelScheduledValues){
                             const p = v.osc1.frequency;
                             p.cancelScheduledValues(ctxNow);
-                            const cur = Math.max(1e-6, Number(p.value) || f1);
+                            const cur = Math.max(1e-6, Number(p.value) || fCh);
                             p.setValueAtTime(cur, ctxNow);
-                            if (glide > 0) p.exponentialRampToValueAtTime(Math.max(1e-6, f1), ctxNow + glide);
-                            else p.setValueAtTime(Math.max(1e-6, f1), ctxNow);
+                            if (glide > 0) p.exponentialRampToValueAtTime(Math.max(1e-6, fCh), ctxNow + glide);
+                            else p.setValueAtTime(Math.max(1e-6, fCh), ctxNow);
                         }
                         if (v.osc2?.frequency?.cancelScheduledValues){
                             const p = v.osc2.frequency;
                             p.cancelScheduledValues(ctxNow);
-                            const cur = Math.max(1e-6, Number(p.value) || f2);
+                            const cur = Math.max(1e-6, Number(p.value) || fCh);
                             p.setValueAtTime(cur, ctxNow);
-                            if (glide > 0) p.exponentialRampToValueAtTime(Math.max(1e-6, f2), ctxNow + glide);
-                            else p.setValueAtTime(Math.max(1e-6, f2), ctxNow);
+                            if (glide > 0) p.exponentialRampToValueAtTime(Math.max(1e-6, fCh), ctxNow + glide);
+                            else p.setValueAtTime(Math.max(1e-6, fCh), ctxNow);
                         }
-                        // Update last known frequency for subsequent mapping
-                        src.stringEl.dataset.frequency = String(trg.f);
+                        // Keep voice→row association current so later retune passes can correctly stop extras.
+                        try { v.element = trg.row; } catch(_) {}
                     } catch(_){ this._dbg && this._dbg('SLIDE/RETUNE:ERR'); }
                 }
+
+                // Rebuild slide voice tracking to match the currently mapped target rows.
+                // This prevents stale entries (or missing entries) from causing "hanging" notes across loops.
+                try {
+                    const nextMap = new Map();
+                    for (const {src, trg} of mappings) {
+                        const meta = src.meta || { startFreq: src.curFreq, startLog2: src.curLog, groupId: (this._chordSlideGroupId||0) };
+                        nextMap.set(trg.row, meta);
+                    }
+                    this._chordSlideVoices = nextMap;
+                } catch(_) {}
             }
 
             // Enhanced touch responsiveness system to prevent missed taps and improve sensitivity
@@ -29178,6 +29229,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     
                     console.log(`[${sourceType.toUpperCase()}] Auto-release scheduled in ${holdMs}ms (${holdValue})`);
                     
+                } else if (sourceType === 'strum') {
+                    // STRUM should always decay/release normally, even if a CHORD gesture is sustaining.
+                    // Prefer an explicit musical gate if provided, otherwise release at end-of-decay.
+                    const epsilonMs = 6;
+                    const elGateMs = (element && Number.isFinite(element.__gateMs)) ? element.__gateMs : null;
+                    let gateMs = null;
+                    if (elGateMs && elGateMs > 0) {
+                        gateMs = Math.max(10, Math.floor(elGateMs - epsilonMs));
+                    } else {
+                        const endOfDecayTime = Math.max(osc1DecayTime, osc2DecayTime);
+                        gateMs = Math.max(10, Math.floor(Math.max(0, (endOfDecayTime - currentTime) * 1000) - epsilonMs));
+                    }
+                    releaseTimeout = setTimeout(() => {
+                        this.stopFrequency(frequency, safeElement, sourceType);
+                    }, gateMs);
                 } else if (!this._sustainActive && sourceType !== 'arp') {
                     // Other modes: release at end of decay if sustain not active
                     const endOfDecayTime = Math.max(osc1DecayTime, osc2DecayTime);
