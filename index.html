@@ -1404,8 +1404,39 @@
     .drum-grid-container::-webkit-scrollbar { display: none; }
         .drum-grid-header { display:flex; align-items:center; gap:10px; margin:6px 0 8px 0; font-size:12px; color:#cfe6ff; }
     .drum-grid { display:grid; grid-template-rows: repeat(var(--npc-rows, 3), 1fr); gap:0px; height: auto; }
-    .drum-row { display:grid; grid-template-columns: 88px 1fr 100px 46px 76px 170px; align-items:center; gap:4px; margin:0; }
+    .drum-row { display:grid; grid-template-columns: 88px 1fr 100px 120px 76px 170px; align-items:center; gap:4px; margin:0; }
         .drum-label { font-size:12px; color:#e0e8ff; opacity:.9; text-align:right; padding-right:6px; white-space:nowrap; }
+
+    /* DRUMS REVAMP: collapsed row + gear drawer for the Drum Sequencer grid only */
+    #drumGrid.drum-grid { display:flex; flex-direction:column; gap:6px; height:auto; }
+    #drumGrid.drum-grid .drum-row { display:flex; flex-direction:column; gap:4px; margin:0; padding:0; }
+    #drumGrid.drum-grid .drum-row-main { display:flex; align-items:center; gap:6px; width:100%; }
+    #drumGrid.drum-grid .drum-gear { width:26px; height:22px; display:inline-flex; align-items:center; justify-content:center; background:#214051; color:#e8f5ff; border:1px solid #4a6870; border-radius:6px; font-size:13px; cursor:pointer; line-height:1; padding:0; flex:0 0 auto; }
+    #drumGrid.drum-grid .drum-gear:hover { filter:brightness(1.15); }
+    #drumGrid.drum-grid .drum-gear[aria-expanded="true"] { outline:2px solid #ffd046; outline-offset:1px; }
+    /* Collapsed: hide label (dots dominate); MIDI stays visible per spec */
+    #drumGrid.drum-grid .drum-row:not(.expanded) .drum-label { display:none; }
+    #drumGrid.drum-grid .drum-row-main .drum-label { text-align:left; padding:0; min-width:70px; }
+    #drumGrid.drum-grid .drum-row-main .drum-lane { flex:1 1 auto; min-width: calc(var(--bar-steps, 16) * var(--step-size, 22px)); }
+    #drumGrid.drum-grid .drum-row-main .drum-midi { margin-left:4px; margin-right:4px; }
+    #drumGrid.drum-grid .drum-row-main .drum-midi input { width:72px; }
+    #drumGrid.drum-grid .drum-drawer { display:none; border:1px solid rgba(74,106,112,0.55); border-radius:8px; padding:6px 8px; background:rgba(42,72,88,0.18); }
+    #drumGrid.drum-grid .drum-row.expanded .drum-drawer { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    #drumGrid.drum-grid .drum-drawer .drum-volume { width:120px; margin:0; }
+    #drumGrid.drum-grid .drum-drawer .drum-send-wrap { min-width:170px; }
+    #drumGrid.drum-grid .drum-drawer .drum-params { margin-left:0; }
+
+    /* Drum FX panel (always visible in drum modal) */
+    .drum-fx-panel { margin-top:10px; padding:10px; border:1px solid rgba(155,89,182,0.45); border-radius:10px; background:rgba(155,89,182,0.08); }
+    .drum-fx-panel h5 { margin:0 0 8px 0; font-size:12px; color:#d7b8ff; letter-spacing:0.3px; }
+    .drum-fx-grid { display:grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap:8px; align-items:end; }
+    .drum-fx-cell { display:flex; flex-direction:column; gap:4px; }
+    .drum-fx-cell label { font-size:10px; color:#cfe6ff; opacity:.85; }
+    .drum-fx-cell input[type="range"], .drum-fx-cell input[type="number"] { width:100%; }
+    .drum-fx-mini { font-size:10px; opacity:.75; }
+    @media (max-width: 980px) {
+        .drum-fx-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+    }
     :root { --step-size: 22px; --bar-steps: 16; }
     /* Modal-scalable drum/pattern/bass dots (defaults can be overridden per modal) */
     #drumModal, #bassModal { --dot-size: 16px; --dot-gap: 4px; --tie-height: 12px; }
@@ -1449,6 +1480,8 @@
         .drum-lane::before { display:none; }
         .drum-lane .beat-divider { display:none; }
         .drum-volume { width:100%; }
+        .drum-send-wrap { display:flex; align-items:center; gap:6px; justify-content:flex-start; }
+        .drum-send { width:100%; }
         .drum-fx { display:flex; align-items:center; gap:6px; font-size:10px; color:#9db6c8; justify-content:flex-start; }
         .drum-playhead { position:absolute; top:-7px; bottom:-7px; width:2px; background:#ffd046; opacity:.75; pointer-events:none; box-shadow:0 0 10px 2px rgba(255,208,70,0.6); transform:translateX(0); }
     .drum-fx { display:flex; align-items:center; gap:4px; justify-content:center; }
@@ -3145,13 +3178,13 @@
                 </div>
 
         <!-- Floating Drum Modal -->
-        <div id="drumModal" class="floating-modal" style="top: 100px; left: 200px; width: 870px; height: 490px;">
+        <div id="drumModal" class="floating-modal" style="top: 100px; left: 200px; width: 870px; height: 560px;">
             <div class="modal-header">
                 <span>Drum Sequencer</span>
                 <button class="modal-close" onclick="closeDrumModalOnly()">×</button>
             </div>
-            <div class="modal-body" style="padding: 15px; height: calc(100% - 60px); overflow: visible;">
-                <div class="drum-grid-container" style="height: 100%; overflow-x: auto; overflow-y: visible;">
+            <div class="modal-body" style="padding: 12px; height: calc(100% - 60px); overflow: hidden; display:flex; flex-direction:column;">
+                <div class="drum-grid-container" style="flex: 1 1 auto; min-height:0; overflow-x: auto; overflow-y: auto;">
                     <div class="drum-grid-header">
                         <span style="opacity:.8;">Pattern</span>
                         <input id="drumPatternNumber" type="number" min="1" max="128" value="1" style="width:64px;background:#2a4858;color:#fff;border:1px solid #4a6870;border-radius:4px;padding:2px 6px;" />
@@ -3192,6 +3225,78 @@
                         <span id="drumLenHint" style="font-size:10px;opacity:.6;">Cycle: 16 steps</span>
                     </div>
                     <div class="drum-grid" id="drumGrid"></div>
+                </div>
+
+                <!-- DRUM FX (global bus; always visible) -->
+                <div id="drumFxPanel" class="drum-fx-panel">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                        <h5>DRUM FX</h5>
+                        <button id="drumFxReset" title="Reset Drum FX" style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;">RESET</button>
+                    </div>
+                    <div class="drum-fx-grid">
+                        <div class="drum-fx-cell">
+                            <label>SAT MIX <span class="drum-fx-mini" id="drumFxSatMixValue"></span></label>
+                            <input id="drumFxSatMix" type="range" min="0" max="100" value="0" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>COMP THR <span class="drum-fx-mini" id="drumFxCompThrValue"></span></label>
+                            <input id="drumFxCompThr" type="range" min="-60" max="0" value="-18" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>DELAY TIME <span class="drum-fx-mini" id="drumFxDelayTimeValue"></span></label>
+                            <input id="drumFxDelayTime" type="range" min="10" max="1200" value="180" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>REVERB WET <span class="drum-fx-mini" id="drumFxReverbWetValue"></span></label>
+                            <input id="drumFxReverbWet" type="range" min="0" max="100" value="15" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>DRUM OUT <span class="drum-fx-mini" id="drumFxOutValue"></span></label>
+                            <input id="drumFxOut" type="range" min="0" max="200" value="100" />
+                        </div>
+
+                        <div class="drum-fx-cell">
+                            <label>SAT HP <span class="drum-fx-mini" id="drumFxSatHpValue"></span></label>
+                            <input id="drumFxSatHp" type="range" min="20" max="2000" value="140" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>COMP RATIO <span class="drum-fx-mini" id="drumFxCompRatioValue"></span></label>
+                            <input id="drumFxCompRatio" type="range" min="1" max="20" value="4" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>DELAY FB <span class="drum-fx-mini" id="drumFxDelayFbValue"></span></label>
+                            <input id="drumFxDelayFb" type="range" min="0" max="95" value="25" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>REVERB DECAY <span class="drum-fx-mini" id="drumFxReverbDecayValue"></span></label>
+                            <input id="drumFxReverbDecay" type="range" min="10" max="600" value="120" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>REVERB ROOM <span class="drum-fx-mini" id="drumFxReverbRoomValue"></span></label>
+                            <input id="drumFxReverbRoom" type="range" min="0" max="100" value="55" />
+                        </div>
+
+                        <div class="drum-fx-cell">
+                            <label>SAT LP <span class="drum-fx-mini" id="drumFxSatLpValue"></span></label>
+                            <input id="drumFxSatLp" type="range" min="200" max="20000" value="12000" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>COMP ATK <span class="drum-fx-mini" id="drumFxCompAtkValue"></span></label>
+                            <input id="drumFxCompAtk" type="range" min="1" max="100" value="3" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>COMP REL <span class="drum-fx-mini" id="drumFxCompRelValue"></span></label>
+                            <input id="drumFxCompRel" type="range" min="10" max="1000" value="250" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>DELAY MIX <span class="drum-fx-mini" id="drumFxDelayMixValue"></span></label>
+                            <input id="drumFxDelayMix" type="range" min="0" max="100" value="18" />
+                        </div>
+                        <div class="drum-fx-cell">
+                            <label>COMP OUT <span class="drum-fx-mini" id="drumFxCompOutValue"></span></label>
+                            <input id="drumFxCompOut" type="range" min="-24" max="24" value="0" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3901,6 +4006,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (drumContainer) {
                     drumContainer.style.display = 'block';
                 }
+
+                // Drum FX panel: wire listeners and apply state to audio on open.
+                // (Otherwise the sliders may render but not affect audio until some other code path runs.)
+                try {
+                    const omni = window.omnichord;
+                    if (omni && typeof omni._wireDrumFxPanel === 'function') omni._wireDrumFxPanel();
+                    if (omni && typeof omni._applyDrumFxPanel === 'function') omni._applyDrumFxPanel();
+                    if (omni && typeof omni.updateDrumFx === 'function') omni.updateDrumFx();
+                } catch(_){ }
+
                 // Auto-size to fit full row content (grid + controls) on open only
                 try { window._autoSizePatternModals && window._autoSizePatternModals(); } catch(_) {}
                 // Make draggable if not already
@@ -6047,7 +6162,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     vel: new Array(safeLen).fill(100),
                     quant: String(safeLen),
                     vol: 80,
-                    fx: false,
+                    send: 0,
                     midi: '',
                     pitch: 0,
                     atk: 2,
@@ -6067,17 +6182,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const steps = stepsEl.map(s=> s.classList.contains('active') ? 1 : 0);
                     const vel = stepsEl.map(s=> Math.max(0, Math.min(127, parseInt(s.dataset.vel||'100',10)||100)));
                     const volEl = row.querySelector('.drum-volume');
+                    const sendEl = row.querySelector('.drum-send');
                     const fxEl = row.querySelector('.drum-fx input[type="checkbox"]');
                     const midiEl = row.querySelector('.drum-midi input[type="text"]');
                     const pitchEl = row.querySelector('.drum-params input[title$="Pitch"]');
                     const atkEl = row.querySelector('.drum-params input[title$="Attack"]');
                     const decEl = row.querySelector('.drum-params input[title$="Decay"]');
+                    const sendPct = sendEl ? (parseInt(sendEl.value||'0',10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
                     return {
                         steps,
                         vel,
                         quant: laneEl ? String(laneEl.dataset.quant||'').trim() : String(len),
                         vol: volEl ? (parseInt(volEl.value||'80',10)||80) : 80,
-                        fx: fxEl ? !!fxEl.checked : false,
+                        send: Math.max(0, Math.min(1, sendPct/100)),
                         midi: midiEl ? String(midiEl.value||'').trim() : '',
                         pitch: pitchEl ? (parseInt(pitchEl.value||'0',10)||0) : 0,
                         atk: atkEl ? (parseInt(atkEl.value||'2',10)||2) : 2,
@@ -6143,13 +6260,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const stepsEl = laneEl ? Array.from(laneEl.querySelectorAll('.drum-step')) : [];
                     const lane = (state.lanes && state.lanes[idx]) ? state.lanes[idx] : null;
                     const volEl = row.querySelector('.drum-volume');
+                    const sendEl = row.querySelector('.drum-send');
                     const fxEl = row.querySelector('.drum-fx input[type="checkbox"]');
                     const midiEl = row.querySelector('.drum-midi input[type="text"]');
                     const pitchEl = row.querySelector('.drum-params input[title$="Pitch"]');
                     const atkEl = row.querySelector('.drum-params input[title$="Attack"]');
                     const decEl = row.querySelector('.drum-params input[title$="Decay"]');
                     if (volEl && lane) volEl.value = String(lane.vol ?? 80);
-                    if (fxEl && lane) fxEl.checked = !!lane.fx;
+                    if (lane) {
+                        const legacyFx = (typeof lane.fx === 'boolean') ? lane.fx : false;
+                        const send = (typeof lane.send === 'number') ? lane.send : (legacyFx ? 1 : 0);
+                        if (sendEl) sendEl.value = String(Math.round(Math.max(0, Math.min(1, send)) * 100));
+                        else if (fxEl) fxEl.checked = !!legacyFx;
+                    }
                     if (midiEl && lane) midiEl.value = String(lane.midi||'');
                     if (pitchEl && lane) pitchEl.value = String(lane.pitch ?? 0);
                     if (atkEl && lane) atkEl.value = String(lane.atk ?? 2);
@@ -6384,6 +6507,45 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     } catch(_){ }
                 } catch(_){ }
             };
+
+            // Live editor -> active instance sync.
+            // Without this, changing SEND/volume/etc in the editor won't affect playback until the modal closes,
+            // because multi-instance scheduling reads from instance state (not DOM).
+            const wireLiveEditorSync = ()=>{
+                try {
+                    const grid = document.getElementById('drumGrid');
+                    if (!grid || grid._liveInstanceSyncWired) return;
+                    grid._liveInstanceSyncWired = true;
+
+                    const scheduleSave = ()=>{
+                        try {
+                            if (!(window._drumInstances && window._drumInstances.length)) return;
+                            if (grid._liveInstanceSyncTimer) clearTimeout(grid._liveInstanceSyncTimer);
+                            grid._liveInstanceSyncTimer = setTimeout(()=>{
+                                try { saveActiveFromUI(); } catch(_){ }
+                            }, 40);
+                        } catch(_){ }
+                    };
+
+                    // Inputs (SEND sliders, volume, params, MIDI note text)
+                    grid.addEventListener('input', (e)=>{
+                        const t = e && e.target;
+                        if (!t) return;
+                        scheduleSave();
+                    }, true);
+                    grid.addEventListener('change', ()=> scheduleSave(), true);
+
+                    // Step toggles are clicks, not inputs.
+                    grid.addEventListener('click', (e)=>{
+                        const t = e && e.target;
+                        if (!t || !t.classList) return;
+                        if (t.classList.contains('drum-step')) scheduleSave();
+                    }, true);
+                } catch(_){ }
+            };
+            wireLiveEditorSync();
+            setTimeout(wireLiveEditorSync, 500);
+            setTimeout(wireLiveEditorSync, 1500);
 
             // Wire NEW DRUM button
             try {
@@ -8840,6 +9002,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     roomSize: 0.5,
                     filterCutoff: 8000
                 };
+
+                // Drum FX (dedicated global drum bus; per-lane uses SEND 0..1)
+                this.drumFx = {
+                    sat: { mix: 0.0, hp: 20, lp: 20000 },
+                    comp: { ratio: 4, attack: 0.003, release: 0.25, threshold: -24, output: 0.0 },
+                    delay: { timeMs: 180, feedback: 0.25, mix: 0.0 },
+                    reverb: { wet: 0.0, decay: 0.5, room: 0.5, lp: 8000, hp: 20 },
+                    out: 1.0
+                };
                 
                 // Audio nodes
                 this.reverbNode = null;
@@ -9150,9 +9321,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     }
                                     return out;
                                 };
-                                while (lanes.length < 9) lanes.push({ steps: [], vel: [], quant: String(oldLen), vol: 80, fx: false, midi: '', pitch: 0, atk: 2, dec: 180 });
+                                while (lanes.length < 9) lanes.push({ steps: [], vel: [], quant: String(oldLen), vol: 80, send: 0, midi: '', pitch: 0, atk: 2, dec: 180 });
                                 for (let i=0;i<9;i++){
-                                    const lane = lanes[i] || (lanes[i] = { steps: [], vel: [], quant: String(oldLen), vol: 80, fx: false, midi: '', pitch: 0, atk: 2, dec: 180 });
+                                    const lane = lanes[i] || (lanes[i] = { steps: [], vel: [], quant: String(oldLen), vol: 80, send: 0, midi: '', pitch: 0, atk: 2, dec: 180 });
                                     const q0 = String((lane.quant != null) ? lane.quant : '').trim();
                                     const isDefault = (!q0) || (q0 === String(oldLen)) || (q0 === `${oldLen}/${oldLen}`);
                                     if (isDefault) lane.quant = String(newLen);
@@ -9193,13 +9364,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const velFactor = stepVel / 127;
                                 const vol = Math.max(0, Math.min(1, (parseInt(lane.vol||'80',10)||80) / 100));
                                 const finalVol = vol * velFactor;
-                                const sendToFX = !!lane.fx;
+                                const legacyFx = (typeof lane.fx === 'boolean') ? lane.fx : false;
+                                const send = (typeof lane.send === 'number') ? lane.send : (legacyFx ? 1 : 0);
                                 const laneParams = {
                                     pitch: parseInt(lane.pitch||0,10) || 0,
                                     attackMs: parseFloat(lane.atk||2) || 2,
                                     decayMs: parseFloat(lane.dec||180) || 180,
                                 };
-                                try { this._triggerDrumSound(rowIdx|0, finalVol, sendToFX, laneParams); } catch(_){ }
+                                try { this._triggerDrumSound(rowIdx|0, finalVol, send, laneParams); } catch(_){ }
                                 try {
                                     if (!__DRUMS_ACTIVE__) return;
                                     const midi = window.midi;
@@ -9436,9 +9608,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const stepEl = lane.querySelector(`.drum-step[data-step="${laneStepIdx}"]`);
                         const rowEl = lane.closest('.drum-row');
                         const volEl = rowEl ? rowEl.querySelector('.drum-volume') : null;
+                        const sendEl = rowEl ? rowEl.querySelector('.drum-send') : null;
                         const fxEl = rowEl ? rowEl.querySelector('.drum-fx input[type="checkbox"]') : null;
                         const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value||'80',10)/100)) : 0.8;
-                        const sendToFX = fxEl ? !!fxEl.checked : false;
+                        const sendPct = sendEl ? (parseInt(sendEl.value||'0',10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
+                        const send = Math.max(0, Math.min(1, sendPct/100));
 
                         // Skip bass processing here - it's now handled separately from bass modal
                         if (stepEl && stepEl.classList.contains('active')){
@@ -9447,7 +9621,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const velFactor = stepVel / 127;
                             const finalVol = vol * velFactor;
                             // Fire internal synth with velocity-adjusted volume
-                            this._triggerDrumSound(rowIdx|0, finalVol, sendToFX);
+                            this._triggerDrumSound(rowIdx|0, finalVol, send);
                             try { window._pulseStepEl && window._pulseStepEl(stepEl); } catch(_){ }
                             // Also mirror per-lane MIDI if provided
                             try {
@@ -9679,7 +9853,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } catch(_) { return { pitch:0, attackMs:2, decayMs:180 }; }
             }
 
-            async _triggerDrumSound(rowIdx, volume=0.8, sendToFX=false, laneParams=null){
+            async _triggerDrumSound(rowIdx, volume=0.8, send=0, laneParams=null){
                 try {
                     const ok = await this.ensureAudioContext(); if (!ok) return;
                     const ac = this.audioContext; if (!ac) return;
@@ -9809,16 +9983,37 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     dcBlock.frequency.value = 12; // ~12 Hz to remove DC/very low drift without thinning lows
                     outGain.connect(dcBlock);
 
-                    // Route output: FX send or dry path (reuse existing master routing)
-                    if (sendToFX && this.gainNode) {
-                        dcBlock.connect(this.gainNode);
+                    // Route output: always dry → drums out, plus optional SEND → drum FX chain
+                    const sendAmt = (typeof send === 'boolean')
+                        ? (send ? 1 : 0)
+                        : Math.max(0, Math.min(1, Number(send) || 0));
+
+                    // Prefer dedicated drum bus; fallback to legacy routing if unavailable
+                    const drumBus = this._drumBus;
+                    if (drumBus && drumBus.drySum && drumBus.sendSum) {
+                        // Dry always
+                        dcBlock.connect(drumBus.drySum);
+                        // Send is additive
+                        const sendGain = ac.createGain();
+                        sendGain.gain.value = sendAmt;
+                        dcBlock.connect(sendGain);
+                        sendGain.connect(drumBus.sendSum);
+                        voice._sendGain = sendGain;
                     } else {
+                        // Fallback: dry → destination, send → master FX input
                         if (!this.dryGainNode) {
                             this.dryGainNode = ac.createGain();
                             this.dryGainNode.connect(ac.destination);
                             this.dryGainNode.gain.value = this.masterVolume || 1;
                         }
                         dcBlock.connect(this.dryGainNode);
+                        if (sendAmt > 0.0001 && this.gainNode) {
+                            const sendGain = ac.createGain();
+                            sendGain.gain.value = sendAmt;
+                            dcBlock.connect(sendGain);
+                            sendGain.connect(this.gainNode);
+                            voice._sendGain = sendGain;
+                        }
                     }
 
                     // Register voice and clean it up when all sources end
@@ -9826,6 +10021,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const cleanup = () => {
                             try { env.disconnect(); } catch(_){}
                             try { outGain.disconnect(); } catch(_){}
+                            try { dcBlock.disconnect(); } catch(_){ }
+                            try { if (voice._sendGain) voice._sendGain.disconnect(); } catch(_){ }
                         };
                         let pending = voice.sources.length;
                         if (pending === 0) {
@@ -10908,10 +11105,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const row = document.createElement('div');
                         row.className = 'drum-row' + (name==='BASS' ? ' bass-row' : '');
 
+                        const rowMain = document.createElement('div');
+                        rowMain.className = 'drum-row-main';
+
+                        const gearBtn = document.createElement('button');
+                        gearBtn.className = 'drum-gear';
+                        gearBtn.type = 'button';
+                        gearBtn.title = 'Lane controls';
+                        gearBtn.textContent = '⚙';
+                        gearBtn.setAttribute('aria-expanded', 'false');
+                        gearBtn.addEventListener('click', (ev)=>{
+                            try { ev.preventDefault(); ev.stopPropagation(); } catch(_){ }
+                            const open = row.classList.toggle('expanded');
+                            try { gearBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); } catch(_){ }
+                        });
+                        rowMain.appendChild(gearBtn);
+
                         const label = document.createElement('div');
                         label.className = 'drum-label';
                         label.textContent = name;
-                        row.appendChild(label);
+                        rowMain.appendChild(label);
 
                         const lane = document.createElement('div');
                         lane.className = 'drum-lane';
@@ -11231,11 +11444,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                     const lane = s.closest('.drum-lane');
                                                     const rowIdx = lane ? parseInt(lane.dataset.row||'0',10):0;
                                                     const volEl = row ? row.querySelector('.drum-volume') : null;
+                                                    const sendEl = row ? row.querySelector('.drum-send') : null;
                                                     const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
                                                     const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value||'80',10)/100)) : 0.8;
-                                                    const sendToFX = fxEl ? !!fxEl.checked : false;
+                                                    const sendPct = sendEl ? (parseInt(sendEl.value||'0',10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
+                                                    const send = Math.max(0, Math.min(1, sendPct/100));
                                                     if (this._isDrumPreviewAllowed()) {
-                                                        this._triggerDrumSound(rowIdx|0, vol, sendToFX);
+                                                        this._triggerDrumSound(rowIdx|0, vol, send);
                                                         try { window._pulseStepEl && window._pulseStepEl(s); } catch(_){ }
                                                     }
                                                 }
@@ -11306,11 +11521,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                     const lane = s.closest('.drum-lane');
                                                     const rowIdx = lane ? parseInt(lane.dataset.row||'0',10):0;
                                                     const volEl = row ? row.querySelector('.drum-volume') : null;
+                                                    const sendEl = row ? row.querySelector('.drum-send') : null;
                                                     const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
                                                     const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value||'80',10)/100)) : 0.8;
-                                                    const sendToFX = fxEl ? !!fxEl.checked : false;
+                                                    const sendPct = sendEl ? (parseInt(sendEl.value||'0',10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
+                                                    const send = Math.max(0, Math.min(1, sendPct/100));
                                                     if (this._isDrumPreviewAllowed()) {
-                                                        this._triggerDrumSound(rowIdx|0, vol, sendToFX);
+                                                        this._triggerDrumSound(rowIdx|0, vol, send);
                                                         try { window._pulseStepEl && window._pulseStepEl(s); } catch(_){ }
                                                     }
                                                 }
@@ -11348,40 +11565,48 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try { this.rebuildBassTieOverlays(lane); } catch(_){ }
                         }
 
-                        row.appendChild(lane);
-
-                        const vol = document.createElement('input');
-                        vol.type = 'range';
-                        vol.min = '0'; vol.max = '100'; vol.value = '80';
-                        vol.className = 'drum-volume';
-                        vol.title = `${name} Volume`;
-                        vol.style.cssText = 'margin:0 8px; width:100px; vertical-align:middle;';
-                        vol.addEventListener('input', ()=>{ try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch(_){ } try { if (window.omnichord && omnichord._arpTransport && omnichord._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch(_){ } });
-                        row.appendChild(vol);
-
-                        const fx = document.createElement('label');
-                        fx.className = 'drum-fx';
-                        fx.style.cssText = 'display:inline-flex;align-items:center;gap:4px;margin-right:8px;';
-                        const fxChk = document.createElement('input');
-                        fxChk.type = 'checkbox'; fxChk.checked = false; fxChk.title = `${name} → FX`;
-                        fxChk.addEventListener('change', ()=>{ try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch(_){ } try { if (window.omnichord && omnichord._arpTransport && omnichord._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch(_){ } });
-                        fx.appendChild(fxChk);
-                        const fxSpan = document.createElement('span');
-                        fxSpan.textContent = 'FX';
-                        fx.appendChild(fxSpan);
-                        row.appendChild(fx);
-
-                        // MIDI out field per lane (skip on BASS which is melodic)
+                        // MIDI out field per lane (always visible per spec)
                         const midiWrap = document.createElement('div');
                         midiWrap.className = 'drum-midi';
-                        midiWrap.style.cssText = 'display:inline-flex;align-items:center;gap:4px;margin:0 8px;';
+                        midiWrap.style.cssText = 'display:inline-flex;align-items:center;gap:4px;';
                         const midiInput = document.createElement('input');
                         midiInput.type = 'text';
                         midiInput.value = (name!=='BASS' ? (gmNotes[rowIdx]||'C2') : '');
                         midiInput.title = 'Send this GM note on Ch10 when step hits (e.g., C2, D#2)';
                         midiInput.addEventListener('change', ()=>{ try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch(_){ } try { if (window.omnichord && omnichord._arpTransport && omnichord._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch(_){ } });
                         midiWrap.appendChild(midiInput);
-                        row.appendChild(midiWrap);
+
+                        rowMain.appendChild(midiWrap);
+                        rowMain.appendChild(lane);
+                        row.appendChild(rowMain);
+
+                        const drawer = document.createElement('div');
+                        drawer.className = 'drum-drawer';
+
+                        const vol = document.createElement('input');
+                        vol.type = 'range';
+                        vol.min = '0'; vol.max = '100'; vol.value = '80';
+                        vol.className = 'drum-volume';
+                        vol.title = `${name} Volume`;
+                        vol.style.cssText = 'margin:0; vertical-align:middle;';
+                        vol.addEventListener('input', ()=>{ try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch(_){ } try { if (window.omnichord && omnichord._arpTransport && omnichord._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch(_){ } });
+                        drawer.appendChild(vol);
+
+                        const sendWrap = document.createElement('label');
+                        sendWrap.className = 'drum-send-wrap';
+                        sendWrap.style.cssText = 'display:inline-flex;align-items:center;gap:6px;';
+                        const sendSpan = document.createElement('span');
+                        sendSpan.textContent = 'SEND';
+                        sendSpan.style.cssText = 'font-size:10px;color:#9db6c8;';
+                        sendWrap.appendChild(sendSpan);
+                        const sendEl = document.createElement('input');
+                        sendEl.type = 'range';
+                        sendEl.min = '0'; sendEl.max = '100'; sendEl.value = '0';
+                        sendEl.className = 'drum-send';
+                        sendEl.title = `${name} Send to Drum FX (0–100%)`;
+                        sendEl.addEventListener('input', ()=>{ try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch(_){ } try { if (window.omnichord && omnichord._arpTransport && omnichord._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch(_){ } });
+                        sendWrap.appendChild(sendEl);
+                        drawer.appendChild(sendWrap);
 
                         // Per-lane params: Pitch offset (semitones), Attack, Decay
                         const params = document.createElement('div');
@@ -11427,10 +11652,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         });
                         qWrap.appendChild(qInput);
                         params.appendChild(qWrap);
-                        row.appendChild(params);
+                        drawer.appendChild(params);
+
+                        row.appendChild(drawer);
 
                         // Store handles for playback
-                        lane._controls = { vol, fxChk, midiInput, pPitch, pAtk, pDec, name };
+                        lane._controls = { vol, sendEl, midiInput, pPitch, pAtk, pDec, name };
                         // Initialize lane quant cache
                         lane._quant = getLaneQuant(lane, stepsPerBar);
 
@@ -11472,6 +11699,181 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                     });
                 }
+
+                // DRUM FX panel (global bus): wire UI -> this.drumFx -> updateDrumFx
+                try {
+                    if (!this._wireDrumFxPanel) {
+                        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+                        const defaults = {
+                            sat: { mix: 0.0, hp: 140, lp: 12000 },
+                            comp: { threshold: -18, ratio: 4, attack: 0.003, release: 0.25, output: 0 },
+                            delay: { timeMs: 180, feedback: 0.25, mix: 0.18 },
+                            reverb: { wet: 0.15, decay: 0.12, room: 0.55, hp: 120, lp: 12000 },
+                            out: 1.0
+                        };
+
+                        const mergeDefaults = (obj, def) => {
+                            const o = (obj && typeof obj === 'object') ? obj : {};
+                            return {
+                                sat: { ...def.sat, ...(o.sat||{}) },
+                                comp: { ...def.comp, ...(o.comp||{}) },
+                                delay: { ...def.delay, ...(o.delay||{}) },
+                                reverb: { ...def.reverb, ...(o.reverb||{}) },
+                                out: (o.out != null ? o.out : def.out)
+                            };
+                        };
+
+                        const setText = (id, text) => {
+                            const el = document.getElementById(id);
+                            if (el) el.textContent = String(text);
+                        };
+
+                        this._applyDrumFxPanel = () => {
+                            try {
+                                const panel = document.getElementById('drumFxPanel');
+                                if (!panel) return;
+                                this.drumFx = mergeDefaults(this.drumFx, defaults);
+
+                                const sat = this.drumFx.sat;
+                                const comp = this.drumFx.comp;
+                                const dly = this.drumFx.delay;
+                                const rv = this.drumFx.reverb;
+
+                                const setRange = (id, v) => {
+                                    const el = document.getElementById(id);
+                                    if (!el) return;
+                                    el.value = String(v);
+                                };
+
+                                setRange('drumFxSatMix', Math.round(clamp(Number(sat.mix)||0, 0, 1) * 100));
+                                setText('drumFxSatMixValue', `${Math.round(clamp(Number(sat.mix)||0,0,1)*100)}%`);
+
+                                setRange('drumFxSatHp', Math.round(clamp(Number(sat.hp)||140, 20, 2000)));
+                                setText('drumFxSatHpValue', `${Math.round(clamp(Number(sat.hp)||140,20,2000))}Hz`);
+
+                                setRange('drumFxSatLp', Math.round(clamp(Number(sat.lp)||12000, 200, 20000)));
+                                setText('drumFxSatLpValue', `${Math.round(clamp(Number(sat.lp)||12000,200,20000))}Hz`);
+
+                                setRange('drumFxCompThr', Math.round(clamp(Number(comp.threshold)||-18, -60, 0)));
+                                setText('drumFxCompThrValue', `${Math.round(clamp(Number(comp.threshold)||-18,-60,0))}dB`);
+
+                                setRange('drumFxCompRatio', Math.round(clamp(Number(comp.ratio)||4, 1, 20)));
+                                setText('drumFxCompRatioValue', `${Math.round(clamp(Number(comp.ratio)||4,1,20))}:1`);
+
+                                setRange('drumFxCompAtk', Math.round(clamp((Number(comp.attack)||0.003) * 1000, 1, 100)));
+                                setText('drumFxCompAtkValue', `${Math.round(clamp((Number(comp.attack)||0.003)*1000,1,100))}ms`);
+
+                                setRange('drumFxCompRel', Math.round(clamp((Number(comp.release)||0.25) * 1000, 10, 1000)));
+                                setText('drumFxCompRelValue', `${Math.round(clamp((Number(comp.release)||0.25)*1000,10,1000))}ms`);
+
+                                setRange('drumFxCompOut', Math.round(clamp(Number(comp.output)||0, -24, 24)));
+                                setText('drumFxCompOutValue', `${Math.round(clamp(Number(comp.output)||0,-24,24))}dB`);
+
+                                setRange('drumFxDelayTime', Math.round(clamp(Number(dly.timeMs)||180, 10, 1200)));
+                                setText('drumFxDelayTimeValue', `${Math.round(clamp(Number(dly.timeMs)||180,10,1200))}ms`);
+
+                                setRange('drumFxDelayFb', Math.round(clamp(Number(dly.feedback)||0.25, 0, 0.95) * 100));
+                                setText('drumFxDelayFbValue', `${Math.round(clamp(Number(dly.feedback)||0.25,0,0.95)*100)}%`);
+
+                                setRange('drumFxDelayMix', Math.round(clamp(Number(dly.mix)||0.18, 0, 1) * 100));
+                                setText('drumFxDelayMixValue', `${Math.round(clamp(Number(dly.mix)||0.18,0,1)*100)}%`);
+
+                                setRange('drumFxReverbWet', Math.round(clamp(Number(rv.wet)||0.15, 0, 1) * 100));
+                                setText('drumFxReverbWetValue', `${Math.round(clamp(Number(rv.wet)||0.15,0,1)*100)}%`);
+
+                                setRange('drumFxReverbDecay', Math.round(clamp((Number(rv.decay)||0.12) * 1000, 10, 600)));
+                                setText('drumFxReverbDecayValue', `${(clamp((Number(rv.decay)||0.12),0.01,1.0)).toFixed(2)}s`);
+
+                                setRange('drumFxReverbRoom', Math.round(clamp(Number(rv.room)||0.55, 0, 1) * 100));
+                                setText('drumFxReverbRoomValue', `${Math.round(clamp(Number(rv.room)||0.55,0,1)*100)}%`);
+
+                                setRange('drumFxOut', Math.round(clamp(Number(this.drumFx.out)||1.0, 0, 2.0) * 100));
+                                setText('drumFxOutValue', `${Math.round(clamp(Number(this.drumFx.out)||1.0,0,2.0)*100)}%`);
+                            } catch(_){ }
+                        };
+
+                        this._wireDrumFxPanel = () => {
+                            try {
+                                const panel = document.getElementById('drumFxPanel');
+                                if (!panel || panel._wired) return;
+                                panel._wired = true;
+
+                                this.drumFx = mergeDefaults(this.drumFx, defaults);
+
+                                const read = () => {
+                                    try {
+                                        const get = (id) => {
+                                            const el = document.getElementById(id);
+                                            const v = el ? parseFloat(el.value) : NaN;
+                                            return Number.isFinite(v) ? v : NaN;
+                                        };
+                                        this.drumFx = mergeDefaults(this.drumFx, defaults);
+
+                                        const satMix = get('drumFxSatMix');
+                                        const satHp = get('drumFxSatHp');
+                                        const satLp = get('drumFxSatLp');
+                                        const thr = get('drumFxCompThr');
+                                        const ratio = get('drumFxCompRatio');
+                                        const atkMs = get('drumFxCompAtk');
+                                        const relMs = get('drumFxCompRel');
+                                        const outDb = get('drumFxCompOut');
+                                        const dTime = get('drumFxDelayTime');
+                                        const dFbPct = get('drumFxDelayFb');
+                                        const dMixPct = get('drumFxDelayMix');
+                                        const rWetPct = get('drumFxReverbWet');
+                                        const rDecayMs = get('drumFxReverbDecay');
+                                        const rRoomPct = get('drumFxReverbRoom');
+                                        const outPct = get('drumFxOut');
+
+                                        if (Number.isFinite(satMix)) this.drumFx.sat.mix = clamp(satMix / 100, 0, 1);
+                                        if (Number.isFinite(satHp)) this.drumFx.sat.hp = clamp(satHp, 20, 2000);
+                                        if (Number.isFinite(satLp)) this.drumFx.sat.lp = clamp(satLp, 200, 20000);
+
+                                        if (Number.isFinite(thr)) this.drumFx.comp.threshold = clamp(thr, -60, 0);
+                                        if (Number.isFinite(ratio)) this.drumFx.comp.ratio = clamp(ratio, 1, 20);
+                                        if (Number.isFinite(atkMs)) this.drumFx.comp.attack = clamp(atkMs / 1000, 0.001, 1.0);
+                                        if (Number.isFinite(relMs)) this.drumFx.comp.release = clamp(relMs / 1000, 0.01, 1.0);
+                                        if (Number.isFinite(outDb)) this.drumFx.comp.output = clamp(outDb, -24, 24);
+
+                                        if (Number.isFinite(dTime)) this.drumFx.delay.timeMs = clamp(dTime, 10, 1200);
+                                        if (Number.isFinite(dFbPct)) this.drumFx.delay.feedback = clamp(dFbPct / 100, 0, 0.95);
+                                        if (Number.isFinite(dMixPct)) this.drumFx.delay.mix = clamp(dMixPct / 100, 0, 1);
+
+                                        if (Number.isFinite(rWetPct)) this.drumFx.reverb.wet = clamp(rWetPct / 100, 0, 1);
+                                        if (Number.isFinite(rDecayMs)) this.drumFx.reverb.decay = clamp(rDecayMs / 1000, 0.01, 1.0);
+                                        if (Number.isFinite(rRoomPct)) this.drumFx.reverb.room = clamp(rRoomPct / 100, 0, 1);
+
+                                        if (Number.isFinite(outPct)) this.drumFx.out = clamp(outPct / 100, 0, 2.0);
+
+                                        try { this.updateDrumFx && this.updateDrumFx(); } catch(_){ }
+                                        try { this._applyDrumFxPanel && this._applyDrumFxPanel(); } catch(_){ }
+                                    } catch(_){ }
+                                };
+
+                                panel.addEventListener('input', (e)=>{
+                                    const t = e && e.target;
+                                    if (!t || !t.id) return;
+                                    read();
+                                });
+                                panel.addEventListener('change', ()=> read());
+
+                                const resetBtn = document.getElementById('drumFxReset');
+                                if (resetBtn && !resetBtn._wired) {
+                                    resetBtn._wired = true;
+                                    resetBtn.addEventListener('click', (ev)=>{
+                                        try { ev.preventDefault(); ev.stopPropagation(); } catch(_){ }
+                                        this.drumFx = JSON.parse(JSON.stringify(defaults));
+                                        try { this.updateDrumFx && this.updateDrumFx(); } catch(_){ }
+                                        try { this._applyDrumFxPanel && this._applyDrumFxPanel(); } catch(_){ }
+                                    });
+                                }
+
+                                // Initial sync
+                                this._applyDrumFxPanel && this._applyDrumFxPanel();
+                            } catch(_){ }
+                        };
+                    }
+                } catch(_){ }
                 // Build PATTERN grid (harmonic/arpeggio + bass) once
                 (function(){
                     const patternGrid = document.getElementById('patternGrid');
@@ -13545,7 +13947,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Level controls resonance gain: 0..+48 dB; 0 dB yields plain brown noise
                     const lvlNorm = Math.max(0, Math.min(1, (this.oscillators.osc1.level || 0) / 0.125));
                     peak.gain.setValueAtTime(lvlNorm * 48, this.audioContext.currentTime);
-                                                    if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx|0, vol, sendToFX);
                     source = peak;
                     // Start/stop the buffer source based on envelope timing
                     // We'll capture the underlying buffer source to stop later
@@ -18202,6 +18603,177 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     };
                     // Apply initial routing state
                     this.updateReverbRouting();
+
+                    // ---- DRUM FX BUS (dedicated; not the main instrument FX chain) ----
+                    try {
+                        const clamp01 = (v)=> Math.max(0, Math.min(1, Number(v) || 0));
+                        const clampHz = (v, lo, hi)=> Math.max(lo, Math.min(hi, Number(v) || lo));
+
+                        this._drumBus = this._drumBus || {};
+                        this._drumBus.drySum = this.audioContext.createGain();
+                        this._drumBus.sendSum = this.audioContext.createGain();
+                        this._drumBus.out = this.audioContext.createGain();
+
+                        // Saturation (fixed curve) with HP/LP tone on the wet path and a wet mix
+                        this._drumBus.sat = {
+                            pre: this.audioContext.createGain(),
+                            shaper: this.audioContext.createWaveShaper(),
+                            hp: this.audioContext.createBiquadFilter(),
+                            lp: this.audioContext.createBiquadFilter(),
+                            post: this.audioContext.createGain(),
+                            dry: this.audioContext.createGain(),
+                            wet: this.audioContext.createGain(),
+                            mix: this.audioContext.createGain()
+                        };
+                        this._drumBus.sat.hp.type = 'highpass';
+                        this._drumBus.sat.lp.type = 'lowpass';
+                        // Build a moderately gentle tanh curve
+                        const n = 2048;
+                        const curve = new Float32Array(n);
+                        const k = 3.0;
+                        for (let i=0;i<n;i++){
+                            const x = (i/(n-1))*2-1;
+                            curve[i] = Math.tanh(k * x);
+                        }
+                        this._drumBus.sat.shaper.curve = curve;
+                        this._drumBus.sat.shaper.oversample = '2x';
+
+                        // Wire saturation
+                        this._drumBus.sendSum.connect(this._drumBus.sat.pre);
+                        this._drumBus.sendSum.connect(this._drumBus.sat.dry);
+                        this._drumBus.sat.pre.connect(this._drumBus.sat.shaper);
+                        this._drumBus.sat.shaper.connect(this._drumBus.sat.hp);
+                        this._drumBus.sat.hp.connect(this._drumBus.sat.lp);
+                        this._drumBus.sat.lp.connect(this._drumBus.sat.post);
+                        this._drumBus.sat.post.connect(this._drumBus.sat.wet);
+                        this._drumBus.sat.dry.connect(this._drumBus.sat.mix);
+                        this._drumBus.sat.wet.connect(this._drumBus.sat.mix);
+
+                        // Compressor
+                        this._drumBus.comp = this.audioContext.createDynamicsCompressor();
+                        this._drumBus.compOut = this.audioContext.createGain();
+                        this._drumBus.sat.mix.connect(this._drumBus.comp);
+                        this._drumBus.comp.connect(this._drumBus.compOut);
+
+                        // Delay (wet/dry mix)
+                        this._drumBus.delay = {
+                            node: this.audioContext.createDelay(8.0),
+                            feedback: this.audioContext.createGain(),
+                            wet: this.audioContext.createGain(),
+                            dry: this.audioContext.createGain(),
+                            mixOut: this.audioContext.createGain()
+                        };
+                        this._drumBus.compOut.connect(this._drumBus.delay.dry);
+                        this._drumBus.compOut.connect(this._drumBus.delay.node);
+                        this._drumBus.delay.node.connect(this._drumBus.delay.feedback);
+                        this._drumBus.delay.feedback.connect(this._drumBus.delay.node);
+                        this._drumBus.delay.node.connect(this._drumBus.delay.wet);
+                        this._drumBus.delay.dry.connect(this._drumBus.delay.mixOut);
+                        this._drumBus.delay.wet.connect(this._drumBus.delay.mixOut);
+
+                        // Reverb (wet mix; does not attenuate dry)
+                        this._drumBus.reverb = {
+                            in: this.audioContext.createGain(),
+                            node: this.audioContext.createConvolver(),
+                            hp: this.audioContext.createBiquadFilter(),
+                            lp: this.audioContext.createBiquadFilter(),
+                            wet: this.audioContext.createGain(),
+                            dry: this.audioContext.createGain(),
+                            mix: this.audioContext.createGain()
+                        };
+                        this._drumBus.reverb.hp.type = 'highpass';
+                        this._drumBus.reverb.lp.type = 'lowpass';
+                        this._drumBus.delay.mixOut.connect(this._drumBus.reverb.in);
+                        this._drumBus.reverb.in.connect(this._drumBus.reverb.dry);
+                        this._drumBus.reverb.in.connect(this._drumBus.reverb.node);
+                        this._drumBus.reverb.node.connect(this._drumBus.reverb.hp);
+                        this._drumBus.reverb.hp.connect(this._drumBus.reverb.lp);
+                        this._drumBus.reverb.lp.connect(this._drumBus.reverb.wet);
+                        this._drumBus.reverb.dry.connect(this._drumBus.reverb.mix);
+                        this._drumBus.reverb.wet.connect(this._drumBus.reverb.mix);
+
+                        // Final routing: dry drums + FX output → drum out → destination
+                        this._drumBus.drySum.connect(this._drumBus.out);
+                        this._drumBus.reverb.mix.connect(this._drumBus.out);
+                        this._drumBus.out.connect(this.audioContext.destination);
+
+                        // (Re)build drum reverb impulse based on drumFx state
+                        this._rebuildDrumReverb = () => {
+                            try {
+                                if (!this.audioContext || !this._drumBus || !this._drumBus.reverb) return;
+                                const rv = this.drumFx && this.drumFx.reverb ? this.drumFx.reverb : {};
+                                const decaySec = Math.max(0.01, Number(rv.decay) || 0.5);
+                                const roomSize = Math.max(0, Math.min(1, Number(rv.room) || 0.5));
+                                const length = Math.max(1, Math.floor(this.audioContext.sampleRate * decaySec));
+                                const impulse = this.audioContext.createBuffer(2, length, this.audioContext.sampleRate);
+                                for (let ch=0; ch<2; ch++){
+                                    const data = impulse.getChannelData(ch);
+                                    for (let i=0; i<length; i++){
+                                        const n = length - i;
+                                        data[i] = (Math.random() * 2 - 1) * Math.pow(n / length, roomSize);
+                                    }
+                                }
+                                this._drumBus.reverb.node.buffer = impulse;
+                            } catch(_){ }
+                        };
+
+                        this.updateDrumOutGain = () => {
+                            try {
+                                if (!this._drumBus || !this._drumBus.out) return;
+                                const out = Math.max(0, Math.min(2, Number(this.drumFx?.out ?? 1.0) || 1.0));
+                                const master = (this.masterVolume || 1);
+                                this._drumBus.out.gain.value = out * master;
+                            } catch(_){ }
+                        };
+
+                        this.updateDrumFx = () => {
+                            try {
+                                const sat = this.drumFx?.sat || {};
+                                const comp = this.drumFx?.comp || {};
+                                const dly = this.drumFx?.delay || {};
+                                const rv = this.drumFx?.reverb || {};
+
+                                // Saturation
+                                const satMix = clamp01(sat.mix);
+                                if (this._drumBus?.sat?.wet) this._drumBus.sat.wet.gain.value = satMix;
+                                if (this._drumBus?.sat?.dry) this._drumBus.sat.dry.gain.value = 1;
+                                if (this._drumBus?.sat?.hp) this._drumBus.sat.hp.frequency.value = clampHz(sat.hp, 20, 2000);
+                                if (this._drumBus?.sat?.lp) this._drumBus.sat.lp.frequency.value = clampHz(sat.lp, 200, 20000);
+
+                                // Compressor
+                                if (this._drumBus?.comp) {
+                                    this._drumBus.comp.threshold.value = Math.max(-100, Math.min(0, Number(comp.threshold) || -24));
+                                    this._drumBus.comp.attack.value = Math.max(0.001, Math.min(1.0, Number(comp.attack) || 0.003));
+                                    this._drumBus.comp.release.value = Math.max(0.01, Math.min(1.0, Number(comp.release) || 0.25));
+                                    this._drumBus.comp.ratio.value = Math.max(1, Math.min(20, Number(comp.ratio) || 4));
+                                }
+                                if (this._drumBus?.compOut) {
+                                    // output is in linear gain; accept dB-ish range -24..+24 mapped to gain
+                                    const outDb = Math.max(-24, Math.min(24, Number(comp.output) || 0));
+                                    this._drumBus.compOut.gain.value = Math.pow(10, outDb/20);
+                                }
+
+                                // Delay
+                                if (this._drumBus?.delay?.node) this._drumBus.delay.node.delayTime.value = Math.max(0.01, Math.min(8.0, (Number(dly.timeMs)||180)/1000));
+                                if (this._drumBus?.delay?.feedback) this._drumBus.delay.feedback.gain.value = Math.max(0, Math.min(0.95, Number(dly.feedback) || 0.25));
+                                if (this._drumBus?.delay?.wet) this._drumBus.delay.wet.gain.value = clamp01(dly.mix);
+                                if (this._drumBus?.delay?.dry) this._drumBus.delay.dry.gain.value = 1;
+
+                                // Reverb tone + wet
+                                if (this._drumBus?.reverb?.hp) this._drumBus.reverb.hp.frequency.value = clampHz(rv.hp, 20, 2000);
+                                if (this._drumBus?.reverb?.lp) this._drumBus.reverb.lp.frequency.value = clampHz(rv.lp, 200, 20000);
+                                if (this._drumBus?.reverb?.wet) this._drumBus.reverb.wet.gain.value = clamp01(rv.wet);
+                                if (this._drumBus?.reverb?.dry) this._drumBus.reverb.dry.gain.value = 1;
+                                this._rebuildDrumReverb && this._rebuildDrumReverb();
+
+                                this.updateDrumOutGain && this.updateDrumOutGain();
+                            } catch(_){ }
+                        };
+                        // Apply initial drum FX state
+                        this.updateDrumFx();
+                    } catch (e) {
+                        console.warn('Drum FX init skipped:', e);
+                    }
                     
                     // Store the initial clean state for piano lock system
                     this.storeOriginalUIState();
@@ -18540,6 +19112,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (this.reverbOutGain) {
                             this.reverbOutGain.gain.value = this.masterVolume;
                         }
+                        // Drum bus output should follow master as well
+                        try { if (typeof this.updateDrumOutGain === 'function') this.updateDrumOutGain(); } catch(_){ }
                         const masterVolumeValue = document.getElementById('masterVolumeValue');
                         if (masterVolumeValue) {
                             masterVolumeValue.textContent = `${e.target.value * 10}%`;
@@ -19315,10 +19889,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 const row = s.closest('.drum-row');
                                                 const rowIdx = parseInt(lane.dataset.row||'0',10)|0;
                                                 const volEl = row ? row.querySelector('.drum-volume') : null;
+                                                const sendEl = row ? row.querySelector('.drum-send') : null;
                                                 const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
                                                 const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value||'80',10)/100)) : 0.8;
-                                                const sendToFX = fxEl ? !!fxEl.checked : false;
-                                                if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, sendToFX);
+                                                const sendPct = sendEl ? (parseInt(sendEl.value||'0',10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
+                                                const send = Math.max(0, Math.min(1, sendPct/100));
+                                                if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, send);
                                             }
                                         } catch(_){ }
                                     }
@@ -19378,10 +19954,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 const row = s.closest('.drum-row');
                                                 const rowIdx = parseInt(lane.dataset.row||'0',10)|0;
                                                 const volEl = row ? row.querySelector('.drum-volume') : null;
+                                                const sendEl = row ? row.querySelector('.drum-send') : null;
                                                 const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
                                                 const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value||'80',10)/100)) : 0.8;
-                                                const sendToFX = fxEl ? !!fxEl.checked : false;
-                                                if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, sendToFX);
+                                                const sendPct = sendEl ? (parseInt(sendEl.value||'0',10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
+                                                const send = Math.max(0, Math.min(1, sendPct/100));
+                                                if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, send);
                                             }
                                         } catch(_){ }
                                     }
@@ -19524,10 +20102,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                         const row = s.closest('.drum-row');
                                                         const rowIdx = parseInt(lane.dataset.row||'0',10)|0;
                                                         const volEl = row ? row.querySelector('.drum-volume') : null;
+                                                        const sendEl = row ? row.querySelector('.drum-send') : null;
                                                         const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
                                                         const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value||'80',10)/100)) : 0.8;
-                                                        const sendToFX = fxEl ? !!fxEl.checked : false;
-                                                        if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, sendToFX);
+                                                        const sendPct = sendEl ? (parseInt(sendEl.value||'0',10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
+                                                        const send = Math.max(0, Math.min(1, sendPct/100));
+                                                        if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, send);
                                                     }
                                                 } catch(_){ }
                                             }
@@ -19587,10 +20167,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                         const row = s.closest('.drum-row');
                                                         const rowIdx = parseInt(lane.dataset.row||'0',10)|0;
                                                         const volEl = row ? row.querySelector('.drum-volume') : null;
+                                                        const sendEl = row ? row.querySelector('.drum-send') : null;
                                                         const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
                                                         const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value||'80',10)/100)) : 0.8;
-                                                        const sendToFX = fxEl ? !!fxEl.checked : false;
-                                                        if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, sendToFX);
+                                                        const sendPct = sendEl ? (parseInt(sendEl.value||'0',10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
+                                                        const send = Math.max(0, Math.min(1, sendPct/100));
+                                                        if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, send);
                                                     }
                                                 } catch(_){ }
                                             }
@@ -24952,6 +25534,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             rotationAngle: this.panning?.rotationAngle || 0
                         }
                     },
+
+                    // ==== DRUM FX (GLOBAL BUS) ====
+                    drumFx: cloneJson(this.drumFx || null),
                     
                     // ==== REVERB OBJECT STATE ====
                     reverb: this.reverb ? { ...this.reverb } : {},
@@ -24981,13 +25566,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const laneControls = lanes.map(row=>{
                                 try {
                                     const vol = row.querySelector('.drum-volume');
+                                    const sendEl = row.querySelector('.drum-send');
                                     const fx  = row.querySelector('.drum-fx input[type="checkbox"]');
                                     const midi= row.querySelector('.drum-midi input[type="text"]');
                                     const pPitch = row.querySelector('.drum-params input[title$=" Pitch"]');
                                     const pAtk   = row.querySelector('.drum-params input[title$=" Attack"]');
                                     const pDec   = row.querySelector('.drum-params input[title$=" Decay"]');
+                                    const sendPct = sendEl ? (parseInt(sendEl.value||'0',10) || 0) : (!!(fx&&fx.checked) ? 100 : 0);
                                     return {
                                         vol: vol? vol.value: '80',
+                                        send: String(Math.max(0, Math.min(100, sendPct))),
                                         fx: !!(fx&&fx.checked),
                                         midi: midi? midi.value: '',
                                         pPitch: pPitch? pPitch.value : '0',
@@ -25482,6 +26070,25 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 setVal('panningSpeed', fx.panning.speedMs, v => `${(Number(v)/1000).toFixed(1)}s`);
                             }
                         }
+
+                        // Drum FX restoration (global drum bus)
+                        try {
+                            if (sessionData.drumFx && typeof sessionData.drumFx === 'object') {
+                                const def = this.drumFx && typeof this.drumFx === 'object' ? this.drumFx : {};
+                                const incoming = sessionData.drumFx;
+                                const merged = {
+                                    sat: { ...(def.sat||{}), ...(incoming.sat||{}) },
+                                    comp: { ...(def.comp||{}), ...(incoming.comp||{}) },
+                                    delay: { ...(def.delay||{}), ...(incoming.delay||{}) },
+                                    reverb: { ...(def.reverb||{}), ...(incoming.reverb||{}) },
+                                    out: (incoming.out != null ? incoming.out : def.out)
+                                };
+                                this.drumFx = merged;
+                                try { this.updateDrumFx && this.updateDrumFx(); } catch(_){ }
+                                try { this._wireDrumFxPanel && this._wireDrumFxPanel(); } catch(_){ }
+                                try { this._applyDrumFxPanel && this._applyDrumFxPanel(); } catch(_){ }
+                            }
+                        } catch(_){ }
                         
                         // Update transpose UI label if present
                         try {
@@ -25554,7 +26161,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const row = rows[idx]; if (!row || !cfg) return;
                                     try {
                                         const vol = row.querySelector('.drum-volume'); if (vol && cfg.vol!=null) vol.value = String(cfg.vol);
-                                        const fx  = row.querySelector('.drum-fx input[type="checkbox"]'); if (fx && typeof cfg.fx==='boolean') fx.checked = cfg.fx;
+                                        const sendEl = row.querySelector('.drum-send');
+                                        const fx  = row.querySelector('.drum-fx input[type="checkbox"]');
+                                        if (sendEl && cfg.send!=null) sendEl.value = String(cfg.send);
+                                        else if (fx && typeof cfg.fx==='boolean') fx.checked = cfg.fx;
                                         const midi= row.querySelector('.drum-midi input[type="text"]'); if (midi && cfg.midi!=null) midi.value = String(cfg.midi);
                                         const pPitch = row.querySelector('.drum-params input[title$=" Pitch"]'); if (pPitch && cfg.pPitch!=null) pPitch.value = String(cfg.pPitch);
                                         const pAtk   = row.querySelector('.drum-params input[title$=" Attack"]'); if (pAtk && cfg.pAtk!=null) pAtk.value = String(cfg.pAtk);
@@ -39188,6 +39798,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             const absNow = omnichord._arpTransport.absTickCounter|0;
                                             omnichord._arpTransport._seqNextSwitchAbsTick = absNow + tpBar;
                                             omnichord._arpTransport._seqScheduleNext = scheduleNext;
+                                        } catch(_){ }
+
+                                        // Wire Drum FX panel on open (safe if audio not initialized yet)
+                                        try {
+                                            const omni = window.omnichord;
+                                            if (omni && typeof omni._wireDrumFxPanel === 'function') omni._wireDrumFxPanel();
+                                            if (omni && typeof omni._applyDrumFxPanel === 'function') omni._applyDrumFxPanel();
                                         } catch(_){ }
                                     }
                                 };
