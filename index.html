@@ -328,15 +328,39 @@
             border-right: none; /* Remove vertical line completely */
             display: flex;
             flex-direction: column;
-            flex: 1;
+            /* Chordbox duration in 16th-note units (default 16) */
+            flex: var(--len16, 16) 1 0px;
             min-height: 120px; /* Ensure minimum height for header + compressed strings */
             max-height: 100%; /* Respect parent height constraint */
             min-width: 0;
-            width: 100%;
+            width: auto;
             cursor: grab;
             transition: all 0.2s ease;
             height: 100%;
             overflow: hidden; /* Prevent strings from overflowing */
+        }
+
+        /* Chordbox duration resize handles (left/right) */
+        .chordbox-resize-handle {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            z-index: 250;
+            cursor: ew-resize;
+            touch-action: none;
+            background: linear-gradient(180deg, rgba(255, 229, 0, 0.95) 0%, rgba(255, 185, 0, 0.95) 100%);
+            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.55), 0 0 10px rgba(255, 210, 0, 0.25);
+            opacity: 0.85;
+        }
+        .chordbox-resize-handle:hover { opacity: 1; }
+        .chordbox-resize-handle.left {
+            left: 0;
+            border-right: 1px solid rgba(0,0,0,0.55);
+        }
+        .chordbox-resize-handle.right {
+            right: 0;
+            border-left: 1px solid rgba(0,0,0,0.55);
         }
 
         /* Ensure header stays at fixed height */
@@ -1995,8 +2019,11 @@
             /* Chord columns responsive */
             .extension-columns {
                 padding: 10px 5px;
-                flex-wrap: wrap; /* Allow wrapping to multiple rows */
-                max-height: none; /* Remove height constraint for wrapping */
+                /* Timeline mode: keep a single row; allow horizontal scroll when needed */
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                overflow-y: hidden;
+                max-height: none;
             }
             
             /* Force 2-row layout when more than 8 chords in vertical */
@@ -2010,7 +2037,7 @@
             .extension-column {
                 margin: 0 2px 4px 2px; /* Add bottom margin for multiple rows */
                 min-width: 60px;
-                flex: 0 0 calc(12.5% - 4px); /* 8 columns per row */
+                flex: var(--len16, 16) 1 0px;
             }
             
             /* String area adjustments */
@@ -2363,6 +2390,7 @@
     <!-- Floating Transport Modal -->
     <div id="transportModal" style="position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.95);border:2px solid #333333;border-radius:12px;padding:20px;display:flex;align-items:center;gap:15px;z-index:12000;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.8);">
         <button id="playStopTransportBtn" style="width:60px;height:48px;background:#27ae60;border:2px solid #2ecc71;border-radius:8px;color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▶</button>
+        <div id="countInDisplay" style="min-width:42px;height:48px;display:none;align-items:center;justify-content:center;background:#111827;border:2px solid #334155;border-radius:10px;color:#e8f5ff;font-weight:900;font-size:20px;letter-spacing:1px;">1</div>
         <label style="display:flex;align-items:center;gap:8px;color:#e8f5ff;font-size:14px;font-weight:bold;">
             <input id="loopToggle" type="checkbox" style="transform:scale(1.2);" checked> LOOP
         </label>
@@ -7761,6 +7789,168 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
             });
         }
+
+        // Chordbox duration resize (left/right handles)
+        function initChordBoxDurationResize() {
+            const omni = window.omnichord;
+            const rootContainer = document.getElementById('extensionColumns');
+            if (!rootContainer) return;
+
+            // Spec change: do NOT auto-pad chord timeline to bar multiples.
+            // Remove any previously inserted auto-pad spacer blocks.
+            try {
+                if (omni && Array.isArray(omni.chordExtensions)) {
+                    const beforeLen = omni.chordExtensions.length;
+                    omni.chordExtensions = omni.chordExtensions.filter(ce => !(ce && ce.isSpacer && ce.isAutoPad));
+                    const afterLen = omni.chordExtensions.length;
+                    if (afterLen !== beforeLen) {
+                        try { omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch(_){ }
+                        try { omni.generateExtensionColumns && omni.generateExtensionColumns(); } catch(_){ }
+                        return;
+                    }
+                }
+            } catch(_){ }
+
+            const getLen16 = (col) => {
+                const raw = col && col.dataset ? col.dataset.len16 : null;
+                let v = parseInt(raw || '16', 10);
+                if (!Number.isFinite(v) || v <= 0) v = 16;
+                return Math.max(1, Math.min(1024, v|0));
+            };
+
+            const setLen16 = (col, len16) => {
+                if (!col) return;
+                const v = Math.max(1, Math.min(1024, (len16|0) || 1));
+                col.dataset.len16 = String(v);
+                col.style.setProperty('--len16', String(v));
+                col.style.flexGrow = String(v);
+                col.style.flexShrink = '1';
+                col.style.flexBasis = '0px';
+
+                // Persist to model if possible
+                try {
+                    const chordId = col.dataset && col.dataset.chordId;
+                    const origPos = col.dataset && col.dataset.originalPosition;
+                    const list = omni && Array.isArray(omni.chordExtensions) ? omni.chordExtensions : null;
+                    if (list && list.length) {
+                        let idx = -1;
+                        if (chordId) idx = list.findIndex(c => c && (String(c.id || '') === String(chordId)));
+                        if (idx < 0 && origPos != null) {
+                            const op = parseInt(origPos, 10);
+                            if (Number.isFinite(op) && op >= 0 && op < list.length) idx = op;
+                        }
+                        if (idx >= 0 && list[idx]) list[idx].len16 = v;
+                    }
+                } catch(_){ }
+            };
+
+            const ensureHandlesForColumn = (col) => {
+                if (!col || col._xenLenHandlesAdded) return;
+                col._xenLenHandlesAdded = true;
+
+                const left = document.createElement('div');
+                left.className = 'chordbox-resize-handle left';
+                left.title = 'Resize duration (16ths)';
+                const right = document.createElement('div');
+                right.className = 'chordbox-resize-handle right';
+                right.title = 'Resize duration (16ths)';
+
+                col.appendChild(left);
+                col.appendChild(right);
+            };
+
+            const requestSafeRebuild = () => {
+                try { window.requestSequencerRebuild && window.requestSequencerRebuild('len16'); } catch(_){ }
+            };
+
+            // Add handles to every chord column
+            const allChordCols = Array.from(rootContainer.querySelectorAll('.extension-column'));
+            allChordCols.forEach(col => {
+                // Ensure a default len if missing
+                try { if (!col.dataset.len16) setLen16(col, 16); } catch(_){ }
+                ensureHandlesForColumn(col);
+            });
+
+            // Wire drag behavior once (event delegation)
+            if (rootContainer._xenLenResizeWired) return;
+            rootContainer._xenLenResizeWired = true;
+
+            rootContainer.addEventListener('pointerdown', (e) => {
+                const handle = e.target && e.target.classList ? e.target.closest('.chordbox-resize-handle') : null;
+                if (!handle) return;
+                const col = handle.closest('.extension-column');
+                if (!col) return;
+
+                try { e.preventDefault(); e.stopPropagation(); } catch(_){ }
+
+                const side = handle.classList.contains('left') ? 'left' : 'right';
+                const rowEl = col.parentElement || rootContainer;
+                const timelineCols = Array.from(rowEl.querySelectorAll('.extension-column'));
+                const idx = timelineCols.indexOf(col);
+                const neighbor = (side === 'right') ? (timelineCols[idx + 1] || null) : (timelineCols[idx - 1] || null);
+
+                // Determine unit width in pixels (based on current summed 16ths)
+                const totalLen16 = timelineCols.reduce((acc, c) => acc + getLen16(c), 0);
+                const rowWidthPx = Math.max(1, rowEl.getBoundingClientRect().width);
+                const unitPx = Math.max(1, rowWidthPx / Math.max(1, totalLen16));
+
+                const startX = e.clientX;
+                const startThis = getLen16(col);
+                const startNeighbor = neighbor ? getLen16(neighbor) : null;
+                let lastDeltaUnits = 0;
+
+                const applyDelta = (rawDeltaUnits) => {
+                    let deltaUnits = rawDeltaUnits|0;
+                    if (deltaUnits === lastDeltaUnits) return;
+
+                    if (neighbor) {
+                        if (side === 'right') {
+                            // newThis = startThis + delta, newNext = startNext - delta
+                            const minDelta = -(startThis - 1);
+                            const maxDelta = (startNeighbor - 1);
+                            deltaUnits = Math.max(minDelta, Math.min(maxDelta, deltaUnits));
+                            setLen16(col, startThis + deltaUnits);
+                            setLen16(neighbor, startNeighbor - deltaUnits);
+                        } else {
+                            // left handle: newThis = startThis - delta, newPrev = startPrev + delta
+                            const minDelta = -(startNeighbor - 1);
+                            const maxDelta = (startThis - 1);
+                            deltaUnits = Math.max(minDelta, Math.min(maxDelta, deltaUnits));
+                            setLen16(col, startThis - deltaUnits);
+                            setLen16(neighbor, startNeighbor + deltaUnits);
+                        }
+                    } else {
+                        // No neighbor on that side: adjust this chordbox only (sequence total may grow/shrink freely)
+                        const minDelta = -(startThis - 1);
+                        const maxDelta = 1024 - startThis;
+                        deltaUnits = Math.max(minDelta, Math.min(maxDelta, deltaUnits));
+                        setLen16(col, startThis + (side === 'right' ? deltaUnits : -deltaUnits));
+                    }
+
+                    lastDeltaUnits = deltaUnits;
+                };
+
+                const onMove = (ev) => {
+                    try { ev.preventDefault(); } catch(_){ }
+                    const dx = (ev.clientX - startX);
+                    const deltaUnits = Math.round(dx / unitPx);
+                    applyDelta(deltaUnits);
+                };
+
+                const onUp = () => {
+                    try { document.removeEventListener('pointermove', onMove, true); } catch(_){ }
+                    try { document.removeEventListener('pointerup', onUp, true); } catch(_){ }
+                    try { document.removeEventListener('pointercancel', onUp, true); } catch(_){ }
+
+                    try { omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch(_){ }
+                    requestSafeRebuild();
+                };
+
+                try { document.addEventListener('pointermove', onMove, true); } catch(_){ }
+                try { document.addEventListener('pointerup', onUp, true); } catch(_){ }
+                try { document.addEventListener('pointercancel', onUp, true); } catch(_){ }
+            }, true);
+        }
         
         // Monitor and adjust string compression based on available space
         function updateStringCompression() {
@@ -7896,6 +8086,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         window.makeBracketDraggable = makeBracketDraggable;
         window.makeChordColumnsDroppable = makeChordColumnsDroppable;
         window.initChordResize = initChordResize;
+        window.initChordBoxDurationResize = initChordBoxDurationResize;
         window.ensureChordVisibility = ensureChordVisibility;
         window.updateStringCompression = updateStringCompression;
         window.bringModalToFront = bringModalToFront;
@@ -12651,6 +12842,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     intervals: [], // start blank; user taps to add
                     isCustom: true,
                     quality: 'custom',
+                    len16: 16,
                     position: insertPosition
                 };
                 
@@ -13825,9 +14017,33 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Editing behavior: Enter to apply, Escape to cancel selection
                     const applyTypedName = () => {
                         try {
-                            const raw = (chordName.textContent || '').trim();
-                            if (!raw) return;
-                            const added = (typeof this.addChordFromName === 'function') ? this.addChordFromName(raw) : null;
+                            const rawInput = (chordName.textContent || '').trim();
+                            if (!rawInput) return;
+
+                            // Support duration multiplier syntax in-place, e.g. "Am x4" -> one chordbox len16 = 64.
+                            // (This is different from SEQ repeat markers: here it means duration, not repeating chords.)
+                            let chordText = rawInput;
+                            let barsMult = null;
+                            try {
+                                const m = rawInput.match(/^(.*\S)\s+[xX]\s*(\d+)\s*$/);
+                                if (m) {
+                                    chordText = String(m[1] || '').trim();
+                                    const n = Math.max(1, parseInt(m[2], 10) || 1);
+                                    barsMult = n;
+                                }
+                            } catch(_){ }
+
+                            const existingLen16 = (()=>{
+                                try {
+                                    const v = parseInt((column?.dataset?.len16) || (chordExt && chordExt.len16) || '16', 10);
+                                    return (Number.isFinite(v) && v > 0) ? v : 16;
+                                } catch(_){ return 16; }
+                            })();
+                            const targetLen16 = (barsMult != null)
+                                ? Math.max(1, Math.min(1024, (barsMult * 16) | 0))
+                                : existingLen16;
+
+                            const added = (typeof this.addChordFromName === 'function') ? this.addChordFromName(chordText) : null;
                             if (!added || !added.chord) {
                                 const prevOutline = chordName.style.outline;
                                 chordName.style.outline = '2px solid #e74c3c';
@@ -13862,6 +14078,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Rename = replace chord identity and RESET per-chord transpose/locks
                             parsed.position = chordExt.position;
                             parsed.localTranspose = 0;
+                            parsed.len16 = targetLen16;
                             try {
                                 parsed.isLocked = false;
                                 parsed.lockedData = null;
@@ -13876,6 +14093,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             column.dataset.originalPosition = String(idx);
                             column.dataset.localTranspose = '0';
 
+                            // Apply duration to DOM (drives visual width + SAVE)
+                            try {
+                                column.dataset.len16 = String(targetLen16);
+                                column.style.setProperty('--len16', String(targetLen16));
+                                column.style.flexGrow = String(targetLen16);
+                                column.style.flexShrink = '1';
+                                column.style.flexBasis = '0px';
+                            } catch(_){ }
+
                             chordName.textContent = parsed.name;
                             chordName.dataset.lockedName = parsed.name;
                             try { column.dataset.lastIntervals = JSON.stringify(parsed.intervals || []); } catch(_){ }
@@ -13889,8 +14115,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         } catch (err) { console.error('applyTypedName error:', err); }
                     };
                     chordName.addEventListener('keydown', (ev)=>{
-                        if (ev.key === 'Enter') { ev.preventDefault(); applyTypedName(); chordName.blur(); }
-                        else if (ev.key === 'Tab') {
+                        if (ev.key === 'Enter') {
+                            // ENTER = confirm only
+                            ev.preventDefault();
+                            applyTypedName();
+                            chordName.blur();
+                            return;
+                        }
+
+                        if (ev.key === 'Tab') {
+                            // TAB = confirm + move/create
                             ev.preventDefault();
                             applyTypedName();
 
@@ -13917,7 +14151,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 return;
                             }
 
-                            // TAB = confirm chord name AND create (or focus) a new blank chord to the right.
                             // If there's already a blank "New" chord immediately to the right, just focus it.
                             try {
                                 const nextCol = (idx >= 0 && idx < cols.length - 1) ? cols[idx + 1] : null;
@@ -13936,8 +14169,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (afterId) this.createBlankChordColumn({ insertAfterId: afterId });
                                 else this.createBlankChordColumn();
                             } catch(_){ }
+                            return;
                         }
-                        else if (ev.key === 'Escape') { ev.preventDefault(); chordName.blur(); }
+
+                        if (ev.key === 'Escape') { ev.preventDefault(); chordName.blur(); }
                     });
                     // Allow short tap on chord name to bubble so header can play; only long-press enters edit
                     chordName.addEventListener('click', (e)=>{ /* allow bubble for playback */ });
@@ -15091,13 +15326,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 // Extract token until next bracket or whitespace
                 let endIndex = startIndex;
-                while (endIndex < text.length && 
-                       text[endIndex] !== '[' && 
-                       text[endIndex] !== ']' && 
+                while (endIndex < text.length &&
+                       text[endIndex] !== '[' &&
+                       text[endIndex] !== ']' &&
                        !/\s/.test(text[endIndex])) {
                     endIndex++;
                 }
-                
+
                 const token = text.slice(startIndex, endIndex).trim();
                 if (!token) return null;
                 
@@ -15130,12 +15365,29 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (chord) {
                             console.log('🎵 Regular chord:', chord);
                             chords.push(chord);
+
+                            // New: spaced duration multiplier, e.g. "C x2" or "C x 2".
+                            // Semantics: ONE chordbox lasting N bars (bar = 16 16ths), not repeated chords.
+                            let j = endIndex;
+                            while (j < text.length && /\s/.test(text[j])) j++;
+                            if (j < text.length && /[xX]/.test(text[j])) {
+                                let k = j + 1;
+                                while (k < text.length && /\s/.test(text[k])) k++;
+                                let numStr = '';
+                                while (k < text.length && /\d/.test(text[k])) { numStr += text[k]; k++; }
+                                if (numStr) {
+                                    const bars = Math.max(1, parseInt(numStr, 10) || 1);
+                                    if (bars > 1) chords.push(`__LENBARS_${bars}__`);
+                                    // Consume the duration tokens so they won't be parsed as standalone "x2"
+                                    endIndex = k;
+                                }
+                            }
                         }
                     } else {
                         console.warn('🎵 Skipping standalone repeat marker:', token);
                     }
                 }
-                
+
                 return { chords, endIndex: endIndex - 1 };
             }
 
@@ -15593,6 +15845,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 for (let i = 0; i < chordList.length; i++) {
                     const chordStr = chordList[i];
+
+                    // New: duration multiplier token emitted by parser after a chord.
+                    // Example: [ 'C', '__LENBARS_2__', 'F', 'G' ] => C.len16 = 32.
+                    if (typeof chordStr === 'string' && /^__LENBARS_(\d+)__$/.test(chordStr)) {
+                        const m = chordStr.match(/^__LENBARS_(\d+)__$/);
+                        const bars = Math.max(1, parseInt(m[1], 10) || 1);
+                        const len16 = Math.max(1, Math.min(1024, (bars * 16) | 0));
+                        const last = created.length ? created[created.length - 1] : null;
+                        if (last && last.chord) {
+                            try { last.chord.len16 = len16; } catch(_){ }
+                            try {
+                                const pos = last.position;
+                                if (Number.isFinite(pos) && this.chordExtensions && this.chordExtensions[pos]) {
+                                    this.chordExtensions[pos].len16 = len16;
+                                }
+                            } catch(_){ }
+                            try {
+                                if (this._isSequencing && this._arpTransport) this._arpTransport._seqRebuildRequested = true;
+                            } catch(_){ }
+                        }
+                        continue;
+                    }
                     
                     if (chordStr === '__SECTION__') {
                         const sep = {
@@ -16017,6 +16291,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     id: 'import_' + Date.now() + '_' + Math.floor(Math.random()*1e6),
                     createdAt: Date.now(),
                     position: this.chordExtensions.length,
+                    // New timeline duration model (default 16 16ths)
+                    len16: 16,
                     // Preserve the chord's original root step so we don't force a C root
                     originalRoot: (rootStep != null ? rootStep : this.currentRoot),
                     originalTuning: this.currentTuning,
@@ -20777,6 +21053,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (this._arpTransport) {
                         this._arpTransport._seqNextSwitchAbsTick = null;
                         this._arpTransport._seqScheduleNext = null;
+                        // Clear any pending start gate / count-in
+                        this._arpTransport.startGateAbsTick = null;
+                        this._arpTransport.countInActive = false;
+                        this._arpTransport.countInStartAbsTick = null;
+                        this._arpTransport.countInEndAbsTick = null;
+                        this._arpTransport.countInLastBeat = 0;
                     }
                 } catch(_){ }
 
@@ -20833,6 +21115,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         playBtn.style.background = '#27ae60';
                         playBtn.style.borderColor = '#2ecc71';
                     }
+                } catch(_){ }
+
+                // Hide count-in display
+                try {
+                    const el = document.getElementById('countInDisplay');
+                    if (el) el.style.display = 'none';
                 } catch(_){ }
 
                 // Ensure any other play controls stay consistent
@@ -24136,6 +24424,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const header = el.querySelector('.chord-name');
                                     const displayName = header ? String(header.textContent||'').trim() : '';
                                     const base = chordExt ? cloneJson(chordExt) : { name: displayName || 'Chord', intervals: [], extensions: [], isCustom: true };
+
+                                    // Persist len16 from DOM (yellow-handle width) as the source of truth.
+                                    try {
+                                        const rawLen16 = el?.dataset?.len16;
+                                        let v = parseInt(String(rawLen16 || ''), 10);
+                                        if (!Number.isFinite(v) || v <= 0) v = (base && base.len16) ? parseInt(String(base.len16),10) : 16;
+                                        if (!Number.isFinite(v) || v <= 0) v = 16;
+                                        base.len16 = Math.max(1, Math.min(1024, v|0));
+                                    } catch(_){ }
+
                                     // Preserve any per-column local transpose as the source of truth
                                     try {
                                         if (el.dataset.localTranspose != null) {
@@ -27542,12 +27840,31 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             column.dataset.instanceId = `${column.dataset.chordId}__${Date.now()}_${Math.floor(Math.random()*1e6)}`;
                         }
                     } catch (_) { /* non-fatal */ }
-                    column.style.flex = '1'; // Each column takes equal width
+                    // Duration: each CHORDBOX represents N sixteenth-notes (default 16)
+                    try {
+                        let len16 = parseInt((chordExt && chordExt.len16 != null) ? chordExt.len16 : 16, 10);
+                        if (!Number.isFinite(len16) || len16 <= 0) len16 = 16;
+                        len16 = Math.max(1, Math.min(1024, len16|0));
+                        chordExt.len16 = len16;
+                        column.dataset.len16 = String(len16);
+                        column.style.setProperty('--len16', String(len16));
+                        column.style.flexGrow = String(len16);
+                        column.style.flexShrink = '1';
+                        column.style.flexBasis = '0px';
+                    } catch(_){
+                        column.style.flexGrow = '16';
+                        column.style.flexShrink = '1';
+                        column.style.flexBasis = '0px';
+                    }
                     column.style.height = '100%';
                     column.style.border = 'none';
                     column.style.borderRadius = '0';
                     column.style.margin = '0';
                     column.style.padding = '0';
+
+                    if (chordExt && chordExt.isSpacer) {
+                        column.dataset.isSpacer = 'true';
+                    }
                     
                     // Create header with chord name and action buttons
                     const header = document.createElement('div');
@@ -27558,6 +27875,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     chordName.className = 'chord-name';
                     chordName.setAttribute('contenteditable', 'true');
                     chordName.setAttribute('spellcheck', 'false');
+
+                    // Spacer (EMPTY) chordbox: represents silent time in the timeline and can be replaced by typing a chord name.
+                    if (chordExt && chordExt.isSpacer) {
+                        chordName.textContent = (chordExt.name && String(chordExt.name).trim()) ? chordExt.name : 'EMPTY';
+                        chordName.style.color = '#ffeaa7';
+                        chordName.style.fontWeight = '900';
+                        chordName.title = 'EMPTY time block (type a chord name to replace)';
+                    }
                     
                     // Check if this chord extension is locked and preserve its locked name
                     if (chordExt.isLocked && chordExt.lockedData) {
@@ -27682,6 +28007,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     else if (chordExt.name === 'Neutral') qualityColor = { bg: '#059669', border: '#10b981' };
                     else if (chordExt.name === 'Minor') qualityColor = { bg: '#dc2626', border: '#ef4444' };
                     else qualityColor = { bg: '#4a5568', border: '#718096' }; // Default for custom
+
+                    if (chordExt && chordExt.isSpacer) {
+                        qualityColor = { bg: '#1f2937', border: '#f59e0b' };
+                    }
                     
                     header.style.backgroundColor = qualityColor.bg;
                     header.style.borderColor = qualityColor.border;
@@ -27691,9 +28020,32 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Inline editing: Enter to apply, ESC to cancel
                     const applyTypedName = () => {
                         try {
-                            const raw = (chordName.textContent || '').trim();
-                            if (!raw) return;
-                            const added = (typeof this.addChordFromName === 'function') ? this.addChordFromName(raw) : null;
+                            const rawInput = (chordName.textContent || '').trim();
+                            if (!rawInput) return;
+
+                            // Support duration multiplier syntax in-place, e.g. "Am x4" -> one chordbox len16 = 64.
+                            let chordText = rawInput;
+                            let barsMult = null;
+                            try {
+                                const m = rawInput.match(/^(.*\S)\s+[xX]\s*(\d+)\s*$/);
+                                if (m) {
+                                    chordText = String(m[1] || '').trim();
+                                    const n = Math.max(1, parseInt(m[2], 10) || 1);
+                                    barsMult = n;
+                                }
+                            } catch(_){ }
+
+                            const existingLen16 = (()=>{
+                                try {
+                                    const v = parseInt((column?.dataset?.len16) || (chordExt && chordExt.len16) || '16', 10);
+                                    return (Number.isFinite(v) && v > 0) ? v : 16;
+                                } catch(_){ return 16; }
+                            })();
+                            const targetLen16 = (barsMult != null)
+                                ? Math.max(1, Math.min(1024, (barsMult * 16) | 0))
+                                : existingLen16;
+
+                            const added = (typeof this.addChordFromName === 'function') ? this.addChordFromName(chordText) : null;
                             if (!added || !added.chord) {
                                 const prevOutline = chordName.style.outline;
                                 chordName.style.outline = '2px solid #e74c3c';
@@ -27728,6 +28080,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Rename = replace chord identity and RESET per-chord transpose/locks
                             parsed.position = chordExt.position;
                             parsed.localTranspose = 0;
+                            parsed.len16 = targetLen16;
                             try {
                                 parsed.isLocked = false;
                                 parsed.lockedData = null;
@@ -27742,6 +28095,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             column.dataset.originalPosition = String(idx);
                             column.dataset.localTranspose = '0';
 
+                            // Apply duration to DOM (drives visual width + SAVE)
+                            try {
+                                column.dataset.len16 = String(targetLen16);
+                                column.style.setProperty('--len16', String(targetLen16));
+                                column.style.flexGrow = String(targetLen16);
+                                column.style.flexShrink = '1';
+                                column.style.flexBasis = '0px';
+                            } catch(_){ }
+
                             chordName.textContent = parsed.name;
                             chordName.dataset.lockedName = parsed.name;
                             try { column.dataset.lastIntervals = JSON.stringify(parsed.intervals || []); } catch(_){ }
@@ -27755,8 +28117,64 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         } catch (err) { console.error('applyTypedName error:', err); }
                     };
                     chordName.addEventListener('keydown', (ev)=>{
-                        if (ev.key === 'Enter') { ev.preventDefault(); applyTypedName(); chordName.blur(); }
-                        else if (ev.key === 'Escape') { ev.preventDefault(); chordName.blur(); }
+                        if (ev.key === 'Enter') {
+                            // ENTER = confirm only
+                            ev.preventDefault();
+                            applyTypedName();
+                            chordName.blur();
+                            return;
+                        }
+
+                        if (ev.key === 'Tab') {
+                            // TAB = confirm + move/create
+                            ev.preventDefault();
+                            applyTypedName();
+
+                            const cols = Array.from(document.querySelectorAll('#extensionColumns .extension-column'));
+                            const idx = cols.indexOf(column);
+                            const focusChordName = (colEl)=>{
+                                try {
+                                    const el = colEl && colEl.querySelector && colEl.querySelector('.extension-header .chord-name');
+                                    if (!el || typeof el.focus !== 'function') return false;
+                                    el.focus();
+                                    const sel = window.getSelection && window.getSelection();
+                                    if (sel && document.createRange) {
+                                        const r = document.createRange();
+                                        r.selectNodeContents(el);
+                                        sel.removeAllRanges();
+                                        sel.addRange(r);
+                                    }
+                                    return true;
+                                } catch(_){ return false; }
+                            };
+
+                            if (ev.shiftKey) {
+                                if (idx > 0) focusChordName(cols[idx - 1]);
+                                return;
+                            }
+
+                            // If there's already a blank "New" chord immediately to the right, just focus it.
+                            try {
+                                const nextCol = (idx >= 0 && idx < cols.length - 1) ? cols[idx + 1] : null;
+                                if (nextCol) {
+                                    const nextId = nextCol?.dataset?.chordId ? String(nextCol.dataset.chordId) : null;
+                                    const nextExt = nextId ? (this.chordExtensions || []).find(c => c && String(c.id) === nextId) : null;
+                                    const isBlank = !!(nextExt && nextExt.isCustom && (!nextExt.intervals || nextExt.intervals.length === 0) && String(nextExt.name || '').trim().toLowerCase() === 'new');
+                                    if (isBlank) {
+                                        focusChordName(nextCol);
+                                        return;
+                                    }
+                                }
+                            } catch(_){ }
+                            try {
+                                const afterId = (column && column.dataset && column.dataset.chordId) ? String(column.dataset.chordId) : null;
+                                if (afterId) this.createBlankChordColumn({ insertAfterId: afterId });
+                                else this.createBlankChordColumn();
+                            } catch(_){ }
+                            return;
+                        }
+
+                        if (ev.key === 'Escape') { ev.preventDefault(); chordName.blur(); }
                     });
                     chordName.addEventListener('click', (e)=>{ e.stopPropagation(); });
                     chordName.addEventListener('mousedown', (e)=>{ e.stopPropagation(); });
@@ -27787,10 +28205,25 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (!column.dataset.voicingVariant) { column.dataset.voicingVariant = '0'; }
 
                     // Generate strings for this chord; prefer locked snapshot
-                    if (chordExt.isLocked && chordExt.lockedData) {
-                        this.generateStringsForColumnWithLockedSettings(column, chordExt.intervals, chordExt.lockedData);
+                    if (chordExt && chordExt.isSpacer) {
+                        // No strings: this is a silent time block.
+                        const emptyBody = document.createElement('div');
+                        emptyBody.className = 'strings-column';
+                        emptyBody.style.flex = '1 1 auto';
+                        emptyBody.style.display = 'flex';
+                        emptyBody.style.alignItems = 'center';
+                        emptyBody.style.justifyContent = 'center';
+                        emptyBody.style.color = 'rgba(255,255,255,0.35)';
+                        emptyBody.style.fontSize = '12px';
+                        emptyBody.style.letterSpacing = '1px';
+                        emptyBody.textContent = 'DROP / TYPE CHORD';
+                        column.appendChild(emptyBody);
                     } else {
-                        this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+                        if (chordExt.isLocked && chordExt.lockedData) {
+                            this.generateStringsForColumnWithLockedSettings(column, chordExt.intervals, chordExt.lockedData);
+                        } else {
+                            this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+                        }
                     }
                     
                     // Enable long-press drag reordering
@@ -27834,6 +28267,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this.addSimpleClickHandlers();
                     this.restoreLockedChordStates(); // Restore locked chord states
                     this.restorePianoLockStates(); // Restore piano lock states
+                    try { if (typeof window.initChordBoxDurationResize === 'function') window.initChordBoxDurationResize(); } catch(_){ }
                 }, 100);
             }
 
@@ -29519,11 +29953,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } catch(_){ }
                 // Pre-schedule BASS NOTE 1 exactly at transport start so the first note lands on time and uses the current chord's root
                 try {
-                    const bassBtn = document.getElementById('bassBtn');
-                    const isBassEnabled = bassBtn && bassBtn.classList.contains('active');
-                    if (isBassEnabled) {
-                        const bassGrid = document.getElementById('bassGrid');
-                        if (bassGrid) {
+                    // Do not emit any audio while a global start gate (count-in) is active.
+                    const gateTick0 = (this._arpTransport && this._arpTransport.startGateAbsTick != null) ? (this._arpTransport.startGateAbsTick|0) : null;
+                    const gateActive0 = (gateTick0 != null) && ((this._arpTransport.absTickCounter|0) < gateTick0);
+                    if (!gateActive0) {
+                        const bassBtn = document.getElementById('bassBtn');
+                        const isBassEnabled = bassBtn && bassBtn.classList.contains('active');
+                        if (isBassEnabled) {
+                            const bassGrid = document.getElementById('bassGrid');
+                            if (bassGrid) {
                             // Build target tokens for bass (LCM across row denominators, capped) so row polyrhythms align
                             const lanes = Array.from(bassGrid.querySelectorAll('.bass-lane'));
                             if (lanes.length > 0) {
@@ -29623,6 +30061,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     bassGrid._lastLocalStep = -1;
                                 }
                             }
+                            }
                         }
                     }
                 } catch(_){ /* ignore pre-roll bass errors */ }
@@ -29661,7 +30100,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // (No forced all-notes-off at bar start; tails release naturally.)
                     // Metronome click on beat, accented downbeat (beat indicators follow transport phase including swing)
                     try {
-                        if (this._arpTransport.metronomeOn) {
+                        if (this._arpTransport.metronomeOn && !this._arpTransport.countInActive) {
                             const isBeat = (this._arpTransport.tickCounter % (this._arpTransport.ticksPerBeat||1)) === 0;
                             if (isBeat) {
                                 const isDownbeat = this._arpTransport.tickCounter === 0;
@@ -29671,6 +30110,46 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         }
                     } catch(_) { }
+
+                    // START COUNT-IN: 4-beat audible/visual count-in while the global start gate is active.
+                    // This is used when starting from STOPPED so drums/patterns/chords all begin together after the count.
+                    try {
+                        const tr = this._arpTransport;
+                        if (tr && tr.countInActive && tr.countInEndAbsTick != null) {
+                            const nowAbs = tr.absTickCounter|0;
+                            const startAbs = (tr.countInStartAbsTick|0) || 0;
+                            const endAbs = tr.countInEndAbsTick|0;
+                            const tpBeat = Math.max(1, tr.ticksPerBeat||1);
+
+                            if (nowAbs >= endAbs) {
+                                tr.countInActive = false;
+                                tr.countInStartAbsTick = null;
+                                tr.countInEndAbsTick = null;
+                                tr.countInLastBeat = 0;
+                                try {
+                                    const el = tr._countInEl || (tr._countInEl = document.getElementById('countInDisplay'));
+                                    if (el) el.style.display = 'none';
+                                } catch(_){ }
+                            } else if (nowAbs >= startAbs && ((nowAbs - startAbs) % tpBeat) === 0) {
+                                const beatIdx = (((nowAbs - startAbs) / tpBeat) | 0) + 1;
+                                if (beatIdx !== (tr.countInLastBeat|0)) {
+                                    tr.countInLastBeat = beatIdx;
+                                    // Click: accented 1, lighter 2-4
+                                    const freq = (beatIdx === 1) ? 1400 : 1000;
+                                    const dur = Math.max(10, Math.min(45, Math.floor(tr.tickMs * 0.45)));
+                                    this._clickMetronome(freq, dur);
+                                    // UI: show 1..N
+                                    try {
+                                        const el = tr._countInEl || (tr._countInEl = document.getElementById('countInDisplay'));
+                                        if (el) {
+                                            el.textContent = String(beatIdx);
+                                            el.style.display = 'flex';
+                                        }
+                                    } catch(_){ }
+                                }
+                            }
+                        }
+                    } catch(_){ }
 
                     // Apply any pending per-lane QUANT changes at a safe boundary (bar start)
                     try {
@@ -29797,20 +30276,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             try { if (this._chordSlideVoices) this._chordSlideVoices.clear(); } catch(_){ }
                                         }
 
-                                        // Calculate bar duration for chord sustain
+                                        // Calculate chord sustain duration.
+                                        // Prefer the per-step `holdTicks` from the sequencer (len16-based),
+                                        // and fall back to the legacy HOLD selector.
                                         let barMs = 2000; // fallback
                                         try {
-                                            const bpm = this._arpTransport?.bpm || 120;
-                                            const beatMs = 60000 / Math.max(20, bpm);
-                                            const beatsPerBar = this._arpTransport?.beatsPerBar || 4;
-                                            barMs = beatMs * beatsPerBar;
-                                            // Use HOLD setting if available
-                                            const holdSel = document.getElementById('universalHold') || document.getElementById('chordHold');
-                                            if (holdSel) {
-                                                const holdVal = String(holdSel.value||'bar:1');
-                                                const [kind, valStr] = holdVal.split(':');
-                                                const n = Math.max(1, parseInt(valStr||'1',10));
-                                                barMs = (kind === 'beat') ? n*beatMs : n*barMs;
+                                            const tickMs = this._arpTransport?.tickMs || 0;
+                                            const ht = ps && Number.isFinite(ps.holdTicks) ? (ps.holdTicks|0) : 0;
+                                            if (tickMs > 0 && ht > 0) {
+                                                barMs = Math.max(20, Math.round(ht * tickMs));
+                                            } else {
+                                                const bpm = this._arpTransport?.bpm || 120;
+                                                const beatMs = 60000 / Math.max(20, bpm);
+                                                const beatsPerBar = this._arpTransport?.beatsPerBar || 4;
+                                                barMs = beatMs * beatsPerBar;
+                                                // Use HOLD setting if available
+                                                const holdSel = document.getElementById('universalHold') || document.getElementById('chordHold');
+                                                if (holdSel) {
+                                                    const holdVal = String(holdSel.value||'bar:1');
+                                                    const [kind, valStr] = holdVal.split(':');
+                                                    const n = Math.max(1, parseInt(valStr||'1',10));
+                                                    barMs = (kind === 'beat') ? n*beatMs : n*barMs;
+                                                }
                                             }
                                         } catch(_) {}
 
@@ -30495,6 +30982,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this._arpTransport.running = false;
                 if (this._arpTransport.timer){ clearTimeout(this._arpTransport.timer); this._arpTransport.timer = null; }
                 this._arpTransport.inactivityStopScheduled = false;
+                try {
+                    this._arpTransport.startGateAbsTick = null;
+                    this._arpTransport.countInActive = false;
+                    this._arpTransport.countInStartAbsTick = null;
+                    this._arpTransport.countInEndAbsTick = null;
+                    this._arpTransport.countInLastBeat = 0;
+                } catch(_){ }
+                try {
+                    const el = document.getElementById('countInDisplay');
+                    if (el) el.style.display = 'none';
+                } catch(_){ }
                 // Also stop Pattern transports (legacy + spawned Pattern instances)
                 try { window.__xenStopAllPatterns && window.__xenStopAllPatterns(true); } catch(_){ }
             }
@@ -38035,6 +38533,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // mark sequencing mode so HOLD and other idle stops don't interfere
                                 omnichord._isSequencing = true;
                                 const tpBar = omnichord._arpTransport.ticksPerBar || 16;
+
+                                // Always do a 4-beat count-in when starting from STOPPED.
+                                // This is consumed by the first scheduled step to set startGateAbsTick + count-in UI/clicks.
+                                try {
+                                    omnichord._arpTransport._countInBeatsRequested = 4;
+                                } catch(_){ }
                                 
                                 // Get loop checkbox
                                 const loopChk = document.getElementById('playLoop');
@@ -38166,6 +38670,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         
                                         const curTick = omnichord._arpTransport.tickCounter|0;
                                         const absNow = omnichord._arpTransport.absTickCounter|0;
+
+                                        const isSpacer = !!(col && col.dataset && col.dataset.isSpacer === 'true');
                                         
                                         // Get the column header to extract chord name and root AFTER chord is named
                                         const header = col.querySelector('.extension-column-header');
@@ -38173,12 +38679,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         
                                         // Extract root note from chord name for bass (e.g., "C7" -> "C", "F#m" -> "F#")
                                         let chordRoot = null;
-                                        if (chordName){
+                                        if (!isSpacer && chordName){
                                             // Scan for a valid bass note by matching sharp/flat notation
                                             const bassMatch = chordName.match(/^([A-G][#♯b♭]?)/);
                                             if (bassMatch) chordRoot = bassMatch[1].replace(/[♯]/g,'#').replace(/[♭]/g,'b');
                                         }
-                                        if (chordRoot && omnichord.bassEnabled){
+                                        if (!isSpacer && chordRoot && omnichord.bassEnabled){
                                             // Check if bass modal has active patterns before setting automatic bass
                                             const bassGrid = document.getElementById('bassGrid');
                                             let hasActiveBassPattern = false;
@@ -38197,22 +38703,51 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             omnichord._arp.bassFreq = null;
                                         }
                                         
-                                        // Determine HOLD length in ticks once per step
-                                        const holdSel = document.getElementById('universalHold') || document.getElementById('chordHold');
-                                        const hold = holdSel ? String(holdSel.value||'bar:1') : (omnichord._arp?.chordsHold || 'bar:1');
-                                        const [kind, valStr] = String(hold).split(':');
-                                        const n = Math.max(1, parseInt(valStr||'1',10));
-                                        const tpBeat = omnichord._arpTransport.ticksPerBeat || 1;
-                                        const holdTicks = (kind==='beat') ? n*tpBeat : n*tpBar;
+                                        // Determine HOLD length per chordbox in 16th-note units (default 16).
+                                        // We map 16ths -> transport ticks using ticksPerBar.
+                                        let len16 = 16;
+                                        try {
+                                            len16 = Math.max(1, Math.min(1024, parseInt(col.dataset.len16 || '16', 10) || 16));
+                                        } catch(_){ len16 = 16; }
+                                        const ticksPerSixteenth = Math.max(1, Math.round(tpBar / 16));
+                                        const holdTicks = Math.max(1, (len16 * ticksPerSixteenth) | 0);
                                         holdTicksForStep = holdTicks;
+                                        const holdMsForStep = Math.max(1, Math.round(holdTicks * (omnichord._arpTransport.tickMs || 0)));
                                         
                                         let targetAbsTick = absNow;
                                         if (isFirstStep){
                                             // First-ever step after pressing PLAY: align to bar downbeat and gate global start until that tick
                                             const ticksToNextBar = (tpBar - (curTick % tpBar)) % tpBar;
-                                            targetAbsTick = (absNow + ticksToNextBar) >>> 0;
-                                            // Gate drums/arp until this tick so everything fires together
-                                            try { if (omnichord && omnichord._arpTransport) omnichord._arpTransport.startGateAbsTick = targetAbsTick; } catch(_) {}
+                                            const baseStartAbsTick = (absNow + ticksToNextBar) >>> 0;
+
+                                            // Count-in: delay the *actual* start by N beats (default 4) when starting from STOPPED.
+                                            let countInBeats = 0;
+                                            try { countInBeats = Math.max(0, parseInt(omnichord._arpTransport._countInBeatsRequested||0, 10) || 0); } catch(_){ countInBeats = 0; }
+                                            try { omnichord._arpTransport._countInBeatsRequested = 0; } catch(_){ }
+
+                                            if (countInBeats > 0) {
+                                                const tpBeat = Math.max(1, omnichord._arpTransport.ticksPerBeat || 1);
+                                                const countInTicks = (countInBeats * tpBeat) >>> 0;
+                                                const endAbsTick = (baseStartAbsTick + countInTicks) >>> 0;
+
+                                                // Gate everything until the end of count-in.
+                                                try { omnichord._arpTransport.startGateAbsTick = endAbsTick; } catch(_){ }
+                                                // Arm count-in clicks/UI (handled in the master runTick).
+                                                try {
+                                                    omnichord._arpTransport.countInActive = true;
+                                                    omnichord._arpTransport.countInStartAbsTick = baseStartAbsTick;
+                                                    omnichord._arpTransport.countInEndAbsTick = endAbsTick;
+                                                    omnichord._arpTransport.countInLastBeat = 0;
+                                                } catch(_){ }
+
+                                                // Actual musical start happens after the count.
+                                                targetAbsTick = endAbsTick;
+                                            } else {
+                                                // No count-in: just start on the aligned downbeat.
+                                                targetAbsTick = baseStartAbsTick;
+                                                try { omnichord._arpTransport.startGateAbsTick = targetAbsTick; } catch(_){ }
+                                            }
+
                                             nextSwitchAbsTick = (targetAbsTick + holdTicks) >>> 0;
                                             isFirstStep = false;
                                         } else if (Number.isFinite(nextSwitchAbsTick)) {
@@ -38223,9 +38758,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         
                                         // Prepare a quick sequence from column strings
                                         const rows = Array.from(col.querySelectorAll('.strings-column .string'));
-                                        // During PLAY, treat module toggles as independent lanes; all align to the same grid
-                                        const chordsOn = !!omnichord.chordsEnabled;
-                                        const arpOn = !!omnichord.arpEnabled;
+                                        // During PLAY, treat module toggles as independent lanes; all align to the same grid.
+                                        // Spacer chordboxes are silent time blocks.
+                                        const chordsOn = !isSpacer && !!omnichord.chordsEnabled;
+                                        const arpOn = !isSpacer && !!omnichord.arpEnabled;
                                         // Determine NPC: include all unique chord degrees (tensions) during PLAY
                                         const npcUI = (function(){
                                             const n1 = parseInt(document.getElementById('universalNpc')?.value||'');
@@ -38325,6 +38861,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             // Run ARP ticks while optionally sustaining a full chord
                                             seq: arpSeq,
                                             bassFreq: omnichord._arp.bassFreq,
+                                            holdTicks: holdTicks,
                                             column: col,
                                             mapAsc: mapAscRef,
                                             // Provide cycle context so other transports can hard-sync at cycle edges
@@ -38339,13 +38876,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         // Ensure HOLD doesn't cut transport during sequencing
                                         omnichord._arpTransport.holdStopAtAbsTick = null;
                                         omnichord._startArpTransport();
-
-                                        // Calculate proper hold duration in milliseconds (simpler approach)
-                                        const bpm = omnichord._arpTransport.bpm || 120;
-                                        const beatMs = 60000 / Math.max(20, bpm);
-                                        const beatsPerBar = omnichord._arpTransport.beatsPerBar || 4;
-                                        const barMs = beatMs * beatsPerBar;
-                                        const totalHoldMs = (kind === 'beat') ? (beatMs * n) : (barMs * n);
 
                                         // Advance lookahead plan position now that we've scheduled this step.
                                         // Always wrap within the current plan length so playback
@@ -38503,6 +39033,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 try {
                                     const curTick = omnichord._arpTransport.tickCounter|0;
                                     const absNow = omnichord._arpTransport.absTickCounter|0;
+
+                                    const isSpacer = !!(col && col.dataset && col.dataset.isSpacer === 'true');
                                     
                                     // Get the column header to extract chord name and root AFTER chord is named
                                     const header = col.querySelector('.extension-column-header');
@@ -38517,13 +39049,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         }
                                     }
                                     
-                                    // Determine HOLD length in ticks once per step - use universalHold (fallback to chordHold)
-                                    const holdSel = document.getElementById('universalHold') || document.getElementById('chordHold');
-                                    const hold = holdSel ? String(holdSel.value||'bar:1') : (omnichord._arp?.chordsHold || 'bar:1');
-                                    const [kind, valStr] = String(hold).split(':');
-                                    const n = Math.max(1, parseInt(valStr||'1',10));
-                                    const tpBeat = omnichord._arpTransport.ticksPerBeat || 1;
-                                    const holdTicks = (kind==='beat') ? n*tpBeat : n*tpBar;
+                                    // Determine HOLD length per chordbox in 16th-note units (default 16).
+                                    let len16 = 16;
+                                    try {
+                                        len16 = Math.max(1, Math.min(1024, parseInt(col.dataset.len16 || '16', 10) || 16));
+                                    } catch(_){ len16 = 16; }
+                                    const ticksPerSixteenth = Math.max(1, Math.round(tpBar / 16));
+                                    const holdTicks = Math.max(1, (len16 * ticksPerSixteenth) | 0);
                     holdTicksForStep = holdTicks;
                                     let targetAbsTick = absNow;
                                     if (i === 1){
@@ -38538,9 +39070,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     }
                                     // Prepare a quick sequence from column strings
                                     const rows = Array.from(col.querySelectorAll('.strings-column .string'));
-                                    // During PLAY, treat module toggles as independent lanes; all align to the same grid
-                                    const chordsOn = !!omnichord.chordsEnabled;
-                                    const arpOn = !!omnichord.arpEnabled;
+                                    // During PLAY, treat module toggles as independent lanes; all align to the same grid.
+                                    // Spacer chordboxes are silent time blocks.
+                                    const chordsOn = !isSpacer && !!omnichord.chordsEnabled;
+                                    const arpOn = !isSpacer && !!omnichord.arpEnabled;
+                                    if (isSpacer && omnichord._arp) {
+                                        omnichord._arp.bassFreq = null;
+                                    }
                                     // Treat NPC as global during PLAY
                                     const npcGlobal = (function(){
                                         const n1 = parseInt(document.getElementById('universalNpc')?.value||'');
@@ -38676,6 +39212,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         // Run ARP ticks while optionally sustaining a full chord
                                         seq: arpSeq,
                                         bassFreq: omnichord._arp.bassFreq,
+                                        holdTicks: holdTicks,
                                         column: col,
                                         mapAsc: mapAscRef,
                                         mode: 'arp',
@@ -38691,21 +39228,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // Use the same holdTicks computed above to keep cadence consistent
                                 try { if (omnichord._seqTimer) { clearTimeout(omnichord._seqTimer); } } catch(_){}
                                 
-                                // Calculate HOLD duration correctly: independent of QUANT
-                                // QUANT only affects note subdivision, not bar/beat timing
-                                const bpm = omnichord._arpTransport.bpm || 120;
-                                const beatMs = 60000 / Math.max(20, bpm);
-                                const beatsPerBar = omnichord._arpTransport.beatsPerBar || 4;
-                                const barMs = beatMs * beatsPerBar;
-                                
-                                // Calculate total hold duration based on HOLD setting (min 1/8 note)
-                                const holdSel = document.getElementById('universalHold') || document.getElementById('chordHold');
-                                const hold = holdSel ? String(holdSel.value||'bar:1') : 'bar:1';
-                                const [holdKind, holdValStr] = String(hold).split(':');
-                                const holdNum = Math.max(1, parseInt(holdValStr||'1',10));
-                                const quantMinMs = beatMs * 0.5; // 1/8 note
-                                const baseHoldMs = (holdKind==='beat') ? (beatMs * holdNum) : (barMs * holdNum);
-                                const totalHoldMs = Math.max(quantMinMs, baseHoldMs);
+                                // Schedule strictly by computed holdTicks (per chordbox len16)
+                                const tickMs = omnichord._arpTransport.tickMs || 250;
+                                const totalHoldMs = Math.max(20, Math.round(holdTicksForStep * tickMs));
                                 
                                 // Schedule next chord strictly by HOLD duration
                                 omnichord._seqTimer = setTimeout(scheduleNext, totalHoldMs);
