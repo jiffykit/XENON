@@ -133,6 +133,73 @@
             opacity: 1;
         }
 
+        /* Chord Ruler (16th-note divisions) */
+        #chordRuler {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            z-index: 11;
+            pointer-events: none;
+            display: none;
+        }
+        #chordRuler .chord-ruler-row {
+            height: 100%;
+            display: flex;
+            gap: 0px;
+            width: 100%;
+        }
+        #chordRuler .chord-ruler-seg {
+            height: 100%;
+            min-width: 0;
+        }
+        #chordRuler .chord-ruler-seg.chord {
+            --len16: 16;
+            background-image: linear-gradient(to right, rgba(255,255,255,0.16) 0px, rgba(255,255,255,0.16) 1px, transparent 1px, transparent 100%);
+            background-size: calc(100% / var(--len16)) 100%;
+            background-repeat: repeat;
+            opacity: 0.9;
+        }
+        #chordRuler .chord-ruler-seg.marker {
+            background: transparent;
+        }
+
+        /* Now-playing chord highlight (PLAY mode) */
+        .extension-header.now-playing,
+        .extension-column-header.now-playing {
+            box-shadow: 0 0 10px rgba(80, 200, 255, 0.25), 0 0 18px rgba(80, 200, 255, 0.14);
+            outline: 1px solid rgba(80, 200, 255, 0.20);
+            position: relative;
+            z-index: 2;
+        }
+        @keyframes xenChordPulse {
+            0% { box-shadow: 0 0 10px rgba(80, 200, 255, 0.22), 0 0 18px rgba(80, 200, 255, 0.12); }
+            45% { box-shadow: 0 0 18px rgba(80, 200, 255, 0.55), 0 0 28px rgba(80, 200, 255, 0.28); }
+            100% { box-shadow: 0 0 10px rgba(80, 200, 255, 0.22), 0 0 18px rgba(80, 200, 255, 0.12); }
+        }
+        .extension-header.now-playing.pulse,
+        .extension-column-header.now-playing.pulse {
+            animation: xenChordPulse 220ms ease-out;
+        }
+
+        /* Extend outer loop bracket markers up toward the ruler */
+        .repeat-marker-column.loop-bracket {
+            position: relative;
+        }
+        .repeat-marker-column.loop-bracket::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: -22px; /* 10px ruler + 12px handle */
+            width: 2px;
+            height: 22px;
+            background: rgba(255,255,255,0.14);
+            border-radius: 2px;
+        }
+
         .clear-triads-container {
             display: flex;
             align-items: center;
@@ -3457,6 +3524,7 @@
 
         <!-- Fretboard/Strings with Resize Handle -->
         <div class="chord-resize-container" style="position: absolute; top: 0; bottom: 28px; left: 80px; right: 0;">
+            <div id="chordRuler" aria-hidden="true"></div>
             <div class="chord-resize-handle" id="chordResizeHandle">
                 <div class="resize-grip"></div>
             </div>
@@ -7705,6 +7773,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         function initChordResize() {
             const handle = document.getElementById('chordResizeHandle');
             const strumArea = document.getElementById('strumArea');
+            const ruler = document.getElementById('chordRuler');
             
             if (!handle || !strumArea) return;
             
@@ -7712,6 +7781,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             const initialTop = window.innerHeight * 0.5; // 50vh in pixels
             strumArea.style.top = initialTop + 'px';
             handle.style.top = (initialTop - 12) + 'px';
+            try {
+                if (ruler) {
+                    ruler.style.top = (initialTop - 22) + 'px';
+                    ruler.style.display = 'block';
+                }
+            } catch(_){ }
             
             let isResizing = false;
             let startY = 0;
@@ -7747,6 +7822,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 strumArea.style.top = newTop + 'px';
                 handle.style.top = (newTop - 12) + 'px';
+                try { if (ruler) ruler.style.top = (newTop - 22) + 'px'; } catch(_){ }
                 
                 // Update string compression based on new size
                 setTimeout(() => updateStringCompression(), 10);
@@ -7767,6 +7843,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 strumArea.style.top = newTop + 'px';
                 handle.style.top = (newTop - 12) + 'px';
+                try { if (ruler) ruler.style.top = (newTop - 22) + 'px'; } catch(_){ }
                 
                 // Update string compression based on new size
                 setTimeout(() => updateStringCompression(), 10);
@@ -8007,9 +8084,102 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (handle) {
                         handle.style.top = (newTop - 12) + 'px';
                     }
+                    try {
+                        const ruler = document.getElementById('chordRuler');
+                        if (ruler) ruler.style.top = (newTop - 22) + 'px';
+                    } catch(_){ }
                 }
             }
         }
+
+        // Chord ruler: faint 16th-note tick marks aligned to chordbox len16 widths
+        (function(){
+            const ensure = () => {
+                const ruler = document.getElementById('chordRuler');
+                const root = document.getElementById('extensionColumns');
+                if (!ruler || !root) return false;
+                if (ruler._xenRulerWired) return true;
+                ruler._xenRulerWired = true;
+
+                const scheduleRender = () => {
+                    if (ruler._xenRulerRAF) return;
+                    ruler._xenRulerRAF = requestAnimationFrame(() => {
+                        ruler._xenRulerRAF = null;
+                        try {
+                            const hasAny = !!root.querySelector('.extension-column');
+                            if (!hasAny) { ruler.style.display = 'none'; ruler.innerHTML = ''; return; }
+                            ruler.style.display = 'block';
+
+                            const rowCandidates = Array.from(root.children || []).filter(el => {
+                                try {
+                                    return el && el.querySelector && (el.querySelector('.extension-column') || el.querySelector('.repeat-marker-column') || el.querySelector('.extension-separator'));
+                                } catch(_){ return false; }
+                            });
+                            const rows = (rowCandidates.length ? rowCandidates : [root]);
+
+                            ruler.innerHTML = '';
+                            rows.forEach(rowEl => {
+                                const rowDiv = document.createElement('div');
+                                rowDiv.className = 'chord-ruler-row';
+
+                                const items = Array.from(rowEl.children || []).filter(el => {
+                                    if (!el || !el.classList) return false;
+                                    return el.classList.contains('extension-column') || el.classList.contains('repeat-marker-column') || el.classList.contains('extension-separator');
+                                });
+
+                                items.forEach(el => {
+                                    const seg = document.createElement('div');
+                                    seg.className = 'chord-ruler-seg';
+
+                                    if (el.classList.contains('extension-column')) {
+                                        let len16 = 16;
+                                        try { len16 = Math.max(1, Math.min(1024, parseInt(el.dataset.len16 || '16', 10) || 16)); } catch(_){ len16 = 16; }
+                                        seg.classList.add('chord');
+                                        seg.style.flex = `${len16} 1 0px`;
+                                        seg.style.setProperty('--len16', String(len16));
+                                    } else {
+                                        seg.classList.add('marker');
+                                        let w = 30;
+                                        try {
+                                            if (el.classList.contains('repeat-marker-column')) w = 50;
+                                            else if (el.classList.contains('extension-separator')) w = 30;
+                                            const cssW = parseInt(getComputedStyle(el).width || '0', 10);
+                                            if (Number.isFinite(cssW) && cssW > 0) w = cssW;
+                                        } catch(_){ }
+                                        seg.style.flex = `0 0 ${w}px`;
+                                    }
+
+                                    rowDiv.appendChild(seg);
+                                });
+
+                                ruler.appendChild(rowDiv);
+                            });
+                        } catch(_){ }
+                    });
+                };
+
+                window.renderChordRuler = scheduleRender;
+
+                try {
+                    const obs = new MutationObserver((mutations) => {
+                        for (const m of mutations) {
+                            if (!m) continue;
+                            if (m.type === 'childList') { scheduleRender(); break; }
+                            if (m.type === 'attributes' && m.attributeName === 'data-len16') { scheduleRender(); break; }
+                        }
+                    });
+                    obs.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-len16'] });
+                    window.__xenChordRulerObserver = obs;
+                } catch(_){ }
+
+                try { window.addEventListener('resize', scheduleRender, { passive: true }); } catch(_){ }
+                scheduleRender();
+                return true;
+            };
+            if (!ensure()) {
+                document.addEventListener('DOMContentLoaded', ensure, { once: true });
+            }
+        })();
 
         // Modal management - ensure newly opened modals appear on top
         function bringModalToFront(modalId) {
@@ -8540,6 +8710,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this.gamelanMode = false;
                 // Track the column element that's currently active/last-played for live keyboard edits
                 this.currentActiveColumnEl = null;
+                // PLAY UX: visual now-playing and LOOP-off final-hold selection
+                this._nowPlayingColumnEl = null;
+                this._lastPlayGestureColumnEl = null;
                 // When true, render chord extensions (9/11/13) in higher octaves (two-octave split).
                 // When false, fold all degrees into a single octave.
                 // Default to compact one-octave voicing as requested.
@@ -8638,7 +8811,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Touch/click gesture defaults
                 this.touchGestures = {
                     longPressDelay: 550,
-                    chordNameLongPressDelay: 300
+                    chordNameLongPressDelay: 1000
                 };
                 
                 
@@ -13612,6 +13785,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const appendRepeatMarker = (target, name, opts={}) => {
                     const repeatCol = document.createElement('div');
                     repeatCol.className = 'repeat-marker-column';
+                    try { if (opts && (opts.autoOuter || opts.loopBracket)) repeatCol.classList.add('loop-bracket'); } catch(_){ }
                     repeatCol.style.width = '50px';
                     repeatCol.style.minWidth = '50px';
                     repeatCol.style.maxWidth = '50px';
@@ -13710,6 +13884,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (chordExt.isRepeatMarker) {
                         const repeatCol = document.createElement('div');
                         repeatCol.className = 'repeat-marker-column';
+                        try {
+                            const nm = String(chordExt.name||'').trim();
+                            const lvl = (chordExt.nestLevel || 0);
+                            if (lvl === 0 && (nm === '[' || nm === ']' || /^\]x\d+$/.test(nm))) repeatCol.classList.add('loop-bracket');
+                        } catch(_){ }
                         repeatCol.style.width = '50px';
                         repeatCol.style.minWidth = '50px';
                         repeatCol.style.maxWidth = '50px';
@@ -14263,12 +14442,45 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (!hasExplicitOuterEnd) {
                     appendRepeatMarker(endRow, ']', { autoOuter: true, repeatCount: 0 });
                 }
+
+                // Keep ruler in sync after regeneration
+                try { if (typeof window.renderChordRuler === 'function') window.renderChordRuler(); } catch(_){ }
                 
                 // Add click handlers and restore locked chord states after rendering
                 setTimeout(() => {
                     this.addSimpleClickHandlers();
                     this.restoreLockedChordStates(); // Restore locked chord states
                 }, 100);
+            }
+
+            _getColumnHeaderEl(columnElement) {
+                if (!columnElement || !columnElement.querySelector) return null;
+                return columnElement.querySelector('.extension-header') || columnElement.querySelector('.extension-column-header');
+            }
+
+            _setNowPlayingColumn(columnElement, opts={}) {
+                try {
+                    const prev = this._nowPlayingColumnEl;
+                    if (prev && prev !== columnElement) {
+                        const hp = this._getColumnHeaderEl(prev);
+                        if (hp) { hp.classList.remove('now-playing'); hp.classList.remove('pulse'); }
+                    }
+                    this._nowPlayingColumnEl = columnElement || null;
+                    const h = this._getColumnHeaderEl(this._nowPlayingColumnEl);
+                    if (h) {
+                        h.classList.add('now-playing');
+                        if (opts && opts.pulse) {
+                            h.classList.remove('pulse');
+                            void h.offsetWidth;
+                            h.classList.add('pulse');
+                            setTimeout(()=>{ try{ h.classList.remove('pulse'); } catch(_){ } }, 260);
+                        }
+                    }
+                } catch(_){ }
+            }
+
+            _clearNowPlaying() {
+                try { this._setNowPlayingColumn(null); } catch(_){ }
             }
             
             generateStringsForColumnWithLockedSettings(column, intervals, lockedData) {
@@ -30209,6 +30421,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     if (Number.isFinite(ps.bassFreq)) this._arp.bassFreq = ps.bassFreq;
                                 }
                                 this._arp.column = ps.column || this._arp.column;
+                                try {
+                                    if (this._arp && this._arp.column) this._setNowPlayingColumn(this._arp.column, { pulse: true });
+                                } catch(_){ }
                                 // Invalidate bass tokens so they rebuild on next tick with the new chord context
                                 try {
                                     const bassGrid = document.getElementById('bassGrid');
@@ -33514,6 +33729,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
 
             playChordStrum(columnElement, chordData, startY, endY) {
+                try {
+                    if (this._isSequencing && columnElement && columnElement.classList && columnElement.classList.contains('extension-column')) {
+                        this._lastPlayGestureColumnEl = columnElement;
+                    }
+                } catch(_){ }
                 // Chords mode: play all tones simultaneously in tapped octave + bass root, sustain until release
                 // Only activate CHORDS mode when PLAY is active (isSequencing) - otherwise just strum
                 if ((this.playMode || 'high-low') === 'chords' && this._isSequencing) {
@@ -37962,7 +38182,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             try {
                 console.log('🎵 DEBUG: Attempting to wire bracket-aware button');
                 const playStopToggle = document.getElementById('playStopToggleBtn');
-                const loopCheckbox = document.getElementById('playLoop');
+                const loopCheckbox = document.getElementById('loopToggle') || document.getElementById('playLoop');
                 console.log('🎵 DEBUG: Found button:', playStopToggle);
                 if (playStopToggle) {
                     // Force re-wire to ensure bracket-aware logic takes precedence
@@ -37971,43 +38191,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Remove any existing click listeners and add our bracket-aware one
                     playStopToggle.replaceWith(playStopToggle.cloneNode(true));
                     const freshButton = document.getElementById('playStopToggleBtn');
-                    // If LOOP is toggled OFF at any time, immediately stop and kill audio
-                    if (loopCheckbox && !loopCheckbox._wiredForStop) {
-                        loopCheckbox._wiredForStop = true;
-                        const stopAllPatterns = (resetPhase = true)=>{
-                            try {
-                                // Legacy/global pattern transport
-                                const pt0 = window._patternTransport;
-                                if (pt0 && typeof pt0.stop === 'function') pt0.stop(!!resetPhase);
-                                else if (pt0) { pt0.running = false; pt0.tickCounter = 0; pt0.absTickCounter = 0; pt0.stopVoices && pt0.stopVoices(); }
-                            } catch(_){ }
-                            try {
-                                const instances = window._patternInstances || [];
-                                instances.forEach(info=>{
-                                    const m = info && info.modal;
-                                    const pt = m && m._patternTransport;
-                                    if (!pt) return;
-                                    try {
-                                        if (typeof pt.stop === 'function') pt.stop(!!resetPhase);
-                                        else { pt.running = false; pt.tickCounter = 0; pt.absTickCounter = 0; }
-                                    } catch(_){ }
-                                    try { pt.running = false; pt.stopVoices && pt.stopVoices(); } catch(_){ }
-                                });
-                            } catch(_){ }
-                        };
+                    // LOOP checkbox behavior while PLAY is running:
+                    // - LOOP ON: bracket sequencing will run (only if started with LOOP on)
+                    // - LOOP OFF: do NOT stop transport; just stop auto chord scheduling (manual header-tap changes still work)
+                    if (loopCheckbox && !loopCheckbox._wiredForLoopMode) {
+                        loopCheckbox._wiredForLoopMode = true;
                         loopCheckbox.addEventListener('change', () => {
-                            if (!loopCheckbox.checked) {
-                                try {
-                                    if (typeof omnichord._panicStopSequencer === 'function') {
-                                        omnichord._panicStopSequencer('loop-off');
-                                    } else {
-                                        // Fallback
-                                        omnichord.stopAllActiveNotes();
-                                        try { omnichord._stopArpTransport && omnichord._stopArpTransport(); } catch(_){ }
-                                        omnichord._isSequencing = false;
+                            try {
+                                if (!omnichord || !omnichord._isSequencing) return;
+                                if (!loopCheckbox.checked) {
+                                    if (omnichord._arpTransport) {
+                                        omnichord._arpTransport._seqNextSwitchAbsTick = null;
+                                        omnichord._arpTransport._seqScheduleNext = null;
                                     }
-                                } catch(_){ }
-                            }
+                                }
+                            } catch(_){ }
                         });
                     }
 
@@ -38403,7 +38601,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     if (text === '[') {
                                         // If this is an auto outer and LOOP is OFF, ignore the bracket
                                         try {
-                                            const loopChk0 = document.getElementById('playLoop');
+                                            const loopChk0 = document.getElementById('loopToggle') || document.getElementById('playLoop');
                                             if (col.dataset && col.dataset.autoOuter === 'true' && (!loopChk0 || !loopChk0.checked)) {
                                                 console.log('🎵 Ignoring auto-outer [ because LOOP is OFF');
                                                 return currentIndex + 1;
@@ -38453,7 +38651,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     else if (text.match(/^\]x(\d+)$/) || text === ']') {
                                         // If this is an auto outer end and LOOP is OFF, treat as end-of-sequence
                                         try {
-                                            const loopChk1 = document.getElementById('playLoop');
+                                            const loopChk1 = document.getElementById('loopToggle') || document.getElementById('playLoop');
                                             if (col.dataset && col.dataset.autoOuter === 'true' && (!loopChk1 || !loopChk1.checked)) {
                                                 console.log('🎵 Auto-outer ] encountered with LOOP OFF -> end of sequence');
                                                 return allCols.length;
@@ -38535,17 +38733,67 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const tpBar = omnichord._arpTransport.ticksPerBar || 16;
 
                                 // Always do a 4-beat count-in when starting from STOPPED.
-                                // This is consumed by the first scheduled step to set startGateAbsTick + count-in UI/clicks.
-                                try {
-                                    omnichord._arpTransport._countInBeatsRequested = 4;
-                                } catch(_){ }
+                                try { omnichord._arpTransport._countInBeatsRequested = 4; } catch(_){ }
                                 
-                                // Get loop checkbox
-                                const loopChk = document.getElementById('playLoop');
+                                // Get loop checkbox (UI uses loopToggle)
+                                const loopChk = document.getElementById('loopToggle') || document.getElementById('playLoop');
                                 
                                 // Add startup buffer to ensure smooth audio playback
                                 console.log('🎵 Adding startup buffer to ensure audio readiness...');
                                 setTimeout(() => {
+                                    const loopOnAtStart = (function(){
+                                        try { return loopChk ? !!loopChk.checked : true; } catch(_){ return true; }
+                                    })();
+
+                                    // LOOP OFF: manual chord mode.
+                                    // Start transport (count-in gated) and leave chord changes to header taps only.
+                                    if (!loopOnAtStart) {
+                                        try {
+                                            const tr = omnichord._arpTransport;
+                                            const tpBar2 = tr.ticksPerBar || 16;
+                                            const curTick2 = tr.tickCounter|0;
+                                            const absNow2 = tr.absTickCounter|0;
+                                            const ticksToNextBar2 = (tpBar2 - (curTick2 % tpBar2)) % tpBar2;
+                                            const baseStartAbsTick2 = (absNow2 + ticksToNextBar2) >>> 0;
+
+                                            let countInBeats2 = 0;
+                                            try { countInBeats2 = Math.max(0, parseInt(tr._countInBeatsRequested||0, 10) || 0); } catch(_){ countInBeats2 = 0; }
+                                            try { tr._countInBeatsRequested = 0; } catch(_){ }
+
+                                            if (countInBeats2 > 0) {
+                                                const tpBeat2 = Math.max(1, tr.ticksPerBeat || 1);
+                                                const countInTicks2 = (countInBeats2 * tpBeat2) >>> 0;
+                                                const endAbsTick2 = (baseStartAbsTick2 + countInTicks2) >>> 0;
+                                                tr.startGateAbsTick = endAbsTick2;
+                                                tr.countInActive = true;
+                                                tr.countInStartAbsTick = baseStartAbsTick2;
+                                                tr.countInEndAbsTick = endAbsTick2;
+                                                tr.countInLastBeat = 0;
+                                            } else {
+                                                tr.startGateAbsTick = baseStartAbsTick2;
+                                            }
+
+                                            // No auto chord scheduling
+                                            tr._seqNextSwitchAbsTick = null;
+                                            tr._seqScheduleNext = null;
+                                            tr._seqOneLoopPlan = null;
+                                            tr._seqPlanPos = 0;
+                                            tr._seqAllCols = null;
+                                            tr._seqStartIdx = null;
+
+                                            // Keep transport alive for drums/patterns
+                                            tr.holdStopAtAbsTick = null;
+                                            omnichord._startArpTransport();
+
+                                            // Keep any now-playing highlight as-is (user-driven)
+                                        } catch(e) {
+                                            console.warn('Manual chord mode start error', e);
+                                            try { omnichord._startArpTransport(); } catch(_){ }
+                                        }
+
+                                        // Button already set to STOP below; do not start scheduleNext.
+                                        return;
+                                    }
                                     console.log('🎵 Startup buffer complete, beginning playback');
                                     console.log('🎵 Initial sequenceIndex is:', sequenceIndex);
                                     // Persist timing across steps (and across wraps) for gapless looping
@@ -38593,6 +38841,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 freshButton.textContent = 'PLAY';
                                                 freshButton.style.background = '#27ae60';
                                                 freshButton.style.borderColor = '#2ecc71';
+                                                try { omnichord._clearNowPlaying && omnichord._clearNowPlaying(); } catch(_){ }
                                             } catch(_){ }
                                             omnichord._isSequencing = false; 
                                             omnichord._stopPlayButtonFlashing();
@@ -38636,6 +38885,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                         // Drive sequencing from the current one-loop plan
                                         let planLen = Array.isArray(oneLoopPlan) ? oneLoopPlan.length : 0;
+                                        const loopOn = (function(){
+                                            try {
+                                                const el = document.getElementById('loopToggle') || document.getElementById('playLoop');
+                                                return el ? !!el.checked : true;
+                                            } catch(_){ return true; }
+                                        })();
+                                        const endHoldMode = (!loopOn && (planPos|0) >= (planLen|0) && (planLen|0) > 0);
 
                                         if (!planLen) {
                                             console.warn('🎵 oneLoopPlan is empty - stopping sequence');
@@ -38643,27 +38899,41 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             return;
                                         }
 
-                                        // Select CURRENT chord strictly from the plan
-                                        try {
-                                            const selIdx = oneLoopPlan[Math.min(planPos, planLen - 1)];
-                                            if (Number.isFinite(selIdx)) {
-                                                sequenceIndex = selIdx;
-                                            } else {
-                                                console.warn('🎵 Invalid plan index selected:', selIdx, 'at planPos=', planPos);
-                                                sequenceIndex = 0;
-                                            }
-                                        } catch(_){ sequenceIndex = 0; }
+                                        // Select CURRENT chord strictly from the plan (or enter end-hold mode when LOOP is off)
+                                        if (!endHoldMode) {
+                                            try {
+                                                const selIdx = oneLoopPlan[Math.min(planPos, planLen - 1)];
+                                                if (Number.isFinite(selIdx)) {
+                                                    sequenceIndex = selIdx;
+                                                } else {
+                                                    console.warn('🎵 Invalid plan index selected:', selIdx, 'at planPos=', planPos);
+                                                    sequenceIndex = 0;
+                                                }
+                                            } catch(_){ sequenceIndex = 0; }
+                                        }
 
                                         if (sequenceIndex < 0 || sequenceIndex >= allCols.length) {
                                             console.warn('🎵 sequenceIndex out of range after plan selection - clamping to 0');
                                             sequenceIndex = 0;
                                         }
 
-                                        // At this point, sequenceIndex is the CURRENT chord to schedule
-                                        console.log('🎵 Scheduling CURRENT chord at index (from plan):', sequenceIndex);
-                                    
+                                        // At this point, sequenceIndex is the CURRENT chord to schedule (unless end-hold mode)
+                                        console.log('🎵 Scheduling CURRENT chord at index (from plan):', sequenceIndex, 'endHoldMode=', endHoldMode);
+
                                     // Continue with chord switching logic for CURRENT chord
-                                    const col = allCols[sequenceIndex];
+                                    const col = (function(){
+                                        if (!endHoldMode) return allCols[sequenceIndex];
+                                        let holdCol = null;
+                                        try { holdCol = omnichord._lastPlayGestureColumnEl || omnichord.currentActiveColumnEl || omnichord._arp?.column || null; } catch(_){ holdCol = null; }
+                                        if (holdCol && holdCol.classList && holdCol.classList.contains('extension-column')) return holdCol;
+                                        // Fallback: hold on the last scheduled chord if it's valid
+                                        try {
+                                            const c = allCols[Math.max(0, Math.min(allCols.length - 1, sequenceIndex|0))];
+                                            if (c && c.classList && c.classList.contains('extension-column')) return c;
+                                        } catch(_){ }
+                                        // Final fallback: first chord column
+                                        return allCols.find(x=> x && x.classList && x.classList.contains('extension-column')) || allCols[0];
+                                    })();
                                     console.log('🎵 Playing chord at index', sequenceIndex, ':', col.querySelector('.chord-name')?.textContent);
                                     
                                     try {
@@ -38878,13 +39148,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         omnichord._startArpTransport();
 
                                         // Advance lookahead plan position now that we've scheduled this step.
-                                        // Always wrap within the current plan length so playback
-                                        // continues to cycle through the same frozen plan until
-                                        // the user explicitly stops it.
+                                        // LOOP ON: wrap forever. LOOP OFF: run once, then stop advancing chords.
                                         try {
                                             const planLen2 = Array.isArray(oneLoopPlan) ? oneLoopPlan.length : 0;
                                             if (planLen2 > 0) {
-                                                planPos = (planPos + 1) % planLen2;
+                                                if (!endHoldMode) {
+                                                    planPos = loopOn ? ((planPos + 1) % planLen2) : (planPos + 1);
+                                                }
                                             } else {
                                                 planPos = 0;
                                             }
@@ -38894,8 +39164,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         // so runTick can call scheduleNext at the exact tick boundary.
                                         // This prevents setTimeout drift and keeps chords locked to drums.
                                         try {
-                                            omnichord._arpTransport._seqNextSwitchAbsTick = nextSwitchAbsTick;
-                                            omnichord._arpTransport._seqScheduleNext = scheduleNext;
+                                            if (endHoldMode) {
+                                                // End of sequence (LOOP off): stop advancing chords, keep transport running.
+                                                omnichord._arpTransport._seqNextSwitchAbsTick = null;
+                                                omnichord._arpTransport._seqScheduleNext = null;
+                                            } else {
+                                                omnichord._arpTransport._seqNextSwitchAbsTick = nextSwitchAbsTick;
+                                                omnichord._arpTransport._seqScheduleNext = scheduleNext;
+                                            }
                                             omnichord._arpTransport._seqOneLoopPlan = oneLoopPlan;
                                             omnichord._arpTransport._seqPlanPos = planPos;
                                             omnichord._arpTransport._seqAllCols = allCols;
