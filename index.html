@@ -36837,11 +36837,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         win.__bellsDragActive = false;
                         win.__bellsLastIndex = -1;
                         win.__bellsPlayedSet = new Set();
-                        win.document.addEventListener('pointerup', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; });
-                        win.document.addEventListener('pointercancel', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; });
+                        win.__bellsLastX = null;
+                        win.__bellsDir = 0;
+                        win.document.addEventListener('pointerup', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; win.__bellsLastX = null; win.__bellsDir = 0; });
+                        win.document.addEventListener('pointercancel', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; win.__bellsLastX = null; win.__bellsDir = 0; });
                         win.document.addEventListener('pointermove', (e) => {
                             try {
                                 if (!win.__bellsDragActive) return;
+                                if (win.__bellsLastX != null) {
+                                    const dx = e.clientX - win.__bellsLastX;
+                                    const dir = dx > 2 ? 1 : (dx < -2 ? -1 : 0);
+                                    if (dir !== 0 && win.__bellsDir !== 0 && dir !== win.__bellsDir) {
+                                        win.__bellsPlayedSet = new Set();
+                                    }
+                                    if (dir !== 0) win.__bellsDir = dir;
+                                }
+                                win.__bellsLastX = e.clientX;
                                 const el = win.document.elementFromPoint(e.clientX, e.clientY);
                                 const key = el ? el.closest('.bells-key') : null;
                                 if (!key) return;
@@ -36898,8 +36909,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     key.textContent = note.label;
                     key.title = note.label;
                     const play = () => this._playBellsNote(note);
-                    key.addEventListener('pointerdown', () => {
-                        try { win.__bellsDragActive = true; win.__bellsLastIndex = idx; win.__bellsPlayedSet = new Set([idx]); } catch(_) {}
+                    key.addEventListener('pointerdown', (ev) => {
+                        try {
+                            win.__bellsDragActive = true;
+                            win.__bellsLastIndex = idx;
+                            win.__bellsPlayedSet = new Set([idx]);
+                            win.__bellsLastX = ev.clientX;
+                            win.__bellsDir = 0;
+                        } catch(_) {}
                         play();
                     });
                     key.addEventListener('pointerenter', () => {
