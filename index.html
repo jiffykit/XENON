@@ -51,6 +51,10 @@
             pointer-events: none; /* Don't interfere with interactions */
         }
 
+        :root {
+            --xenon-footer-h: 28px; /* synced at runtime */
+        }
+
         .instrument {
             display: flex;
             flex-direction: column;
@@ -83,7 +87,7 @@
             /* Anchor to XENON bar at bottom */
             position: absolute;
             top: 0;
-            bottom: 28px; /* Height of XENON bar */
+            bottom: var(--xenon-footer-h, 28px);
             left: 80px; /* Right of sidebar */
             right: 0;
             /* Remove vertical line by ensuring no borders on child elements */
@@ -2042,8 +2046,8 @@
                 display: none !important;
             }
             
-            /* Fix help and dice buttons - prevent stretching */
-            #tutorialButton, #randomDiceButton {
+            /* Fix help and bells buttons - prevent stretching */
+            #tutorialButton, #bellsButton {
                 flex-basis: calc(14.28% - 2px) !important;
                 width: auto !important;
                 min-width: 32px !important;
@@ -2158,14 +2162,16 @@
             
             /* Ensure chord box bottom is visible */
             .strings-column {
-                max-height: calc(100vh - 200px);
-                overflow-y: auto;
+                max-height: none;
+                overflow-y: hidden;
             }
             
             /* XENON footer adjustments */
             #brandFooter {
                 font-size: 12px !important;
-                padding: 4px 8px !important;
+                /* Preserve safe-area inset even when overriding padding on mobile */
+                padding: 4px 8px calc(4px + env(safe-area-inset-bottom)) 8px !important;
+                box-sizing: border-box;
             }
         }
         
@@ -2419,14 +2425,12 @@
             left: 50% !important;
         }
 
-    #tutorialButton, #randomDiceButton { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    #tutorialButton, #bellsButton { transition: transform 0.3s ease, box-shadow 0.3s ease; }
 
-        #tutorialButton:hover, #randomDiceButton:hover {
+        #tutorialButton:hover, #bellsButton:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 12px rgba(0,0,0,0.4);
         }
-
-    #randomDiceButton { transition: transform 0.6s ease; }
 
         /* Add pulsing animation for tutorial and dice buttons */
         @keyframes pulse {
@@ -2510,7 +2514,7 @@
     </div>
     
     <!-- Bottom brand footer bar -->
-    <div id="brandFooter" style="position:fixed;left:0;right:0;bottom:0;height:28px;background:#000000;border-top:1px solid #333333;display:flex;align-items:center;justify-content:center;z-index:1000;">
+    <div id="brandFooter" style="position:fixed;left:0;right:0;bottom:0;min-height:28px;background:#000000;border-top:1px solid #333333;display:flex;align-items:center;justify-content:center;z-index:1000;box-sizing:border-box;padding-bottom:env(safe-area-inset-bottom);">
         <a id="brandLink" href="https://fastfast.bandcamp.com/" target="_blank" rel="noopener noreferrer" style="color:#e8f5ff;text-decoration:none;font-weight:700;letter-spacing:1px;font-size:14px;text-decoration:none;">XENON</a>
     </div>
     <div id="topContainer" style="display:none;">
@@ -2532,7 +2536,7 @@
             
             <!-- TIME submenu moved to modal -->
             
-            <!-- ROW 3: KBD, SAVE XEN, LOAD XEN, DICE, ? (PRESET button removed in favor of full-session XEN save) -->
+            <!-- ROW 3: KBD, SAVE XEN, LOAD XEN, BELLS, ? (PRESET button removed in favor of full-session XEN save) -->
             <!-- Keyboard toggle first in row 3 -->
             <div class="mobile-row-3" style="display:flex;align-items:center;gap:6px;">
                 <label style="font-size:11px;color:#9db6c8;">KBD</label>
@@ -2542,7 +2546,7 @@
             <!-- PRESET button removed (all state now captured by SAVE XEN). Sequence preset logic still accessible via advanced panels. -->
             <button id="bottomExportOMGBtn" class="panel-btn mobile-row-3" title="Export full session (.XEN)" style="background:#10b981;border-color:#34d399;">SAVE XEN</button>
             <button id="bottomImportOMGBtn" class="panel-btn mobile-row-3" title="Import .XEN session" style="background:#9b59b6;border-color:#8e44ad;">LOAD XEN</button>
-            <button id="randomDiceButton" class="panel-btn mobile-row-3" title="Randomize Settings">🎲</button>
+            <button id="bellsButton" class="panel-btn mobile-row-3" title="Open BELLS">BELLS</button>
             <button id="tutorialButton" class="panel-btn mobile-row-3" title="Start Tutorial">?</button>
             
             <!-- MASTER slider moved to main menu line -->
@@ -3150,7 +3154,7 @@
                     <button id="seqPanelBtn" class="sidebar-btn" title="Type or paste a chord sequence">SEQ</button>
                     <button id="loadXenBtn" class="sidebar-btn" title="Import .XEN session" style="background:#9b59b6;border-color:#8e44ad;">LOAD</button>
                     <button id="saveXenBtn" class="sidebar-btn" title="Export full session (.XEN)" style="background:#10b981;border-color:#34d399;">SAVE</button>
-                    <button id="randomDiceBtnSidebar" class="sidebar-btn" title="Randomize Settings">🎲</button>
+                    <button id="bellsBtnSidebar" class="sidebar-btn" title="Open BELLS">BELLS</button>
                     <button id="tutorialBtnSidebar" class="sidebar-btn" title="Start Tutorial">?</button>
                     
                     <!-- Transpose controls moved to top-right of sidebar -->
@@ -3628,12 +3632,12 @@
         </div>
 
         <!-- Fretboard/Strings with Resize Handle -->
-        <div class="chord-resize-container" style="position: absolute; top: 0; bottom: 28px; left: 80px; right: 0;">
+        <div class="chord-resize-container" style="position: absolute; top: 0; bottom: 0; left: 80px; right: 0;">
             <div id="chordRuler" aria-hidden="true"></div>
             <div class="chord-resize-handle" id="chordResizeHandle">
                 <div class="resize-grip"></div>
             </div>
-            <div class="strum-area" id="strumArea" style="position: absolute; top: 50vh; bottom: 0; left: 0; right: 0; margin-left: 0;">
+            <div class="strum-area" id="strumArea" style="position: absolute; top: 50vh; bottom: var(--xenon-footer-h, 28px); left: 0; right: 0; margin-left: 0;">
                 <div class="extension-columns" id="extensionColumns"></div>
             </div>
         </div>
@@ -7932,6 +7936,39 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         })();
         
         // Chord section resize functionality
+        function _getXenonFooterHeightPx() {
+            try {
+                const footer = document.getElementById('brandFooter');
+                if (!footer) return 28;
+                const h = footer.getBoundingClientRect().height;
+                return (Number.isFinite(h) && h > 0) ? h : 28;
+            } catch (_) {
+                return 28;
+            }
+        }
+
+        function _syncXenonFooterHeightVar() {
+            try {
+                const footer = document.getElementById('brandFooter');
+                if (!footer) return;
+                const h = footer.getBoundingClientRect().height;
+                const px = (Number.isFinite(h) && h > 0) ? Math.ceil(h) : 28;
+                document.documentElement.style.setProperty('--xenon-footer-h', `${px}px`);
+            } catch (_) { /* noop */ }
+        }
+
+        // Keep footer height var in sync for accurate layout across devices.
+        try {
+            window.addEventListener('resize', () => { _syncXenonFooterHeightVar(); }, { passive: true });
+            document.addEventListener('DOMContentLoaded', () => {
+                _syncXenonFooterHeightVar();
+                setTimeout(() => { _syncXenonFooterHeightVar(); }, 50);
+                setTimeout(() => { _syncXenonFooterHeightVar(); }, 250);
+            }, { once: true });
+            // If the footer already exists, sync immediately.
+            _syncXenonFooterHeightVar();
+        } catch (_) { /* noop */ }
+
         function initChordResize() {
             const handle = document.getElementById('chordResizeHandle');
             const strumArea = document.getElementById('strumArea');
@@ -7977,9 +8014,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (!isResizing) return;
                 
                 const deltaY = e.clientY - startY;
-                // Ensure minimum space for compressed strings (150px from bottom)
+                // Ensure minimum chordbox area height so strings stay visible
                 const minTop = 200; // Minimum top position
-                const maxTop = window.innerHeight - 178; // 150px for strings + 28px for XENON bar
+                const footerH = _getXenonFooterHeightPx();
+                const MIN_CHORD_AREA_PX = 240;
+                const maxTop = window.innerHeight - (MIN_CHORD_AREA_PX + footerH);
                 const newTop = Math.max(minTop, Math.min(maxTop, startTop + deltaY));
                 
                 strumArea.style.top = newTop + 'px';
@@ -7998,9 +8037,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 const touch = e.touches[0];
                 const deltaY = touch.clientY - startY;
-                // Ensure minimum space for compressed strings (150px from bottom)
+                // Ensure minimum chordbox area height so strings stay visible
                 const minTop = 200; // Minimum top position
-                const maxTop = window.innerHeight - 178; // 150px for strings + 28px for XENON bar
+                const footerH = _getXenonFooterHeightPx();
+                const MIN_CHORD_AREA_PX = 240;
+                const maxTop = window.innerHeight - (MIN_CHORD_AREA_PX + footerH);
                 const newTop = Math.max(minTop, Math.min(maxTop, startTop + deltaY));
                 
                 strumArea.style.top = newTop + 'px';
@@ -8225,18 +8266,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             const chords = extensionColumns.querySelectorAll('.extension-column');
             if (chords.length === 0) return;
             
-            // Calculate minimum space needed for compressed chords
-            const headerHeight = 40; // Approximate header height
-            const minStringsHeight = 110; // Minimum compressed string section height
-            const minTotalHeight = headerHeight + minStringsHeight + 20; // Add padding
+            // Calculate minimum space needed so chord headers/strings stay visible
+            const sample = chords[0];
+            const headerEl = sample ? sample.querySelector('.extension-header') : null;
+            const footerEl = sample ? sample.querySelector('.extension-footer') : null;
+            const headerHeight = headerEl ? Math.ceil(headerEl.getBoundingClientRect().height) : 56;
+            const footerHeight = footerEl ? Math.ceil(footerEl.getBoundingClientRect().height) : 0;
+            const minStringsHeight = 120;
+            const minTotalHeight = headerHeight + footerHeight + minStringsHeight + 10;
             
             // Check current positioning
             const currentTop = parseInt(strumArea.style.top) || window.innerHeight * 0.5;
-            const availableHeight = window.innerHeight - currentTop - 28; // Account for XENON bar
+            const footerH = _getXenonFooterHeightPx();
+            const availableHeight = window.innerHeight - currentTop - footerH;
             
             // If not enough space, adjust position but respect limits
             if (availableHeight < minTotalHeight && chords.length > 0) {
-                const maxTop = window.innerHeight - 178; // 150px for compressed strings + 28px XENON bar
+                const maxTop = window.innerHeight - (minTotalHeight + footerH);
                 const newTop = Math.min(currentTop, maxTop);
                 
                 if (newTop !== currentTop) {
@@ -14125,7 +14171,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this.updateChordDisplay();
             }
             
-            generateExactChordColumns() {
+            generateExactChordColumns(opts = null) {
+                // During PLAY, defer heavy DOM rebuilds to a bar boundary for audio stability
+                try {
+                    const force = !!(opts && opts.force);
+                    const t = this._arpTransport;
+                    const playing = !!(t && (t.running || t.isRunning));
+                    if (!force && playing) {
+                        const scheduleDeferred = window.scheduleDeferred;
+                        if (typeof scheduleDeferred === 'function') {
+                            scheduleDeferred({ chordGrid: 'exact' });
+                            return;
+                        }
+                    }
+                } catch(_){ }
                 console.log('🎨🎨🎨 generateExactChordColumns CALLED - chordExtensions.length =', this.chordExtensions.length);
                 if (this.chordExtensions.length > 0) {
                     console.log('🎨 First chord:', this.chordExtensions[0].name, '| fixedRootStepAbs =', this.chordExtensions[0].fixedRootStepAbs, '| intervals =', this.chordExtensions[0].intervals);
@@ -19561,9 +19620,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this.splitExtendedChordsAcrossOctaves = false;
 
         // Play modes via inline buttons
-    this.playMode = this.playMode || 'high-low';
-    // STRUM defaults to DOWN per latest directive; internal mapping uses high-low
-    this.strumMode = this.strumMode || 'down'; // up | down | alt-centers | alt-ends
+        this.playMode = this.playMode || 'high-low';
+        // STRUM semantics (legacy): UP/DOWN describe DISPLAY orientation (high-at-top vs low-at-top).
+        // ALT modes change traversal pattern but should not implicitly flip orientation.
+        this.strumMode = this.strumMode || 'up'; // up | down | alt-centers | alt-ends
+        this.strumOrientation = this.strumOrientation || ((this.strumMode === 'down') ? 'down' : 'up'); // up | down
     // STRUM is always enabled; CHORD vs ARP is a single exclusive toggle
     this.strumEnabled = true;
     this.chordsEnabled = false;
@@ -19575,8 +19636,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             if (strumModes.includes(mode)) {
                 // Update strumMode mapping only; keep playMode (arp/chords) as-is
                 switch(mode){
-                    case 'low-high': this.strumMode = 'up'; break;
-                    case 'high-low': this.strumMode = 'down'; break;
+                        case 'high-low':
+                            this.strumMode = 'up';
+                            this.strumOrientation = 'up';
+                            break;
+                        case 'low-high':
+                            this.strumMode = 'down';
+                            this.strumOrientation = 'down';
+                            break;
                     case 'alt-center': this.strumMode = 'alt-centers'; break;
                     case 'alt-ends': default: this.strumMode = 'alt-ends'; break;
                 }
@@ -19607,20 +19674,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Both off: STRUM-only — honour full strum order set including ALT CENTRE/ENDS
                 switch (this.strumMode) {
                     case 'up':
-                        this.playMode = 'low-high';
+                        this.playMode = 'high-low';
                         break;
                     case 'down':
-                        this.playMode = 'high-low';
+                        this.playMode = 'low-high';
                         break;
                     case 'alt-centers':
                         this.playMode = 'alt-center';
                         break;
                     case 'alt-ends':
                         this.playMode = 'alt-ends';
-                        break;
-                    case 'rotate-voicing':
-                        // Do not change playMode ordering; rotation affects voicing, not order
-                        this.playMode = this.playMode || 'high-low';
                         break;
                     default:
                         this.playMode = 'high-low';
@@ -20272,25 +20335,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         };
         
         this.cycleStrumMode = () => {
-            const order = ['up','down','alt-centers','alt-ends','rotate-voicing'];
+            const order = ['up','down','alt-centers','alt-ends'];
             const i = order.indexOf(this.strumMode);
             this.strumMode = order[(i+1)%order.length];
+            // Only UP/DOWN change the display orientation
+            if (this.strumMode === 'up') this.strumOrientation = 'up';
+            if (this.strumMode === 'down') this.strumOrientation = 'down';
             const lbl = document.getElementById('strumLabel');
             if (lbl) {
                 // Prefer human-friendly labels
                 if (this.strumMode === 'alt-centers') lbl.textContent = 'ALT CENTRE';
                 else if (this.strumMode === 'alt-ends') lbl.textContent = 'ALT ENDS';
-                else if (this.strumMode === 'rotate-voicing') lbl.textContent = 'ROTATE VOICING';
                 else lbl.textContent = this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1);
-            }
-            // Map strum mode to internal playMode ordering
-            if (this.strumMode === 'up') this.setPlayMode('low-high');
-            else if (this.strumMode === 'down') this.setPlayMode('high-low');
-            else if (this.strumMode === 'alt-centers') this.setPlayMode('alt-center');
-            else if (this.strumMode === 'alt-ends') this.setPlayMode('alt-ends');
-            else if (this.strumMode === 'rotate-voicing') {
-                // Keep current ordering; toggle a flag for future voicing rotation logic
-                this.rotateVoicing = true;
             }
         };
         this.updateModeUI = () => {
@@ -20309,12 +20365,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     case 'down': strumText = 'STRUM DOWN'; break;
                     case 'alt-centers': strumText = 'STRUM ALT CENTRE'; break;
                     case 'alt-ends': strumText = 'STRUM ALT ENDS'; break;
-                    case 'rotate-voicing': strumText = 'STRUM ROTATE VOICING'; break;
                     default: strumText = 'STRUM UP'; break;
                 }
                 el.textContent = strumText;
                 // Optional: title tooltip
-                el.title = 'Cycle strum order (UP/DOWN/ALT CENTRE/ALT ENDS/ROTATE VOICING)';
+                el.title = 'Cycle strum order (UP/DOWN/ALT CENTRE/ALT ENDS)';
             };
             applyStrumLabel(btnStrum);
             applyStrumLabel(sidebarStrum);
@@ -20345,7 +20400,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             if (lbl) {
                 if (this.strumMode === 'alt-centers') lbl.textContent = 'ALT CENTRE';
                 else if (this.strumMode === 'alt-ends') lbl.textContent = 'ALT ENDS';
-                else if (this.strumMode === 'rotate-voicing') lbl.textContent = 'ROTATE VOICING';
                 else lbl.textContent = this.strumMode.charAt(0).toUpperCase()+this.strumMode.slice(1);
             }
             if (btnStrum && !btnStrum._wired){ btnStrum._wired=true; btnStrum.addEventListener('click', ()=> this.toggleStrumMode()); }
@@ -22646,6 +22700,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             handleNormalTap(element, type) {
                 // Play a strum on normal tap for chord headers and palette chords
                 if (type === 'chord' && element.classList.contains('extension-header')) {
+                    // If we just used header-contact to select/switch the chord, don't also auto-strum on touchend.
+                    try {
+                        const ts = parseInt(element.dataset.xenSuppressTapStrumTs || '0', 10);
+                        if (ts && (Date.now() - ts) < 800) {
+                            delete element.dataset.xenSuppressTapStrumTs;
+                            return;
+                        }
+                    } catch(_){ }
                     const column = element.closest('.extension-column');
                     if (column) {
                         const header = column.querySelector('.extension-header');
@@ -28526,8 +28588,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
             }
 
-            generateExtensionColumns() {
+            generateExtensionColumns(opts = null) {
                 // Generating extension columns for current tuning
+                // During PLAY, defer heavy DOM rebuilds to a bar boundary for audio stability
+                try {
+                    const force = !!(opts && opts.force);
+                    const t = this._arpTransport;
+                    const playing = !!(t && (t.running || t.isRunning));
+                    if (!force && playing) {
+                        const scheduleDeferred = window.scheduleDeferred;
+                        if (typeof scheduleDeferred === 'function') {
+                            scheduleDeferred({ chordGrid: 'standard' });
+                            return;
+                        }
+                    }
+                } catch(_){ }
                 const container = document.getElementById('extensionColumns');
                 
                 // Clear container completely to remove any leftover columns
@@ -29591,9 +29666,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     return sa - sb;
                 });
 
-                // Choose a mid register for clarity
-                const baseOctave = 1; // C1 as lowest default anchor
+                // Clamp rendered strings to a sane, visible musical range: C3..C8 inclusive.
+                // (Fine tuning of oscillator octaves is done in OSCILLATOR/GEAR.)
+                const MIN_RENDER_OCTAVE = 3;
+                const MAX_RENDER_OCTAVE = 8;
+                const baseOctave = MIN_RENDER_OCTAVE;
                 const stringFreqs = [];
+                const stringSeen = new Set();
 
                 // Detect slash-chord bass to place as the very bottom voice (one octave below base)
                 let slashBassStep = null;
@@ -29650,9 +29729,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     stepInfoList.forEach(si => { if (si.isExtended) firstGroupOctaveOffsetMap.set(si.step, 1); });
                 }
 
-                // Replicate the voicing across octaves C1..C8
+                // Replicate the voicing across octaves C3..C8
                 const replicateStride = this.splitExtendedChordsAcrossOctaves ? 2 : 1; // 2-oct stride for split voicing
-                const totalReplicas = Math.floor(8 / replicateStride); // 8 octaves total span
+                const totalOctaves = (MAX_RENDER_OCTAVE - MIN_RENDER_OCTAVE + 1);
+                const totalReplicas = Math.max(1, Math.floor(totalOctaves / replicateStride));
                 for (let r = 0; r < totalReplicas; r++) {
                     const replicateBaseOct = baseOctave + r * replicateStride;
                     const seq = firstGroupOrderSteps; // always apply core→extensions ordering per replica
@@ -29680,8 +29760,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const minOct = replicateBaseOct;      // keep base as lower bound
                             octave = Math.min(maxOct, Math.max(minOct, octave));
                         }
+                        // Hard clamp to render window (prevents ultra-high repeats)
+                        if (octave < MIN_RENDER_OCTAVE || octave > MAX_RENDER_OCTAVE) continue;
                         // Do not suppress repeated roots; show all strings across octaves
 
+                        const key = `${step}@${octave}`;
+                        if (stringSeen.has(key)) continue;
+                        stringSeen.add(key);
                         const freq = this.getFrequency(step, octave, currentTuning);
                         // Map back to an interval tag for display/coloring; fallback to semitone-derived
                         const intervalTag = intervals.find(iv => (isCustomChord ? iv : this.mapIntervalToEDO(iv, currentTuning)) === edoStep) ?? intervals[i % intervals.length];
@@ -29689,10 +29774,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                 }
                 
-                // Visual ordering depends on Play Mode selection
-                // Default to high at top (descending) for chords/arp; allow 'low-high' to flip
-                const __pm = (this.playMode || 'high-low');
-                const __desc = (__pm === 'low-high') ? false : true;
+                // Initial ordering: follow current display orientation.
+                // UP = high at top (descending), DOWN = low at top (ascending).
+                const __orient = (this.strumOrientation || (this.strumMode === 'down' ? 'down' : 'up'));
+                const __desc = (__orient !== 'down');
                 stringFreqs.sort((a,b)=> __desc ? (b.freq - a.freq) : (a.freq - b.freq));
 
                 // Calculate string sizing to fill full height of column
@@ -29870,7 +29955,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             // Make rows span the full container by distributing vertical margins according to log-frequency distances.
             _distributeStringGapsToFill(parent) {
                 if (!parent) return;
-                const rows = Array.from(parent.querySelectorAll('.string'));
+                // Use visual order (flex order) so gaps follow displayed adjacency,
+                // not the DOM insertion order.
+                const rows = Array.from(parent.querySelectorAll('.string')).sort((a,b)=>{
+                    const oa = parseInt(a.style.order || a.dataset.playOrder || '0', 10);
+                    const ob = parseInt(b.style.order || b.dataset.playOrder || '0', 10);
+                    return oa - ob;
+                });
                 if (rows.length < 2) return;
                 const H = parent.clientHeight;
                 if (!H || H <= 0) return;
@@ -31349,6 +31440,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             setTimeout(()=>{
                                                 try { self._updateDrumGridForTimeSignature(); } catch(_){ }
                                                 try { self._arpTransport._gridRebuildQueued = false; } catch(_){ }
+                                            }, 0);
+                                        }
+                                    } catch(_){ }
+                                }
+
+                                // Chord grid rebuilds (deferred): apply outside the transport tick.
+                                if (flags.chordGrid) {
+                                    try {
+                                        if (!this._arpTransport._chordGridRebuildQueued) {
+                                            this._arpTransport._chordGridRebuildQueued = true;
+                                            const mode = flags.chordGrid;
+                                            const self = this;
+                                            setTimeout(() => {
+                                                try {
+                                                    if (mode === 'exact') {
+                                                        if (typeof self.generateExactChordColumns === 'function') self.generateExactChordColumns({ force: true });
+                                                    } else {
+                                                        if (typeof self.generateExtensionColumns === 'function') self.generateExtensionColumns({ force: true });
+                                                    }
+                                                } catch(_){ }
+                                                try { self._arpTransport._chordGridRebuildQueued = false; } catch(_){ }
                                             }, 0);
                                         }
                                     } catch(_){ }
@@ -33509,16 +33621,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (!container) return;
                     const rows = Array.from(container.querySelectorAll('.string'));
                     if (rows.length===0) return;
-                    // Derive visual pattern from strumMode even when playMode is 'chords' or 'arp'
-                    let mode = this.playMode || 'high-low';
-                    if (mode === 'chords' || mode === 'arp') {
-                        switch(this.strumMode){
-                            case 'up': mode = 'low-high'; break;
-                            case 'down': mode = 'high-low'; break;
-                            case 'alt-centers': mode = 'alt-center'; break;
-                            case 'alt-ends': default: mode = 'alt-ends'; break;
-                        }
-                    }
+                    // Visual ordering follows strum orientation + strumMode pattern.
+                    // UP/DOWN define orientation; ALT modes keep current orientation.
+                    const orientation = (this.strumOrientation || (this.strumMode === 'down' ? 'down' : 'up'));
+                    let mode = (orientation === 'down') ? 'low-high' : 'high-low';
+                    if (this.strumMode === 'alt-centers') mode = 'alt-center';
+                    if (this.strumMode === 'alt-ends') mode = 'alt-ends';
                     let seq = [];
                     if ((mode === 'alt-ends' || mode === 'alt-center') && typeof this.groupStringsByOctave === 'function'){
                         const { groups } = this.groupStringsByOctave(rows);
@@ -33551,6 +33659,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             orderIdx++;
                         }
                     });
+                    // Recompute gap distribution based on the new visual order
+                    try { this._distributeStringGapsToFill(container); } catch(_){ }
                 } catch(e) { console.warn('applyPlayModeToColumnVisual failed:', e); }
             }
 
@@ -33718,9 +33828,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Capture omnichord instance for event handlers
                     const omnichord = this;
 
-                    const LONG_PRESS_MS = 200;
+                    const LONG_PRESS_MS = 1000;
                     const DWELL_MS = 200;
                     const JITTER_PX = 6;
+                    const STRUM_SWIPE_PX = 10;
                     const DELETE_THRESHOLD_PX = 5; // delete only if dragged to top of the viewport
 
                     let pressTimer = null;
@@ -33733,13 +33844,53 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     let originalAbsIndex = null;
                     let lastSwapTarget = null;
                     let lastSwapTargetAbsIndex = null;
+                    let startedOnHeader = false;
+                    let headerSwipeStrumFired = false;
+                    let preMoveListening = false;
+                    let selectedOnPress = false;
 
                     const getPointer = (e) => (e.touches && e.touches[0]) || e;
                     const canStartFrom = (target) => {
-                        // allow from header or empty space inside column; block buttons
+                        // allow ONLY from header; block buttons
                         if (!target) return false;
                         if (target.closest('.chord-action-button') || target.closest('.lock-button')) return false;
-                        return target.closest('.extension-header') || target.closest('.extension-column');
+                        return !!target.closest('.extension-header');
+                    };
+
+                    const isLoopEnabled = () => {
+                        try {
+                            const loopToggle = document.getElementById('loopToggle');
+                            return loopToggle ? !!loopToggle.checked : true;
+                        } catch (_){
+                            return true;
+                        }
+                    };
+
+                    const stopPreMove = () => {
+                        if (!preMoveListening) return;
+                        preMoveListening = false;
+                        try { window.removeEventListener('mousemove', onPreMove, true); } catch(_){ }
+                        try { window.removeEventListener('touchmove', onPreMove, true); } catch(_){ }
+                    };
+
+                    const selectChordOnContact = (clientY) => {
+                        // "Even touch" on header should select the chord immediately when CHORDS is lit.
+                        try {
+                            omnichord.currentActiveColumnEl = column;
+                        } catch(_){ }
+                        try {
+                            omnichord.highlightKeyboardForColumn && omnichord.highlightKeyboardForColumn(column);
+                        } catch(_){ }
+
+                        // Suppress the legacy touch-gesture system's "tap = strum" for this header contact.
+                        try { header.dataset.xenSuppressTapStrumTs = String(Date.now()); } catch(_){ }
+
+                        // If PLAY is running, actually switch the sustained chord immediately.
+                        try {
+                            if (omnichord && omnichord.chordsEnabled && omnichord._isSequencing && typeof omnichord._executeChordChange === 'function') {
+                                omnichord._executeChordChange(column, clientY);
+                            }
+                        } catch(_){ }
                     };
 
                     const swapNodes = (a, b) => {
@@ -33761,11 +33912,68 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (!canStartFrom(e.target)) return;
                         const p = getPointer(e);
                         startX = p.clientX; startY = p.clientY;
+                        startedOnHeader = !!(e.target && e.target.closest && e.target.closest('.extension-header'));
+                        headerSwipeStrumFired = false;
+                        selectedOnPress = false;
+
+                        // Immediate chord select on contact when CHORDS is lit.
+                        try {
+                            if (startedOnHeader && omnichord && omnichord.chordsEnabled) {
+                                const rect = column.getBoundingClientRect();
+                                const midY = rect.top + rect.height * 0.5;
+                                selectChordOnContact(midY);
+                                selectedOnPress = true;
+                            }
+                        } catch(_){ }
+
+                        // Listen for movement before long-press fires so we can
+                        // treat header down-swipe as strum in NOT-LOOP.
+                        if (!preMoveListening) {
+                            preMoveListening = true;
+                            try { window.addEventListener('mousemove', onPreMove, { passive: false, capture: true }); } catch(_){ }
+                            try { window.addEventListener('touchmove', onPreMove, { passive: false, capture: true }); } catch(_){ }
+                        }
                         // Start drag timer - will be cancelled if tap ends quickly
                         pressTimer = setTimeout(() => beginDrag(p), LONG_PRESS_MS);
                     };
 
                     const cancelPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+
+                    const onPreMove = (e) => {
+                        if (!pressTimer || isDragging) return;
+                        const p = getPointer(e);
+                        const dx = p.clientX - startX;
+                        const dy = p.clientY - startY;
+
+                        // NOT-LOOP: header down-swipe should STRUM, not drag.
+                        if (!isLoopEnabled() && startedOnHeader && !headerSwipeStrumFired) {
+                            const mostlyVertical = Math.abs(dy) > (Math.abs(dx) * 1.2);
+                            if (dy > STRUM_SWIPE_PX && mostlyVertical) {
+                                headerSwipeStrumFired = true;
+                                cancelPress();
+                                stopPreMove();
+                                try { omnichord.currentActiveColumnEl = column; } catch(_){ }
+                                try { omnichord.highlightKeyboardForColumn && omnichord.highlightKeyboardForColumn(column); } catch(_){ }
+                                // Ensure chord is selected (if not already selected on contact).
+                                try {
+                                    if (!selectedOnPress && omnichord && omnichord.chordsEnabled) {
+                                        const rect = column.getBoundingClientRect();
+                                        const midY = rect.top + rect.height * 0.5;
+                                        selectChordOnContact(midY);
+                                    }
+                                } catch(_){ }
+                                try { omnichord.playChordStrum && omnichord.playChordStrum(column, null, startY, p.clientY); } catch(_){ }
+                                try { e.preventDefault(); } catch(_){ }
+                                return;
+                            }
+                        }
+
+                        // Any movement cancels pending long-press drag.
+                        if (Math.abs(dx) > JITTER_PX || Math.abs(dy) > JITTER_PX) {
+                            cancelPress();
+                            stopPreMove();
+                        }
+                    };
 
                     const maybeCancelOnMove = (e) => {
                         if (!pressTimer) return;
@@ -33775,6 +33983,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     const beginDrag = (p) => {
                         isDragging = true;
+                        stopPreMove();
                         column.classList.add('dragging');
                         const rect = column.getBoundingClientRect();
                         grabOffsetX = p.clientX - rect.left;
@@ -33870,6 +34079,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     const onEnd = () => {
                         cancelPress();
+                        stopPreMove();
                         window.removeEventListener('mousemove', onMove);
                         window.removeEventListener('touchmove', onMove);
                         window.removeEventListener('mouseup', onEnd);
@@ -33950,10 +34160,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     };
 
                     const onPressEnd = (e) => {
+                        // If we already fired a header swipe-strum, do not treat as tap.
+                        if (headerSwipeStrumFired) {
+                            headerSwipeStrumFired = false;
+                            cancelPress();
+                            stopPreMove();
+                            return;
+                        }
                         // If press timer is still running, this was a quick tap
                         if (pressTimer) {
                             clearTimeout(pressTimer);
                             pressTimer = null;
+                            stopPreMove();
+
+                            // If we already selected on contact, don't re-trigger on release.
+                            if (selectedOnPress) {
+                                selectedOnPress = false;
+                                return;
+                            }
                             
                             // Don't interfere with header action buttons
                             if (
@@ -34462,21 +34686,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Fallback: if the gesture window captured no strings (e.g., tiny swipe), play them all
                 if (stringsToPlay.length === 0) stringsToPlay = strings;
                 
-                // Build playback sequence from the subset within the gesture window
-                const ascAll = strings.slice().sort((a,b)=> (parseFloat(a.dataset.frequency)||0)-(parseFloat(b.dataset.frequency)||0));
-                const baseAscInWindow = ascAll.filter(s=> stringsToPlay.includes(s));
-                // Allow repeated notes for arpeggio patterns where applicable
-                let playbackSeq = (typeof this.getPatternPlaybackSequence==='function')
-                    ? this.getPatternPlaybackSequence(baseAscInWindow, this.playMode||'high-low')
-                    : baseAscInWindow.slice();
-                // Fallback to play-order if pattern builder failed
-                if (!Array.isArray(playbackSeq) || playbackSeq.length===0) {
-                    playbackSeq = stringsToPlay.slice().sort((a,b)=> (parseInt(a.dataset.playOrder||'0',10) - parseInt(b.dataset.playOrder||'0',10)));
-                }
-                // For non-forced modes, reverse order on upward strum so patterns follow gesture direction
-                if (this.playMode && !['low-high','high-low'].includes(this.playMode)) {
-                    if (!strumDown) playbackSeq = playbackSeq.slice().reverse();
-                }
+                // Build playback sequence from the subset within the gesture window.
+                // Legacy behavior: STRUM mode defines orientation/pattern; swipe direction defines traversal.
+                const baseTopToBottom = stringsToPlay.slice().sort((a,b)=>{
+                    const ra = a.getBoundingClientRect();
+                    const rb = b.getBoundingClientRect();
+                    return (ra.top + ra.height/2) - (rb.top + rb.height/2);
+                });
+                const baseDir = strumDown ? baseTopToBottom : baseTopToBottom.slice().reverse();
+
+                const altEnds = (arr)=>{ const a=arr.slice(); const out=[]; let i=0,j=a.length-1; while(i<=j){ if(i<=j) out.push(a[i++]); if(i<=j) out.push(a[j--]); } return out; };
+                const altCenter = (arr)=>{ const a=arr.slice(); const mid=Math.floor((a.length-1)/2); const out=[]; let l=mid, r=mid+1; if(a.length%2===1){ out.push(a[mid]); l=mid-1; r=mid+1; } while(l>=0 || r<a.length){ if(r<a.length) out.push(a[r++]); if(l>=0) out.push(a[l--]); } return out; };
+
+                let playbackSeq = baseDir;
+                if (this.strumMode === 'alt-ends') playbackSeq = altEnds(baseDir);
+                else if (this.strumMode === 'alt-centers') playbackSeq = altCenter(baseDir);
+                if (!Array.isArray(playbackSeq) || playbackSeq.length === 0) playbackSeq = baseDir;
+
                 const originalCount = stringsToPlay.length;
                 stringsToPlay = playbackSeq;
                 
@@ -36349,11 +36575,579 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 });
             }
 
-            // Random Dice System
-            initRandomDice() {
-                document.getElementById('randomDiceButton').addEventListener('click', () => {
-                    this.randomizeEverything();
+            // BELLS window (simple large bars for learning use)
+            initBells() {
+                const btn = document.getElementById('bellsButton');
+                if (btn && !btn._wired) {
+                    btn._wired = true;
+                    btn.addEventListener('click', () => this.openBellsWindow());
+                }
+                const btnSide = document.getElementById('bellsBtnSidebar');
+                if (btnSide && !btnSide._wired) {
+                    btnSide._wired = true;
+                    btnSide.addEventListener('click', () => this.openBellsWindow());
+                }
+            }
+
+            openBellsWindow() {
+                try {
+                    if (this._bellsWin && !this._bellsWin.closed) {
+                        this._bellsWin.focus();
+                        this._renderBellsUI();
+                        return;
+                    }
+                } catch(_) {}
+
+                const win = window.open('', 'XENON_BELLS', 'popup=yes,resizable=yes,scrollbars=no');
+                if (!win) {
+                    alert('Popup blocked. Allow popups to open BELLS.');
+                    return;
+                }
+                this._bellsWin = win;
+                this._bellsState = this._bellsState || { count: 2, activeIndex: 0, baseOct: 3, mode: 'single' };
+                this._buildBellsWindowShell(win);
+                try {
+                    win.addEventListener('beforeunload', () => { this._bellsWin = null; this._stopBellsAutoUpdate(); });
+                } catch(_) {}
+                this._startBellsAutoUpdate();
+                this._renderBellsUI();
+            }
+
+            _buildBellsWindowShell(win) {
+                const doc = win.document;
+                                const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XENON BELLS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; background: #000; color: #e8f5ff; font-family: 'Oswald', Arial, sans-serif; }
+    #bellsHeader {
+      display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #1f2f3a;
+      background: #060c10; position: sticky; top: 0; z-index: 2;
+    }
+    #bellsChords { display: flex; flex-wrap: wrap; gap: 6px; }
+    .bells-chord-btn {
+      padding: 6px 10px; background: #1a2f3c; color: #e8f5ff; border: 1px solid #2b5567;
+      border-radius: 8px; font-size: 14px; cursor: pointer; min-width: 48px; text-align: center;
+    }
+    .bells-chord-btn.active { background: #f39c12; border-color: #e67e22; color: #111; }
+    #bellsControls { display: grid; grid-template-columns: auto 1fr auto auto 1fr auto; gap: 10px; align-items: center; }
+    #bellsCount, #bellsOctave { width: 100%; }
+    #bellsCountValue, #bellsOctaveValue { min-width: 28px; text-align: right; font-size: 16px; color: #9db6c8; }
+        #bellsBars { position: relative; width: 100%; height: calc(100vh - 130px); overflow: hidden; }
+        .bells-key {
+            position: absolute; display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 600; color: #000; text-shadow: 0 1px 0 rgba(255,255,255,0.2);
+            user-select: none; cursor: pointer; border: 2px solid rgba(255,255,255,0.55);
+            border-radius: 6px 6px 0 0;
+            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25), inset 0 0 10px rgba(0,0,0,0.25);
+            outline: 2px solid rgba(0,0,0,0.35);
+            outline-offset: -2px;
+        }
+        .bells-natural { height: 100%; z-index: 1; bottom: 0; }
+        .bells-accidental { height: 75%; z-index: 2; top: 0; }
+        .bells-micro { height: 55%; z-index: 3; top: 0; }
+        .bells-micro.small { height: 35%; }
+    .bells-empty { padding: 24px; color: #9db6c8; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <div id="bellsHeader">
+    <div id="bellsChords"></div>
+        <div id="bellsControls">
+            <label for="bellsCount" style="font-size:14px;color:#9db6c8;">NOTES</label>
+            <input id="bellsCount" type="range" min="1" max="16" value="2" />
+            <span id="bellsCountValue">2</span>
+            <label for="bellsOctave" style="font-size:14px;color:#9db6c8;">OCT</label>
+            <input id="bellsOctave" type="range" min="2" max="6" value="3" />
+            <span id="bellsOctaveValue">3</span>
+        </div>
+  </div>
+  <div id="bellsBars"></div>
+</body>
+</html>`;
+                doc.open();
+                doc.write(html);
+                doc.close();
+            }
+
+            _getBellsChordList() {
+                const cols = Array.from(document.querySelectorAll('.extension-column'));
+                const list = [];
+                cols.forEach((col) => {
+                    const name = col.querySelector('.extension-header .chord-name')?.textContent?.trim() || '';
+                    if (!name || name === '|') return;
+                    list.push({ name, column: col });
                 });
+                return list;
+            }
+
+            _getBellsActiveColumn() {
+                const list = this._getBellsChordList();
+                if (list.length === 0) return null;
+                const idx = Math.max(0, Math.min(list.length - 1, this._bellsState?.activeIndex || 0));
+                return list[idx]?.column || list[0].column;
+            }
+
+            _setBellsActiveIndex(idx) {
+                const list = this._getBellsChordList();
+                if (!list.length) return;
+                const next = Math.max(0, Math.min(list.length - 1, idx | 0));
+                this._bellsState = this._bellsState || { count: 2, activeIndex: 0, baseOct: 3, mode: 'single' };
+                this._bellsState.activeIndex = next;
+                const col = list[next]?.column;
+                if (col) {
+                    this.currentActiveColumnEl = col;
+                    try { this.highlightKeyboardForColumn(col); } catch(_) {}
+                }
+            }
+
+            _renderBellsUI() {
+                const win = this._bellsWin;
+                if (!win || win.closed) return;
+                const doc = win.document;
+                const chordsEl = doc.getElementById('bellsChords');
+                const barsEl = doc.getElementById('bellsBars');
+                const slider = doc.getElementById('bellsCount');
+                const sliderVal = doc.getElementById('bellsCountValue');
+                const octSlider = doc.getElementById('bellsOctave');
+                const octVal = doc.getElementById('bellsOctaveValue');
+                if (!chordsEl || !barsEl || !slider || !sliderVal || !octSlider || !octVal) return;
+
+                const list = this._getBellsChordList();
+                this._bellsState = this._bellsState || { count: 2, activeIndex: 0, baseOct: 3, mode: 'single' };
+                if (this._bellsState.activeIndex >= list.length) this._bellsState.activeIndex = 0;
+                if (!this._bellsState.mode) this._bellsState.mode = 'single';
+
+                chordsEl.innerHTML = '';
+                if (list.length === 0) {
+                    barsEl.innerHTML = '<div class="bells-empty">No chords available.</div>';
+                    return;
+                }
+
+                list.forEach((item, i) => {
+                    const btn = doc.createElement('button');
+                    const isActive = (this._bellsState.mode === 'single' && i === this._bellsState.activeIndex);
+                    btn.className = 'bells-chord-btn' + (isActive ? ' active' : '');
+                    btn.textContent = item.name;
+                    btn.addEventListener('click', () => {
+                        this._setBellsActiveIndex(i);
+                        this._bellsState.mode = 'single';
+                        this._renderBellsUI();
+                    });
+                    chordsEl.appendChild(btn);
+                });
+
+                const allChordsBtn = doc.createElement('button');
+                allChordsBtn.className = 'bells-chord-btn' + (this._bellsState.mode === 'all-chords' ? ' active' : '');
+                allChordsBtn.textContent = 'ALL CHORDS';
+                allChordsBtn.addEventListener('click', () => {
+                    this._bellsState.mode = 'all-chords';
+                    this._renderBellsUI();
+                });
+                chordsEl.appendChild(allChordsBtn);
+
+                const allNotesBtn = doc.createElement('button');
+                allNotesBtn.className = 'bells-chord-btn' + (this._bellsState.mode === 'all-notes' ? ' active' : '');
+                allNotesBtn.textContent = 'ALL NOTES';
+                allNotesBtn.addEventListener('click', () => {
+                    this._bellsState.mode = 'all-notes';
+                    this._renderBellsUI();
+                });
+                chordsEl.appendChild(allNotesBtn);
+
+                if (!slider._wired) {
+                    slider._wired = true;
+                    slider.addEventListener('input', () => {
+                        const v = Math.max(1, Math.min(16, parseInt(slider.value, 10) || 2));
+                        this._bellsState.count = v;
+                        sliderVal.textContent = String(v);
+                        this._renderBellsBars();
+                    });
+                }
+                if (!octSlider._wired) {
+                    octSlider._wired = true;
+                    octSlider.addEventListener('input', () => {
+                        const v = Math.max(2, Math.min(6, parseInt(octSlider.value, 10) || 3));
+                        this._bellsState.baseOct = v;
+                        octVal.textContent = String(v);
+                        this._renderBellsBars();
+                    });
+                }
+                if (this._bellsState.mode === 'all-chords' || this._bellsState.mode === 'all-notes') {
+                    slider.disabled = true;
+                } else {
+                    slider.disabled = false;
+                }
+                slider.value = String(this._bellsState.count || 2);
+                sliderVal.textContent = String(this._bellsState.count || 2);
+                octSlider.value = String(this._bellsState.baseOct || 3);
+                octVal.textContent = String(this._bellsState.baseOct || 3);
+                this._renderBellsBars();
+            }
+
+            _renderBellsBars() {
+                const win = this._bellsWin;
+                if (!win || win.closed) return;
+                const doc = win.document;
+                const barsEl = doc.getElementById('bellsBars');
+                if (!barsEl) return;
+
+                let notes = [];
+                let count = Math.max(1, Math.min(16, this._bellsState?.count || 2));
+                if (this._bellsState?.mode === 'all-chords') {
+                    notes = this._computeAllChordsNotes();
+                    count = notes.length;
+                    const slider = doc.getElementById('bellsCount');
+                    const sliderVal = doc.getElementById('bellsCountValue');
+                    if (slider) slider.value = String(Math.max(1, Math.min(16, count)));
+                    if (sliderVal) sliderVal.textContent = String(count);
+                } else if (this._bellsState?.mode === 'all-notes') {
+                    notes = this._computeAllNotes();
+                    count = notes.length;
+                    const slider = doc.getElementById('bellsCount');
+                    const sliderVal = doc.getElementById('bellsCountValue');
+                    if (slider) slider.value = String(Math.max(1, Math.min(16, count)));
+                    if (sliderVal) sliderVal.textContent = String(count);
+                } else {
+                    const col = this._getBellsActiveColumn();
+                    if (!col) {
+                        barsEl.innerHTML = '<div class="bells-empty">No chord selected.</div>';
+                        return;
+                    }
+                    notes = this._computeBellsNotes(col, count);
+                }
+
+                if (!notes || notes.length === 0) {
+                    barsEl.innerHTML = '<div class="bells-empty">No notes available.</div>';
+                    return;
+                }
+                barsEl.innerHTML = '';
+
+                // Drag-to-strum support across keys
+                try {
+                    if (!win.__bellsDragWired) {
+                        win.__bellsDragWired = true;
+                        win.__bellsDragActive = false;
+                        win.__bellsLastIndex = -1;
+                        win.__bellsPlayedSet = new Set();
+                        win.document.addEventListener('pointerup', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; });
+                        win.document.addEventListener('pointercancel', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; });
+                        win.document.addEventListener('pointermove', (e) => {
+                            try {
+                                if (!win.__bellsDragActive) return;
+                                const el = win.document.elementFromPoint(e.clientX, e.clientY);
+                                const key = el ? el.closest('.bells-key') : null;
+                                if (!key) return;
+                                const idx = parseInt(key.dataset.index || '-1', 10);
+                                if (idx < 0) return;
+                                if (win.__bellsPlayedSet && win.__bellsPlayedSet.has(idx)) return;
+                                win.__bellsPlayedSet && win.__bellsPlayedSet.add(idx);
+                                const note = key.__bellsNote;
+                                if (note) this._playBellsNote(note);
+                            } catch(_) {}
+                        });
+                    }
+                } catch(_) {}
+
+                // Piano-style layout: naturals full height, accidentals/microtonals nested above.
+                const noteNames = this.getNoteNames();
+                const tuning = (notes[0] && notes[0].tuning) ? notes[0].tuning : (this.currentTuning || 12);
+                const parseLabel = (label) => {
+                    const name = String(label || '').replace(/[0-9]/g,'');
+                    const m = name.match(/^([A-G])([#b]?)(.*)$/);
+                    if (!m) return { base: name, acc: '', micro: '' };
+                    return { base: m[1], acc: m[2] || '', micro: m[3] || '' };
+                };
+                const isNaturalLabel = (label) => {
+                    const p = parseLabel(label);
+                    return !!p.base && !p.acc && !p.micro;
+                };
+                const isAccidentalLabel = (label) => {
+                    const p = parseLabel(label);
+                    return !!p.base && !!p.acc && !p.micro;
+                };
+                const isMicroLabel = (label) => {
+                    const p = parseLabel(label);
+                    return !!p.base && !!p.micro;
+                };
+
+                const addKey = (note, idx, cls, leftPct, widthPct, heightPct, z) => {
+                    const key = doc.createElement('div');
+                    key.className = `bells-key ${cls}`;
+                    key.dataset.index = String(idx);
+                    key.__bellsNote = note;
+                    key.style.background = note.color;
+                    key.style.left = `${leftPct}%`;
+                    key.style.width = `${widthPct}%`;
+                    key.style.height = `${heightPct}%`;
+                    key.style.zIndex = String(z);
+                    if (cls.includes('bells-natural')) {
+                        key.style.bottom = '0';
+                        key.style.top = 'auto';
+                    } else {
+                        key.style.top = '0';
+                        key.style.bottom = 'auto';
+                    }
+                    key.textContent = note.label;
+                    key.title = note.label;
+                    const play = () => this._playBellsNote(note);
+                    key.addEventListener('pointerdown', () => {
+                        try { win.__bellsDragActive = true; win.__bellsLastIndex = idx; win.__bellsPlayedSet = new Set([idx]); } catch(_) {}
+                        play();
+                    });
+                    key.addEventListener('pointerenter', () => {
+                        try {
+                            if (!win.__bellsDragActive) return;
+                            if (win.__bellsPlayedSet && win.__bellsPlayedSet.has(idx)) return;
+                            win.__bellsLastIndex = idx;
+                            win.__bellsPlayedSet && win.__bellsPlayedSet.add(idx);
+                            play();
+                        } catch(_) {}
+                    });
+                    key.addEventListener('touchstart', (e) => { e.preventDefault(); play(); }, { passive: false });
+                    barsEl.appendChild(key);
+                };
+
+                // Cent-based spacing across the rendered pitch span (no gaps, any EDO 5–53)
+                const absNotes = notes.map((n, i) => {
+                    const stepC = this.getCentValue(n.step, n.tuning || tuning) % 1200;
+                    const absC = (n.octave || 0) * 1200 + stepC;
+                    return { note: n, idx: i, absCents: absC };
+                });
+                absNotes.sort((a,b)=> a.absCents - b.absCents);
+                const minC = absNotes[0]?.absCents ?? 0;
+                const maxC = absNotes[absNotes.length-1]?.absCents ?? (minC + 1200);
+                const span = Math.max(1, maxC - minC);
+                const pos = absNotes.map(o => ({
+                    ...o,
+                    rel: (o.absCents - minC) / span
+                }));
+                const bounds = pos.map((o,i)=>{
+                    const left = i === 0 ? 0 : (pos[i-1].rel + o.rel) / 2;
+                    const right = i === pos.length-1 ? 1 : (o.rel + pos[i+1].rel) / 2;
+                    return { left, right };
+                });
+
+                pos.forEach((o, i) => {
+                    const note = o.note;
+                    const label = note.label || '';
+                    const leftPct = bounds[i].left * 100;
+                    const widthPct = Math.max(1.5, (bounds[i].right - bounds[i].left) * 100);
+                    if (isNaturalLabel(label)) {
+                        addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1);
+                    } else if (isAccidentalLabel(label)) {
+                        const width = Math.min(widthPct, Math.max(5, widthPct * 0.8));
+                        const center = (leftPct + widthPct / 2);
+                        addKey(note, o.idx, 'bells-accidental', Math.max(0, Math.min(100-width, center - width/2)), width, 75, 2);
+                    } else if (isMicroLabel(label)) {
+                        const microLen = (parseLabel(label).micro || '').length;
+                        const cls = microLen > 1 ? 'bells-micro small' : 'bells-micro';
+                        const height = microLen > 1 ? 35 : 55;
+                        const width = Math.min(widthPct, Math.max(4, widthPct * 0.7));
+                        const center = (leftPct + widthPct / 2);
+                        addKey(note, o.idx, cls, Math.max(0, Math.min(100-width, center - width/2)), width, height, 3);
+                    } else {
+                        addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1);
+                    }
+                });
+            }
+
+            _getBellsChordSteps(column){
+                const lockedChord = this.lockedChords?.get(column);
+                // Prefer model intervals for correct mapping in non-12 EDO
+                let model = null;
+                try {
+                    const id = column.dataset.chordId;
+                    if (id) model = (this.chordExtensions || []).find(c => String(c.id) === String(id)) || null;
+                    if (!model && column.dataset.originalPosition != null) {
+                        const op = parseInt(column.dataset.originalPosition,10);
+                        if (!isNaN(op) && op >= 0) model = this.chordExtensions?.[op] || null;
+                    }
+                    if (!model) {
+                        const label = (column.querySelector('.extension-header .chord-name')?.textContent || '').trim();
+                        model = (this.chordExtensions || []).find(c => !c?.isRepeatMarker && String(c?.name||'').trim() === label) || null;
+                    }
+                } catch(_) {}
+
+                if (model && Array.isArray(model.intervals) && model.intervals.length) {
+                    const tuning = model.fixedRootTuning || this.currentTuning || 12;
+                    if (model.isCustom) {
+                        return model.intervals.map(iv => ((iv % tuning) + tuning) % tuning);
+                    }
+                    return model.intervals.map(iv => this.mapIntervalToEDO(iv, tuning));
+                }
+
+                if (lockedChord && Array.isArray(lockedChord.intervals) && lockedChord.intervals.length) {
+                    const tuning = lockedChord.lockedTuning || this.currentTuning || 12;
+                    return lockedChord.intervals.map(iv => this.mapIntervalToEDO(iv, tuning));
+                }
+
+                return this.getChordStepsForColumn(column);
+            }
+
+            _computeBellsNotes(column, count) {
+                const noteNames = this.getNoteNames();
+                const relStepsRaw = this._getBellsChordSteps(column);
+                const baseInfo = this._getBaseRootForColumn(column);
+                const tuning = baseInfo.tuning;
+                const baseRoot = baseInfo.baseRoot;
+                const steps = (relStepsRaw && relStepsRaw.length ? relStepsRaw : [0]).slice();
+                steps.sort((a,b) => this.stepToSemitone(a, tuning) - this.stepToSemitone(b, tuning));
+
+                const baseOct = Math.max(2, Math.min(6, this._bellsState?.baseOct || 3));
+                const maxOct = 8;
+                const notes = [];
+                const norm = (v,m)=> ((v % m) + m) % m;
+                for (let i=0; i<count; i++) {
+                    const idx = i % steps.length;
+                    const octOffset = Math.floor(i / steps.length);
+                    const rel = steps[idx];
+                    const total = baseRoot + rel;
+                    const step = norm(total, tuning);
+                    let octave = baseOct + octOffset + Math.floor(total / tuning);
+                    if (octave > maxOct) octave = maxOct;
+                    const freq = this.getFrequency(step, octave, tuning);
+                    const label = `${noteNames[step] || ('Note ' + step)}${octave}`;
+                    const color = this.getUniversalPitchColorForStep(step, tuning).color || '#888';
+                    notes.push({ freq, step, octave, label, color, tuning });
+                }
+                return notes;
+            }
+
+            _computeAllChordsNotes(){
+                const noteNames = this.getNoteNames();
+                const list = this._getBellsChordList();
+                if (!list.length) return [];
+                let tuning = this.currentTuning || 12;
+                const norm = (v,m)=> ((v % m) + m) % m;
+                const set = new Set();
+                list.forEach(({ column }) => {
+                    const baseInfo = this._getBaseRootForColumn(column);
+                    tuning = baseInfo.tuning || tuning;
+                    const baseRoot = baseInfo.baseRoot;
+                    const relSteps = this._getBellsChordSteps(column);
+                    relSteps.forEach(s => set.add(norm(baseRoot + s, tuning)));
+                });
+                const steps = Array.from(set.values());
+                steps.sort((a,b) => this.stepToSemitone(a, tuning) - this.stepToSemitone(b, tuning));
+                const baseOct = Math.max(2, Math.min(6, this._bellsState?.baseOct || 3));
+                return steps.map(step => {
+                    const label = `${noteNames[step] || ('Note ' + step)}${baseOct}`;
+                    const color = this.getUniversalPitchColorForStep(step, tuning).color || '#888';
+                    const freq = this.getFrequency(step, baseOct, tuning);
+                    return { freq, step, octave: baseOct, label, color, tuning };
+                });
+            }
+
+            _computeAllNotes(){
+                const noteNames = this.getNoteNames();
+                const tuning = this.currentTuning || 12;
+                const baseOct = Math.max(2, Math.min(6, this._bellsState?.baseOct || 3));
+                const notes = [];
+                for (let step=0; step<tuning; step++) {
+                    const label = `${noteNames[step] || ('Note ' + step)}${baseOct}`;
+                    const color = this.getUniversalPitchColorForStep(step, tuning).color || '#888';
+                    const freq = this.getFrequency(step, baseOct, tuning);
+                    notes.push({ freq, step, octave: baseOct, label, color, tuning });
+                }
+                // Add final octave root to complete the span
+                try {
+                    const labelTop = `${noteNames[0] || 'Note 0'}${baseOct + 1}`;
+                    const colorTop = this.getUniversalPitchColorForStep(0, tuning).color || '#888';
+                    const freqTop = this.getFrequency(0, baseOct + 1, tuning);
+                    notes.push({ freq: freqTop, step: 0, octave: baseOct + 1, label: labelTop, color: colorTop, tuning });
+                } catch(_) {}
+                return notes;
+            }
+
+            _getNowPlayingColumn(){
+                try {
+                    const transportCol = this._arp?.column || this._arpTransport?.column || null;
+                    if (transportCol) return transportCol;
+                    const nowHeader = document.querySelector('.extension-header.now-playing, .extension-column-header.now-playing');
+                    if (nowHeader) return nowHeader.closest('.extension-column');
+                } catch(_) {}
+                return null;
+            }
+
+            _startBellsAutoUpdate(){
+                this._stopBellsAutoUpdate();
+                this._bellsAutoTimer = setInterval(() => {
+                    const win = this._bellsWin;
+                    if (!win || win.closed) { this._stopBellsAutoUpdate(); return; }
+                    if (!this._bellsState || this._bellsState.mode !== 'single') return;
+                    const nowCol = this._getNowPlayingColumn() || this.currentActiveColumnEl;
+                    if (!nowCol) return;
+                    const list = this._getBellsChordList();
+                    const idx = list.findIndex(x => x.column === nowCol);
+                    if (idx >= 0 && idx !== this._bellsState.activeIndex) {
+                        this._bellsState.activeIndex = idx;
+                        this._renderBellsUI();
+                    }
+                }, 120);
+            }
+
+            _stopBellsAutoUpdate(){
+                if (this._bellsAutoTimer) {
+                    clearInterval(this._bellsAutoTimer);
+                    this._bellsAutoTimer = null;
+                }
+            }
+
+            _getBaseRootForColumn(column) {
+                const lockedChord = this.lockedChords?.get(column);
+                let tuning = (lockedChord?.lockedTuning) || this.currentTuning || 12;
+                const norm = (v,m)=> ((v % m) + m) % m;
+                const g = norm((this.transposeDelta || 0), tuning);
+                const l = norm((+column.dataset.localTranspose || 0), tuning);
+                let baseRoot = 0;
+
+                if (lockedChord && typeof lockedChord.lockedRoot === 'number') {
+                    baseRoot = norm((lockedChord.lockedRoot || 0) + l, tuning);
+                } else {
+                    let model = null;
+                    try {
+                        const id = column.dataset.chordId;
+                        if (id) model = (this.chordExtensions || []).find(c => String(c.id) === String(id)) || null;
+                        if (!model && column.dataset.originalPosition != null) {
+                            const op = parseInt(column.dataset.originalPosition,10);
+                            if (!isNaN(op) && op >= 0) model = this.chordExtensions?.[op] || null;
+                        }
+                        if (!model) {
+                            const label = (column.querySelector('.extension-header .chord-name')?.textContent || '').trim();
+                            model = (this.chordExtensions || []).find(c => !c?.isRepeatMarker && String(c?.name||'').trim() === label) || null;
+                        }
+                    } catch(_) {}
+                    if (model && typeof model.fixedRootStepAbs === 'number' && model.fixedRootTuning) {
+                        tuning = model.fixedRootTuning;
+                        baseRoot = norm((model.fixedRootStepAbs % tuning) + g + l, tuning);
+                    } else {
+                        baseRoot = norm((this.currentRoot || 0) + g + l, tuning);
+                    }
+                }
+                return { baseRoot, tuning };
+            }
+
+            _playBellsNote(note) {
+                if (!note || !Number.isFinite(note.freq)) return;
+                try {
+                    this.ensureAudioContext && this.ensureAudioContext();
+                } catch(_) {}
+                try {
+                    this.playFrequency(note.freq, null, 'strum');
+                } catch(_) {}
+            }
+
+            // Random Dice System (disabled per requirement)
+            initRandomDice() {
+                return;
             }
 
             randomizeEverything() {
@@ -36397,10 +37191,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 // Animate the dice button
                 const diceBtn = document.getElementById('randomDiceButton');
-                diceBtn.style.transform = 'rotate(720deg)';
-                setTimeout(() => {
-                    diceBtn.style.transform = '';
-                }, 600);
+                if (diceBtn) {
+                    diceBtn.style.transform = 'rotate(720deg)';
+                    setTimeout(() => {
+                        diceBtn.style.transform = '';
+                    }, 600);
+                }
 
                 // Focus purely on oscillator sound design - no tuning/chord changes
                 this.randomizeOscillator(1); // STRUM 1
@@ -38760,7 +39556,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             
             // Initialize new features
             omnichord.initTutorial();
-            omnichord.initRandomDice();
+            omnichord.initBells();
             try { omnichord.wireEffectsPresetsUI(); } catch {}
             // Wire bottom bar SAVE XEN / LOAD XEN
             (function(){
@@ -41332,14 +42128,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             if (closeFx && !closeFx._wired) { closeFx._wired = true; closeFx.addEventListener('click', ()=>{ const m=document.getElementById('fxModal'); if(m) m.style.display='none'; }); }
             const closeTuning = document.getElementById('closeTuningModal');
             if (closeTuning && !closeTuning._wired) { closeTuning._wired = true; closeTuning.addEventListener('click', ()=>{ const m=document.getElementById('tuningModal'); if(m) m.style.display='none'; }); }
-            
-            const randomDiceBtnSidebar = document.getElementById('randomDiceBtnSidebar');
-            if (randomDiceBtnSidebar) {
-                randomDiceBtnSidebar.addEventListener('click', () => {
-                    const originalBtn = document.getElementById('randomDiceButton');
-                    if (originalBtn) originalBtn.click();
-                });
-            }
             
             const tutorialBtnSidebar = document.getElementById('tutorialBtnSidebar');
             if (tutorialBtnSidebar) {
