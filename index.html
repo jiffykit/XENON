@@ -8874,12 +8874,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             try {
                 const flag = (typeof window !== 'undefined' && window.localStorage) ? window.localStorage.getItem('muteConsole') : null;
                 // ENABLE CONSOLE LOGGING for debugging
-                const shouldMute = false; // Enable logs for debugging
+                let shouldMute = false;
+                try {
+                    const stored = (window.localStorage ? localStorage.getItem('muteConsole') : null);
+                    if (stored === null) {
+                        shouldMute = true;
+                        if (window.localStorage) localStorage.setItem('muteConsole','1');
+                    } else {
+                        shouldMute = stored === '1';
+                    }
+                } catch(_){ shouldMute = true; }
                 if (shouldMute && window.console) {
                     const methods = ['log','info','debug','warn','error','trace','group','groupCollapsed','groupEnd','time','timeEnd','table'];
                     methods.forEach(function(m){ if (typeof window.console[m] === 'function') window.console[m] = function(){}; });
-                } else if (window && window.console && typeof window.console.info === 'function') {
-                    console.info('[XENON] Console logging ENABLED');
                 }
                 // Expose quick toggles
                 window.enableLogs = function(){ try{ if (window.localStorage) { localStorage.setItem('muteConsole','0'); location.reload(); } }catch(_){} };
@@ -8890,7 +8897,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         class MicrotonalOmnichord { 
             constructor() {
                 // Debug instrumentation (console-only)
-                this._debug = true;
+                this._debug = false;
                 this._debugLogs = [];
                 this._debugMax = 500;
                 this._debugUI = false; // keep panel off; use console logs only
@@ -21716,11 +21723,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch(_) {}
                         }
                         this._lastInteractionAt = now;
+                        try { this._markUserActivity(); } catch(_){ }
                     } catch(_) {}
                     if (this.audioContext && this.audioContext.state === 'suspended') {
-                        console.log('Attempting to resume AudioContext on click...');
+                        if (window.DEBUG_AUDIO) console.log('Attempting to resume AudioContext on click...');
                         this.audioContext.resume().then(() => {
-                            console.log('AudioContext resumed successfully');
+                            if (window.DEBUG_AUDIO) console.log('AudioContext resumed successfully');
                         });
                     }
                     // Do not auto-start transport on generic clicks; only PLAY should start
@@ -21754,11 +21762,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch(_) {}
                         }
                         this._lastInteractionAt = now;
+                        try { this._markUserActivity(); } catch(_){ }
                     } catch(_) {}
                     if (this.audioContext && this.audioContext.state === 'suspended') {
-                        console.log('Attempting to resume AudioContext on touch...');
+                        if (window.DEBUG_AUDIO) console.log('Attempting to resume AudioContext on touch...');
                         this.audioContext.resume().then(() => {
-                            console.log('AudioContext resumed successfully');
+                            if (window.DEBUG_AUDIO) console.log('AudioContext resumed successfully');
                         });
                     }
                     // Do not auto-start transport on touch; only PLAY should start
@@ -21792,11 +21801,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch(_) {}
                         }
                         this._lastInteractionAt = now;
+                        try { this._markUserActivity(); } catch(_){ }
                     } catch(_) {}
                     if (this.audioContext && this.audioContext.state === 'suspended') {
-                        console.log('Attempting to resume AudioContext on mousedown...');
+                        if (window.DEBUG_AUDIO) console.log('Attempting to resume AudioContext on mousedown...');
                         this.audioContext.resume().then(() => {
-                            console.log('AudioContext resumed successfully');
+                            if (window.DEBUG_AUDIO) console.log('AudioContext resumed successfully');
                         });
                     }
                     // Do not auto-start transport on mousedown; only PLAY should start
@@ -34699,7 +34709,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } catch(_) {}
                 
                 if (lockedChord) {
-                    console.log('?? Playing locked chord:', lockedChord.chordName, 'locked to root:', lockedChord.lockedRoot);
+                    if (window.DEBUG_AUDIO) console.log('?? Playing locked chord:', lockedChord.chordName, 'locked to root:', lockedChord.lockedRoot);
                     // Store current settings
                     originalSettings = this.captureCurrentSettings();
                     // Apply locked settings
@@ -34707,12 +34717,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     
                     // Always make sure we're using the locked root for playback
                     if (this.currentRoot !== lockedChord.lockedRoot) {
-                        console.log('?? Overriding current root', this.currentRoot, 'with locked root:', lockedChord.lockedRoot, 'for playback');
+                        if (window.DEBUG_AUDIO) console.log('?? Overriding current root', this.currentRoot, 'with locked root:', lockedChord.lockedRoot, 'for playback');
                         this.currentRoot = lockedChord.lockedRoot;
                     }
                 } else if (pianoLockedData) {
                     // Apply piano-locked settings (oscillator & effects only)
-                    console.log('🎹 Playing chord with piano-locked settings:', pianoLockedData.chordName);
+                    if (window.DEBUG_AUDIO) console.log('🎹 Playing chord with piano-locked settings:', pianoLockedData.chordName);
                     this.applyPianoLockedSettings(pianoLockedData);
                 }
                 
@@ -34741,6 +34751,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 // Build playback sequence from the subset within the gesture window.
                 // Legacy behavior: STRUM mode defines orientation/pattern; swipe direction defines traversal.
+                // If a new chord is strummed, fade any old strum voices that are not common tones.
+                try { this._markUserActivity(); } catch(_){ }
+                let strumNewFreqs = [];
+                try {
+                    stringsToPlay.forEach(s=>{
+                        let f = parseFloat(s.dataset.frequency);
+                        if (!Number.isFinite(f) || f <= 0) {
+                            const step = parseInt(s.dataset.noteIndex, 10);
+                            const oct = parseInt(s.dataset.octave, 10);
+                            const tuning = (lockedChord?.lockedTuning) || this.currentTuning || 12;
+                            if (Number.isFinite(step)) f = this.getFrequency(((step % tuning) + tuning) % tuning, Number.isFinite(oct) ? oct : 4, tuning);
+                        }
+                        if (Number.isFinite(f) && f > 0) strumNewFreqs.push(f);
+                    });
+                } catch(_){ }
+                const isNewStrumChord = (columnElement !== this._lastStrumColumnEl);
+                if (isNewStrumChord) {
+                    try { this._fadeVoicesNotInSet(this.activeStrumOscillators, 'strum', strumNewFreqs, 3, 0.25); } catch(_){ }
+                    this._lastStrumColumnEl = columnElement;
+                }
                 const baseTopToBottom = stringsToPlay.slice().sort((a,b)=>{
                     const ra = a.getBoundingClientRect();
                     const rb = b.getBoundingClientRect();
@@ -34779,6 +34809,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch(_) {}
                         }
                         if (frequency && !isNaN(frequency) && isFinite(frequency) && frequency > 0) {
+                            if (isNewStrumChord && this._hasActiveFreq(this.activeStrumOscillators, frequency, 3)) return;
                             // Route STRUM notes to the dedicated pool so they don't interfere with CHORD voices
                             this.playFrequency(frequency, string, 'strum');
                             
@@ -34813,15 +34844,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const restoreDelay = Math.max(250, strumSpanMs + noteADMs + 50);
                     setTimeout(() => {
                         this.restoreSettings(originalSettings);
-                        console.log('?? Restored original settings after locked chord playback');
+                        if (window.DEBUG_AUDIO) console.log('?? Restored original settings after locked chord playback');
                     }, restoreDelay);
                 }
             }
 
             // New: Chords Play Mode implementation
             playChordChordsMode(columnElement, clientY){
-                console.log('🎺🎺🎺 playChordChordsMode CALLED - columnElement:', columnElement?.dataset?.chordId);
+                if (window.DEBUG_AUDIO) console.log('🎺🎺🎺 playChordChordsMode CALLED - columnElement:', columnElement?.dataset?.chordId);
                 if (!columnElement) return;
+                try { this._markUserActivity(); } catch(_){ }
                 
                 try { this.ensureAudioContext && this.ensureAudioContext(); } catch(_){}
                 
@@ -34863,6 +34895,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const tapInfo = this._findTapRowInColumn(columnElement, clientY);
                 let rowsToPlay = this._buildNpcHighChordFromTap(columnElement, tapInfo, npcLimit);
 
+                // If a new chord is triggered, fade any old chord voices that are not common tones.
+                const isNewChord = (columnElement !== this._lastChordColumnEl);
+                if (isNewChord) {
+                    try {
+                        const newFreqs = [];
+                        rowsToPlay.forEach(r=>{
+                            let f = parseFloat(r.dataset.frequency);
+                            if (!Number.isFinite(f) || f <= 0){
+                                const step = parseInt(r.dataset.noteIndex,10);
+                                const oct = parseInt(r.dataset.octave,10);
+                                const tuning = this.currentTuning || 12;
+                                if (Number.isFinite(step)) f = this.getFrequency(((step%tuning)+tuning)%tuning, Number.isFinite(oct)?oct:4, tuning);
+                            }
+                            if (Number.isFinite(f) && f>0) newFreqs.push(f);
+                        });
+                        this._fadeVoicesNotInSet(this.activeChordOscillators, 'chord', newFreqs, 3, 0.25);
+                    } catch(_){ }
+                    this._lastChordColumnEl = columnElement;
+                }
+
         // Play selection simultaneously
         const groupId = ((this._chordSlideGroupId||0)+1) >>> 0; this._chordSlideGroupId = groupId;
         rowsToPlay.forEach(string => {
@@ -34875,8 +34927,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (Number.isFinite(step)) frequency = this.getFrequency(((step%tuning)+tuning)%tuning, Number.isFinite(oct)?oct:4, tuning);
                         } catch(_){ }
                     }
-                    if (frequency && isFinite(frequency) && frequency>0){
-            this.playFrequency(frequency, string, 'chord');
+                        if (frequency && isFinite(frequency) && frequency>0){
+                        if (isNewChord && this._hasActiveFreq(this.activeChordOscillators, frequency, 3)) return;
+                    this.playFrequency(frequency, string, 'chord');
             try { if (this._chordSlideVoices) this._chordSlideVoices.set(string, { startFreq: frequency, startLog2: Math.log2(frequency), groupId }); } catch(_){ }
                         try{ string.classList.add('active'); setTimeout(()=> string.classList.remove('active'), 120); }catch(_){ }
                     }
@@ -36235,6 +36288,85 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (core) core.classList.remove('vibrating');
                     }
                 }
+            }
+
+            _markUserActivity(){
+                try {
+                    const now = (performance && performance.now) ? performance.now() : Date.now();
+                    this._lastInteractionAt = now;
+                    if (this._idleCleanupTimer) { clearTimeout(this._idleCleanupTimer); this._idleCleanupTimer = null; }
+                    this._idleCleanupTimer = setTimeout(()=>{ try { this._runIdleCleanup(); } catch(_){} }, 2000);
+                } catch(_){ }
+            }
+
+            _runIdleCleanup(){
+                try {
+                    if (!this.audioContext) return;
+                    // Only clean up when user is idle and not actively sequencing.
+                    if (this._isSequencing) return;
+                    this._cleanupStaleVoices();
+                } catch(_){ }
+            }
+
+            _cleanupStaleVoices(){
+                try {
+                    const now = this.audioContext ? this.audioContext.currentTime : 0;
+                    const prune = (pool, sourceType, maxAgeSec)=>{
+                        if (!pool || !pool.size) return;
+                        const keys = Array.from(pool.keys());
+                        keys.forEach(k=>{
+                            const voice = pool.get(k);
+                            const age = (voice && Number.isFinite(voice.startTime)) ? (now - voice.startTime) : 0;
+                            if (age > maxAgeSec) {
+                                try {
+                                    if (voice && voice.env1) voice.env1.release = Math.min(voice.env1.release ?? 0.25, 0.25);
+                                    if (voice && voice.env2) voice.env2.release = Math.min(voice.env2.release ?? 0.25, 0.25);
+                                } catch(_) {}
+                                try { this.stopFrequency(k, voice?.element || null, sourceType); } catch(_){ }
+                            }
+                        });
+                    };
+                    prune(this.activeStrumOscillators, 'strum', 6);
+                    prune(this.activeChordOscillators, 'chord', 10);
+                    prune(this.activeArpOscillators, 'arp', 6);
+                    prune(this.activeBassOscillators, 'bass', 8);
+                    prune(this.activeOscillators, 'default', 6);
+                } catch(_){ }
+            }
+
+            _isFreqNear(a, b, tolCents = 3){
+                try {
+                    if (!(a>0) || !(b>0)) return false;
+                    const cents = Math.abs(Math.log2(a / b)) * 1200;
+                    return cents <= tolCents;
+                } catch(_){ return false; }
+            }
+
+            _hasActiveFreq(pool, freq, tolCents = 3){
+                try {
+                    if (!pool || !pool.size) return false;
+                    for (const k of pool.keys()) {
+                        if (this._isFreqNear(k, freq, tolCents)) return true;
+                    }
+                } catch(_){ }
+                return false;
+            }
+
+            _fadeVoicesNotInSet(pool, sourceType, keepFreqs, tolCents = 3, releaseMax = 0.25){
+                try {
+                    if (!pool || !pool.size) return;
+                    const keep = Array.isArray(keepFreqs) ? keepFreqs.filter(f=> Number.isFinite(f) && f>0) : [];
+                    for (const k of Array.from(pool.keys())) {
+                        const keepIt = keep.some(f=> this._isFreqNear(k, f, tolCents));
+                        if (keepIt) continue;
+                        const voice = pool.get(k);
+                        try {
+                            if (voice && voice.env1) voice.env1.release = Math.min(voice.env1.release ?? releaseMax, releaseMax);
+                            if (voice && voice.env2) voice.env2.release = Math.min(voice.env2.release ?? releaseMax, releaseMax);
+                        } catch(_){ }
+                        try { this.stopFrequency(k, voice?.element || null, sourceType); } catch(_){ }
+                    }
+                } catch(_){ }
             }
 
             // Apply CHORD LEVEL changes to currently-playing chord voices (safe, click-free).
