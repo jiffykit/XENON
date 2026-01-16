@@ -14633,9 +14633,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             rootStep = ((chordExt.lockedData.lockedRoot ?? 0) + localDelta + edo) % edo;
             } else {
                             const label = (chordName.dataset.lockedName || chordName.textContent || '').trim();
-                            const m = label.match(/^([A-G])([#b]?)([\^v]*)/);
+                            const normLabel = this._normalizeChordSymbolsForParse ? this._normalizeChordSymbolsForParse(label) : label;
+                            const m = normLabel.match(/^([A-Ga-g])([#b\-d]?)([\^v]*)/);
                             if (m) {
-                                const semi = this.rootToSemitone(m[1], m[2]||'');
+                                const semi = this.rootToSemitone(m[1].toUpperCase(), m[2]||'');
                                 let step = Math.round((semi * (this.currentTuning||12)) / 12);
                                 const ups = (m[3].match(/\^/g) || []).length;
                                 const downs = (m[3].match(/v/g) || []).length;
@@ -14828,9 +14829,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             rootStep = ((chordExt.lockedData.lockedRoot ?? 0) + localDelta + edo) % edo;
             } else {
                             const label = (chordName.dataset.lockedName || chordName.textContent || '').trim();
-                            const m = label.match(/^([A-G])([#b]?)([\^v]*)/);
+                            const normLabel = this._normalizeChordSymbolsForParse ? this._normalizeChordSymbolsForParse(label) : label;
+                            const m = normLabel.match(/^([A-Ga-g])([#b\-d]?)([\^v]*)/);
                             if (m) {
-                                const semi = this.rootToSemitone(m[1], m[2]||'');
+                                const semi = this.rootToSemitone(m[1].toUpperCase(), m[2]||'');
                                 let step = Math.round((semi * (this.currentTuning||12)) / 12);
                                 const ups = (m[3].match(/\^/g) || []).length;
                                 const downs = (m[3].match(/v/g) || []).length;
@@ -16908,7 +16910,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 const norm = this.normalizeChordToken(chordName);
                 if (!norm) return null;
-                const rootMatch = norm.match(/^([A-G])([#b]?)([\^v]*)/);
+                const normAscii = this._normalizeChordSymbolsForParse(norm);
+                const rootMatch = normAscii.match(/^([A-G])([#b]?)([\^v]*)/);
                 const rootSemitone = rootMatch ? this.rootToSemitone(rootMatch[1], rootMatch[2]||'') : null;
                 // Compute root step in current EDO including micro marks (^ up, v down). Multiple marks accumulate.
                 let rootStep = null;
@@ -16935,7 +16938,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         } catch {}
                     }
                 }
-                const quality = norm.replace(/^([A-G][#b]?[\^v]*)/, '');
+                const quality = normAscii.replace(/^([A-G][#b]?[\^v]*)/, '');
                 // Exclude slash bass from stacked-interval parsing; it will be added explicitly below
                 const tailForIntervals = quality.replace(/\/[A-G](?:#|b)?/, '');
                 let intervals = this.parseChordQualityToIntervals(tailForIntervals);
@@ -17163,8 +17166,52 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             rootToSemitone(letter, acc) {
                 const base = {C:0,D:2,E:4,F:5,G:7,A:9,B:11}[letter] ?? 0;
                 if (acc === '#') return (base + 1) % 12;
-                if (acc === 'b') return (base + 11) % 12;
+                if (acc === 'b' || acc === 'd') return (base + 11) % 12;
                 return base;
+            }
+
+            // Normalize SMuFL/Unicode accidental symbols into ASCII for parsing logic
+            _normalizeChordSymbolsForParse(text) {
+                return String(text || '')
+                    // keep standard ♭/♯ as-is for display-aware parsing
+                    .replace(/𝄲/g,'𝄲') // quarter tone sharp
+                    .replace(/𝄳/g,'𝄳') // quarter tone flat
+                    .replace(/𝄰/g,'#^') // sharp up -> sharp + up
+                    .replace(/𝄱/g,'#v') // sharp down -> sharp + down
+                    .replace(/𝄬/g,'b^') // flat up -> flat + up
+                    .replace(/𝄭/g,'bv') // flat down -> flat + down
+                    .replace(/𝄮/g,'^')  // natural up
+                    .replace(/𝄯/g,'v')  // natural down
+                    .replace(/𝅉/g,'^')  // up
+                    .replace(/𝅏/g,'v'); // down
+            }
+
+            // Format a root using SMuFL microtonal symbols (no ASCII #/b/d in output)
+            _formatRootWithSymbols(letter, acc = '', micro = '') {
+                const L = String(letter || '').toUpperCase();
+                let a = '';
+                if (acc === '♯' || acc === '#') a = '♯';
+                else if (acc === '♭') a = '♭';
+                else if (acc === '𝄲') a = '𝄲';
+                else if (acc === '𝄳' || acc === 'b' || acc === 'd') a = '𝄳';
+                const m = String(micro || '').replace(/\^/g,'𝅉').replace(/v/g,'𝅏');
+                return L + a + m;
+            }
+
+            // Convert legacy root name tokens to SMuFL symbols (used for EDO table names)
+            _convertRootNameSymbols(name) {
+                if (!name) return name;
+                let out = String(name);
+                // Double accidentals first
+                out = out.replace(/bb/g,'𝄳𝄳').replace(/##/g,'𝄲𝄲');
+                out = out.replace(/X/g,'𝄲𝄲');
+                // Single accidentals and micro marks
+                out = out.replace(/#/g,'♯').replace(/b/g,'♭').replace(/d/g,'𝄳');
+                out = out.replace(/ǂ/g,'𝄰');
+                out = out.replace(/\^/g,'𝅉').replace(/v/g,'𝅏');
+                // Extra natural modifiers in some tables
+                out = out.replace(/\//g,'𝄮').replace(/\\/g,'𝄯');
+                return out;
             }
 
             // Core parser: returns normalized chord strings including root (e.g., Bb7, Caug)
@@ -17197,13 +17244,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             // Return array of { raw, start, end } chord-like matches within a string
             scanChordMatches(s) {
                 // Normalize and strip section headings like "A:" "B:" before tokenizing
-                const text = String(s)
-                    .replace(/♭/g,'b')
-                    .replace(/♯/g,'#')
+                const text = this._normalizeChordSymbolsForParse(String(s))
                     .replace(/(^|\s)[^\s|:]+\s*:\s*/g, ' ');
                 // Match a chord token up to the next whitespace or punctuation; do NOT consume spaces across tokens
                 // Match compact slash chords like G/F but not spaced G / F (space breaks tokens)
-                const re = /\b([A-G])(?:#|b|\-)?(?:[\^v]+)?(?:add|maj|min|dim|aug|mM|sus|m|M|\+|°|ø)?[A-Za-z0-9#bø°\+\-\^v]*(?:\/(?:[A-G](?:#|b)?))?/g;
+                const re = /\b([A-Ga-g])(?:#|b|\-|d|♭|♯|𝄲|𝄳|𝄰|𝄱|𝄬|𝄭)?(?:[\^v𝅉𝅏]+)?(?:add|maj|min|dim|aug|mM|sus|m|M|\+|°|ø)?[A-Za-z0-9#bø°\+\-\^v♭♯𝄲𝄳𝄰𝄱𝄬𝄭𝅉𝅏]*(?:\/(?:[A-Ga-g](?:#|b|d|♭|♯|𝄲|𝄳|𝄰|𝄱|𝄬|𝄭)?))?/g;
                 const found = [];
                 let m;
                 while ((m = re.exec(text)) !== null) {
@@ -17231,11 +17276,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
                 
                 let t = rawToken.trim();
-                // Standardize unicode and spaces
-                t = t.replace(/♭/g,'b').replace(/♯/g,'#');
+                // Standardize unicode and SMuFL symbols for parsing
+                t = this._normalizeChordSymbolsForParse(t);
                 // Important: do NOT remove all spaces blindly; we must distinguish "G / F" (two chords) from "G/F" (slash chord)
                 // We'll collapse spaces except when a slash is present with spaces around it; in that case, keep spaces so scanner splits tokens
-                if (/\/[A-G]/.test(t)) {
+                if (/\/[A-G]/i.test(t)) {
                     // Already a compact slash chord like G/F – remove other spaces
                     t = t.replace(/\s+/g,'');
                 } else {
@@ -17244,10 +17289,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
 
                 // Root parse: letter + optional accidental (#, b, -) and optional micro marks (^ up, v down)
-                const mRoot = t.match(/^([A-G])([#b\-]?)([\^v]*)(.*)$/);
+                const mRoot = t.match(/^([A-Ga-g])([#b\-d]?)([\^v]*)(.*)$/);
                 if (!mRoot) return null;
-                const letter = mRoot[1];
-                const acc = mRoot[2] === '-' ? 'b' : (mRoot[2] || '');
+                const letter = mRoot[1].toUpperCase();
+                const acc = (mRoot[2] === '-' || mRoot[2] === 'd') ? 'b' : (mRoot[2] || '');
                 const micro = mRoot[3] || '';
                 let tail = mRoot[4] || '';
                 // Normalize spacing before interpreting quality/extensions
@@ -17289,13 +17334,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // Support simple slash chords bass note like /G or /Gb (compact only, no spaces)
                 // Uppercase only the letter, keep accidental case
-                tail = tail.replace(/\/([A-G])((?:#|b)?)$/g, (_, L, acc)=> '/' + L.toUpperCase() + acc);
+                tail = tail.replace(/\/([A-Ga-g])((?:#|b|d)?)$/g, (_, L, acc)=> '/' + this._formatRootWithSymbols(L, acc, ''));
 
                 // Clean trailing punctuation or lyrics fragments after a closing bracket/paren or comma/semicolon
                 tail = tail.replace(/[\],;:]+.*$/,'');
                 // Keep valid tail characters, including A–G for slash bass notes (e.g., /G, /Bb)
                 // Include Δ (major) so previously-normalized tokens like CΔ7/CΔ9 survive re-normalization
-                tail = tail.replace(/[^A-GmM°øΔ+suad0-9♭♯/#^vb]+.*$/,'');
+                tail = tail.replace(/[^A-GmM°øΔ+suad0-9♭♯/#^vb𝄲𝄳𝄰𝄱𝄬𝄭𝄮𝄯𝅉𝅏]+.*$/,'');
 
                 // If tail empty, it's a bare triad: major by default -> ''
                 // If tail equals 'min' was converted to 'm' above.
@@ -17307,7 +17352,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (/^dim$/i.test(tail)) tail = '°';
 
                 // Compose root + tail (allow bare single-letter chords e.g., G)
-                const root = letter + acc + micro;
+                const root = this._formatRootWithSymbols(letter, acc, micro);
                 let chord = root + tail;
 
                 // Cosmetic: convert 'Bbb' accidents or double signs not handled here; keep simple
@@ -17953,7 +17998,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
             
             getMicrotonalNoteName(step, opts = {}) {
-                // FORCE ARROW NOTATION: Use ↑↓ for microtonal steps as specified
+                // Use SMuFL microtonal symbols (no ASCII #/b)
                 const edo = this.currentTuning || 12;
                 const stepsPerSemitone = edo / 12;
                 
@@ -17963,7 +18008,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Calculate which semitone this step is closest to
                 const semiPosition = (step * 12) / edo;
                 const baseSemi = Math.round(semiPosition) % 12;
-                const baseName = noteNames[baseSemi];
+                const baseName = this._convertRootNameSymbols(noteNames[baseSemi]);
                 
                 // Calculate microtonal deviation
                 const exactSemi = Math.round(semiPosition);
@@ -17974,10 +18019,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     return baseName;
                 } else if (deviation > 0) {
                     // Higher than standard semitone
-                    return baseName + '↑';
+                    return baseName + '𝅉';
                 } else {
                     // Lower than standard semitone  
-                    return baseName + '↓';
+                    return baseName + '𝅏';
                 }
             }
 
@@ -18038,10 +18083,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     53: ['C','C^','C^^','Dbv','Db','Db^','Db^^','Dvv','Dv','D','D^','D^^','Ebv','Eb','Eb^','Eb^^','Evv','Ev','E','E^','E^^','Fv','F','F^','F^^','Gbv','Gb','Gb^','Gb^^','Gvv','Gv','G','G^','G^^','Abv','Ab','Ab^','Ab^^','Avv','Av','A','A^','A^^','Bbv','Bb','Bb^','Bb^^','Bvv','Bv','B','B^','B^^','Cv']
                 };
                 const table = namesByEDO[edo];
-                if (table && table[s] != null) return table[s];
+                if (table && table[s] != null) return this._convertRootNameSymbols(table[s]);
                 // Fallback: basic 12-TET sharps for any other EDO
                 const sharpNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-                if (edo === 12) return sharpNames[s%12];
+                if (edo === 12) return this._convertRootNameSymbols(sharpNames[s%12]);
                 return this.getMicrotonalNoteName(s);
             }
             
@@ -41092,9 +41137,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     // Extract root note from chord name for bass (e.g., "C7" -> "C", "F#m" -> "F#")
                                     let chordRoot = null;
                                     if (chordName) {
-                                        const rootMatch = chordName.match(/^([A-G][#b♯♭]*)/);
+                                        const normName = omnichord._normalizeChordSymbolsForParse ? omnichord._normalizeChordSymbolsForParse(chordName) : chordName;
+                                        const rootMatch = normName.match(/^([A-Ga-g][#b\-d]*)/);
                                         if (rootMatch) {
-                                            chordRoot = rootMatch[1];
+                                            chordRoot = rootMatch[1].toUpperCase();
                                         }
                                     }
                                     
