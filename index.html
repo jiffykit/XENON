@@ -4682,6 +4682,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 function scheduleStep(absTickNow, barTick, ticksPerBar){
                     const tpb = Math.max(1, ticksPerBar|0);
                     const bt = Math.max(0, barTick|0);
+                    const noteOpts = pt._noteOpts || (pt._noteOpts = { gridEl: null, instrumentKey: '', transport: pt, gateMs: 0, maxSteps: 0 });
                     // Apply queued changes at cycle start (Beat 1)
                     if (bt === 0 && typeof pt._pendingApply === 'function') {
                         try { pt._pendingApply(); } catch(_){ }
@@ -4746,13 +4747,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         let stopFn = null;
                         try {
                             if (window.omnichord && typeof window.omnichord._playPatternNote === 'function'){
-                                stopFn = window.omnichord._playPatternNote(rowIdx, lenSteps, stepIdx, vel, {
-                                    gridEl,
-                                    instrumentKey,
-                                    transport: pt,
-                                    gateMs,
-                                    maxSteps: D,
-                                });
+                                noteOpts.gridEl = gridEl;
+                                noteOpts.instrumentKey = instrumentKey;
+                                noteOpts.transport = pt;
+                                noteOpts.gateMs = gateMs;
+                                noteOpts.maxSteps = D;
+                                stopFn = window.omnichord._playPatternNote(rowIdx, lenSteps, stepIdx, vel, noteOpts);
                             }
                         } catch(_){ }
                         try {
@@ -35604,7 +35604,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
 
             async playFrequency(frequency, element, sourceType = 'default', velocityOverride = null) {
-                console.log('playFrequency called with:', frequency, 'Hz', element ? 'element present' : 'no element', 'source:', sourceType);
+                if (window.DEBUG_AUDIO) console.log('playFrequency called with:', frequency, 'Hz', element ? 'element present' : 'no element', 'source:', sourceType);
                 
                 // START TRANSPORT CLOCK once if needed; don't re-phase while already running
                 // ONLY start transport when PLAY is active (isSequencing) - never during strum-only mode
@@ -35723,7 +35723,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
                 const velocityMultiplier = (velValue == null) ? 1.0 : Math.max(0, Math.min(1, velValue / 127));
                 
-                console.log(`[${sourceType.toUpperCase()}] Playing ${frequency}Hz -> ${adjustedFrequency}Hz (octave offset: ${octaveOffset}, volume: ${Math.round(volumeMultiplier * 100)}%)`);
+                if (window.DEBUG_AUDIO) console.log(`[${sourceType.toUpperCase()}] Playing ${frequency}Hz -> ${adjustedFrequency}Hz (octave offset: ${octaveOffset}, volume: ${Math.round(volumeMultiplier * 100)}%)`);
                 
                 // Check if this string belongs to a piano-locked chord and apply those settings
                 const isDomEl = element && typeof element === 'object' && (element.closest || element.classList || element.querySelector);
@@ -35880,7 +35880,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Mix envelopes into final mixer
                 osc1Envelope.connect(finalMixer);
                 osc2Envelope.connect(finalMixer);
-                console.log('Both oscillators mixed (with per-oscillator bandpass shaping)');
+                if (window.DEBUG_AUDIO) console.log('Both oscillators mixed (with per-oscillator bandpass shaping)');
                 
                 const currentTime = this.audioContext.currentTime;
                 
@@ -35937,7 +35937,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (sendToFX) {
                     // Send to effects chain (reverb, delay, etc.) via master gainNode
                     panner.connect(this.gainNode);
-                    console.log(`[${sourceType.toUpperCase()}] Sent to FX chain`);
+                    if (window.DEBUG_AUDIO) console.log(`[${sourceType.toUpperCase()}] Sent to FX chain`);
                 } else {
                     // Bypass effects - connect directly to master output via a dry path
                     // We need to create a bypass path that avoids the FX processing
@@ -35947,7 +35947,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         this.dryGainNode.gain.value = this.masterVolume;
                     }
                     panner.connect(this.dryGainNode);
-                    console.log(`[${sourceType.toUpperCase()}] Bypassed FX chain`);
+                    if (window.DEBUG_AUDIO) console.log(`[${sourceType.toUpperCase()}] Bypassed FX chain`);
                 }
                 
                 // ADSR envelopes per instrument
@@ -36217,7 +36217,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     osc2.stop(currentTime + maxReleaseTime);
                     
                     
-                    console.log('Note stopped with', maxReleaseTime, 'second release time');
+                    if (window.DEBUG_AUDIO) console.log('Note stopped with', maxReleaseTime, 'second release time');
                     
                     // Clean up visual indicator
                     setTimeout(() => {
