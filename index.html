@@ -8974,13 +8974,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     strum1: {
                         // mirrors osc1
                         osc: { type: 'sine', detune: 0, level: 5 * 0.125 / 10, octave: 0, coarse: 0, pulseWidth: 0.5, shapeWidth: 0.5 },
-                        env: { attack: 0.0, decay: 0.2, sustain: 0.0, release: 0.8 },
+                        env: { attack: 0.005, decay: 0.5, sustain: 1.0, release: 0.5 },
                         fxSend: true
                     },
                     strum2: {
                         // mirrors osc2
                         osc: { type: 'sine', detune: -7, level: 5 * 0.125 / 10, octave: 0, coarse: 0, pulseWidth: 0.5, shapeWidth: 0.5 },
-                        env: { attack: 0.0, decay: 0.03, sustain: 0.0, release: 1.0 },
+                        env: { attack: 0.005, decay: 0.5, sustain: 1.0, release: 0.5 },
                         fxSend: true
                     },
                     chord: {
@@ -19627,7 +19627,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         this.strumOrientation = this.strumOrientation || ((this.strumMode === 'down') ? 'down' : 'up'); // up | down
     // STRUM is always enabled; CHORD vs ARP is a single exclusive toggle
     this.strumEnabled = true;
-    this.chordsEnabled = false;
+    this.chordsEnabled = true;
     this.arpEnabled = false; // default OFF (PATTERN should be off on start)
     this.bassEnabled = true;
         this.setPlayMode = (mode) => {
@@ -20396,6 +20396,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             const sidebarStrum = document.getElementById('strumBtn');
             const btnChordArp = document.getElementById('modeChordArp');
             const btnBass = document.getElementById('universalBass');
+            const drumsBtn = document.getElementById('drumsBtn');
             const lbl = document.getElementById('strumLabel');
             if (lbl) {
                 if (this.strumMode === 'alt-centers') lbl.textContent = 'ALT CENTRE';
@@ -20407,6 +20408,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             if (sidebarStrum && !sidebarStrum._initLabel){ sidebarStrum._initLabel=true; }
             if (btnChordArp && !btnChordArp._wired){ btnChordArp._wired=true; btnChordArp.addEventListener('click', ()=> this.toggleChordArpMode()); }
             if (btnBass && !btnBass._wired){ btnBass._wired=true; btnBass.addEventListener('click', ()=> this.toggleBassMode()); }
+            if (drumsBtn) drumsBtn.classList.add('active');
             this.syncPlayMode();
             this.updateModeUI();
         }, 0);
@@ -23184,7 +23186,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Audio settings (locked)
                     lockedOsc1: {
                         type: document.getElementById('osc1Type')?.value || this.oscillators.osc1.type || 'sine',
-                        level: parseFloat(document.getElementById('osc1Level')?.value || this.oscillators.osc1.level || 0.5),
+                        level: (()=>{
+                            const v = parseFloat(document.getElementById('osc1Level')?.value);
+                            return Number.isFinite(v) ? (v / 10) * 0.125 : (this.oscillators.osc1.level || 5 * 0.125 / 10);
+                        })(),
                         octave: parseInt(document.getElementById('osc1Octave')?.value || this.oscillators.osc1.octave || 0),
                         coarse: parseInt(document.getElementById('osc1Coarse')?.value || this.oscillators.osc1.coarse || 0),
                         detune: parseFloat(document.getElementById('osc1Detune')?.value || this.oscillators.osc1.detune || 0)
@@ -23192,7 +23197,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     
                     lockedOsc2: {
                         type: document.getElementById('osc2Type')?.value || this.oscillators.osc2.type || 'sine',
-                        level: parseFloat(document.getElementById('osc2Level')?.value || this.oscillators.osc2.level || 0.5),
+                        level: (()=>{
+                            const v = parseFloat(document.getElementById('osc2Level')?.value);
+                            return Number.isFinite(v) ? (v / 10) * 0.125 : (this.oscillators.osc2.level || 5 * 0.125 / 10);
+                        })(),
                         octave: parseInt(document.getElementById('osc2Octave')?.value || this.oscillators.osc2.octave || 0),
                         coarse: parseInt(document.getElementById('osc2Coarse')?.value || this.oscillators.osc2.coarse || 0),
                         detune: parseFloat(document.getElementById('osc2Detune')?.value || this.oscillators.osc2.detune || 0)
@@ -35925,8 +35933,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     env1Attack = e1.attack; env1Decay = chordDecayTime; env1Sustain = 1.0; env1Release = e1.release;
                     env2Attack = (e2?.attack ?? e1.attack); env2Decay = chordDecayTime; env2Sustain = 1.0; env2Release = (e2?.release ?? e1.release);
                 } else {
-                    env1Attack = e1.attack; env1Decay = e1.decay; env1Sustain = e1.sustain; env1Release = e1.release;
-                    env2Attack = (e2?.attack ?? e1.attack); env2Decay = (e2?.decay ?? e1.decay); env2Sustain = (e2?.sustain ?? e1.sustain); env2Release = (e2?.release ?? e1.release);
+                    const glideHold = (baseType === 'strum' && safeElement && safeElement.__glideHold);
+                    if (glideHold) {
+                        env1Attack = 0.005; env1Decay = 0.0; env1Sustain = 1.0; env1Release = 0.0;
+                        env2Attack = 0.005; env2Decay = 0.0; env2Sustain = 1.0; env2Release = 0.0;
+                    } else {
+                        env1Attack = e1.attack; env1Decay = e1.decay; env1Sustain = e1.sustain; env1Release = e1.release;
+                        env2Attack = (e2?.attack ?? e1.attack); env2Decay = (e2?.decay ?? e1.decay); env2Sustain = (e2?.sustain ?? e1.sustain); env2Release = (e2?.release ?? e1.release);
+                    }
                 }
                 // Prevent zero-attack degenerate ramps (some browsers ignore ramp-to at same time)
                 const minAttack = 0.003; // 3ms
@@ -36019,6 +36033,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } else if (baseType === 'strum') {
                     // STRUM should always decay/release normally, even if a CHORD gesture is sustaining.
                     // Prefer an explicit musical gate if provided, otherwise release at end-of-decay.
+                    if (safeElement && safeElement.__glideHold) {
+                        releaseTimeout = null;
+                    } else {
                     const epsilonMs = 6;
                     const elGateMs = (element && Number.isFinite(element.__gateMs)) ? element.__gateMs : null;
                     let gateMs = null;
@@ -36031,6 +36048,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     releaseTimeout = setTimeout(() => {
                         this.stopFrequency(frequency, safeElement, sourceType);
                     }, gateMs);
+                    }
                 } else if (!this._sustainActive && baseType !== 'arp') {
                     // Other modes: release at end of decay if sustain not active
                     const endOfDecayTime = Math.max(osc1DecayTime, osc2DecayTime);
@@ -36604,7 +36622,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     return;
                 }
                 this._bellsWin = win;
-                this._bellsState = this._bellsState || { count: 2, activeIndex: 0, baseOct: 3, mode: 'single' };
+                this._bellsState = this._bellsState || { count: 2, activeIndex: 0, baseOct: 4, mode: 'single', glide: false };
                 this._buildBellsWindowShell(win);
                 try {
                     win.addEventListener('beforeunload', () => { this._bellsWin = null; this._stopBellsAutoUpdate(); });
@@ -36631,24 +36649,51 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
       display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #1f2f3a;
       background: #060c10; position: sticky; top: 0; z-index: 2;
     }
-    #bellsChords { display: flex; flex-wrap: wrap; gap: 6px; }
+        #bellsChords { display: flex; flex-wrap: wrap; gap: 6px; }
+        #bellsModeToggle { display: flex; gap: 6px; margin-top: 6px; }
     .bells-chord-btn {
       padding: 6px 10px; background: #1a2f3c; color: #e8f5ff; border: 1px solid #2b5567;
       border-radius: 8px; font-size: 14px; cursor: pointer; min-width: 48px; text-align: center;
     }
     .bells-chord-btn.active { background: #f39c12; border-color: #e67e22; color: #111; }
-    #bellsControls { display: grid; grid-template-columns: auto 1fr auto auto 1fr auto; gap: 10px; align-items: center; }
+        .bells-mode-btn {
+            padding: 6px 12px; background: #0d2938; color: #e8f5ff; border: 1px solid #2b5567;
+            border-radius: 8px; font-size: 13px; cursor: pointer; min-width: 110px; text-align: center;
+        }
+        .bells-mode-btn.active { background: #3498db; border-color: #2980b9; color: #0a1014; }
+    #bellsControls { display: grid; grid-template-columns: auto 1fr auto auto 1fr auto auto; gap: 10px; align-items: center; }
     #bellsCount, #bellsOctave { width: 100%; }
     #bellsCountValue, #bellsOctaveValue { min-width: 28px; text-align: right; font-size: 16px; color: #9db6c8; }
+    #bellsGlideWrap { display:flex; align-items:center; gap:6px; font-size:14px; color:#9db6c8; }
         #bellsBars { position: relative; width: 100%; height: calc(100vh - 130px); overflow: hidden; }
         .bells-key {
             position: absolute; display: flex; align-items: center; justify-content: center;
             font-size: 22px; font-weight: 600; color: #000; text-shadow: 0 1px 0 rgba(255,255,255,0.2);
             user-select: none; cursor: pointer; border: 2px solid rgba(255,255,255,0.55);
             border-radius: 6px 6px 0 0;
-            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25), inset 0 0 10px rgba(0,0,0,0.25);
+            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25), inset 0 0 14px rgba(0,0,0,0.35), 0 4px 14px rgba(0,0,0,0.35);
             outline: 2px solid rgba(0,0,0,0.35);
             outline-offset: -2px;
+            overflow: hidden;
+        }
+        .bells-key::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255,255,255,0.45), rgba(255,255,255,0.05) 45%, rgba(0,0,0,0) 65%);
+            opacity: 0.25;
+            pointer-events: none;
+            transform: translateX(-30%);
+        }
+        .bells-key.ringing::after {
+            opacity: 0.75;
+            animation: bellsShimmer 0.9s linear infinite;
+        }
+        .bells-key.bells-dim { filter: brightness(0.9); opacity: 0.9; }
+        .bells-key.bells-current { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.65), 0 0 18px rgba(255,255,255,0.25); }
+        @keyframes bellsShimmer {
+            0% { transform: translateX(-120%); }
+            100% { transform: translateX(120%); }
         }
         .bells-natural { height: 100%; z-index: 1; bottom: 0; }
         .bells-accidental { height: 75%; z-index: 2; top: 0; }
@@ -36660,13 +36705,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 <body>
   <div id="bellsHeader">
     <div id="bellsChords"></div>
+    <div id="bellsModeToggle"><button id="bellsModeToggleBtn" class="bells-mode-btn"></button></div>
         <div id="bellsControls">
-            <label for="bellsCount" style="font-size:14px;color:#9db6c8;">NOTES</label>
+            <label id="bellsCountLabel" for="bellsCount" style="font-size:14px;color:#9db6c8;">NOTES</label>
             <input id="bellsCount" type="range" min="1" max="16" value="2" />
             <span id="bellsCountValue">2</span>
             <label for="bellsOctave" style="font-size:14px;color:#9db6c8;">OCT</label>
-            <input id="bellsOctave" type="range" min="2" max="6" value="3" />
-            <span id="bellsOctaveValue">3</span>
+            <input id="bellsOctave" type="range" min="2" max="6" value="4" />
+            <span id="bellsOctaveValue">4</span>
+            <label id="bellsGlideWrap"><input id="bellsGlide" type="checkbox" /> GLIDE</label>
         </div>
   </div>
   <div id="bellsBars"></div>
@@ -36699,7 +36746,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const list = this._getBellsChordList();
                 if (!list.length) return;
                 const next = Math.max(0, Math.min(list.length - 1, idx | 0));
-                this._bellsState = this._bellsState || { count: 2, activeIndex: 0, baseOct: 3, mode: 'single' };
+                this._bellsState = this._bellsState || { count: 2, activeIndex: 0, baseOct: 4, mode: 'single', glide: false };
                 this._bellsState.activeIndex = next;
                 const col = list[next]?.column;
                 if (col) {
@@ -36713,15 +36760,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (!win || win.closed) return;
                 const doc = win.document;
                 const chordsEl = doc.getElementById('bellsChords');
+                const modeEl = doc.getElementById('bellsModeToggle');
                 const barsEl = doc.getElementById('bellsBars');
                 const slider = doc.getElementById('bellsCount');
                 const sliderVal = doc.getElementById('bellsCountValue');
+                const sliderLabel = doc.getElementById('bellsCountLabel');
                 const octSlider = doc.getElementById('bellsOctave');
                 const octVal = doc.getElementById('bellsOctaveValue');
-                if (!chordsEl || !barsEl || !slider || !sliderVal || !octSlider || !octVal) return;
+                const glideToggle = doc.getElementById('bellsGlide');
+                if (!chordsEl || !modeEl || !barsEl || !slider || !sliderVal || !sliderLabel || !octSlider || !octVal || !glideToggle) return;
 
                 const list = this._getBellsChordList();
-                this._bellsState = this._bellsState || { count: 2, activeIndex: 0, baseOct: 3, mode: 'single' };
+                this._bellsState = this._bellsState || { count: 2, activeIndex: 0, baseOct: 4, mode: 'single' };
                 if (this._bellsState.activeIndex >= list.length) this._bellsState.activeIndex = 0;
                 if (!this._bellsState.mode) this._bellsState.mode = 'single';
 
@@ -36744,23 +36794,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     chordsEl.appendChild(btn);
                 });
 
-                const allChordsBtn = doc.createElement('button');
-                allChordsBtn.className = 'bells-chord-btn' + (this._bellsState.mode === 'all-chords' ? ' active' : '');
-                allChordsBtn.textContent = 'ALL CHORDS';
-                allChordsBtn.addEventListener('click', () => {
-                    this._bellsState.mode = 'all-chords';
-                    this._renderBellsUI();
-                });
-                chordsEl.appendChild(allChordsBtn);
-
-                const allNotesBtn = doc.createElement('button');
-                allNotesBtn.className = 'bells-chord-btn' + (this._bellsState.mode === 'all-notes' ? ' active' : '');
-                allNotesBtn.textContent = 'ALL NOTES';
-                allNotesBtn.addEventListener('click', () => {
-                    this._bellsState.mode = 'all-notes';
-                    this._renderBellsUI();
-                });
-                chordsEl.appendChild(allNotesBtn);
+                const modeBtn = doc.getElementById('bellsModeToggleBtn');
+                if (modeBtn) {
+                    const modes = [
+                        { label: 'CURRENT CHORD', value: 'single' },
+                        { label: 'ALL CHORDS', value: 'all-chords' },
+                        { label: 'ALL NOTES', value: 'all-notes' }
+                    ];
+                    const curIdx = Math.max(0, modes.findIndex(m => m.value === this._bellsState.mode));
+                    const cur = modes[curIdx] || modes[0];
+                    modeBtn.textContent = cur.label;
+                    modeBtn.classList.toggle('active', cur.value !== 'single');
+                    if (!modeBtn._wired) {
+                        modeBtn._wired = true;
+                        modeBtn.addEventListener('click', () => {
+                            const i = Math.max(0, modes.findIndex(m => m.value === this._bellsState.mode));
+                            const next = modes[(i + 1) % modes.length];
+                            this._bellsState.mode = next.value;
+                            this._renderBellsUI();
+                        });
+                    }
+                }
 
                 if (!slider._wired) {
                     slider._wired = true;
@@ -36774,21 +36828,33 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (!octSlider._wired) {
                     octSlider._wired = true;
                     octSlider.addEventListener('input', () => {
-                        const v = Math.max(2, Math.min(6, parseInt(octSlider.value, 10) || 3));
+                        const v = Math.max(2, Math.min(6, parseInt(octSlider.value, 10) || 4));
                         this._bellsState.baseOct = v;
                         octVal.textContent = String(v);
                         this._renderBellsBars();
                     });
                 }
+                if (!glideToggle._wired) {
+                    glideToggle._wired = true;
+                    glideToggle.addEventListener('change', () => {
+                        this._bellsState.glide = !!glideToggle.checked;
+                        if (!this._bellsState.glide && this._bellsGlideActive) this._bellsGlideStop();
+                    });
+                }
                 if (this._bellsState.mode === 'all-chords' || this._bellsState.mode === 'all-notes') {
-                    slider.disabled = true;
+                    sliderLabel.textContent = 'OCTAVES';
+                    slider.min = '1';
+                    slider.max = '6';
                 } else {
-                    slider.disabled = false;
+                    sliderLabel.textContent = 'NOTES';
+                    slider.min = '1';
+                    slider.max = '16';
                 }
                 slider.value = String(this._bellsState.count || 2);
                 sliderVal.textContent = String(this._bellsState.count || 2);
-                octSlider.value = String(this._bellsState.baseOct || 3);
-                octVal.textContent = String(this._bellsState.baseOct || 3);
+                octSlider.value = String(this._bellsState.baseOct || 4);
+                octVal.textContent = String(this._bellsState.baseOct || 4);
+                glideToggle.checked = !!this._bellsState.glide;
                 this._renderBellsBars();
             }
 
@@ -36801,19 +36867,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 let notes = [];
                 let count = Math.max(1, Math.min(16, this._bellsState?.count || 2));
+                const nowCol = this._getNowPlayingColumn();
+                const currentSteps = nowCol ? this._getCurrentChordAbsSteps(nowCol) : null;
                 if (this._bellsState?.mode === 'all-chords') {
-                    notes = this._computeAllChordsNotes();
+                    const octCount = Math.max(1, Math.min(6, this._bellsState?.count || 1));
+                    notes = this._computeAllChordsNotes(octCount);
                     count = notes.length;
                     const slider = doc.getElementById('bellsCount');
                     const sliderVal = doc.getElementById('bellsCountValue');
-                    if (slider) slider.value = String(Math.max(1, Math.min(16, count)));
+                    if (slider) slider.value = String(octCount);
                     if (sliderVal) sliderVal.textContent = String(count);
                 } else if (this._bellsState?.mode === 'all-notes') {
-                    notes = this._computeAllNotes();
+                    const octCount = Math.max(1, Math.min(6, this._bellsState?.count || 1));
+                    notes = this._computeAllNotes(octCount);
                     count = notes.length;
                     const slider = doc.getElementById('bellsCount');
                     const sliderVal = doc.getElementById('bellsCountValue');
-                    if (slider) slider.value = String(Math.max(1, Math.min(16, count)));
+                    if (slider) slider.value = String(octCount);
                     if (sliderVal) sliderVal.textContent = String(count);
                 } else {
                     const col = this._getBellsActiveColumn();
@@ -36839,11 +36909,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         win.__bellsPlayedSet = new Set();
                         win.__bellsLastX = null;
                         win.__bellsDir = 0;
-                        win.document.addEventListener('pointerup', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; win.__bellsLastX = null; win.__bellsDir = 0; });
-                        win.document.addEventListener('pointercancel', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; win.__bellsLastX = null; win.__bellsDir = 0; });
+                        win.document.addEventListener('pointerup', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; win.__bellsLastX = null; win.__bellsDir = 0; if (this._bellsGlideActive) this._bellsGlideStop(); });
+                        win.document.addEventListener('pointercancel', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; win.__bellsLastX = null; win.__bellsDir = 0; if (this._bellsGlideActive) this._bellsGlideStop(); });
                         win.document.addEventListener('pointermove', (e) => {
                             try {
                                 if (!win.__bellsDragActive) return;
+                                const glideOn = !!this._bellsState?.glide;
                                 if (win.__bellsLastX != null) {
                                     const dx = e.clientX - win.__bellsLastX;
                                     const dir = dx > 2 ? 1 : (dx < -2 ? -1 : 0);
@@ -36855,13 +36926,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 win.__bellsLastX = e.clientX;
                                 const el = win.document.elementFromPoint(e.clientX, e.clientY);
                                 const key = el ? el.closest('.bells-key') : null;
-                                if (!key) return;
+                                if (!key) {
+                                    if (glideOn && win.__bellsLayout) {
+                                        this._bellsGlideUpdateFromX(win, e.clientX, e.clientY);
+                                    }
+                                    return;
+                                }
                                 const idx = parseInt(key.dataset.index || '-1', 10);
                                 if (idx < 0) return;
+                                const note = key.__bellsNote;
+                                if (glideOn) {
+                                    if (note) this._bellsGlideSnapTo(note, key, win, e.clientX, e.clientY);
+                                    return;
+                                }
                                 if (win.__bellsPlayedSet && win.__bellsPlayedSet.has(idx)) return;
                                 win.__bellsPlayedSet && win.__bellsPlayedSet.add(idx);
-                                const note = key.__bellsNote;
-                                if (note) this._playBellsNote(note);
+                                if (note) this._playBellsNote(note, key);
                             } catch(_) {}
                         });
                     }
@@ -36908,7 +36988,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                     key.textContent = note.label;
                     key.title = note.label;
-                    const play = () => this._playBellsNote(note);
+                    if (currentSteps && !currentSteps.has(note.step)) key.classList.add('bells-dim');
+                    if (currentSteps && currentSteps.has(note.step)) key.classList.add('bells-current');
+                    const play = () => this._playBellsNote(note, key);
                     key.addEventListener('pointerdown', (ev) => {
                         try {
                             win.__bellsDragActive = true;
@@ -36916,15 +36998,35 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             win.__bellsPlayedSet = new Set([idx]);
                             win.__bellsLastX = ev.clientX;
                             win.__bellsDir = 0;
+                            const rect = win.__bellsLayout?.rect;
+                            if (rect && rect.width > 0) {
+                                const xNorm = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+                                const absCents = this.getCentValue(note.step, note.tuning||this.currentTuning) + (note.octave*1200);
+                                win.__bellsAnchor = { absCents, xNorm };
+                            }
                         } catch(_) {}
-                        play();
+                        if (this._bellsState?.glide) {
+                            this._bellsGlideStart(note, key, win, ev.clientX, ev.clientY);
+                        } else {
+                            play();
+                        }
                     });
-                    key.addEventListener('pointerenter', () => {
+                    key.addEventListener('pointerenter', (ev) => {
                         try {
                             if (!win.__bellsDragActive) return;
+                            if (this._bellsState?.glide) {
+                                this._bellsGlideSnapTo(note, key, win, win.__bellsLastX ?? 0, 0);
+                                return;
+                            }
                             if (win.__bellsPlayedSet && win.__bellsPlayedSet.has(idx)) return;
                             win.__bellsLastIndex = idx;
                             win.__bellsPlayedSet && win.__bellsPlayedSet.add(idx);
+                            const rect = win.__bellsLayout?.rect;
+                            if (rect && rect.width > 0) {
+                                const xNorm = Math.max(0, Math.min(1, ((win.__bellsLastX ?? 0) - rect.left) / rect.width));
+                                const absCents = this.getCentValue(note.step, note.tuning||this.currentTuning) + (note.octave*1200);
+                                win.__bellsAnchor = { absCents, xNorm };
+                            }
                             play();
                         } catch(_) {}
                     });
@@ -36946,11 +37048,39 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     ...o,
                     rel: (o.absCents - minC) / span
                 }));
+                // Anchor alignment to reduce jumps across chord changes
+                try {
+                    if (win.__bellsAnchor && this._bellsState?.mode === 'single') {
+                        const anchor = win.__bellsAnchor;
+                        const nearest = pos.reduce((best, cur)=>{
+                            const d = Math.abs(cur.absCents - anchor.absCents);
+                            return (!best || d < best.d) ? { cur, d } : best;
+                        }, null);
+                        if (nearest && Number.isFinite(anchor.xNorm)) {
+                            const minRel = Math.min(...pos.map(p=>p.rel));
+                            const maxRel = Math.max(...pos.map(p=>p.rel));
+                            let offset = anchor.xNorm - nearest.cur.rel;
+                            const minOffset = -minRel;
+                            const maxOffset = 1 - maxRel;
+                            offset = Math.max(minOffset, Math.min(maxOffset, offset));
+                            pos.forEach(p=>{ p.rel = Math.max(0, Math.min(1, p.rel + offset)); });
+                        }
+                    }
+                } catch(_) {}
                 const bounds = pos.map((o,i)=>{
                     const left = i === 0 ? 0 : (pos[i-1].rel + o.rel) / 2;
                     const right = i === pos.length-1 ? 1 : (o.rel + pos[i+1].rel) / 2;
                     return { left, right };
                 });
+                try {
+                    const rect = barsEl.getBoundingClientRect();
+                    win.__bellsLayout = {
+                        minC, maxC, span,
+                        baseC0: this.getFrequency(0, 0, tuning),
+                        rect,
+                        tuning
+                    };
+                } catch(_) {}
 
                 pos.forEach((o, i) => {
                     const note = o.note;
@@ -36974,6 +37104,156 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1);
                     }
                 });
+            }
+
+            _bellsGlideStart(note, key, win, clientX, clientY){
+                try {
+                    if (!note) return;
+                    if (this._bellsGlideActive) this._bellsGlideStop();
+                    key.__gateMs = 120000;
+                    key.__glideHold = true;
+                    try { key.classList.add('ringing'); } catch(_) {}
+                    this._bellsGlideActive = true;
+                    this._bellsGlideKeyEl = key;
+                    this._bellsGlideVoiceKey = note.freq;
+                    this._bellsGlideBaseFreq = note.freq;
+                    this._bellsGlideLastTime = performance.now();
+                    this._bellsGlideLastX = clientX;
+                    this._bellsGlideSnapTo(note, key, win, clientX, clientY, true);
+                } catch(_) {}
+            }
+
+            _bellsGlideSnapTo(note, key, win, clientX, clientY, isStart=false){
+                if (!note) return;
+                try {
+                    const rect = win.__bellsLayout?.rect;
+                    if (rect && rect.width > 0) {
+                        const xNorm = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+                        win.__bellsAnchor = { absCents: this.getCentValue(note.step, note.tuning||this.currentTuning) + (note.octave*1200), xNorm };
+                    }
+                } catch(_) {}
+                if (isStart) {
+                    this.playFrequency(note.freq, key, 'strum');
+                    this._bellsGlideSendMidiBase(note);
+                } else {
+                    if (this._bellsGlideMidiBase) this._bellsGlideMidiBase.freq = note.freq;
+                    this._bellsGlideResetMidiBend();
+                }
+                this._bellsGlideUpdate(note.freq, note);
+            }
+
+            _bellsGlideUpdateFromX(win, clientX, clientY){
+                try {
+                    if (!this._bellsGlideActive || !win.__bellsLayout) return;
+                    const rect = win.__bellsLayout.rect;
+                    if (!rect || rect.width <= 0) return;
+                    const xNorm = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+                    const targetC = win.__bellsLayout.minC + (xNorm * win.__bellsLayout.span);
+                    const baseC0 = win.__bellsLayout.baseC0 || this.getFrequency(0,0, win.__bellsLayout.tuning || this.currentTuning || 12);
+                    const targetF = baseC0 * Math.pow(2, targetC / 1200);
+                    win.__bellsAnchor = { absCents: targetC, xNorm };
+                    this._bellsGlideUpdate(targetF, null, clientX);
+                } catch(_) {}
+            }
+
+            _bellsGlideUpdate(targetFreq, note=null, clientX=null){
+                try {
+                    if (!this._bellsGlideActive) return;
+                    const voice = this.activeStrumOscillators.get(this._bellsGlideVoiceKey);
+                    if (!voice) return;
+                    const now = this.audioContext?.currentTime || 0;
+                    let timeConst = 0.02;
+                    try {
+                        const t = performance.now();
+                        if (this._bellsGlideLastTime && Number.isFinite(this._bellsGlideLastX) && Number.isFinite(clientX)) {
+                            const dt = Math.max(1, t - this._bellsGlideLastTime);
+                            const dx = Math.abs(clientX - this._bellsGlideLastX);
+                            const speed = dx / dt; // px/ms
+                            timeConst = Math.max(0.005, Math.min(0.08, 0.08 / Math.max(0.05, speed)));
+                        }
+                        this._bellsGlideLastTime = t;
+                        if (Number.isFinite(clientX)) this._bellsGlideLastX = clientX;
+                    } catch(_) {}
+                    voice.osc1.frequency.cancelScheduledValues(now);
+                    voice.osc1.frequency.setTargetAtTime(targetFreq, now, timeConst);
+                    if (voice.osc2 && voice.osc2.frequency) {
+                        voice.osc2.frequency.cancelScheduledValues(now);
+                        voice.osc2.frequency.setTargetAtTime(targetFreq, now, timeConst);
+                    }
+                    this._bellsGlideSendMidiBend(targetFreq);
+                } catch(_) {}
+            }
+
+            _bellsGlideStop(){
+                try {
+                    if (!this._bellsGlideActive) return;
+                    if (this._bellsGlideKeyEl) {
+                        this._bellsGlideKeyEl.__glideHold = false;
+                        this._bellsGlideKeyEl.__gateMs = null;
+                    }
+                    try {
+                        const voice = this.activeStrumOscillators?.get(this._bellsGlideVoiceKey);
+                        if (voice && voice.env1 && voice.env2) {
+                            const releaseSec = 0.25;
+                            voice.env1.release = releaseSec;
+                            voice.env2.release = releaseSec;
+                        }
+                    } catch(_) {}
+                    if (this._bellsGlideVoiceKey) this.stopFrequency(this._bellsGlideVoiceKey, this._bellsGlideKeyEl || null, 'strum');
+                    this._bellsGlideResetMidiBend();
+                } catch(_) {}
+                try {
+                    if (this._bellsGlideKeyEl) {
+                        this._bellsGlideKeyEl.classList.remove('ringing');
+                    }
+                } catch(_) {}
+                this._bellsGlideActive = false;
+                this._bellsGlideVoiceKey = null;
+                this._bellsGlideKeyEl = null;
+                this._bellsGlideBaseFreq = null;
+            }
+
+            _bellsGlideSendMidiBase(note){
+                try {
+                    if (!window.midi || !window.midi.enabled) return;
+                    const baseNote = Math.round(69 + 12 * Math.log2(note.freq / 440));
+                    this._bellsGlideMidiBase = { note: baseNote, freq: note.freq };
+                    const targets = ['strum1','strum2'];
+                    for (const tgt of targets) {
+                        const chBase = window.midi.channelMap?.[tgt] || 1;
+                        const outSel = window.midi.outputForSource ? window.midi.outputForSource(tgt) : null;
+                        if (typeof window.midi.setPitchBendRange === 'function') window.midi.setPitchBendRange(12, chBase);
+                        if (typeof window.midi.sendPitchBend === 'function') window.midi.sendPitchBend(0, chBase, outSel);
+                    }
+                } catch(_) {}
+            }
+
+            _bellsGlideSendMidiBend(targetFreq){
+                try {
+                    if (!window.midi || !window.midi.enabled || !this._bellsGlideMidiBase) return;
+                    const base = this._bellsGlideMidiBase.freq || targetFreq;
+                    const cents = 1200 * Math.log2(targetFreq / base);
+                    const range = 12; // semitones
+                    const bend = Math.max(-1, Math.min(1, (cents/100) / range));
+                    const targets = ['strum1','strum2'];
+                    for (const tgt of targets) {
+                        const chBase = window.midi.channelMap?.[tgt] || 1;
+                        const outSel = window.midi.outputForSource ? window.midi.outputForSource(tgt) : null;
+                        if (typeof window.midi.sendPitchBend === 'function') window.midi.sendPitchBend(bend, chBase, outSel);
+                    }
+                } catch(_) {}
+            }
+
+            _bellsGlideResetMidiBend(){
+                try {
+                    if (!window.midi || !window.midi.enabled) return;
+                    const targets = ['strum1','strum2'];
+                    for (const tgt of targets) {
+                        const chBase = window.midi.channelMap?.[tgt] || 1;
+                        const outSel = window.midi.outputForSource ? window.midi.outputForSource(tgt) : null;
+                        if (typeof window.midi.sendPitchBend === 'function') window.midi.sendPitchBend(0, chBase, outSel);
+                    }
+                } catch(_) {}
             }
 
             _getBellsChordSteps(column){
@@ -37018,7 +37298,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const steps = (relStepsRaw && relStepsRaw.length ? relStepsRaw : [0]).slice();
                 steps.sort((a,b) => this.stepToSemitone(a, tuning) - this.stepToSemitone(b, tuning));
 
-                const baseOct = Math.max(2, Math.min(6, this._bellsState?.baseOct || 3));
+                const baseOct = Math.max(2, Math.min(6, this._bellsState?.baseOct || 4));
                 const maxOct = 8;
                 const notes = [];
                 const norm = (v,m)=> ((v % m) + m) % m;
@@ -37038,7 +37318,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 return notes;
             }
 
-            _computeAllChordsNotes(){
+            _getCurrentChordAbsSteps(col){
+                if (!col) return null;
+                const baseInfo = this._getBaseRootForColumn(col);
+                const tuning = baseInfo.tuning;
+                const baseRoot = baseInfo.baseRoot;
+                const relSteps = this._getBellsChordSteps(col) || [];
+                const set = new Set();
+                relSteps.forEach(s => set.add(((baseRoot + s) % tuning + tuning) % tuning));
+                return set;
+            }
+
+            _computeAllChordsNotes(octaves=1){
                 const noteNames = this.getNoteNames();
                 const list = this._getBellsChordList();
                 if (!list.length) return [];
@@ -37054,32 +37345,49 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 });
                 const steps = Array.from(set.values());
                 steps.sort((a,b) => this.stepToSemitone(a, tuning) - this.stepToSemitone(b, tuning));
-                const baseOct = Math.max(2, Math.min(6, this._bellsState?.baseOct || 3));
-                return steps.map(step => {
-                    const label = `${noteNames[step] || ('Note ' + step)}${baseOct}`;
-                    const color = this.getUniversalPitchColorForStep(step, tuning).color || '#888';
-                    const freq = this.getFrequency(step, baseOct, tuning);
-                    return { freq, step, octave: baseOct, label, color, tuning };
-                });
-            }
-
-            _computeAllNotes(){
-                const noteNames = this.getNoteNames();
-                const tuning = this.currentTuning || 12;
-                const baseOct = Math.max(2, Math.min(6, this._bellsState?.baseOct || 3));
-                const notes = [];
-                for (let step=0; step<tuning; step++) {
-                    const label = `${noteNames[step] || ('Note ' + step)}${baseOct}`;
-                    const color = this.getUniversalPitchColorForStep(step, tuning).color || '#888';
-                    const freq = this.getFrequency(step, baseOct, tuning);
-                    notes.push({ freq, step, octave: baseOct, label, color, tuning });
+                const baseOct = Math.max(2, Math.min(6, this._bellsState?.baseOct || 4));
+                const out = [];
+                const octCount = Math.max(1, Math.min(6, octaves|0));
+                for (let o=0; o<octCount; o++) {
+                    const oct = baseOct + o;
+                    steps.forEach(step => {
+                        const label = `${noteNames[step] || ('Note ' + step)}${oct}`;
+                        const color = this.getUniversalPitchColorForStep(step, tuning).color || '#888';
+                        const freq = this.getFrequency(step, oct, tuning);
+                        out.push({ freq, step, octave: oct, label, color, tuning });
+                    });
                 }
                 // Add final octave root to complete the span
                 try {
-                    const labelTop = `${noteNames[0] || 'Note 0'}${baseOct + 1}`;
+                    const labelTop = `${noteNames[0] || 'Note 0'}${baseOct + octCount}`;
                     const colorTop = this.getUniversalPitchColorForStep(0, tuning).color || '#888';
-                    const freqTop = this.getFrequency(0, baseOct + 1, tuning);
-                    notes.push({ freq: freqTop, step: 0, octave: baseOct + 1, label: labelTop, color: colorTop, tuning });
+                    const freqTop = this.getFrequency(0, baseOct + octCount, tuning);
+                    out.push({ freq: freqTop, step: 0, octave: baseOct + octCount, label: labelTop, color: colorTop, tuning });
+                } catch(_) {}
+                return out;
+            }
+
+            _computeAllNotes(octaves=1){
+                const noteNames = this.getNoteNames();
+                const tuning = this.currentTuning || 12;
+                const baseOct = Math.max(2, Math.min(6, this._bellsState?.baseOct || 4));
+                const notes = [];
+                const octCount = Math.max(1, Math.min(6, octaves|0));
+                for (let o=0; o<octCount; o++) {
+                    const oct = baseOct + o;
+                    for (let step=0; step<tuning; step++) {
+                        const label = `${noteNames[step] || ('Note ' + step)}${oct}`;
+                        const color = this.getUniversalPitchColorForStep(step, tuning).color || '#888';
+                        const freq = this.getFrequency(step, oct, tuning);
+                        notes.push({ freq, step, octave: oct, label, color, tuning });
+                    }
+                }
+                // Add final octave root to complete the span
+                try {
+                    const labelTop = `${noteNames[0] || 'Note 0'}${baseOct + octCount}`;
+                    const colorTop = this.getUniversalPitchColorForStep(0, tuning).color || '#888';
+                    const freqTop = this.getFrequency(0, baseOct + octCount, tuning);
+                    notes.push({ freq: freqTop, step: 0, octave: baseOct + octCount, label: labelTop, color: colorTop, tuning });
                 } catch(_) {}
                 return notes;
             }
@@ -37099,14 +37407,25 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this._bellsAutoTimer = setInterval(() => {
                     const win = this._bellsWin;
                     if (!win || win.closed) { this._stopBellsAutoUpdate(); return; }
-                    if (!this._bellsState || this._bellsState.mode !== 'single') return;
+                    if (!this._bellsState) return;
                     const nowCol = this._getNowPlayingColumn() || this.currentActiveColumnEl;
                     if (!nowCol) return;
                     const list = this._getBellsChordList();
                     const idx = list.findIndex(x => x.column === nowCol);
-                    if (idx >= 0 && idx !== this._bellsState.activeIndex) {
+                    const mode = this._bellsState.mode || 'single';
+                    const lastId = this._bellsState._lastNowChordId;
+                    const nowId = (idx >= 0) ? String(idx) : (nowCol?.dataset?.chordId || nowCol);
+
+                    if (idx >= 0 && idx !== this._bellsState.activeIndex && mode === 'single') {
                         this._bellsState.activeIndex = idx;
+                        this._bellsState._lastNowChordId = nowId;
                         this._renderBellsUI();
+                        return;
+                    }
+
+                    if (nowId !== lastId) {
+                        this._bellsState._lastNowChordId = nowId;
+                        this._renderBellsBars();
                     }
                 }, 120);
             }
@@ -37152,13 +37471,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 return { baseRoot, tuning };
             }
 
-            _playBellsNote(note) {
+            _playBellsNote(note, el=null) {
                 if (!note || !Number.isFinite(note.freq)) return;
                 try {
                     this.ensureAudioContext && this.ensureAudioContext();
                 } catch(_) {}
                 try {
-                    this.playFrequency(note.freq, null, 'strum');
+                    if (el) {
+                        try {
+                            el.classList.add('ringing');
+                            el.__ringingTimeout && clearTimeout(el.__ringingTimeout);
+                            el.__ringingTimeout = setTimeout(()=>{ try { el.classList.remove('ringing'); } catch(_){} }, 240);
+                        } catch(_) {}
+                    }
+                    this.playFrequency(note.freq, el || null, 'strum');
                 } catch(_) {}
             }
 
@@ -38791,6 +39117,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const v = Math.max(0, Math.min(127, Math.round(value)));
                         this.sendRaw([0xB0, cc & 0x7F, v], 0, channel);
                     }
+                    sendPitchBend(value=0, channel=1, outputTarget=null) {
+                        // value in range -1..1
+                        const v = Math.max(-1, Math.min(1, Number(value) || 0));
+                        const val14 = Math.round((v + 1) * 8191.5); // 0..16383
+                        const lsb = val14 & 0x7F;
+                        const msb = (val14 >> 7) & 0x7F;
+                        this.sendRaw([0xE0, lsb, msb], 0, channel, outputTarget);
+                    }
+                    setPitchBendRange(semitones=2, channel=1){
+                        const s = Math.max(0, Math.min(24, Math.round(Number(semitones)||0)));
+                        this.selectRPN(0,0,channel); this.dataEntry(s, 0, channel); this.rpnNull(channel);
+                    }
                     // RPN helpers for tuning
                     selectRPN(msb, lsb, channel=1){ this.sendCC(101, msb & 0x7F, channel); this.sendCC(100, lsb & 0x7F, channel); }
                     rpnNull(channel=1){ this.sendCC(101, 127, channel); this.sendCC(100, 127, channel); }
@@ -39089,6 +39427,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // Schedule Note Off based on musical intent per section
                                 const epsilonMs = 8;
                                 let offDelay = Math.max(10, decayMsFor(tgt)|0);
+                                try {
+                                    if ((tgt === 'strum1' || tgt === 'strum2') && element && Number.isFinite(element.__gateMs)) {
+                                        offDelay = Math.max(10, Math.floor(element.__gateMs));
+                                    }
+                                } catch(_) {}
                                 try {
                                     if (tgt === 'chord') {
                                         // Align CHORD MIDI note-off to the next DRUM bar boundary for tight chord changes
