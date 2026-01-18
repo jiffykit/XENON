@@ -11630,7 +11630,117 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         midiInput.type = 'text';
                         midiInput.value = (name!=='BASS' ? (gmNotes[rowIdx]||'C2') : '');
                         midiInput.title = 'Send this GM note on Ch10 when step hits (e.g., C2, D#2)';
-                        midiInput.addEventListener('change', ()=>{ try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch(_){ } try { if (window.omnichord && omnichord._arpTransport && omnichord._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch(_){ } });
+                        midiInput.addEventListener('change', ()=>{
+                            try {
+                                const pref = this._getAccidentalPreference(midiInput.value);
+                                if (pref) midiInput.dataset.accidentalPref = pref;
+                            } catch(_){ }
+                            try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch(_){ }
+                            try { if (window.omnichord && omnichord._arpTransport && omnichord._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch(_){ }
+                        });
+
+                        if (name !== 'BASS') {
+                            const defaultMidiName = (gmNotes[rowIdx] || 'C2');
+                            const defaultMidi = this._parseMidiNoteName(defaultMidiName) ?? 36;
+                            const getPref = () => {
+                                const fromData = midiInput.dataset.accidentalPref;
+                                const pref = fromData || this._getAccidentalPreference(midiInput.value) || this._getAccidentalPreference(defaultMidiName);
+                                return pref === 'flat' ? 'flat' : 'sharp';
+                            };
+                            const applyMidi = (midi, pref) => {
+                                const usePref = (pref === 'flat') ? 'flat' : 'sharp';
+                                midiInput.value = this._formatMidiNoteName(midi, usePref !== 'flat');
+                                midiInput.dataset.accidentalPref = usePref;
+                                midiInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            };
+                            const bumpMidi = (delta, pref) => {
+                                const current = this._parseMidiNoteName(midiInput.value);
+                                const base = Number.isFinite(current) ? current : defaultMidi;
+                                const next = Math.max(0, Math.min(127, base + delta));
+                                applyMidi(next, pref);
+                            };
+
+                            midiInput.addEventListener('keydown', (e) => {
+                                const key = e.key;
+                                if (key === 'ArrowUp' || key === 'ArrowDown' || key === 'PageUp' || key === 'PageDown') {
+                                    e.preventDefault();
+                                    const dir = (key === 'ArrowUp' || key === 'PageUp') ? 1 : -1;
+                                    const step = e.shiftKey ? 12 : 1;
+                                    bumpMidi(dir * step, getPref());
+                                }
+                            });
+
+                            let dragState = null;
+                            const startDrag = (clientY) => {
+                                dragState = {
+                                    startY: clientY,
+                                    startMidi: Number.isFinite(this._parseMidiNoteName(midiInput.value)) ? this._parseMidiNoteName(midiInput.value) : defaultMidi,
+                                    pref: getPref(),
+                                    lastDelta: 0
+                                };
+                            };
+                            const updateDrag = (clientY, shiftKey) => {
+                                if (!dragState) return;
+                                const dy = dragState.startY - clientY;
+                                const baseDelta = Math.round(dy / 6);
+                                const step = shiftKey ? 12 : 1;
+                                const delta = baseDelta * step;
+                                if (delta === dragState.lastDelta) return;
+                                dragState.lastDelta = delta;
+                                const next = Math.max(0, Math.min(127, dragState.startMidi + delta));
+                                applyMidi(next, dragState.pref);
+                            };
+                            const endDrag = () => { dragState = null; };
+
+                            midiInput.addEventListener('mousedown', (e) => {
+                                if (e.button !== 0) return;
+                                const startY = e.clientY;
+                                startDrag(startY);
+                                let dragging = false;
+                                const onMove = (ev) => {
+                                    const dy = Math.abs(ev.clientY - startY);
+                                    if (!dragging && dy > 5) dragging = true;
+                                    if (dragging) {
+                                        ev.preventDefault();
+                                        updateDrag(ev.clientY, ev.shiftKey);
+                                    }
+                                };
+                                const onUp = () => {
+                                    document.removeEventListener('mousemove', onMove);
+                                    document.removeEventListener('mouseup', onUp);
+                                    endDrag();
+                                };
+                                document.addEventListener('mousemove', onMove);
+                                document.addEventListener('mouseup', onUp);
+                            });
+
+                            midiInput.addEventListener('touchstart', (e) => {
+                                const t = e.touches && e.touches[0];
+                                if (!t) return;
+                                const startY = t.clientY;
+                                startDrag(startY);
+                                let dragging = false;
+                                const onMove = (ev) => {
+                                    const tt = ev.touches && ev.touches[0];
+                                    if (!tt) return;
+                                    const dy = Math.abs(tt.clientY - startY);
+                                    if (!dragging && dy > 5) dragging = true;
+                                    if (dragging) {
+                                        ev.preventDefault();
+                                        updateDrag(tt.clientY, false);
+                                    }
+                                };
+                                const onEnd = () => {
+                                    document.removeEventListener('touchmove', onMove, { passive: false });
+                                    document.removeEventListener('touchend', onEnd);
+                                    document.removeEventListener('touchcancel', onEnd);
+                                    endDrag();
+                                };
+                                document.addEventListener('touchmove', onMove, { passive: false });
+                                document.addEventListener('touchend', onEnd);
+                                document.addEventListener('touchcancel', onEnd);
+                            }, { passive: false });
+                        }
                         midiWrap.appendChild(midiInput);
 
                         rowMain.appendChild(midiWrap);
@@ -13298,8 +13408,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             // Parse MIDI note name like C2, D#2, Gb1 to MIDI number (12-TET only)
             _parseMidiNoteName(name){
                 try {
-                    if (!name) return null;
-                    const m = String(name).trim().match(/^([A-Ga-g])([#b♯♭]?)(-?\d{1,2})$/);
+                    if (name == null) return null;
+                    const s = String(name).trim();
+                    if (/^-?\d+$/.test(s)) {
+                        const d = parseInt(s, 10);
+                        if (!Number.isFinite(d)) return null;
+                        return Math.max(0, Math.min(127, d));
+                    }
+                    const m = s.match(/^([A-Ga-g])([#b♯♭]?)(-?\d{1,2})$/);
                     if (!m) return null;
                     const letters = { C:0, D:2, E:4, F:5, G:7, A:9, B:11 };
                     let semi = letters[m[1].toUpperCase()];
@@ -13310,6 +13426,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const midi = (octave + 1) * 12 + ((semi % 12) + 12) % 12;
                     return Math.max(0, Math.min(127, midi));
                 } catch(_) { return null; }
+            }
+
+            _formatMidiNoteName(midi, preferSharps = true) {
+                const n = Math.max(0, Math.min(127, Math.round(Number(midi))));
+                if (!Number.isFinite(n)) return 'C2';
+                const namesSharp = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                const namesFlat  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+                const name = (preferSharps ? namesSharp : namesFlat)[((n % 12) + 12) % 12] || 'C';
+                const octave = Math.floor(n / 12) - 1;
+                return `${name}${octave}`;
             }
             
             exitChordCreationMode() {
@@ -14572,7 +14698,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const absModel = [effRootModel, ...degreeStepsModel.map(d => (effRootModel + d) % modelEdo)];
                                 const absNow = (modelEdo === edoNow) ? absModel.map(s => ((s%edoNow)+edoNow)%edoNow)
                                                                     : absModel.map(s => mapStep(s, modelEdo, edoNow));
-                                const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow);
+                                const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow, null, (chordExt && chordExt.preferredRootName) ? chordExt.preferredRootName : null);
                                 chordName.textContent = recomputed;
                                 chordName.dataset.lockedName = recomputed;
                                 chordExt.name = recomputed;
@@ -15145,7 +15271,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Map to current EDO if needed
                         const absNow = (modelEdo === edoNow) ? absModel.map(s => ((s%edoNow)+edoNow)%edoNow)
                                                             : absModel.map(s => mapStep(s, modelEdo, edoNow));
-                        const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow);
+                        const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow, null, (model && model.preferredRootName) ? model.preferredRootName : null);
                         nameEl.textContent = locked ? `🔒 ${recomputed}` : recomputed;
                         nameEl.dataset.lockedName = nameEl.textContent;
                     } else {
@@ -15155,7 +15281,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const semi = this.rootToSemitone(m[1], m[2]||'');
                             let step = this.semitoneToStep(semi, edoNow);
                             step = (((step + (this.transposeDelta||0) + localDeltaNow) % edoNow) + edoNow) % edoNow;
-                            const newRoot = this.getRootNameForStep(step, edoNow);
+                            const pref = (model && model.preferredAccidental) || this._getAccidentalPreference(labelRaw);
+                            const newRoot = this.getRootNameForStepWithPreference(step, edoNow, pref);
                             nameEl.textContent = locked ? `🔒 ${newRoot}${m[3]||''}` : `${newRoot}${m[3]||''}`;
                             nameEl.dataset.lockedName = nameEl.textContent;
                         }
@@ -16997,6 +17124,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         intervals = [...intervals, mapped].sort((a,b)=>a-b);
                     }
                 }
+                let preferredRootName = null;
+                try {
+                    const rootLabelMatch = normAscii.match(/^([A-G])([#b♭♯𝄲𝄳d]?)([\^v]*)/);
+                    if (rootLabelMatch) {
+                        preferredRootName = this._formatRootWithSymbols(rootLabelMatch[1], rootLabelMatch[2] || '', rootLabelMatch[3] || '');
+                    }
+                } catch(_){ }
+                const preferredAccidental = this._getAccidentalPreference(preferredRootName);
                 const newChord = {
                     name: norm,
                     intervals,
@@ -17013,6 +17148,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     lastTuning: this.currentTuning,
                     headerColor: this.getIntervalColor(0)?.color || '#14b8a6',
                     localTranspose: 0,
+                    preferredRootName: preferredRootName,
+                    preferredAccidental: preferredAccidental,
+                    preferredName: norm,
                     // Set a fixed absolute root so keyboard edits use the correct base
                     fixedRootStepAbs: (rootStep != null ? rootStep : (this.currentRoot || 0)),
                     fixedRootTuning: this.currentTuning,
@@ -17209,6 +17347,38 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (acc === 'b' || acc === '♭') return (base + 11) % 12;
                 if (acc === 'd' || acc === '𝄳') return base; // half-flat handled via micro step elsewhere
                 if (acc === '𝄲') return base; // half-sharp handled via micro step elsewhere
+                return base;
+            }
+
+            _getAccidentalPreference(name) {
+                const s = String(name || '');
+                if (/[#♯]/.test(s)) return 'sharp';
+                if (/[b♭d𝄳]/.test(s)) return 'flat';
+                return null;
+            }
+
+            getRootNameForStepWithPreference(step, edo = (this.currentTuning || 12), preference = null) {
+                const pref = (preference === 'sharp' || preference === 'flat') ? preference : null;
+                if (!pref) return this.getRootNameForStep(step, edo);
+                const base = this.getRootNameForStep(step, edo);
+                const m = String(base || '').match(/^([A-G])([#♯b♭]?)(.*)$/);
+                if (!m) return base;
+                const letter = m[1];
+                const acc = m[2] || '';
+                const rest = m[3] || '';
+                // Only swap plain sharp/flat spellings; keep micro markers intact
+                if (pref === 'sharp' && (acc === 'b' || acc === '♭')) {
+                    const semi = this.rootToSemitone(letter, 'b');
+                    const sharpNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+                    const raw = sharpNames[((semi % 12) + 12) % 12] + rest;
+                    return this._convertRootNameSymbols(raw);
+                }
+                if (pref === 'flat' && (acc === '#' || acc === '♯')) {
+                    const semi = this.rootToSemitone(letter, '#');
+                    const flatNames  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+                    const raw = flatNames[((semi % 12) + 12) % 12] + rest;
+                    return this._convertRootNameSymbols(raw);
+                }
                 return base;
             }
 
@@ -18472,7 +18642,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Compose absolute steps with local arrows; global transpose is added inside naming
                     const rootStep = (((baseStep + arrowDelta) % edo) + edo) % edo;
                     const abs = [rootStep, ...degrees.filter(x=>x!==0).map(iv => (rootStep + iv) % edo)];
-                    const labelNew = this.computeFullChordNameFromAbsoluteSteps(abs, edo) || label;
+                    const labelNew = this.computeFullChordNameFromAbsoluteSteps(abs, edo, null, (model && model.preferredRootName) ? model.preferredRootName : null) || label;
 
                     nameEl.textContent = labelNew;
                     nameEl.dataset.lockedName = labelNew;
@@ -18649,6 +18819,49 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         this._drive.wet.gain.value = mix;
                     };
                     this.updateDrive();
+
+                    // BELLS FUZZ (used when GLIDE is enabled)
+                    this._bellsFuzz = {
+                        input: this.audioContext.createGain(),
+                        shaper: this.audioContext.createWaveShaper(),
+                        hp: this.audioContext.createBiquadFilter(),
+                        lp: this.audioContext.createBiquadFilter(),
+                        post: this.audioContext.createGain(),
+                        amount: 0
+                    };
+                    this._bellsFuzz.hp.type = 'highpass';
+                    this._bellsFuzz.hp.frequency.value = 40;
+                    this._bellsFuzz.hp.Q.value = 0.707;
+                    this._bellsFuzz.lp.type = 'lowpass';
+                    this._bellsFuzz.lp.frequency.value = 14000;
+                    this._bellsFuzz.lp.Q.value = 0.707;
+                    this._bellsFuzz.input.gain.value = 1;
+                    this._bellsFuzz.post.gain.value = 1;
+                    this._bellsFuzz.input.connect(this._bellsFuzz.shaper);
+                    this._bellsFuzz.shaper.connect(this._bellsFuzz.hp);
+                    this._bellsFuzz.hp.connect(this._bellsFuzz.lp);
+                    this._bellsFuzz.lp.connect(this._bellsFuzz.post);
+                    // Connect fuzz output to the main FX chain; only used when routed
+                    this._bellsFuzz.post.connect(this.gainNode);
+                    this.updateBellsFuzz = () => {
+                        if (!this._bellsFuzz) return;
+                        const amt = Math.max(0, Math.min(100, Number(this._bellsFuzz.amount) || 0)) / 100;
+                        const n = 2048;
+                        const curve = new Float32Array(n);
+                        const k = 1 + amt * 28;
+                        for (let i = 0; i < n; i++) {
+                            const x = (i / (n - 1)) * 2 - 1;
+                            curve[i] = Math.tanh(k * x);
+                        }
+                        this._bellsFuzz.shaper.curve = curve;
+                        this._bellsFuzz.shaper.oversample = '4x';
+                        // Auto gain compensation
+                        const comp = 1 / Math.sqrt(1 + k * 0.8);
+                        this._bellsFuzz.post.gain.value = comp;
+                        // Pre gain to push harder as fuzz increases
+                        this._bellsFuzz.input.gain.value = 1 + amt * 1.5;
+                    };
+                    this.updateBellsFuzz();
 
                     // Master routing: sum → Drive (first) → Delay → PostDelayMix → HP → LP → Output
                     // Reverb taps after Delay (very last stage) and goes straight to output
@@ -28636,14 +28849,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (chordExt.isCustom && Array.isArray(chordExt.intervals) && chordExt.intervals.length > 0) {
                             // Build absolute steps: transposed root + each interval from the transposed root
                             const absNow = [effRoot, ...chordExt.intervals.map(iv => norm(effRoot + iv, edoNow))];
-                            const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow) || chordExt.name;
+                            const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow, null, (chordExt && chordExt.preferredRootName) ? chordExt.preferredRootName : null) || chordExt.name;
                             chordName.textContent = recomputed;
                             chordName.dataset.lockedName = recomputed;
                             chordExt.name = recomputed;
                         } else {
                             const mRoot = (chordExt.name || '').match(/^([A-G])([#b]?)([\^v↑↓]*)(.*)$/);
                             const tail = mRoot ? (mRoot[4] || '') : '';
-                            const newRootName = this.getRootNameForStep(effRoot, edoNow) || String(effRoot);
+                            const pref = chordExt.preferredAccidental || this._getAccidentalPreference(chordExt.preferredRootName || chordExt.name);
+                            const newRootName = this.getRootNameForStepWithPreference(effRoot, edoNow, pref) || String(effRoot);
                             const newName = `${newRootName}${tail}`.trim();
                             chordName.textContent = newName;
                             chordName.dataset.lockedName = newName;
@@ -29076,14 +29290,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (chordExt.isCustom && Array.isArray(chordExt.intervals) && chordExt.intervals.length > 0) {
                                 // Build absolute steps: transposed root + each interval from the transposed root
                                 const absNow = [effRoot, ...chordExt.intervals.map(iv => norm(effRoot + iv, edoNow))];
-                                const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow) || chordExt.name;
+                                const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow, null, (chordExt && chordExt.preferredRootName) ? chordExt.preferredRootName : null) || chordExt.name;
                                 chordName.textContent = recomputed;
                                 chordName.dataset.lockedName = recomputed;
                                 chordExt.name = recomputed;
                             } else {
                                 const mRoot = (chordExt.name || '').match(/^([A-G])([#b]?)([\^v↑↓]*)(.*)$/);
                                 const tail = mRoot ? (mRoot[4] || '') : '';
-                                const newRootName = this.getRootNameForStep(effRoot, edoNow) || String(effRoot);
+                                const pref = chordExt.preferredAccidental || this._getAccidentalPreference(chordExt.preferredRootName || chordExt.name);
+                                const newRootName = this.getRootNameForStepWithPreference(effRoot, edoNow, pref) || String(effRoot);
                                 const newName = `${newRootName}${tail}`.trim();
                                 chordName.textContent = newName;
                                 chordName.dataset.lockedName = newName;
@@ -29606,7 +29821,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             
             // Root selection: leftmost (lowest) note unless a clear major/minor triad exists on another pitch;
             // slash only when bass is the (flat/neutral) seventh
-            computeFullChordNameFromAbsoluteSteps(absSteps, edo = (this.currentTuning || 12), preferredBassAbs = null){
+            computeFullChordNameFromAbsoluteSteps(absSteps, edo = (this.currentTuning || 12), preferredBassAbs = null, preferredRootName = null){
                 if (!Array.isArray(absSteps) || absSteps.length < 1) return '';
                 // Use absolute steps as-is; global transpose should already be baked in by caller
                 const steps = Array.from(new Set(absSteps.map(s => ((s % edo) + edo) % edo)));
@@ -29620,10 +29835,42 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     ? ((preferredBassAbs % edo) + edo) % edo
                     : steps.slice().sort((a,b)=> this.stepToSemitone(a, edo) - this.stepToSemitone(b, edo))[0];
 
+                // If a preferred root spelling is provided, honor it.
+                let preferredRootAbs = null;
+                try {
+                    if (preferredRootName) {
+                        const normPref = this._normalizeChordSymbolsForParse(preferredRootName);
+                        const m = normPref.match(/^([A-G])([#b♭♯𝄲𝄳d]?)([\^v]*)/);
+                        if (m) {
+                            let acc = m[2] || '';
+                            let micro = m[3] || '';
+                            // Treat half-flat/sharp as micro marks
+                            if (acc === 'd' || acc === '𝄳') { acc = ''; micro = 'v' + micro; }
+                            if (acc === '𝄲') { acc = ''; micro = '^' + micro; }
+                            const semi = this.rootToSemitone(m[1], acc || '');
+                            const baseStep = Math.round((semi * edo) / 12);
+                            const ups = (micro.match(/\^/g) || []).length;
+                            const downs = (micro.match(/v/g) || []).length;
+                            const targetStep = ((baseStep + ups - downs) % edo + edo) % edo;
+                            if (steps.includes(targetStep)) preferredRootAbs = targetStep;
+                            else {
+                                // Choose nearest by semitone distance
+                                let best = null; let bestDist = Infinity;
+                                for (const s of steps) {
+                                    const d = Math.abs(this.stepToSemitone(s, edo) - this.stepToSemitone(targetStep, edo));
+                                    if (d < bestDist) { bestDist = d; best = s; }
+                                }
+                                if (best != null) preferredRootAbs = best;
+                            }
+                        }
+                    }
+                } catch(_){ }
+
                 // Override rule: choose the pitch that yields the clearest quality.
                 // Priority: major/minor triad > half-diminished 7 (ø7) > diminished 7 (°7) > diminished triad (°)
-                let rootAbs = bassAbs;
+                let rootAbs = (preferredRootAbs != null) ? preferredRootAbs : bassAbs;
                 const triadFound = (()=>{
+                    if (preferredRootAbs != null) return true;
                     const targetMaj = new Set([0,4,7]);
                     const targetMin = new Set([0,3,7]);
                     const targetDimTriad = new Set([0,3,6]);
@@ -29655,7 +29902,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     return best.score >= 0;
                 })();
                 const rels = steps.map(s => ((s - rootAbs) % edo + edo) % edo);
-                const rootName = this.getRootNameForStep(rootAbs, edo);
+                const prefStyle = preferredRootName ? this._getAccidentalPreference(preferredRootName) : null;
+                const rootName = this.getRootNameForStepWithPreference(rootAbs, edo, prefStyle);
                 const symbol = this.getProperChordSymbol(rels);
 
                 // Slash policy: only when bass is the seventh (flat or neutral 7), otherwise omit
@@ -29899,7 +30147,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const absModel = [effRootModel, ...degreeStepsModel.map(d => (effRootModel + d) % modelEdo)];
                             const absNow = (modelEdo === edoNow) ? absModel.map(s => ((s%edoNow)+edoNow)%edoNow)
                                                                 : absModel.map(s => mapStep(s, modelEdo, edoNow));
-                            const recomputedLabel = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow);
+                            const recomputedLabel = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow, null, (model && model.preferredRootName) ? model.preferredRootName : null);
                             if (recomputedLabel) {
                                 nameEl.textContent = recomputedLabel;
                                 nameEl.dataset.lockedName = recomputedLabel;
@@ -36183,8 +36431,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 if (sendToFX) {
                     // Send to effects chain (reverb, delay, etc.) via master gainNode
-                    panner.connect(this.gainNode);
-                    if (window.DEBUG_AUDIO) console.log(`[${sourceType.toUpperCase()}] Sent to FX chain`);
+                    const useBellsFuzz = (baseType === 'bells') && !!this._bellsState?.glide && (this._bellsFuzz?.amount > 0);
+                    if (useBellsFuzz && this._bellsFuzz?.input) {
+                        panner.connect(this._bellsFuzz.input);
+                        if (window.DEBUG_AUDIO) console.log(`[${sourceType.toUpperCase()}] Sent to BELLS fuzz`);
+                    } else {
+                        panner.connect(this.gainNode);
+                        if (window.DEBUG_AUDIO) console.log(`[${sourceType.toUpperCase()}] Sent to FX chain`);
+                    }
                 } else {
                     // Bypass effects - connect directly to master output via a dry path
                     // We need to create a bypass path that avoids the FX processing
@@ -37189,6 +37443,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     <input id="bellsGlideMs" type="range" min="0" max="800" value="0" />
                     <span id="bellsGlideMsValue">AUTO</span>
                 </div>
+                <div class="bells-osc-slider">
+                    <span>FUZZ</span>
+                    <input id="bellsFuzz" type="range" min="0" max="100" value="0" />
+                    <span id="bellsFuzzValue">0%</span>
+                </div>
             </div>
         </div>
   </div>
@@ -37265,6 +37524,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const relVal = doc.getElementById('bellsEnvReleaseValue');
                 const glideMsEl = doc.getElementById('bellsGlideMs');
                 const glideMsVal = doc.getElementById('bellsGlideMsValue');
+                const fuzzEl = doc.getElementById('bellsFuzz');
+                const fuzzVal = doc.getElementById('bellsFuzzValue');
                 if (!chordsEl || !modeEl || !barsEl || !slider || !sliderVal || !sliderLabel || !octSlider || !octVal || !glideToggle) return;
 
                 const list = this._getBellsChordList();
@@ -37437,6 +37698,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (glideMsVal) glideMsVal.textContent = v > 0 ? `${v}ms` : 'AUTO';
                         });
                     }
+                    if (fuzzEl && !fuzzEl._wired) {
+                        fuzzEl._wired = true;
+                        fuzzEl.addEventListener('input', () => {
+                            const v = Math.max(0, Math.min(100, parseInt(fuzzEl.value, 10) || 0));
+                            if (this._bellsFuzz) {
+                                this._bellsFuzz.amount = v;
+                                if (typeof this.updateBellsFuzz === 'function') this.updateBellsFuzz();
+                            }
+                            if (fuzzVal) fuzzVal.textContent = `${v}%`;
+                        });
+                    }
 
                     // Sync UI values from instrument state
                     try {
@@ -37488,6 +37760,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const v = Number.isFinite(this._bellsGlideMs) ? Math.max(0, Math.min(800, Math.round(this._bellsGlideMs))) : 0;
                             glideMsEl.value = String(v);
                             if (glideMsVal) glideMsVal.textContent = v > 0 ? `${v}ms` : 'AUTO';
+                        }
+                        if (fuzzEl) {
+                            const v = this._bellsFuzz ? Math.max(0, Math.min(100, Math.round(this._bellsFuzz.amount || 0))) : 0;
+                            fuzzEl.value = String(v);
+                            if (fuzzVal) fuzzVal.textContent = `${v}%`;
                         }
                     } catch(_) {}
                 } catch(_) {}
