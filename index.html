@@ -2215,6 +2215,28 @@
             /* Support extreme scaling */
             font-size: calc(max(8px, min(14px, 1.2vw))); /* Scale font size with viewport */
         }
+
+        /* Pattern/Drum/Bass modals: fixed aspect ratio + custom resize handle */
+        #patternModal, #drumModal, #bassModal, .pattern-modal {
+            resize: none;
+            aspect-ratio: var(--modal-aspect, 4 / 3);
+            overflow: hidden;
+        }
+
+        .modal-resize-handle {
+            position: absolute;
+            right: 6px;
+            bottom: 6px;
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: linear-gradient(145deg, rgba(74,144,226,0.9), rgba(53,122,189,0.9));
+            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+            cursor: nwse-resize;
+            z-index: 5;
+            touch-action: none;
+        }
         
         /* Scale modal content at small sizes */
         .floating-modal[style*="width: 100px"], .floating-modal[style*="width: 1"], 
@@ -3928,6 +3950,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const baseDot = getPxVar('--dot-size', 16);
                     const baseGap = getPxVar('--dot-gap', 4);
 
+                    if (!modal._aspectRatio) {
+                        modal._aspectRatio = baseW / baseH;
+                        modal.style.setProperty('--modal-aspect', String(modal._aspectRatio));
+                    }
+
                     const apply = () => {
                         try {
                             const r = modal.getBoundingClientRect();
@@ -3936,13 +3963,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Ignore "hidden" sizes
                             if (w < 50 || h < 50) return;
 
-                            const s = Math.sqrt((w * h) / (baseW * baseH));
-                            const scale = Math.max(1, Math.min(2.75, s));
+                            const s = Math.min(w / baseW, h / baseH);
+                            const scale = Math.max(0.35, Math.min(3.5, s));
 
-                            const dot = Math.max(10, Math.round(baseDot * scale));
+                            const dot = Math.max(4, Math.round(baseDot * scale));
                             const gap = Math.max(0, Math.round(baseGap * scale));
-                            const stepSize = Math.max(12, dot + gap + 2);
-                            const tieH = Math.max(8, Math.round(dot * 0.75));
+                            const stepSize = Math.max(6, dot + gap + 2);
+                            const tieH = Math.max(4, Math.round(dot * 0.75));
 
                             modal.style.setProperty('--dot-size', dot + 'px');
                             modal.style.setProperty('--dot-gap', gap + 'px');
@@ -3961,6 +3988,120 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } catch(_) {}
             };
         }
+
+        // Fixed-aspect resize handle for pattern/drum/bass modals (works on iPad)
+        if (!window._ensureModalAspectResize) {
+            window._ensureModalAspectResize = function(modal) {
+                try {
+                    if (!modal || modal._aspectResizeWired) return;
+                    if (!modal.classList.contains('floating-modal')) return;
+
+                    const rect = modal.getBoundingClientRect();
+                    modal._aspectRatio = modal._aspectRatio || (rect.width / rect.height) || 4/3;
+                    modal.style.setProperty('--modal-aspect', String(modal._aspectRatio));
+
+                    let handle = modal.querySelector('.modal-resize-handle');
+                    if (!handle) {
+                        handle = document.createElement('div');
+                        handle.className = 'modal-resize-handle';
+                        modal.appendChild(handle);
+                    }
+
+                    const clampSize = (w, h) => {
+                        const cs = getComputedStyle(modal);
+                        const minW = Math.max(120, parseFloat(cs.minWidth) || 120);
+                        const minH = Math.max(120, parseFloat(cs.minHeight) || 120);
+                        const vv = window.visualViewport;
+                        const vw = Math.max(240, Math.floor((vv ? vv.width : window.innerWidth) * 0.96));
+                        const vh = Math.max(240, Math.floor((vv ? vv.height : window.innerHeight) * 0.92));
+                        const maxW = Math.max(minW, Math.min(vw, parseFloat(cs.maxWidth) || vw));
+                        const maxH = Math.max(minH, Math.min(vh, parseFloat(cs.maxHeight) || vh));
+
+                        let nextW = Math.max(minW, Math.min(maxW, w));
+                        let nextH = Math.max(minH, Math.min(maxH, h));
+
+                        const ratio = modal._aspectRatio || (nextW / nextH) || 4/3;
+                        // Enforce aspect ratio
+                        if (nextW / nextH > ratio) {
+                            nextW = nextH * ratio;
+                        } else {
+                            nextH = nextW / ratio;
+                        }
+                        return { w: nextW, h: nextH };
+                    };
+
+                    const startResize = (startX, startY) => {
+                        const startRect = modal.getBoundingClientRect();
+                        modal._resizeState = {
+                            startX,
+                            startY,
+                            startW: startRect.width,
+                            startH: startRect.height,
+                            ratio: modal._aspectRatio || (startRect.width / startRect.height) || 4/3
+                        };
+                    };
+
+                    const updateResize = (x, y) => {
+                        const st = modal._resizeState;
+                        if (!st) return;
+                        const dx = x - st.startX;
+                        const dy = y - st.startY;
+                        let newW = st.startW + dx;
+                        let newH = st.startH + dy;
+                        // Use the dominant drag axis to preserve intent
+                        if (Math.abs(dx) >= Math.abs(dy)) {
+                            newH = newW / st.ratio;
+                        } else {
+                            newW = newH * st.ratio;
+                        }
+                        const clamped = clampSize(newW, newH);
+                        modal.style.width = `${Math.round(clamped.w)}px`;
+                        modal.style.height = `${Math.round(clamped.h)}px`;
+                        try { modal._dotScaleApply && modal._dotScaleApply(); } catch(_) {}
+                    };
+
+                    const endResize = () => { modal._resizeState = null; };
+
+                    handle.addEventListener('pointerdown', (e) => {
+                        if (e.button != null && e.button !== 0) return;
+                        e.preventDefault();
+                        handle.setPointerCapture && handle.setPointerCapture(e.pointerId);
+                        startResize(e.clientX, e.clientY);
+                        const onMove = (ev) => { updateResize(ev.clientX, ev.clientY); };
+                        const onUp = () => {
+                            document.removeEventListener('pointermove', onMove);
+                            document.removeEventListener('pointerup', onUp);
+                            endResize();
+                        };
+                        document.addEventListener('pointermove', onMove);
+                        document.addEventListener('pointerup', onUp);
+                    });
+
+                    handle.addEventListener('touchstart', (e) => {
+                        const t = e.touches && e.touches[0];
+                        if (!t) return;
+                        e.preventDefault();
+                        startResize(t.clientX, t.clientY);
+                        const onMove = (ev) => {
+                            const tt = ev.touches && ev.touches[0];
+                            if (!tt) return;
+                            updateResize(tt.clientX, tt.clientY);
+                        };
+                        const onEnd = () => {
+                            document.removeEventListener('touchmove', onMove);
+                            document.removeEventListener('touchend', onEnd);
+                            document.removeEventListener('touchcancel', onEnd);
+                            endResize();
+                        };
+                        document.addEventListener('touchmove', onMove, { passive: false });
+                        document.addEventListener('touchend', onEnd);
+                        document.addEventListener('touchcancel', onEnd);
+                    }, { passive: false });
+
+                    modal._aspectResizeWired = true;
+                } catch(_) {}
+            };
+        }
         
         window.showDrumModal = function() {
             console.log('Opening drum modal');
@@ -3969,6 +4110,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 modal.style.display = 'block';
                 bringModalToFront('drumModal');
                 try { window._ensureModalDotScaling(modal); modal._dotScaleApply && modal._dotScaleApply(); } catch(_) {}
+                try { window._ensureModalAspectResize && window._ensureModalAspectResize(modal); } catch(_) {}
                 // Ensure drum grid is visible
                 const drumContainer = modal.querySelector('.drum-grid-container');
                 if (drumContainer) {
@@ -4167,6 +4309,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 modal.style.display = 'flex';
                 try { bringModalToFront(modal.id); } catch(_){ try { bringModalToFront('patternModal'); } catch(__){} }
                 try { window._ensureModalDotScaling(modal); modal._dotScaleApply && modal._dotScaleApply(); } catch(_) {}
+                try { window._ensureModalAspectResize && window._ensureModalAspectResize(modal); } catch(_) {}
                 try { window.ensurePatternTransport && window.ensurePatternTransport(); } catch(_) {}
                 // Ensure pattern grid is visible
                 const patternContainer = modal.querySelector('.drum-grid-container');
@@ -5246,6 +5389,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         midi.inputChannelMap = midi.inputChannelMap || {};
                         midi.outputPortMap = midi.outputPortMap || {};
                         midi.perSourceOctave = midi.perSourceOctave || {};
+                        try { window._ensureModalAspectResize && window._ensureModalAspectResize(modal); } catch(_) {}
                         midi.perSourceVelocity = midi.perSourceVelocity || {};
 
                         // Seed defaults from ARP if missing
@@ -5912,17 +6056,60 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                         const doRename = ()=>{
                             try {
+                                if (b._renaming) return;
+                                b._renaming = true;
                                 const prev = (clone && clone._patternDisplayName) ? String(clone._patternDisplayName) : defaultLabel;
-                                const next = prompt('Rename pattern:', prev);
-                                if (next == null) return;
-                                const nm = String(next).trim();
-                                clone._patternDisplayName = nm ? nm : defaultLabel;
-                                b.textContent = String(clone._patternDisplayName);
+                                b.textContent = prev;
+                                b.setAttribute('contenteditable', 'true');
+                                b.setAttribute('role', 'textbox');
+                                b.setAttribute('spellcheck', 'false');
+                                b.style.outline = '2px solid #7cc9ff';
+                                b.style.outlineOffset = '1px';
+
+                                const cleanup = ()=>{
+                                    b.removeAttribute('contenteditable');
+                                    b.removeAttribute('role');
+                                    b.removeAttribute('spellcheck');
+                                    b.style.outline = '';
+                                    b.style.outlineOffset = '';
+                                    b._renaming = false;
+                                };
+
+                                const applyName = (name)=>{
+                                    const nm = String(name || '').trim();
+                                    clone._patternDisplayName = nm ? nm : defaultLabel;
+                                    b.textContent = String(clone._patternDisplayName);
+                                    try {
+                                        const hdr = clone.querySelector('.modal-header span');
+                                        if (hdr) hdr.textContent = `Pattern Sequencer — ${clone._patternDisplayName}`;
+                                    } catch(_){ }
+                                    setStripState();
+                                };
+
+                                const finish = (commit)=>{
+                                    const raw = String(b.textContent || '').trim();
+                                    cleanup();
+                                    applyName(commit ? raw : prev);
+                                    b.removeEventListener('keydown', onKey);
+                                    b.removeEventListener('blur', onBlur);
+                                };
+
+                                const onKey = (e)=>{
+                                    if (!e) return;
+                                    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+                                    else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+                                };
+                                const onBlur = ()=> finish(true);
+
+                                b.addEventListener('keydown', onKey);
+                                b.addEventListener('blur', onBlur);
+                                try { b.focus(); } catch(_){ }
                                 try {
-                                    const hdr = clone.querySelector('.modal-header span');
-                                    if (hdr) hdr.textContent = `Pattern Sequencer — ${clone._patternDisplayName}`;
+                                    const r = document.createRange();
+                                    r.selectNodeContents(b);
+                                    const s = window.getSelection();
+                                    if (s) { s.removeAllRanges(); s.addRange(r); }
                                 } catch(_){ }
-                                setStripState();
                             } catch(_){ }
                         };
 
@@ -6344,11 +6531,62 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     };
 
                     const doRename = ()=>{
-                        const next = prompt('Rename drum:', String(inst.name||defaultLabel));
-                        if (next == null) return;
-                        const nm = String(next).trim();
-                        inst.name = nm ? nm : defaultLabel;
-                        b.textContent = inst.name;
+                        try {
+                            if (b._renaming) return;
+                            b._renaming = true;
+                            const prev = String(inst.name || defaultLabel);
+                            b.textContent = prev;
+                            b.setAttribute('contenteditable', 'true');
+                            b.setAttribute('role', 'textbox');
+                            b.setAttribute('spellcheck', 'false');
+                            b.style.outline = '2px solid #7cc9ff';
+                            b.style.outlineOffset = '1px';
+
+                            const cleanup = ()=>{
+                                b.removeAttribute('contenteditable');
+                                b.removeAttribute('role');
+                                b.removeAttribute('spellcheck');
+                                b.style.outline = '';
+                                b.style.outlineOffset = '';
+                                b._renaming = false;
+                            };
+
+                            const applyName = (name)=>{
+                                const nm = String(name || '').trim();
+                                inst.name = nm ? nm : defaultLabel;
+                                b.textContent = inst.name;
+                                try {
+                                    const modal = document.getElementById('drumModal');
+                                    const hdr = modal ? modal.querySelector('.modal-header span') : null;
+                                    if (hdr) hdr.textContent = `Drum Sequencer — ${inst.name}`;
+                                } catch(_){ }
+                            };
+
+                            const finish = (commit)=>{
+                                const raw = String(b.textContent || '').trim();
+                                cleanup();
+                                applyName(commit ? raw : prev);
+                                b.removeEventListener('keydown', onKey);
+                                b.removeEventListener('blur', onBlur);
+                            };
+
+                            const onKey = (e)=>{
+                                if (!e) return;
+                                if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+                                else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+                            };
+                            const onBlur = ()=> finish(true);
+
+                            b.addEventListener('keydown', onKey);
+                            b.addEventListener('blur', onBlur);
+                            try { b.focus(); } catch(_){ }
+                            try {
+                                const r = document.createRange();
+                                r.selectNodeContents(b);
+                                const s = window.getSelection();
+                                if (s) { s.removeAllRanges(); s.addRange(r); }
+                            } catch(_){ }
+                        } catch(_){ }
                     };
 
                     openEditor = ()=>{
@@ -6574,6 +6812,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 modal.style.display = 'block';
                 bringModalToFront('bassModal');
                 try { window._ensureModalDotScaling(modal); modal._dotScaleApply && modal._dotScaleApply(); } catch(_) {}
+                try { window._ensureModalAspectResize && window._ensureModalAspectResize(modal); } catch(_) {}
                 
                 // Generate bass grid if not already built
                 const bassContainer = modal.querySelector('.drum-grid-container');
@@ -7430,8 +7669,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 pos2 = pos4 - e.clientY;
                 pos3 = e.clientX;
                 pos4 = e.clientY;
-                element.style.top = (element.offsetTop - pos2) + "px";
-                element.style.left = (element.offsetLeft - pos1) + "px";
+                const vv = window.visualViewport;
+                const safeTop = Math.max(8, (vv ? vv.offsetTop : 0) + 8);
+                const maxLeft = Math.max(0, window.innerWidth - element.offsetWidth);
+                const maxTop = Math.max(safeTop, (vv ? vv.height : window.innerHeight) - element.offsetHeight);
+                const nextLeft = Math.max(0, Math.min(maxLeft, element.offsetLeft - pos1));
+                const nextTop = Math.max(safeTop, Math.min(maxTop, element.offsetTop - pos2));
+                element.style.top = nextTop + "px";
+                element.style.left = nextLeft + "px";
             }
             
             function elementDragTouch(e) {
@@ -7441,8 +7686,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 pos2 = pos4 - touch.clientY;
                 pos3 = touch.clientX;
                 pos4 = touch.clientY;
-                element.style.top = (element.offsetTop - pos2) + "px";
-                element.style.left = (element.offsetLeft - pos1) + "px";
+                const vv = window.visualViewport;
+                const safeTop = Math.max(8, (vv ? vv.offsetTop : 0) + 8);
+                const maxLeft = Math.max(0, window.innerWidth - element.offsetWidth);
+                const maxTop = Math.max(safeTop, (vv ? vv.height : window.innerHeight) - element.offsetHeight);
+                const nextLeft = Math.max(0, Math.min(maxLeft, element.offsetLeft - pos1));
+                const nextTop = Math.max(safeTop, Math.min(maxTop, element.offsetTop - pos2));
+                element.style.top = nextTop + "px";
+                element.style.left = nextLeft + "px";
             }
             
             function closeDragElement() {
@@ -7512,7 +7763,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const cur = modal.getBoundingClientRect();
                     // Grow width if current modal is smaller than content; do not enforce minWidth to allow manual shrinking
                     if (cur.width < need) {
-                        modal.style.width = Math.ceil(need) + 'px';
+                        const nextW = Math.ceil(need);
+                        modal.style.width = nextW + 'px';
+                        if (modal._aspectRatio) {
+                            modal.style.height = Math.ceil(nextW / modal._aspectRatio) + 'px';
+                        }
                     }
                     // Ensure container spans full width; avoid clipping
                     container.style.maxWidth = 'none';
@@ -7571,8 +7826,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Clamp to viewport
                 const rect = el.getBoundingClientRect();
                 const w = rect.width, h = rect.height;
+                const vv = window.visualViewport;
+                const safeTop = Math.max(8, (vv ? vv.offsetTop : 0) + 8);
                 nextLeft = Math.max(0, Math.min(window.innerWidth - w, nextLeft));
-                nextTop = Math.max(0, Math.min(window.innerHeight - h, nextTop));
+                nextTop = Math.max(safeTop, Math.min((vv ? vv.height : window.innerHeight) - h, nextTop));
                 el.style.left = nextLeft + 'px';
                 el.style.top = nextTop + 'px';
             };
@@ -7617,8 +7874,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 let nextTop = origTop + dy;
                 const rect = el.getBoundingClientRect();
                 const w = rect.width, h = rect.height;
+                const vv = window.visualViewport;
+                const safeTop = Math.max(8, (vv ? vv.offsetTop : 0) + 8);
                 nextLeft = Math.max(0, Math.min(window.innerWidth - w, nextLeft));
-                nextTop = Math.max(0, Math.min(window.innerHeight - h, nextTop));
+                nextTop = Math.max(safeTop, Math.min((vv ? vv.height : window.innerHeight) - h, nextTop));
                 el.style.left = nextLeft + 'px';
                 el.style.top = nextTop + 'px';
             };
@@ -8839,7 +9098,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 try {
                                     const haveAny = Object.values(window.midi.outputPortMap||{}).some(v=>!!v);
                                     if (!haveAny && firstLoopId) {
-                                        ['strum1','strum2','chord','arp','bass','drum','default'].forEach(sec=>{ window.midi.outputPortMap[sec] = firstLoopId; });
+                                        ['strum1','strum2','chord','arp','bass','bells','drum','default'].forEach(sec=>{ window.midi.outputPortMap[sec] = firstLoopId; });
                                         console.log(`[MIDI] (Sidebar) Auto-mapped loopMIDI port '${firstLoopName}' to all sections.`);
                                     }
                                 } catch(_) {}
@@ -21551,6 +21810,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 // Mouse events for strings with optimized performance
                 extensionColumns.addEventListener('mousedown', (e) => {
+                    if (this._isPointerOverModal(e)) return;
                     try { console.log('[INPUT] mousedown strings area mode=', (this.playMode||'high-low'), 'slide=', !!this._chordSlideEnabled); } catch(_){ }
                     if (this.audioContext && this.audioContext.state === 'suspended') {
                         this.audioContext.resume();
@@ -21768,6 +22028,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // Touch events for strings
                 extensionColumns.addEventListener('touchstart', (e) => {
+                    if (this._isPointerOverModal(e)) return;
                     e.preventDefault();
                     if (this.audioContext && this.audioContext.state === 'suspended') {
                         this.audioContext.resume();
@@ -26579,7 +26840,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (m.channelMap) window.midi.channelMap = { ...(window.midi.channelMap||{}), ...m.channelMap };
                                 // Try to reflect OUT selects in UI immediately
                                 try {
-                                    ['strum1','strum2','chord','arp','bass','drum'].forEach(sec=>{
+                                    ['strum1','strum2','chord','arp','bass','bells','drum'].forEach(sec=>{
                                         const el = document.getElementById(`midiOut-${sec}`);
                                         if (el && el.tagName==='SELECT') {
                                             const id = window.midi.outputPortMap?.[sec] || '';
@@ -31979,7 +32240,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         }
                                     } catch(_) {}
                                     try {
-                                        const secs = ['strum1','strum2','chord','arp','bass'];
+                                        const secs = ['strum1','strum2','chord','arp','bass','bells'];
                                         for (const sec of secs) {
                                             const inEl = document.getElementById('midiIn-'+sec);
                                             if (inEl && window.midi) {
@@ -34640,6 +34901,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     model.position = i;
                                     newArray.push(model);
                                     // Update dataset to new index for consistent future operations
+                                    try { window._ensureModalAspectResize && window._ensureModalAspectResize(modal); } catch(_) {}
                                     try { el.dataset.originalPosition = String(i); } catch(_) {}
                                 }
                             }
@@ -34857,7 +35119,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 try { this.stopAllDrums && this.stopAllDrums(); } catch(_){ }
             }
 
+            _isPointerOverModal(evt) {
+                try {
+                    const t = evt?.touches && evt.touches[0] ? evt.touches[0]
+                        : (evt?.changedTouches && evt.changedTouches[0] ? evt.changedTouches[0] : null);
+                    const x = Number.isFinite(evt?.clientX) ? evt.clientX : (t ? t.clientX : null);
+                    const y = Number.isFinite(evt?.clientY) ? evt.clientY : (t ? t.clientY : null);
+                    if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+                    const el = document.elementFromPoint(x, y);
+                    if (!el) return false;
+                    return !!el.closest('.floating-modal, .modal-overlay, .modal-content');
+                } catch(_) { return false; }
+            }
+
             handleStringTrigger(event, touchId = null) {
+                // Do not strum when interacting with modals/overlays
+                if (this._isPointerOverModal(event)) return;
                 // During sequencing, just allow STRUM mode - don't affect sequence progression
                 if (this._isSequencing) {
                     // Force STRUM mode during sequencing
@@ -35776,6 +36053,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         console.log('HIGHLIGHT DEBUG: model.fixedRootStepAbs =', model.fixedRootStepAbs, 'model.intervals =', model.intervals, 'model.fixedRootTuning =', model.fixedRootTuning);
                     }
                 } catch(e) { console.error('HIGHLIGHT ERROR (model lookup):', e); }
+                        try { window._ensureModalAspectResize && window._ensureModalAspectResize(modal); } catch(_) {}
 
                 if (model && Array.isArray(model.intervals)) {
                     chordIntervals = [...model.intervals];
@@ -37448,6 +37726,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     <input id="bellsFuzz" type="range" min="0" max="100" value="0" />
                     <span id="bellsFuzzValue">0%</span>
                 </div>
+                <div class="bells-midi-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <label for="midiIn-bells" style="font-size:11px;color:#9db6c8;">MIDI IN</label>
+                    <input id="midiIn-bells" type="number" min="0" max="15" value="1" title="Listen on MIDI input channel (0-15; 0=omni)" style="width:64px; background:#0d2938; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:2px 4px; font-size:11px;" />
+                    <label for="midiOut-bells" style="font-size:11px;color:#9db6c8;">OUT</label>
+                    <select id="midiOut-bells" title="Select MIDI output port (by name)" style="min-width:160px; background:#0d2938; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:2px 4px; font-size:11px;"></select>
+                </div>
             </div>
         </div>
   </div>
@@ -37526,6 +37810,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const glideMsVal = doc.getElementById('bellsGlideMsValue');
                 const fuzzEl = doc.getElementById('bellsFuzz');
                 const fuzzVal = doc.getElementById('bellsFuzzValue');
+                const midiInEl = doc.getElementById('midiIn-bells');
+                const midiOutEl = doc.getElementById('midiOut-bells');
                 if (!chordsEl || !modeEl || !barsEl || !slider || !sliderVal || !sliderLabel || !octSlider || !octVal || !glideToggle) return;
 
                 const list = this._getBellsChordList();
@@ -37710,6 +37996,38 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         });
                     }
 
+                    // BELLS MIDI IN/OUT controls
+                    try {
+                        const midi = window.midi;
+                        if (midi) {
+                            midi.inputChannelMap = midi.inputChannelMap || {};
+                            midi.outputPortMap = midi.outputPortMap || {};
+                            if (midi.inputChannelMap.bells == null) midi.inputChannelMap.bells = (midi.inputChannelMap.arp ?? 1);
+                            if (midi.outputPortMap.bells == null) midi.outputPortMap.bells = (midi.outputPortMap.arp ?? midi.outputPortMap.default ?? null);
+
+                            if (midiInEl && !midiInEl._wiredMidiBells) {
+                                midiInEl._wiredMidiBells = true;
+                                midiInEl.addEventListener('change', ()=>{
+                                    midi.inputChannelMap.bells = Math.max(0, Math.min(15, parseInt(midiInEl.value||'0',10)|0));
+                                    try { midi.saveMIDISettings && midi.saveMIDISettings(); } catch(_){ }
+                                });
+                            }
+                            if (midiOutEl && !midiOutEl._wiredMidiBells) {
+                                midiOutEl._wiredMidiBells = true;
+                                try { midi.populateOutputSelect && midi.populateOutputSelect(midiOutEl); } catch(_){ }
+                                try {
+                                    const sel = midi.outputPortMap.bells || midi.outputPortMap.default || '';
+                                    midiOutEl.value = String(sel || '');
+                                } catch(_){ }
+                                midiOutEl.addEventListener('change', ()=>{
+                                    const id = String(midiOutEl.value||'');
+                                    midi.outputPortMap.bells = id || null;
+                                    try { midi.saveMIDISettings && midi.saveMIDISettings(); } catch(_){ }
+                                });
+                            }
+                        }
+                    } catch(_) {}
+
                     // Sync UI values from instrument state
                     try {
                         if (waveRow) {
@@ -37766,6 +38084,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             fuzzEl.value = String(v);
                             if (fuzzVal) fuzzVal.textContent = `${v}%`;
                         }
+                        try {
+                            const midi = window.midi;
+                            if (midiInEl && midi) {
+                                const v = Math.max(0, Math.min(15, parseInt(midi.inputChannelMap?.bells ?? 1, 10) || 0));
+                                midiInEl.value = String(v);
+                            }
+                            if (midiOutEl && midi) {
+                                const sel = midi.outputPortMap?.bells ?? midi.outputPortMap?.default ?? '';
+                                if (Array.from(midiOutEl.options || []).some(op=>String(op.value)===String(sel))) {
+                                    midiOutEl.value = String(sel || '');
+                                }
+                            }
+                        } catch(_) {}
                     } catch(_) {}
                 } catch(_) {}
                 if (this._bellsState.mode === 'all-chords' || this._bellsState.mode === 'all-notes') {
@@ -39951,7 +40282,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Apply loaded settings to UI elements
                     applySettingsToUI() {
                         try {
-                            const sections = ['strum1','strum2','chord','arp','bass','drum'];
+                            const sections = ['strum1','strum2','chord','arp','bass','bells','drum'];
                             for (const sec of sections) {
                                 const inEl = document.getElementById(`midiIn-${sec}`);
                                 const outEl = document.getElementById(`midiOut-${sec}`);
@@ -40029,7 +40360,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             return null;
                                         })();
                                         if (loopId) {
-                                            ['strum1','strum2','chord','arp','bass','drum','default'].forEach(sec=>{ this.outputPortMap[sec] = loopId; });
+                                            ['strum1','strum2','chord','arp','bass','bells','drum','default'].forEach(sec=>{ this.outputPortMap[sec] = loopId; });
                                             console.log(`[MIDI] Auto-mapped loopMIDI port '${loopOut[0]}' (id=${loopId}) to all sections.`);
                                         }
                                     }
@@ -40037,7 +40368,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         } catch(e){ console.warn('MIDI logging error', e); }
                         try {
-                            ['strum1','strum2','chord','arp','bass','drum'].forEach(sec=>{
+                            ['strum1','strum2','chord','arp','bass','bells','drum'].forEach(sec=>{
                                 const el = document.getElementById(`midiOut-${sec}`);
                                 if (el && el.tagName === 'SELECT') {
                                     this.populateOutputSelect(el);
@@ -40328,7 +40659,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     // Auto-map first loopMIDI port to all sections if none chosen yet
                                     const haveAnyMapping = Object.values(midi.outputPortMap||{}).some(v=>!!v);
                                     if (!haveAnyMapping && firstLoopId) {
-                                        ['strum1','strum2','chord','arp','bass','drum','default'].forEach(sec=>{ midi.outputPortMap[sec] = firstLoopId; });
+                                        ['strum1','strum2','chord','arp','bass','bells','drum','default'].forEach(sec=>{ midi.outputPortMap[sec] = firstLoopId; });
                                         console.log(`[MIDI] Auto-mapped loopMIDI port '${firstLoopName}' (id=${firstLoopId}) to all sections (toggle).`);
                                     }
                                 } catch(_){ }
@@ -40772,7 +41103,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Wire per-section MIDI controls (IN/OUT-PORT/OCTAVE/VELOCITY)
                 ;(function(){
                     try {
-                        const sections = ['strum1','strum2','chord','arp','bass','drum'];
+                        const sections = ['strum1','strum2','chord','arp','bass','bells','drum'];
                         for (const sec of sections){
                             const inEl = document.getElementById(`midiIn-${sec}`);
                             const outEl = document.getElementById(`midiOut-${sec}`);
@@ -40812,7 +41143,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (inp) inp.value = String(newDefault);
                             midi.defaultVelocity = newDefault;
                             try {
-                                const sections = ['strum1','strum2','chord','arp','bass','drum'];
+                                const sections = ['strum1','strum2','chord','arp','bass','bells','drum'];
                                 midi.perSourceVelocity = midi.perSourceVelocity || {};
                                 for (const sec of sections){
                                     const el = document.getElementById(`midiVel-${sec}`);
