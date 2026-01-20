@@ -149,8 +149,36 @@
             background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
             border-bottom: 1px solid rgba(255,255,255,0.12);
             z-index: 11;
-            pointer-events: none;
+            pointer-events: auto;
             display: none;
+        }
+        #chordRuler .chord-ruler-tooltip {
+            position: absolute;
+            top: -20px;
+            transform: translateX(-50%);
+            background: rgba(12, 24, 38, 0.92);
+            color: #e8f5ff;
+            border: 1px solid rgba(124,201,255,0.45);
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 10px;
+            line-height: 1.2;
+            white-space: nowrap;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+            pointer-events: none;
+            z-index: 12;
+        }
+        #chordRuler .chord-ruler-split-marker {
+            position: absolute;
+            top: -6px;
+            height: 22px;
+            width: 2px;
+            background: rgba(255, 214, 110, 0.9);
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(255, 214, 110, 0.6);
+            pointer-events: auto;
+            cursor: pointer;
+            z-index: 12;
         }
         #chordRuler .chord-ruler-row {
             height: 100%;
@@ -2474,6 +2502,70 @@
             box-shadow: 0 6px 18px rgba(0,0,0,0.35);
             pointer-events: none;
         }
+
+        .empty-chord-splash {
+            padding: 16px 22px;
+            border-radius: 12px;
+            border: 1px solid rgba(124,201,255,0.35);
+            background: rgba(13, 41, 56, 0.65);
+            box-shadow: 0 10px 28px rgba(0,0,0,0.4);
+            color: #e8f5ff;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+        .empty-chord-splash:hover {
+            transform: translateY(-1px);
+            border-color: rgba(255, 214, 110, 0.7);
+            box-shadow: 0 14px 34px rgba(0,0,0,0.5);
+        }
+
+        /* CALC (Chord Calculator) */
+        .calc-layout { display:grid; grid-template-columns: minmax(280px, 1fr) 320px; gap: 14px; height: 100%; }
+        .calc-left { display:flex; flex-direction:column; gap: 10px; min-width: 0; }
+        .calc-display {
+            background: rgba(13, 24, 34, 0.9);
+            border: 1px solid rgba(124,201,255,0.35);
+            border-radius: 10px;
+            padding: 10px 12px;
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.35);
+        }
+        .calc-display .calc-title { font-size: 11px; color: #9db6c8; letter-spacing: 1px; text-transform: uppercase; }
+        .calc-display .calc-name { font-size: 20px; font-weight: 800; color: #e8f5ff; margin-top: 4px; }
+        .calc-display .calc-tokens { font-size: 12px; color: #7fb2d6; margin-top: 4px; min-height: 16px; }
+
+        .calc-group { background: rgba(10, 24, 34, 0.65); border: 1px solid rgba(74,106,112,0.45); border-radius: 10px; padding: 8px; }
+        .calc-group-title { font-size: 11px; color: #9db6c8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.6px; }
+        .calc-row { display:grid; grid-template-columns: repeat(4, minmax(46px, 1fr)); gap: 6px; }
+        .calc-row.tight { grid-template-columns: repeat(6, minmax(42px, 1fr)); }
+        .calc-btn {
+            background: #1a2f3c;
+            color: #e8f5ff;
+            border: 1px solid #2b5567;
+            border-radius: 8px;
+            padding: 6px 4px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+        }
+        .calc-btn.active { background: #f39c12; border-color: #e67e22; color: #111; }
+        .calc-btn.mod { background: #1f3a4a; }
+        .calc-btn.action { background: #214051; border-color: #4a6870; }
+        .calc-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,0.35); }
+
+        .calc-actions { display:flex; gap: 8px; flex-wrap: wrap; }
+
+        .calc-preview { display:flex; flex-direction:column; gap: 8px; }
+        .calc-preview-label { font-size: 12px; color: #9db6c8; text-transform: uppercase; letter-spacing: 0.6px; }
+        .calc-preview-column { height: 100%; min-height: 220px; border: 2px dashed rgba(80,200,255,0.35); background: rgba(15, 26, 36, 0.65); }
+        .calc-preview-hint { font-size: 11px; color: #7fb2d6; text-align: center; opacity: 0.8; }
+        @media (max-width: 720px) {
+            .calc-layout { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -2532,7 +2624,7 @@
             <!-- PRESET button removed (all state now captured by SAVE XEN). Sequence preset logic still accessible via advanced panels. -->
             <button id="bottomExportOMGBtn" class="panel-btn mobile-row-3" title="Export full session (.XEN)" style="background:#10b981;border-color:#34d399;">SAVE XEN</button>
             <button id="bottomImportOMGBtn" class="panel-btn mobile-row-3" title="Import .XEN session" style="background:#9b59b6;border-color:#8e44ad;">LOAD XEN</button>
-            <button id="bellsButton" class="panel-btn mobile-row-3" title="Open BELLS">BELLS</button>
+            <button id="bellsButton" class="panel-btn mobile-row-3" title="Open JAM">JAM</button>
             <button id="tutorialButton" class="panel-btn mobile-row-3" title="Start Tutorial">?</button>
             
             <!-- MASTER slider moved to main menu line -->
@@ -3114,10 +3206,12 @@
         <div class="root-notes-area">
             <div id="patternStrip" style="position:fixed;top:6px;left:88px;right:6px;max-width:calc(100vw - 100px);z-index:9701;display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;overflow-x:hidden;box-sizing:border-box;">
                 <div id="stripLeft" style="display:flex;flex-direction:column;gap:4px;">
+                    <button id="newSectionBtn" class="panel-btn" title="New Section" style="background:#513072;color:#f1e8ff;border:1px solid #8457b8;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">NEW SECTION</button>
                     <button id="newPatternBtn" class="panel-btn" title="New Pattern" style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">NEW PATTERN</button>
                     <button id="newDrumBtn" class="panel-btn" title="New Drum" style="background:#1f8f4a;color:#eafff3;border:1px solid #46c37b;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">NEW DRUM</button>
                 </div>
                 <div id="stripRight" style="display:flex;flex-direction:column;gap:4px;min-width:0;">
+                    <div id="sectionButtons" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"></div>
                     <div id="patternButtons" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"></div>
                     <div id="drumButtons" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"></div>
                 </div>
@@ -3140,7 +3234,7 @@
                     <button id="seqPanelBtn" class="sidebar-btn" title="Type or paste a chord sequence">SEQ</button>
                     <button id="loadXenBtn" class="sidebar-btn" title="Import .XEN session" style="background:#9b59b6;border-color:#8e44ad;">LOAD</button>
                     <button id="saveXenBtn" class="sidebar-btn" title="Export full session (.XEN)" style="background:#10b981;border-color:#34d399;">SAVE</button>
-                    <button id="bellsBtnSidebar" class="sidebar-btn" title="Open BELLS">BELLS</button>
+                    <button id="bellsBtnSidebar" class="sidebar-btn" title="Open JAM">JAM</button>
                     <button id="tutorialBtnSidebar" class="sidebar-btn" title="Start Tutorial">?</button>
                     
                     <!-- Transpose controls moved to top-right of sidebar -->
@@ -3592,10 +3686,10 @@
             </div>
         </div>
 
-        <!-- Floating Keyboard Modal (590x320 with Keys Visible) -->
-        <div id="keyboardModal" class="floating-modal" style="top: 22px; left: 80px; width: 590px; height: 320px; display: none; z-index: 10000;">
+        <!-- Floating CALC Modal (Chord Calculator) -->
+        <div id="keyboardModal" class="floating-modal" style="top: 22px; left: 80px; width: 760px; height: 520px; display: none; z-index: 10000;">
             <div class="modal-header">
-                <span>Keyboard</span>
+                <span>CALC</span>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <label style="display:flex;align-items:center;gap:3px;color:#9db6c8;font-size:9px;">
                         EDO <input id="edoQuickInputKeyboard" type="number" min="5" max="53" value="24" title="Steps per octave" style="width:40px;height:16px;background:#2a4858;color:#fff;border:1px solid #4a6870;border-radius:2px;font-size:9px;padding:1px 2px;">
@@ -3603,16 +3697,99 @@
                     <button class="modal-close" onclick="closeKeyboardModalOnly()">×</button>
                 </div>
             </div>
-            <div class="modal-body" style="padding: 8px; height: calc(100% - 60px); overflow: hidden;">
-                <div id="keyboardContainer" style="width: 100%; height: 100%;">
-                    <!-- Transpose controls -->
-                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px; gap: 8px;">
-                        <button id="transposeUpBtnModal" style="width:32px;height:24px;background:#27ae60;border:1px solid #2ecc71;border-radius:4px;color:#fff;font-size:10px;font-weight:bold;cursor:pointer;">▲</button>
-                        <div style="color:#9db6c8;font-size:9px;min-width:32px;text-align:center;">Transpose</div>
-                        <button id="transposeDownBtnModal" style="width:32px;height:24px;background:#e74c3c;border:1px solid #c0392b;border-radius:4px;color:#fff;font-size:10px;font-weight:bold;cursor:pointer;">▼</button>
+            <div class="modal-body" style="padding: 8px; height: calc(100% - 60px); overflow: visible;">
+                <div id="calcLayout" class="calc-layout">
+                    <div class="calc-left">
+                        <div class="calc-display">
+                            <div class="calc-title">Chord Calculator</div>
+                            <div id="calcChordName" class="calc-name">—</div>
+                            <div id="calcChordTokens" class="calc-tokens"></div>
+                        </div>
+
+                        <div class="calc-group">
+                            <div class="calc-group-title">Notes</div>
+                            <div class="calc-row">
+                                <button class="calc-btn" data-calc-note="A">A</button>
+                                <button class="calc-btn" data-calc-note="B">B</button>
+                                <button class="calc-btn" data-calc-note="C">C</button>
+                                <button class="calc-btn" data-calc-note="D">D</button>
+                            </div>
+                            <div class="calc-row">
+                                <button class="calc-btn" data-calc-note="E">E</button>
+                                <button class="calc-btn" data-calc-note="F">F</button>
+                                <button class="calc-btn" data-calc-note="G">G</button>
+                                <button class="calc-btn action" id="calcBackspaceBtn">⌫</button>
+                            </div>
+                        </div>
+
+                        <div class="calc-group">
+                            <div class="calc-group-title">Accidentals</div>
+                            <div class="calc-row tight" style="flex-wrap:wrap;">
+                                <button class="calc-btn mod" data-calc-acc="dblflat">𝄬</button>
+                                <button class="calc-btn mod" data-calc-acc="threeqflat">𝄭</button>
+                                <button class="calc-btn mod" data-calc-acc="qflat">𝄮</button>
+                                <button class="calc-btn mod" data-calc-acc="nat">𝄯</button>
+                                <button class="calc-btn mod" data-calc-acc="qsharp">𝄰</button>
+                                <button class="calc-btn mod" data-calc-acc="threeqsharp">𝄱</button>
+                                <button class="calc-btn mod" data-calc-acc="dblsharp">𝄲</button>
+                                <button class="calc-btn mod" data-calc-acc="flat">𝄳</button>
+                                <button class="calc-btn mod" data-calc-acc="stepdown">▼</button>
+                                <button class="calc-btn mod" data-calc-acc="stepup">▲</button>
+                                <button class="calc-btn action" id="calcNaturalBtn">Reset</button>
+                            </div>
+                        </div>
+
+                        <div class="calc-group">
+                            <div class="calc-group-title">Quality</div>
+                            <div class="calc-row">
+                                <button class="calc-btn" data-calc-quality="maj">Maj</button>
+                                <button class="calc-btn" data-calc-quality="min">Min</button>
+                                <button class="calc-btn" data-calc-quality="aug">Aug</button>
+                                <button class="calc-btn" data-calc-quality="dim">Dim</button>
+                            </div>
+                            <div class="calc-row">
+                                <button class="calc-btn" data-calc-quality="neu">Neu</button>
+                            </div>
+                        </div>
+
+                        <div class="calc-group">
+                            <div class="calc-group-title">Extensions</div>
+                            <div class="calc-row tight">
+                                <button class="calc-btn" data-calc-ext="5">5</button>
+                                <button class="calc-btn" data-calc-ext="6">6</button>
+                                <button class="calc-btn" data-calc-ext="7">7</button>
+                                <button class="calc-btn" data-calc-ext="9">9</button>
+                                <button class="calc-btn" data-calc-ext="11">11</button>
+                                <button class="calc-btn" data-calc-ext="13">13</button>
+                            </div>
+                        </div>
+
+                        <div class="calc-group">
+                            <div class="calc-group-title">Modifier (next extension)</div>
+                            <div class="calc-row">
+                                <button class="calc-btn mod" data-calc-mod="b">Flat</button>
+                                <button class="calc-btn mod" data-calc-mod="#">Sharp</button>
+                                <button class="calc-btn mod" data-calc-mod="micro">Micro</button>
+                                <button class="calc-btn action" id="calcModClearBtn">Clear</button>
+                            </div>
+                        </div>
+
+                        <div class="calc-actions">
+                            <button class="calc-btn action" id="calcClearBtn">CLEAR</button>
+                            <button class="calc-btn action" id="calcInsertBtn">INSERT</button>
+                            <button class="calc-btn action" id="calcReplaceBtn" style="display:none;">REPLACE</button>
+                        </div>
                     </div>
-                    <!-- Root grid will be moved here -->
-                    <div id="modalRootGrid" style="width: 100%; height: calc(100% - 40px); overflow: hidden;"></div>
+
+                    <div class="calc-preview">
+                        <div class="calc-preview-label">Preview</div>
+                        <div id="calcPreviewColumn" class="extension-column calc-preview-column">
+                            <div class="extension-header" id="calcPreviewHeader"><span class="chord-name" id="calcPreviewName">—</span></div>
+                            <div class="strings-column" id="calcPreviewStrings"></div>
+                            <div class="note-labels" id="calcPreviewNotes"></div>
+                        </div>
+                        <div class="calc-preview-hint">Drag this chord into the timeline</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3838,96 +4015,37 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
         // Define modal functions early for immediate access
         window.showKeyboardModal = function() {
-            console.log('Opening keyboard modal');
+            console.log('Opening CALC modal');
+            try {
+                if (window.omnichord && typeof omnichord.openCalcModal === 'function') {
+                    omnichord.openCalcModal();
+                    return;
+                }
+            } catch(_){ }
             const modal = document.getElementById('keyboardModal');
             if (modal) {
                 modal.style.display = 'block';
                 bringModalToFront('keyboardModal');
-                
-                // Adjust modal width based on current EDO (if function is available)
-                try {
-                    const seqEdoInput = document.getElementById('seqEdoInput');
-                    if (seqEdoInput && typeof adjustKeyboardModalWidth === 'function') {
-                        const currentEdo = parseInt(seqEdoInput.value) || 24;
-                        adjustKeyboardModalWidth(currentEdo);
-                    }
-                } catch (e) {
-                    console.log('adjustKeyboardModalWidth not yet available:', e);
-                }
-                
-                // Move root grid into modal
-                const modalRootGrid = document.getElementById('modalRootGrid');
-                const rootGrid = document.getElementById('rootGrid');
-                
-                if (modalRootGrid && rootGrid) {
-                    // Clear any existing content and move the grid
-                    modalRootGrid.innerHTML = '';
-                    modalRootGrid.appendChild(rootGrid);
-                    rootGrid.style.display = 'block';
-                    console.log('Root grid moved to modal');
-                }
-                
-                // ALWAYS regenerate keyboard when opening modal to ensure keys are visible
-                // Use setTimeout to ensure DOM is fully updated before regenerating
-                setTimeout(() => {
-                    if (window.omnichord && typeof omnichord.generateRootButtons === 'function') {
-                        console.log('Regenerating keyboard buttons...');
-                        omnichord.generateRootButtons();
-                        console.log('Keyboard buttons regenerated successfully');
-                        
-                        // If there's an active column, refresh its highlighting
-                        if (omnichord.currentActiveColumnEl) {
-                            try {
-                                omnichord.highlightKeyboardForColumn(omnichord.currentActiveColumnEl);
-                            } catch (e) {
-                                console.log('Could not refresh highlight:', e);
-                            }
-                        }
-                    }
-                }, 0);
-                
-                // Wire up modal transpose buttons
-                const transposeUp = document.getElementById('transposeUpBtnModal');
-                const transposeDown = document.getElementById('transposeDownBtnModal');
-                const originalUp = document.getElementById('transposeUpBtn');
-                const originalDown = document.getElementById('transposeDownBtn');
-                if (transposeUp && originalUp && !transposeUp._wired) {
-                    transposeUp._wired = true;
-                    transposeUp.addEventListener('click', () => originalUp.click());
-                }
-                if (transposeDown && originalDown && !transposeDown._wired) {
-                    transposeDown._wired = true;
-                    transposeDown.addEventListener('click', () => originalDown.click());
-                }
-                
-                // Ensure modal is draggable
                 if (!modal._draggableSet) {
                     makeDraggable(modal);
                     modal._draggableSet = true;
-                    console.log('Modal made draggable');
                 }
             }
         };
         
         window.closeKeyboardModal = function() {
-            console.log('Closing keyboard modal AND disabling keyboard');
+            console.log('Closing CALC modal');
             const modal = document.getElementById('keyboardModal');
             if (modal) modal.style.display = 'none';
             const btn = document.getElementById('keyboardBtn');
             if (btn) btn.classList.remove('active');
-            // Move root grid back to main area (but keep it hidden)
-            const keyboardSection = document.getElementById('keyboardSection');
-            const rootGrid = document.getElementById('rootGrid');
-            if (keyboardSection && rootGrid) {
-                keyboardSection.appendChild(rootGrid);
-            }
         };
         
         window.closeKeyboardModalOnly = function() {
-            console.log('Closing keyboard modal only (keeping keyboard enabled)');
+            console.log('Closing CALC modal only');
             const modal = document.getElementById('keyboardModal');
             if (modal) modal.style.display = 'none';
-            // Don't disable the keyboard - keep button active
+            // Don't disable the CALC toggle - keep button active if used
         };
 
         // Modal resize -> scale drum/pattern/bass dot size + spacing
@@ -8016,9 +8134,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             // Use event delegation to handle all current and future chord columns
             container.addEventListener('dragover', (e) => {
                 const dragging = document.querySelector('.dragging');
-                if (dragging && (dragging.classList.contains('repeat-marker-column') || dragging.classList.contains('extension-column'))) {
+                const isCalcPreview = dragging && dragging.classList.contains('calc-preview-column');
+                if (dragging && (dragging.classList.contains('repeat-marker-column') || dragging.classList.contains('extension-column') || isCalcPreview)) {
                     e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
+                    e.dataTransfer.dropEffect = isCalcPreview ? 'copy' : 'move';
                     
                     // Clear existing drop targets
                     document.querySelectorAll('.drop-target').forEach(el => {
@@ -8298,6 +8417,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             const omni = window.omnichord;
             const rootContainer = document.getElementById('extensionColumns');
             if (!rootContainer) return;
+            const ruler = document.getElementById('chordRuler');
 
             // Spec change: do NOT auto-pad chord timeline to bar multiples.
             // Remove any previously inserted auto-pad spacer blocks.
@@ -8366,6 +8486,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 try { window.requestSequencerRebuild && window.requestSequencerRebuild('len16'); } catch(_){ }
             };
 
+            const ensureLenTooltip = () => {
+                if (!ruler) return null;
+                if (!ruler._lenTooltip) {
+                    const tip = document.createElement('div');
+                    tip.className = 'chord-ruler-tooltip';
+                    tip.style.display = 'none';
+                    ruler.appendChild(tip);
+                    ruler._lenTooltip = tip;
+                }
+                return ruler._lenTooltip;
+            };
+
             // Add handles to every chord column
             const allChordCols = Array.from(rootContainer.querySelectorAll('.extension-column'));
             allChordCols.forEach(col => {
@@ -8401,9 +8533,35 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const startThis = getLen16(col);
                 const startNeighbor = neighbor ? getLen16(neighbor) : null;
                 let lastDeltaUnits = 0;
+                let lastMoveTs = (performance && performance.now) ? performance.now() : Date.now();
+                let lastRawDelta = 0;
+                const tipEl = ensureLenTooltip();
 
-                const applyDelta = (rawDeltaUnits) => {
-                    let deltaUnits = rawDeltaUnits|0;
+                const showTip = (len16) => {
+                    if (!tipEl || !ruler) return;
+                    try {
+                        const hRect = handle.getBoundingClientRect();
+                        const rRect = ruler.getBoundingClientRect();
+                        const left = (hRect.left + (hRect.width / 2)) - rRect.left;
+                        tipEl.style.left = `${left}px`;
+                        tipEl.textContent = `${len16} steps`;
+                        tipEl.style.display = 'block';
+                    } catch(_){ }
+                };
+
+                const hideTip = ()=>{ try { if (tipEl) tipEl.style.display = 'none'; } catch(_){ } };
+
+                const computeDeltaUnits = (rawDeltaUnits, speedUnitsPerMs) => {
+                    if (!Number.isFinite(rawDeltaUnits)) return 0;
+                    const slow = speedUnitsPerMs <= 0.03;
+                    if (slow) return Math.round(rawDeltaUnits);
+                    const desiredThis = startThis + (side === 'right' ? rawDeltaUnits : -rawDeltaUnits);
+                    const snappedThis = Math.max(1, Math.min(1024, Math.round(desiredThis / 4) * 4));
+                    return (side === 'right') ? (snappedThis - startThis) : (startThis - snappedThis);
+                };
+
+                const applyDelta = (rawDeltaUnits, speedUnitsPerMs) => {
+                    let deltaUnits = computeDeltaUnits(rawDeltaUnits, speedUnitsPerMs);
                     if (deltaUnits === lastDeltaUnits) return;
 
                     if (neighbor) {
@@ -8431,19 +8589,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
 
                     lastDeltaUnits = deltaUnits;
+                    try { showTip(getLen16(col)); } catch(_){ }
                 };
 
                 const onMove = (ev) => {
                     try { ev.preventDefault(); } catch(_){ }
+                    const nowTs = (performance && performance.now) ? performance.now() : Date.now();
+                    const dt = Math.max(1, nowTs - lastMoveTs);
                     const dx = (ev.clientX - startX);
-                    const deltaUnits = Math.round(dx / unitPx);
-                    applyDelta(deltaUnits);
+                    const rawDeltaUnits = (dx / unitPx);
+                    const speedUnitsPerMs = Math.abs(rawDeltaUnits - lastRawDelta) / dt;
+                    lastMoveTs = nowTs;
+                    lastRawDelta = rawDeltaUnits;
+                    applyDelta(rawDeltaUnits, speedUnitsPerMs);
                 };
 
                 const onUp = () => {
                     try { document.removeEventListener('pointermove', onMove, true); } catch(_){ }
                     try { document.removeEventListener('pointerup', onUp, true); } catch(_){ }
                     try { document.removeEventListener('pointercancel', onUp, true); } catch(_){ }
+
+                    try { hideTip(); } catch(_){ }
 
                     try { omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch(_){ }
                     requestSafeRebuild();
@@ -8622,6 +8788,155 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 window.renderChordRuler = scheduleRender;
 
+                const ensureSplitMarker = ()=>{
+                    if (!ruler._splitMarker) {
+                        const m = document.createElement('div');
+                        m.className = 'chord-ruler-split-marker';
+                        m.style.display = 'none';
+                        ruler.appendChild(m);
+                        ruler._splitMarker = m;
+                    }
+                    return ruler._splitMarker;
+                };
+
+                const getLen16 = (col)=>{
+                    const raw = col && col.dataset ? col.dataset.len16 : null;
+                    let v = parseInt(raw || '16', 10);
+                    if (!Number.isFinite(v) || v <= 0) v = 16;
+                    return Math.max(1, Math.min(1024, v|0));
+                };
+
+                const findChordIndex = (col, list)=>{
+                    if (!col || !list) return -1;
+                    const chordId = col.dataset && col.dataset.chordId ? String(col.dataset.chordId) : '';
+                    const origPos = col.dataset && col.dataset.originalPosition != null ? parseInt(col.dataset.originalPosition, 10) : null;
+                    if (chordId) {
+                        const idx = list.findIndex(c => c && String(c.id || '') === chordId);
+                        if (idx >= 0) return idx;
+                    }
+                    if (Number.isFinite(origPos) && origPos >= 0 && origPos < list.length) return origPos;
+                    return -1;
+                };
+
+                const splitChordAt = (col, splitStep)=>{
+                    const omni = window.omnichord;
+                    if (!omni || !Array.isArray(omni.chordExtensions)) return;
+                    const list = omni.chordExtensions;
+                    const idx = findChordIndex(col, list);
+                    if (idx < 0 || !list[idx]) return;
+                    const base = list[idx];
+                    const totalLen = getLen16(col);
+                    const cut = Math.max(1, Math.min(totalLen - 1, splitStep|0));
+                    const leftLen = cut;
+                    const rightLen = totalLen - cut;
+                    if (rightLen <= 0) return;
+
+                    const cloneJson = (v)=>{ try { return JSON.parse(JSON.stringify(v)); } catch(_){ return v; } };
+                    const dup = cloneJson(base);
+                    dup.id = `${String(base.id || 'ch')}_split_${Date.now()}`;
+                    dup.len16 = rightLen;
+                    base.len16 = leftLen;
+
+                    list.splice(idx + 1, 0, dup);
+                    try { list.forEach((c, i)=>{ if (c && typeof c === 'object') c.position = i; }); } catch(_){ }
+
+                    try { omni.generateExtensionColumns && omni.generateExtensionColumns(); } catch(_){ }
+                    try { omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch(_){ }
+                    try { window.requestSequencerRebuild && window.requestSequencerRebuild('split'); } catch(_){ }
+                };
+
+                const wireSplit = ()=>{
+                    if (ruler._xenSplitWired) return;
+                    ruler._xenSplitWired = true;
+
+                    let armed = false;
+                    let startX = 0;
+                    let startY = 0;
+                    let downCol = null;
+                    let downLen = 0;
+                    let lastStep = 0;
+                    let timer = null;
+
+                    const clearTimer = ()=>{ try { if (timer) { clearTimeout(timer); timer = null; } } catch(_){ } };
+                    const hideMarker = ()=>{ try { const m = ensureSplitMarker(); if (m) m.style.display = 'none'; } catch(_){ } };
+
+                    const getColAtX = (clientX)=>{
+                        const root = document.getElementById('extensionColumns');
+                        if (!root) return null;
+                        const cols = Array.from(root.querySelectorAll('.extension-column'));
+                        for (const col of cols) {
+                            const rect = col.getBoundingClientRect();
+                            if (clientX >= rect.left && clientX <= rect.right) return col;
+                        }
+                        return null;
+                    };
+
+                    const updateMarker = (clientX)=>{
+                        const m = ensureSplitMarker();
+                        if (!m || !ruler || !downCol) return;
+                        const colRect = downCol.getBoundingClientRect();
+                        const rRect = ruler.getBoundingClientRect();
+                        const relX = Math.max(0, Math.min(colRect.width, clientX - colRect.left));
+                        const unitPx = Math.max(1, colRect.width / Math.max(1, downLen));
+                        const step = Math.max(1, Math.min(downLen - 1, Math.round(relX / unitPx)));
+                        const markerX = (colRect.left - rRect.left) + (step * unitPx);
+                        m.style.left = `${markerX}px`;
+                        m.style.display = 'block';
+                        lastStep = step;
+                        m._splitStep = step;
+                        return step;
+                    };
+
+                    ruler.addEventListener('pointerdown', (e)=>{
+                        if (e.button != null && e.button !== 0) return;
+                        try { e.preventDefault(); } catch(_){ }
+                        clearTimer();
+                        armed = false;
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        downCol = getColAtX(startX);
+                        downLen = downCol ? getLen16(downCol) : 0;
+                        if (!downCol || downLen <= 1) return;
+                        timer = setTimeout(()=>{
+                            armed = true;
+                            updateMarker(startX);
+                        }, 260);
+                    }, { passive:false });
+
+                    ruler.addEventListener('pointermove', (e)=>{
+                        if (!downCol) return;
+                        if (!armed) {
+                            const dx = Math.abs(e.clientX - startX);
+                            const dy = Math.abs(e.clientY - startY);
+                            if (dx > 6 || dy > 6) clearTimer();
+                            return;
+                        }
+                        updateMarker(e.clientX);
+                    }, { passive:true });
+
+                    const onUp = (e)=>{
+                        clearTimer();
+                        if (armed && downCol) {
+                            const dy = e.clientY - startY;
+                            const step = Number.isFinite(lastStep) ? lastStep : (updateMarker(e.clientX) || 0);
+                            if (step > 0 && step < downLen && (dy > 16 || Math.abs(dy) <= 16)) {
+                                splitChordAt(downCol, step);
+                            }
+                        }
+                        armed = false;
+                        downCol = null;
+                        downLen = 0;
+                        lastStep = 0;
+                        hideMarker();
+                    };
+
+                    ruler.addEventListener('pointerup', onUp, { passive:true });
+                    ruler.addEventListener('pointercancel', onUp, { passive:true });
+                    ruler.addEventListener('pointerleave', () => { if (!armed) { clearTimer(); hideMarker(); downCol = null; downLen = 0; } }, { passive:true });
+                };
+
+                wireSplit();
+
                 try {
                     const obs = new MutationObserver((mutations) => {
                         for (const m of mutations) {
@@ -8640,6 +8955,457 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             };
             if (!ensure()) {
                 document.addEventListener('DOMContentLoaded', ensure, { once: true });
+            }
+        })();
+
+        // Section switching (A/B/C...) - per-section chords + patterns + drums
+        (function(){
+            if (window._sectionSupportWired) return;
+            window._sectionSupportWired = true;
+
+            const cloneJson = (v)=>{ try { return JSON.parse(JSON.stringify(v)); } catch(_){ return v; } };
+
+            const mapToObj = (mp)=>{
+                const out = {};
+                try {
+                    if (!mp || typeof mp.forEach !== 'function') return out;
+                    mp.forEach((v,k)=>{ out[String(k)] = cloneJson(v); });
+                } catch(_){ }
+                return out;
+            };
+
+            const objToMap = (obj)=>{
+                const mp = new Map();
+                try {
+                    if (!obj || typeof obj !== 'object') return mp;
+                    Object.keys(obj).forEach(k=>{ mp.set(parseInt(k,10), cloneJson(obj[k])); });
+                } catch(_){ }
+                return mp;
+            };
+
+            const captureChordExtensionsFromDom = ()=>{
+                try {
+                    const omni = window.omnichord;
+                    const container = document.getElementById('extensionColumns');
+                    if (!omni || !container) return Array.isArray(omni?.chordExtensions) ? cloneJson(omni.chordExtensions) : [];
+                    const els = Array.from(container.querySelectorAll('.repeat-marker-column, .extension-separator, .extension-column'));
+                    if (!els.length) return Array.isArray(omni?.chordExtensions) ? cloneJson(omni.chordExtensions) : [];
+
+                    const src = Array.isArray(omni.chordExtensions) ? omni.chordExtensions : [];
+                    const out = [];
+                    const present = new Set();
+
+                    const findChordByEl = (el)=>{
+                        try {
+                            const chordId = el?.dataset?.chordId ? String(el.dataset.chordId) : null;
+                            if (chordId) {
+                                const byId = src.find(c=> c && c.id != null && String(c.id) === chordId);
+                                if (byId) return byId;
+                            }
+                            const opRaw = el?.dataset?.originalPosition;
+                            if (opRaw != null) {
+                                const op = parseInt(String(opRaw),10);
+                                if (Number.isFinite(op) && op >= 0) {
+                                    if (src[op]) return src[op];
+                                    const byPos = src.find(c=> c && typeof c.position === 'number' && c.position === op);
+                                    if (byPos) return byPos;
+                                }
+                            }
+                        } catch(_){ }
+                        return null;
+                    };
+
+                    els.forEach((el, idx)=>{
+                        try {
+                            if (!el) return;
+                            if (el.classList.contains('repeat-marker-column') || el.dataset.isRepeatMarker === 'true') {
+                                const name = String((el.textContent||'').trim());
+                                if (!name) return;
+                                const nestLevel = parseInt(String(el.dataset.nestLevel||'0'),10);
+                                const rcRaw = el.dataset.repeatCount;
+                                const repeatCount = (rcRaw != null && rcRaw !== '') ? parseInt(String(rcRaw),10) : undefined;
+                                const marker = {
+                                    id: `repeat_${idx}`,
+                                    name,
+                                    type: 'bracket',
+                                    isRepeatMarker: true,
+                                    nestLevel: Number.isFinite(nestLevel) ? nestLevel : 0,
+                                    position: out.length
+                                };
+                                if (Number.isFinite(repeatCount)) marker.repeatCount = repeatCount;
+                                if (el.dataset.autoOuter === 'true') marker.autoOuter = true;
+                                out.push(marker);
+                                present.add(String(marker.id));
+                                return;
+                            }
+                            if (el.classList.contains('extension-separator')) {
+                                const sep = { id: `sep_${idx}`, name: '|', isSeparator: true, position: out.length };
+                                out.push(sep);
+                                present.add(String(sep.id));
+                                return;
+                            }
+                            if (el.classList.contains('extension-column')) {
+                                const chordExt = findChordByEl(el);
+                                const header = el.querySelector('.chord-name');
+                                const displayName = header ? String(header.textContent||'').trim() : '';
+                                const base = chordExt ? cloneJson(chordExt) : { name: displayName || 'Chord', intervals: [], extensions: [], isCustom: true };
+
+                                try {
+                                    const rawLen16 = el?.dataset?.len16;
+                                    let v = parseInt(String(rawLen16 || ''), 10);
+                                    if (!Number.isFinite(v) || v <= 0) v = (base && base.len16) ? parseInt(String(base.len16),10) : 16;
+                                    if (!Number.isFinite(v) || v <= 0) v = 16;
+                                    base.len16 = Math.max(1, Math.min(1024, v|0));
+                                } catch(_){ }
+
+                                try {
+                                    if (el.dataset.localTranspose != null) {
+                                        const lt = parseInt(String(el.dataset.localTranspose||'0'),10);
+                                        base.localTranspose = Number.isFinite(lt) ? lt : (base.localTranspose||0);
+                                    }
+                                } catch(_){ }
+                                if (displayName) base.name = displayName;
+                                if (!base.id) {
+                                    const chordId = el?.dataset?.chordId ? String(el.dataset.chordId) : '';
+                                    base.id = chordId || `ch_${idx}_${Date.now()}`;
+                                }
+                                base.position = out.length;
+                                out.push(base);
+                                present.add(String(base.id));
+                            }
+                        } catch(_){ }
+                    });
+
+                    const fallbackIdForSrc = (c, i)=>{
+                        try {
+                            if (c && c.id != null) return String(c.id);
+                            const nm = c && c.name != null ? String(c.name) : 'chord';
+                            return (nm + '_' + i).toLowerCase().replace(/\s+/g, '_');
+                        } catch(_){ return `chord_${i}`; }
+                    };
+                    src.forEach((c, i)=>{
+                        try {
+                            if (!c || typeof c !== 'object') return;
+                            if (c.isRepeatMarker || c.isSeparator || c.name === '|') return;
+                            const key = fallbackIdForSrc(c, i);
+                            if (present.has(key)) return;
+                            const extra = cloneJson(c);
+                            if (!extra.id) extra.id = key;
+                            extra.position = out.length;
+                            out.push(extra);
+                            present.add(String(extra.id));
+                        } catch(_){ }
+                    });
+
+                    return out.length ? out : (Array.isArray(omni.chordExtensions) ? cloneJson(omni.chordExtensions) : []);
+                } catch(_){
+                    return Array.isArray(window.omnichord?.chordExtensions) ? cloneJson(window.omnichord.chordExtensions) : [];
+                }
+            };
+
+            const captureSectionState = ()=>{
+                const omni = window.omnichord;
+                if (!omni) return null;
+                try { omni._saveArpPattern && omni._saveArpPattern(); } catch(_){ }
+                try { omni._saveArpPatternSynth && omni._saveArpPatternSynth(); } catch(_){ }
+
+                const basePatternNumber = Math.max(1, parseInt(document.getElementById('patternPatternNumber')?.value||'1',10) || 1);
+                const patternModal = document.getElementById('patternModal');
+                const basePatternEnabled = (patternModal && typeof patternModal._patternEnabled === 'boolean') ? !!patternModal._patternEnabled : true;
+
+                const patternInstances = Array.isArray(window._patternInstances) ? window._patternInstances : [];
+                const patternInstancesState = patternInstances.map(info=>{
+                    const modal = info && info.modal;
+                    const key = info && info.key ? String(info.key) : (modal?.dataset ? String(modal.dataset.patternInstanceKey||'') : '');
+                    if (!modal || !key) return null;
+                    const patNumEl = modal.querySelector('[data-role="patternPatternNumber"]') || modal.querySelector('#patternPatternNumber');
+                    const curNum = Math.max(1, parseInt(patNumEl ? patNumEl.value : '1', 10) || 1);
+                    return {
+                        key,
+                        displayName: modal._patternDisplayName || null,
+                        enabled: !!modal._patternEnabled,
+                        pendingEnabled: (modal._patternPendingEnabled != null) ? !!modal._patternPendingEnabled : null,
+                        patternNumber: curNum
+                    };
+                }).filter(Boolean);
+
+                return {
+                    chordExtensions: captureChordExtensionsFromDom(),
+                    basePatternNumber,
+                    basePatternEnabled,
+                    arpPatterns: mapToObj(omni._arpPatterns instanceof Map ? omni._arpPatterns : null),
+                    arpSynthPatterns: mapToObj(omni._arpSynthPatterns instanceof Map ? omni._arpSynthPatterns : null),
+                    arpPatternsByInst: (()=>{
+                        const out = {};
+                        try {
+                            const src = omni._arpPatternsByInst || {};
+                            Object.keys(src).forEach(k=>{ out[k] = mapToObj(src[k]); });
+                        } catch(_){ }
+                        return out;
+                    })(),
+                    arpSynthPatternsByInst: (()=>{
+                        const out = {};
+                        try {
+                            const src = omni._arpSynthPatternsByInst || {};
+                            Object.keys(src).forEach(k=>{ out[k] = mapToObj(src[k]); });
+                        } catch(_){ }
+                        return out;
+                    })(),
+                    patternInstances: patternInstancesState,
+                    drumInstances: cloneJson(window._drumInstances || []),
+                    activeDrumInstanceId: window._activeDrumInstanceId || null
+                };
+            };
+
+            const applySectionState = (state)=>{
+                const omni = window.omnichord;
+                if (!omni || !state) return;
+
+                if (Array.isArray(state.chordExtensions)) {
+                    omni.chordExtensions = cloneJson(state.chordExtensions);
+                    try { omni.generateExtensionColumns && omni.generateExtensionColumns(); } catch(_){ }
+                    try { omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch(_){ }
+                    try { window.requestSequencerRebuild && window.requestSequencerRebuild('section'); } catch(_){ }
+                }
+
+                if (state.arpPatterns) omni._arpPatterns = objToMap(state.arpPatterns);
+                if (state.arpSynthPatterns) omni._arpSynthPatterns = objToMap(state.arpSynthPatterns);
+
+                if (state.arpPatternsByInst) {
+                    omni._arpPatternsByInst = omni._arpPatternsByInst || {};
+                    Object.keys(state.arpPatternsByInst).forEach(k=>{
+                        omni._arpPatternsByInst[k] = objToMap(state.arpPatternsByInst[k]);
+                    });
+                }
+                if (state.arpSynthPatternsByInst) {
+                    omni._arpSynthPatternsByInst = omni._arpSynthPatternsByInst || {};
+                    Object.keys(state.arpSynthPatternsByInst).forEach(k=>{
+                        omni._arpSynthPatternsByInst[k] = objToMap(state.arpSynthPatternsByInst[k]);
+                    });
+                }
+
+                const patNumEl = document.getElementById('patternPatternNumber');
+                if (patNumEl) {
+                    patNumEl.value = String(state.basePatternNumber || 1);
+                    try { patNumEl.dispatchEvent(new Event('change', { bubbles: true })); } catch(_){ }
+                }
+                const patternModal = document.getElementById('patternModal');
+                if (patternModal && typeof state.basePatternEnabled === 'boolean') {
+                    patternModal._patternEnabled = !!state.basePatternEnabled;
+                    try {
+                        const speakerBtn = document.getElementById('patternSpeakerBtn');
+                        if (speakerBtn) speakerBtn.textContent = patternModal._patternEnabled ? '🔊' : '🔇';
+                    } catch(_){ }
+                }
+
+                try {
+                    const instStates = Array.isArray(state.patternInstances) ? state.patternInstances : [];
+                    const byKey = {}; instStates.forEach(s=>{ if (s && s.key) byKey[String(s.key)] = s; });
+                    const instances = Array.isArray(window._patternInstances) ? window._patternInstances : [];
+                    instances.forEach(info=>{
+                        const modal = info && info.modal;
+                        const key = info && info.key ? String(info.key) : (modal?.dataset ? String(modal.dataset.patternInstanceKey||'') : '');
+                        if (!modal || !key || !byKey[key]) return;
+                        const st = byKey[key];
+                        if (st.displayName) {
+                            modal._patternDisplayName = st.displayName;
+                            if (modal._stripBtn) modal._stripBtn.textContent = st.displayName;
+                            try { const hdr = modal.querySelector('.modal-header span'); if (hdr) hdr.textContent = `Pattern Sequencer — ${st.displayName}`; } catch(_){ }
+                        }
+                        modal._patternEnabled = !!st.enabled;
+                        modal._patternPendingEnabled = null;
+                        const patNumEl = modal.querySelector('[data-role="patternPatternNumber"]') || modal.querySelector('#patternPatternNumber');
+                        if (patNumEl) {
+                            patNumEl.value = String(st.patternNumber || 1);
+                            try { patNumEl.dispatchEvent(new Event('change', { bubbles: true })); } catch(_){ }
+                        }
+                        try { window._updatePatternInstanceButtonVisual && window._updatePatternInstanceButtonVisual(modal); } catch(_){ }
+                    });
+                } catch(_){ }
+
+                if (Array.isArray(state.drumInstances)) {
+                    const current = window._drumInstances || [];
+                    const byId = {}; current.forEach(inst=>{ if (inst && inst.id) byId[inst.id] = inst; });
+                    state.drumInstances.forEach(st=>{
+                        const inst = st && st.id ? byId[st.id] : null;
+                        if (!inst) return;
+                        Object.assign(inst, cloneJson(st));
+                        if (inst._stripBtn) inst._stripBtn.textContent = inst.name || inst._stripBtn.textContent;
+                        try { window._updateDrumInstanceButtonVisual && window._updateDrumInstanceButtonVisual(inst); } catch(_){ }
+                    });
+                }
+                if (state.activeDrumInstanceId) window._activeDrumInstanceId = state.activeDrumInstanceId;
+                try { window._syncDrumEditorToActiveInstance && window._syncDrumEditorToActiveInstance(); } catch(_){ }
+            };
+
+            const ensureSectionUI = ()=>{
+                const host = document.getElementById('sectionButtons');
+                if (!host) return false;
+                if (host._sectionsWired) return true;
+                host._sectionsWired = true;
+
+                const ensureSectionState = (st)=>{
+                    if (!st || typeof st !== 'object') st = {};
+                    if (!Array.isArray(st.chordExtensions)) st.chordExtensions = [];
+                    return st;
+                };
+
+                window._sections = window._sections || [];
+                if (!window._sections.length) {
+                    const initial = ensureSectionState(captureSectionState());
+                    window._sections.push({ id: 'A', name: 'SECTION A', state: initial });
+                    window._activeSectionId = 'A';
+                }
+
+                const renderButtons = ()=>{
+                    host.innerHTML = '';
+                    window._sections.forEach(sec=>{
+                        const b = document.createElement('button');
+                        b.className = 'panel-btn';
+                        b.textContent = sec.name || `SECTION ${sec.id}`;
+                        b.style.background = '#513072';
+                        b.style.borderColor = '#8457b8';
+                        b.style.color = '#f1e8ff';
+                        b.style.padding = '6px 10px';
+                        b.style.fontSize = '12px';
+                        b.dataset.sectionId = sec.id;
+
+                        const applyActive = ()=>{
+                            const activeId = window._activeSectionId;
+                            const pendingId = window._pendingSectionId;
+                            if (sec.id === activeId) b.classList.add('active'); else b.classList.remove('active');
+                            if (pendingId && sec.id === pendingId) b.classList.add('pending-change'); else b.classList.remove('pending-change');
+                        };
+
+                        const doRename = ()=>{
+                            if (b._renaming) return;
+                            b._renaming = true;
+                            const prev = String(sec.name || `SECTION ${sec.id}`);
+                            b.textContent = prev;
+                            b.setAttribute('contenteditable', 'true');
+                            b.setAttribute('role', 'textbox');
+                            b.setAttribute('spellcheck', 'false');
+                            b.style.outline = '2px solid #caa7ff';
+                            b.style.outlineOffset = '1px';
+                            const cleanup = ()=>{
+                                b.removeAttribute('contenteditable');
+                                b.removeAttribute('role');
+                                b.removeAttribute('spellcheck');
+                                b.style.outline = '';
+                                b.style.outlineOffset = '';
+                                b._renaming = false;
+                            };
+                            const finish = (commit)=>{
+                                const raw = String(b.textContent || '').trim();
+                                cleanup();
+                                sec.name = commit && raw ? raw : prev;
+                                b.textContent = sec.name;
+                                b.removeEventListener('keydown', onKey);
+                                b.removeEventListener('blur', onBlur);
+                            };
+                            const onKey = (e)=>{ if (e.key === 'Enter') { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { e.preventDefault(); finish(false); } };
+                            const onBlur = ()=> finish(true);
+                            b.addEventListener('keydown', onKey);
+                            b.addEventListener('blur', onBlur);
+                        };
+
+                        b.addEventListener('dblclick', (e)=>{
+                            e.preventDefault();
+                            e.stopPropagation();
+                            doRename();
+                        });
+
+                        b.addEventListener('contextmenu', (e)=>{
+                            e.preventDefault();
+                            doRename();
+                        });
+
+                        b.addEventListener('click', ()=>{
+                            if (b._renaming) return;
+                            try {
+                                const curId = window._activeSectionId;
+                                const cur = (window._sections||[]).find(s=>s && s.id === curId);
+                                if (cur) {
+                                    const st = captureSectionState();
+                                    if (st) cur.state = cloneJson(ensureSectionState(st));
+                                }
+                            } catch(_){ }
+                            const id = sec.id;
+                            const omni = window.omnichord;
+                            const isPlaying = !!(omni && omni._isSequencing);
+                            if (isPlaying) {
+                                window._pendingSectionId = id;
+                                if (omni) omni._pendingSectionSwitchId = id;
+                            } else {
+                                window._activeSectionId = id;
+                                window._pendingSectionId = null;
+                                if (omni) omni._pendingSectionSwitchId = null;
+                                applySectionState(sec.state);
+                            }
+                            applyActive();
+                            renderButtons();
+                        });
+
+                        applyActive();
+                        host.appendChild(b);
+                    });
+                };
+
+                renderButtons();
+
+                const newBtn = document.getElementById('newSectionBtn');
+                if (newBtn && !newBtn._wired) {
+                    newBtn._wired = true;
+                    newBtn.addEventListener('click', ()=>{
+                        const omni = window.omnichord;
+                        try {
+                            const curId = window._activeSectionId;
+                            const cur = (window._sections||[]).find(s=>s && s.id === curId);
+                            if (cur) {
+                                const st = captureSectionState();
+                                if (st) cur.state = cloneJson(ensureSectionState(st));
+                            }
+                        } catch(_){ }
+                        const activeSection = (window._sections||[]).find(s=>s && s.id === window._activeSectionId);
+                        let state = null;
+                        if (activeSection && activeSection.state) {
+                            state = cloneJson(ensureSectionState(activeSection.state));
+                        } else {
+                            state = cloneJson(ensureSectionState(captureSectionState()));
+                            state.chordExtensions = [];
+                        }
+                        const nextId = String.fromCharCode(65 + (window._sections?.length||0));
+                        const id = nextId && nextId.length === 1 ? nextId : `S${(window._sections?.length||0)+1}`;
+                        window._sections.push({ id, name: `SECTION ${id}`, state: cloneJson(state) });
+                        window._activeSectionId = id;
+                        window._pendingSectionId = null;
+                        if (omni) omni._pendingSectionSwitchId = null;
+                        applySectionState(state);
+                        renderButtons();
+                    });
+                }
+
+                const omni = window.omnichord;
+                const applySectionSwitchById = (id)=>{
+                    const sec = (window._sections||[]).find(s=>s && s.id === id);
+                    if (!sec) return;
+                    window._activeSectionId = id;
+                    window._pendingSectionId = null;
+                    if (omni) omni._pendingSectionSwitchId = null;
+                    applySectionState(sec.state);
+                    renderButtons();
+                };
+                window._applySectionSwitchById = applySectionSwitchById;
+                if (omni && !omni._applySectionSwitchById) {
+                    omni._applySectionSwitchById = applySectionSwitchById;
+                }
+
+                return true;
+            };
+
+            if (!ensureSectionUI()) {
+                document.addEventListener('DOMContentLoaded', ensureSectionUI, { once: true });
+                setTimeout(ensureSectionUI, 250);
             }
         })();
 
@@ -9446,6 +10212,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Track selection entry order for slash-bass inference
                 this.selectedIntervals = [];
                 this.selectedIntervalsOrder = [];
+                // CALC (Chord Calculator) state
+                this.calcState = {
+                    note: 'C',
+                    accidental: 'nat',
+                    quality: 'maj',
+                    extensions: [],
+                    modifier: null,
+                    useCustomIntervals: false,
+                    customIntervals: null,
+                    customRootStep: null,
+                    customName: null,
+                    insertIndex: null
+                };
+                this._calcWired = false;
                 // Track a newly created blank chord to inherit notes on first external strum
                 this.pendingBlankChordId = null;
                 
@@ -14197,7 +14977,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 noteLabels.textContent = noteNames.join(' ');
             }
             
-            generateStringsForPreviewColumn(container, intervals) {
+            generateStringsForPreviewColumn(container, intervals, previewColumnOverride = null) {
                 // Clear any existing content
                 container.innerHTML = '';
                 const tuningSize = this.currentTuning || this.getTuningStepsPerOctave();
@@ -14235,7 +15015,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
                 
                 // Calculate string sizing to MATCH main column behavior (fill height uniformly)
-                const previewColumn = document.getElementById('previewChordColumn');
+                const previewColumn = previewColumnOverride || document.getElementById('previewChordColumn');
                 const availableHeight = (previewColumn ? previewColumn.offsetHeight : 500);
                 const headerHeight = 40;
                 const stringsHeight = availableHeight - headerHeight - 2; // minimal padding
@@ -14426,6 +15206,615 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 // Store for cleanup
                 this.tempChordAudio.set(`preview-${Date.now()}`, { oscillator: source, gainNode });
+            }
+
+            // ============= CALC (Chord Calculator) =============
+            initCalcModalUI() {
+                if (this._calcWired) return;
+                const modal = document.getElementById('keyboardModal');
+                if (!modal) return;
+
+                const clearCustom = () => {
+                    if (!this.calcState) return;
+                    this.calcState.useCustomIntervals = false;
+                    this.calcState.customIntervals = null;
+                    this.calcState.customRootStep = null;
+                    this.calcState.customName = null;
+                };
+
+                modal.querySelectorAll('[data-calc-note]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        clearCustom();
+                        this.calcState.note = btn.dataset.calcNote;
+                        this.refreshCalcUI();
+                    });
+                });
+
+                modal.querySelectorAll('[data-calc-acc]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        clearCustom();
+                        this.calcState.accidental = btn.dataset.calcAcc;
+                        this.refreshCalcUI();
+                    });
+                });
+
+                modal.querySelectorAll('[data-calc-quality]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        clearCustom();
+                        this.calcState.quality = btn.dataset.calcQuality;
+                        this.refreshCalcUI();
+                    });
+                });
+
+                modal.querySelectorAll('[data-calc-ext]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        clearCustom();
+                        const ext = btn.dataset.calcExt;
+                        if (!this.calcState.extensions) this.calcState.extensions = [];
+                        if (this.calcState.extensions.includes(ext)) {
+                            this.calcState.extensions = this.calcState.extensions.filter(e => e !== ext);
+                        } else {
+                            this.calcState.extensions = [...this.calcState.extensions, ext];
+                        }
+                        this.refreshCalcUI();
+                    });
+                });
+
+                modal.querySelectorAll('[data-calc-mod]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        clearCustom();
+                        const mod = btn.dataset.calcMod;
+                        this.calcState.modifier = (this.calcState.modifier === mod) ? null : mod;
+                        this.refreshCalcUI();
+                    });
+                });
+
+                const backspaceBtn = document.getElementById('calcBackspaceBtn');
+                if (backspaceBtn) {
+                    backspaceBtn.addEventListener('click', () => {
+                        clearCustom();
+                        if (this.calcState.modifier) {
+                            this.calcState.modifier = null;
+                        } else if (this.calcState.extensions && this.calcState.extensions.length) {
+                            this.calcState.extensions = this.calcState.extensions.slice(0, -1);
+                        } else {
+                            this.calcState.accidental = 'nat';
+                        }
+                        this.refreshCalcUI();
+                    });
+                }
+
+                const naturalBtn = document.getElementById('calcNaturalBtn');
+                if (naturalBtn) {
+                    naturalBtn.addEventListener('click', () => {
+                        clearCustom();
+                        this.calcState.accidental = 'nat';
+                        this.refreshCalcUI();
+                    });
+                }
+
+                const modClearBtn = document.getElementById('calcModClearBtn');
+                if (modClearBtn) {
+                    modClearBtn.addEventListener('click', () => {
+                        clearCustom();
+                        this.calcState.modifier = null;
+                        this.refreshCalcUI();
+                    });
+                }
+
+                const clearBtn = document.getElementById('calcClearBtn');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', () => {
+                        this.resetCalcState();
+                        this.refreshCalcUI();
+                    });
+                }
+
+                const insertBtn = document.getElementById('calcInsertBtn');
+                if (insertBtn) {
+                    insertBtn.addEventListener('click', () => {
+                        this.insertCalcChordFromState({ replace: false });
+                    });
+                }
+
+                const replaceBtn = document.getElementById('calcReplaceBtn');
+                if (replaceBtn) {
+                    replaceBtn.addEventListener('click', () => {
+                        this.insertCalcChordFromState({ replace: true });
+                    });
+                }
+
+                const calcPreview = document.getElementById('calcPreviewColumn');
+                const calcPreviewHeader = document.getElementById('calcPreviewHeader');
+                if (calcPreview && calcPreviewHeader) {
+                    calcPreviewHeader.setAttribute('draggable', 'true');
+                    let headerDragStart = null;
+                    let headerDragged = false;
+
+                    calcPreviewHeader.addEventListener('dragstart', (e) => {
+                        calcPreview.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'copy';
+                        e.dataTransfer.setData('text/plain', 'calc-chord');
+                    });
+                    calcPreviewHeader.addEventListener('dragend', () => {
+                        calcPreview.classList.remove('dragging');
+                        headerDragStart = null;
+                        headerDragged = false;
+                    });
+                    calcPreviewHeader.addEventListener('pointerdown', (e) => {
+                        if (e.pointerType === 'mouse' && e.button !== 0) return;
+                        headerDragStart = { x: e.clientX, y: e.clientY };
+                        headerDragged = false;
+                    });
+                    calcPreviewHeader.addEventListener('pointermove', (e) => {
+                        if (!headerDragStart) return;
+                        const dx = Math.abs(e.clientX - headerDragStart.x);
+                        const dy = Math.abs(e.clientY - headerDragStart.y);
+                        if (dx > 6 || dy > 6) headerDragged = true;
+                    });
+                    calcPreviewHeader.addEventListener('pointerup', (e) => {
+                        if (e.pointerType === 'mouse' && e.button !== 0) return;
+                        const now = Date.now();
+                        if (calcPreviewHeader._calcInsertGuard && (now - calcPreviewHeader._calcInsertGuard) < 250) return;
+                        if (!headerDragged) {
+                            calcPreviewHeader._calcInsertGuard = now;
+                            const calcChord = this._computeCalcChord();
+                            this._playCalcChordPreview(calcChord);
+                            this.insertCalcChordFromState({ replace: false });
+                        }
+                        headerDragStart = null;
+                        headerDragged = false;
+                    });
+
+                    // Rely on pointer events for touch to avoid double inserts
+
+                    // Strum preview on the strings area (drag up/down)
+                    let strumStart = null;
+                    const isHeaderTarget = (ev) => {
+                        const t = ev.target;
+                        return t && (t === calcPreviewHeader || calcPreviewHeader.contains(t));
+                    };
+                    const startStrum = (x, y) => {
+                        strumStart = { x, y };
+                    };
+                    const endStrum = (x, y) => {
+                        if (!strumStart) return;
+                        const calcChord = this._computeCalcChord();
+                        this._playCalcChordPreview(calcChord);
+                        this.playChordStrum(calcPreview, { name: calcChord.name || 'CALC' }, strumStart.y, y);
+                        strumStart = null;
+                    };
+
+                    calcPreview.addEventListener('pointerdown', (e) => {
+                        if (isHeaderTarget(e)) return;
+                        if (e.pointerType === 'mouse' && e.button !== 0) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        startStrum(e.clientX, e.clientY);
+                    });
+                    calcPreview.addEventListener('pointerup', (e) => {
+                        if (!strumStart) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        endStrum(e.clientX, e.clientY);
+                    });
+                    calcPreview.addEventListener('pointercancel', () => { strumStart = null; });
+
+                    calcPreview.addEventListener('touchstart', (e) => {
+                        if (isHeaderTarget(e)) return;
+                        const t = e.touches && e.touches[0];
+                        if (!t) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        startStrum(t.clientX, t.clientY);
+                    }, { passive: false });
+                    calcPreview.addEventListener('touchend', (e) => {
+                        const t = e.changedTouches && e.changedTouches[0];
+                        if (!t || !strumStart) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        endStrum(t.clientX, t.clientY);
+                    }, { passive: false });
+                }
+
+                this._calcWired = true;
+            }
+
+            resetCalcState() {
+                this.calcState = {
+                    note: 'C',
+                    accidental: 'nat',
+                    quality: 'maj',
+                    extensions: [],
+                    modifier: null,
+                    useCustomIntervals: false,
+                    customIntervals: null,
+                    customRootStep: null,
+                    customName: null,
+                    insertIndex: null
+                };
+            }
+
+            openCalcModal(opts = {}) {
+                this.initCalcModalUI();
+                const modal = document.getElementById('keyboardModal');
+                if (modal) {
+                    modal.style.display = 'block';
+                    bringModalToFront('keyboardModal');
+                    if (!modal._draggableSet) {
+                        makeDraggable(modal);
+                        modal._draggableSet = true;
+                    }
+                }
+                const btn = document.getElementById('keyboardBtn');
+                if (btn) btn.classList.add('active');
+
+                if (!this.calcState) this.resetCalcState();
+                this.calcState.insertIndex = null;
+
+                if (opts && opts.column) {
+                    this._loadCalcFromColumn(opts.column);
+                } else if (opts && opts.chord) {
+                    this._loadCalcFromChord(opts.chord);
+                } else {
+                    this.isEditingChord = false;
+                    this.editingOriginalIndex = null;
+                    if (!this.calcState) this.resetCalcState();
+                }
+                this.refreshCalcUI();
+            }
+
+            closeCalcModal() {
+                const modal = document.getElementById('keyboardModal');
+                if (modal) modal.style.display = 'none';
+                const btn = document.getElementById('keyboardBtn');
+                if (btn) btn.classList.remove('active');
+            }
+
+            _loadCalcFromColumn(column) {
+                if (!column) return;
+                const chordId = column.dataset && column.dataset.chordId ? String(column.dataset.chordId) : null;
+                let chord = null;
+                if (chordId && Array.isArray(this.chordExtensions)) {
+                    chord = this.chordExtensions.find(ext => String(ext.id) === chordId);
+                }
+                if (!chord) {
+                    const pos = column.dataset && column.dataset.originalPosition != null ? parseInt(column.dataset.originalPosition, 10) : -1;
+                    if (pos >= 0 && Array.isArray(this.chordExtensions) && this.chordExtensions[pos]) chord = this.chordExtensions[pos];
+                }
+                if (!chord) return;
+
+                this._loadCalcFromChord(chord);
+                // Capture editing index for replace
+                const idx = (typeof chord.position === 'number') ? chord.position : (this.chordExtensions || []).indexOf(chord);
+                if (idx >= 0) {
+                    this.isEditingChord = true;
+                    this.editingOriginalIndex = idx;
+                }
+            }
+
+            _loadCalcFromChord(chord) {
+                if (!chord) return;
+                if (!this.calcState) this.resetCalcState();
+                this.calcState.useCustomIntervals = true;
+                this.calcState.customIntervals = Array.isArray(chord.intervals) ? chord.intervals.slice() : [];
+                this.calcState.customRootStep = (typeof chord.fixedRootStepAbs === 'number') ? chord.fixedRootStepAbs : (this.currentRoot || 0);
+                this.calcState.customName = chord.name || null;
+            }
+
+            _computeCalcChord() {
+                const edo = this.currentTuning || 12;
+                const state = this.calcState || {};
+                let rootStep = 0;
+                let intervals = [];
+
+                if (state.useCustomIntervals && Array.isArray(state.customIntervals)) {
+                    rootStep = (typeof state.customRootStep === 'number') ? state.customRootStep : (this.currentRoot || 0);
+                    intervals = state.customIntervals.slice();
+                } else {
+                    const noteMap = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+                    const note = state.note || 'C';
+                    const baseSemi = noteMap[note] ?? 0;
+                    const accMap = {
+                        dblflat: -2,
+                        threeqflat: -1.5,
+                        qflat: -0.5,
+                        nat: 0,
+                        qsharp: 0.5,
+                        threeqsharp: 1.5,
+                        dblsharp: 2,
+                        flat: -1,
+                        sharp: 1
+                    };
+                    const stepMap = {
+                        stepdown: -1,
+                        stepup: 1
+                    };
+                    if (state.accidental && stepMap[state.accidental]) {
+                        const baseStep = this.mapIntervalToEDO(baseSemi, edo);
+                        rootStep = ((baseStep + stepMap[state.accidental]) % edo + edo) % edo;
+                    } else {
+                        const accOffset = accMap[state.accidental] ?? 0;
+                        const rootSemi = baseSemi + accOffset;
+                        rootStep = ((this.mapIntervalToEDO(rootSemi, edo) % edo) + edo) % edo;
+                    }
+
+                    const qualityMap = {
+                        maj: 'major',
+                        min: 'minor',
+                        aug: 'augmented',
+                        dim: 'diminished',
+                        neu: 'neutral'
+                    };
+                    const q = qualityMap[state.quality] || 'major';
+                    const baseSemis = this.getBaseTriadForQuality(q) || [0, 4, 7];
+
+                    const extOrder = ['5','6','7','9','11','13'];
+                    const extMap = {
+                        '5': [7],
+                        '6': [9],
+                        '7': [10],
+                        '9': [10, 14],
+                        '11': [10, 14, 17],
+                        '13': [10, 14, 17, 21]
+                    };
+                    const selectedExt = extOrder.filter(ext => (state.extensions || []).includes(ext));
+                    const modDelta = state.modifier === 'b' ? -1 : state.modifier === '#' ? 1 : state.modifier === 'micro' ? 0.5 : 0;
+                    const targetExt = (modDelta !== 0 && selectedExt.length) ? selectedExt[selectedExt.length - 1] : null;
+
+                    const extSemis = [];
+                    selectedExt.forEach(ext => {
+                        const base = (extMap[ext] || []).slice();
+                        if (ext === targetExt && modDelta !== 0 && base.length) {
+                            base[base.length - 1] = base[base.length - 1] + modDelta;
+                        }
+                        extSemis.push(...base);
+                    });
+
+                    intervals = [...baseSemis, ...extSemis];
+                }
+
+                // Normalize intervals to steps and ensure root 0
+                const mapToStep = (state.useCustomIntervals && Array.isArray(state.customIntervals))
+                    ? (iv => iv)
+                    : (iv => this.mapIntervalToEDO(iv, edo));
+                const degreeSteps = Array.from(new Set([0, ...intervals.map(iv => ((mapToStep(iv) % edo) + edo) % edo)]));
+                const sortedDegrees = degreeSteps.sort((a,b)=> this.stepToSemitone(a, edo) - this.stepToSemitone(b, edo));
+                const absSteps = Array.from(new Set(sortedDegrees.map(iv => ((rootStep + iv) % edo + edo) % edo)))
+                    .sort((a,b)=> this.stepToSemitone(a, edo) - this.stepToSemitone(b, edo));
+
+                const name = (state.useCustomIntervals && state.customName)
+                    ? state.customName
+                    : (this.computeFullChordNameFromAbsoluteSteps(absSteps, edo, rootStep) || 'Chord');
+
+                const noteNames = absSteps.map(step => this.getMicrotonalNoteName(step));
+
+                return { rootStep, intervals: sortedDegrees, absSteps, name, noteNames };
+            }
+
+            refreshCalcUI() {
+                if (!this.calcState) this.resetCalcState();
+                const calc = this._computeCalcChord();
+
+                const nameEl = document.getElementById('calcChordName');
+                if (nameEl) nameEl.textContent = calc.name || '—';
+                const previewName = document.getElementById('calcPreviewName');
+                if (previewName) previewName.textContent = calc.name || '—';
+
+                const tokensEl = document.getElementById('calcChordTokens');
+                if (tokensEl) {
+                    const accLabelMap = {
+                        dblflat: '𝄬',
+                        threeqflat: '𝄭',
+                        qflat: '𝄮',
+                        nat: '𝄯',
+                        qsharp: '𝄰',
+                        threeqsharp: '𝄱',
+                        dblsharp: '𝄲',
+                        flat: '𝄳',
+                        sharp: '♯',
+                        stepdown: '▼',
+                        stepup: '▲'
+                    };
+                    const accSymbol = accLabelMap[this.calcState.accidental] || '';
+                    const qualLabel = this.calcState.quality ? this.calcState.quality.toUpperCase() : 'MAJ';
+                    const extLabel = (this.calcState.extensions || []).join(' ');
+                    const modLabel = this.calcState.modifier ? `${this.calcState.modifier}` : '';
+                    tokensEl.textContent = this.calcState.useCustomIntervals
+                        ? 'Custom intervals'
+                        : `${this.calcState.note || 'C'}${accSymbol} ${qualLabel}${extLabel ? ' ' + extLabel : ''}${modLabel ? ' ' + modLabel : ''}`.trim();
+                }
+
+                const notesEl = document.getElementById('calcPreviewNotes');
+                if (notesEl) notesEl.textContent = calc.noteNames.join(' ');
+
+                const stringsEl = document.getElementById('calcPreviewStrings');
+                if (stringsEl) {
+                    const previewColumn = document.getElementById('calcPreviewColumn');
+                    this.generateStringsForPreviewColumn(stringsEl, calc.absSteps, previewColumn);
+                }
+
+                // Update active button states
+                const modal = document.getElementById('keyboardModal');
+                if (modal) {
+                    modal.querySelectorAll('[data-calc-note]').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.calcNote === this.calcState.note);
+                    });
+                    modal.querySelectorAll('[data-calc-acc]').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.calcAcc === this.calcState.accidental);
+                    });
+                    modal.querySelectorAll('[data-calc-quality]').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.calcQuality === this.calcState.quality);
+                    });
+                    modal.querySelectorAll('[data-calc-ext]').forEach(btn => {
+                        const ext = btn.dataset.calcExt;
+                        btn.classList.toggle('active', (this.calcState.extensions || []).includes(ext));
+                    });
+                    modal.querySelectorAll('[data-calc-mod]').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.calcMod === this.calcState.modifier);
+                    });
+                }
+
+                const replaceBtn = document.getElementById('calcReplaceBtn');
+                if (replaceBtn) {
+                    replaceBtn.style.display = (this.isEditingChord && typeof this.editingOriginalIndex === 'number' && this.editingOriginalIndex >= 0)
+                        ? 'inline-flex'
+                        : 'none';
+                }
+            }
+
+            _playCalcChordPreview(calcChord) {
+                if (!calcChord || !Array.isArray(calcChord.absSteps)) return;
+                this.stopPreviewAudio();
+                this.ensureAudioContext().then((ready) => {
+                    if (!ready) return;
+                    calcChord.absSteps.forEach((step, index) => {
+                        const frequency = this.getFrequency(step, 4, this.currentTuning);
+                        const oscillator = this.audioContext.createOscillator();
+                        const gainNode = this.audioContext.createGain();
+
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+
+                        gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                        gainNode.gain.linearRampToValueAtTime(0.07, this.audioContext.currentTime + 0.05);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.9);
+
+                        oscillator.connect(gainNode);
+                        gainNode.connect(this.gainNode);
+
+                        oscillator.start();
+                        oscillator.stop(this.audioContext.currentTime + 0.9);
+
+                        this.tempChordAudio.set(`calc-${index}`, { oscillator, gainNode });
+                    });
+                });
+            }
+
+            insertCalcChordFromState({ replace = false } = {}) {
+                const calc = this._computeCalcChord();
+                const edo = this.currentTuning || 12;
+                if (!calc || !Array.isArray(calc.intervals) || calc.intervals.length < 2) {
+                    console.warn('CALC insert skipped: no chord selected');
+                    return;
+                }
+
+                const normalized = calc.intervals.map(iv => ((iv % edo) + edo) % edo).sort((a,b)=> this.stepToSemitone(a, edo) - this.stepToSemitone(b, edo));
+                const baseRootAbs = ((calc.rootStep % edo) + edo) % edo;
+
+                const replacing = !!replace && typeof this.editingOriginalIndex === 'number' && this.editingOriginalIndex >= 0;
+                let insertPosition = replacing
+                    ? this.editingOriginalIndex
+                    : (typeof this.calcState.insertIndex === 'number' ? this.calcState.insertIndex : this.chordExtensions.length);
+
+                // Insert before closing brackets if needed
+                if (!replacing) {
+                    for (let i = this.chordExtensions.length - 1; i >= 0; i--) {
+                        const ext = this.chordExtensions[i];
+                        if (ext && ext.isRepeatMarker && (ext.name === ']' || /^\]x\d+$/.test(ext.name))) {
+                            insertPosition = i;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+
+                // Preserve existing chord metadata if replacing
+                let preserved = {};
+                if (replacing && this.chordExtensions[insertPosition]) {
+                    const oldChord = this.chordExtensions[insertPosition];
+                    preserved = {
+                        id: oldChord.id,
+                        createdAt: oldChord.createdAt,
+                        headerColor: oldChord.headerColor,
+                        originalTuning: oldChord.originalTuning,
+                        originalGamelanMode: oldChord.originalGamelanMode,
+                        lastTuning: oldChord.lastTuning,
+                        originalIntervals: oldChord.originalIntervals
+                    };
+                }
+
+                let headerAccentColor = '#14b8a6';
+                try {
+                    const c = this.getIntervalColor(0)?.color;
+                    headerAccentColor = (!c || c.toLowerCase() === '#000000') ? '#333333' : c;
+                } catch {}
+
+                const newChord = {
+                    name: calc.name || 'New Chord',
+                    extensions: [],
+                    intervals: normalized,
+                    isCustom: true,
+                    id: preserved.id || ('custom_' + Date.now()),
+                    createdAt: preserved.createdAt || Date.now(),
+                    position: insertPosition,
+                    originalRoot: this.currentRoot,
+                    originalTuning: preserved.originalTuning || this.currentTuning,
+                    originalGamelanMode: preserved.originalGamelanMode ?? this.gamelanMode,
+                    lastTuning: this.currentTuning,
+                    headerColor: preserved.headerColor || headerAccentColor,
+                    fixedRootStepAbs: baseRootAbs,
+                    fixedRootTuning: edo,
+                    originalIntervals: preserved.originalIntervals || normalized.slice()
+                };
+
+                if (replacing) {
+                    this.chordExtensions.splice(insertPosition, 1, newChord);
+                } else {
+                    this.chordExtensions.splice(insertPosition, 0, newChord);
+                }
+
+                this.normalizeChordPositions();
+                this.saveChordConfiguration();
+                this.regenerateColumnsWithoutVariants();
+
+                this.isEditingChord = false;
+                this.editingOriginalIndex = null;
+                this.calcState.insertIndex = null;
+                this.calcState.useCustomIntervals = false;
+
+                // Update active column to the inserted chord
+                try {
+                    const col = document.querySelector(`.extension-column[data-chord-id='${newChord.id}']`);
+                    if (col) this.currentActiveColumnEl = col;
+                } catch(_){ }
+
+                this.refreshCalcUI();
+            }
+
+            insertCalcChordAtIndex(index) {
+                this.calcState.insertIndex = index;
+                this.insertCalcChordFromState({ replace: false });
+            }
+
+            insertCalcChordAtTarget(target, clientX = null) {
+                const container = document.getElementById('extensionColumns');
+                if (!container) return;
+                const elements = Array.from(container.children).filter(el =>
+                    el.classList.contains('extension-column') || el.classList.contains('repeat-marker-column')
+                );
+
+                let insertIndex = elements.length;
+                if (target && elements.includes(target)) {
+                    insertIndex = elements.indexOf(target);
+                } else if (clientX != null) {
+                    const rect = container.getBoundingClientRect();
+                    const x = clientX - rect.left;
+                    let insertBefore = null;
+                    let minDistance = Infinity;
+                    elements.forEach(el => {
+                        const r = el.getBoundingClientRect();
+                        const centerX = r.left + r.width / 2 - rect.left;
+                        const distance = Math.abs(x - centerX);
+                        if (x < centerX && distance < minDistance) {
+                            minDistance = distance;
+                            insertBefore = el;
+                        }
+                    });
+                    if (insertBefore) insertIndex = elements.indexOf(insertBefore);
+                }
+
+                this.insertCalcChordAtIndex(Math.max(0, insertIndex));
             }
             
             removePreviewChordColumn() {
@@ -14957,7 +16346,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const absModel = [effRootModel, ...degreeStepsModel.map(d => (effRootModel + d) % modelEdo)];
                                 const absNow = (modelEdo === edoNow) ? absModel.map(s => ((s%edoNow)+edoNow)%edoNow)
                                                                     : absModel.map(s => mapStep(s, modelEdo, edoNow));
-                                const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow, null, (chordExt && chordExt.preferredRootName) ? chordExt.preferredRootName : null);
+                                const shiftNow = (modelEdo === edoNow) ? localDeltaModel : mapStep(localDeltaModel, modelEdo, edoNow);
+                                const prefName = (chordExt && chordExt.preferredRootName)
+                                    ? this._transposePreferredRootName(chordExt.preferredRootName, shiftNow, edoNow)
+                                    : null;
+                                const recomputed = this.computeFullChordNameFromAbsoluteSteps(
+                                    absNow,
+                                    edoNow,
+                                    null,
+                                    prefName,
+                                    (chordExt && chordExt.preferredBassRel != null) ? chordExt.preferredBassRel : null
+                                );
                                 chordName.textContent = recomputed;
                                 chordName.dataset.lockedName = recomputed;
                                 chordExt.name = recomputed;
@@ -15530,7 +16929,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Map to current EDO if needed
                         const absNow = (modelEdo === edoNow) ? absModel.map(s => ((s%edoNow)+edoNow)%edoNow)
                                                             : absModel.map(s => mapStep(s, modelEdo, edoNow));
-                        const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow, null, (model && model.preferredRootName) ? model.preferredRootName : null);
+                        const shiftNow = (localDeltaNow + globalDeltaNow) % edoNow;
+                        const prefName = (model && model.preferredRootName)
+                            ? this._transposePreferredRootName(model.preferredRootName, shiftNow, edoNow)
+                            : null;
+                        const recomputed = this.computeFullChordNameFromAbsoluteSteps(
+                            absNow,
+                            edoNow,
+                            null,
+                            prefName,
+                            (model && model.preferredBassRel != null) ? model.preferredBassRel : null
+                        );
                         nameEl.textContent = locked ? `🔒 ${recomputed}` : recomputed;
                         nameEl.dataset.lockedName = nameEl.textContent;
                     } else {
@@ -17370,6 +18779,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // Slash chord handling: if tail contains "/<bass>", add that bass pitch as an extra interval
                 // Example: G/F -> add b7 (F relative to G)
+                let preferredBassRel = null;
                 const slash = quality.match(/\/([A-G](?:#|b)?)/);
                 if (slash && rootSemitone != null) {
                     const bassLetter = slash[1][0];
@@ -17379,6 +18789,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const diffSemi = ((bassSemi - rootSemitone) % 12 + 12) % 12;
                     // Map to current EDO
                     const mapped = Math.round((diffSemi * this.currentTuning) / 12);
+                    preferredBassRel = mapped;
                     if (!intervals.includes(mapped)) {
                         intervals = [...intervals, mapped].sort((a,b)=>a-b);
                     }
@@ -17410,6 +18821,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     preferredRootName: preferredRootName,
                     preferredAccidental: preferredAccidental,
                     preferredName: norm,
+                    preferredBassRel: preferredBassRel,
                     // Set a fixed absolute root so keyboard edits use the correct base
                     fixedRootStepAbs: (rootStep != null ? rootStep : (this.currentRoot || 0)),
                     fixedRootTuning: this.currentTuning,
@@ -17440,6 +18852,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 const t = (tail || '').trim();
                 const has = (pat)=> new RegExp(pat).test(t);
+                const hasJ = /J(?:2|3|4|5|6|7|9|11|13)/.test(t);
+                const hasJ7 = /J7(?![0-9])/.test(t);
 
                 // quality
                 const isNeutralQuality = /^n(?![a-z])/i.test(t);
@@ -17463,7 +18877,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 else if (/ø7/.test(t)) { add(set, 10); add(set, 6); third = 3; }
                 else if (/°7/.test(t) || /dim7|diminished\s*7(?:th)?|o7/.test(t)) { add(set, 9); third = 3; fifth = 6; }
                 else if (/m7/.test(t)) { add(set, 10); third = 3; }
-                else if (/7(?![0-9])/.test(t)) { add(set, 10); }
+                else if (/7(?![0-9])/.test(t) && !hasJ7) { add(set, 10); }
 
                 // 6th
                 if (/(?:^|[^0-9])6(?![0-9])/.test(t)) add(set, 9);
@@ -17472,10 +18886,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // 9 implies 7; 11 implies 9+7; 13 implies 11+9+7.
                 // Exception: m9 (minor ninth) skips the 7th unless explicitly present.
                 // Plain '7' (dominant) only if not part of maj7/m7/°7/ø7 tokens
-                const hasPlain7  = /(?:^|[^0-9])7(?![0-9])/.test(t) && !/(?:maj7|M7|Δ7|m7|°7|ø7)/.test(t);
                 const hasAdd9    = /add9/.test(t);
                 const hasAdd11   = /add11/.test(t);
                 const hasAdd13   = /add13/.test(t);
+                const hasJ9 = /J9(?![0-9])/.test(t);
+                const hasJ11 = /J11(?![0-9])/.test(t);
+                const hasJ13 = /J13(?![0-9])/.test(t);
+                const hasPlain7  = /(?:^|[^0-9])7(?![0-9])/.test(t) && !/(?:maj7|M7|Δ7|m7|°7|ø7)/.test(t) && !hasJ7;
                 const hasSharp11 = /#11|♯11/.test(t);
                 const hasSharp13 = /#13|♯13/.test(t);
                 const isMaj9     = /maj9|M9|Δ9/.test(t);
@@ -17487,10 +18904,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const hasBareMicro9  = /(?:^|[^A-Za-z])[\^v]+9(?![0-9])/.test(t);
                 const hasBareMicro11 = /(?:^|[^A-Za-z])[\^v]+11(?![0-9])/.test(t);
                 const hasBareMicro13 = /(?:^|[^A-Za-z])[\^v]+13(?![0-9])/.test(t);
-                const has9       = /(?:^|[^0-9])9(?![0-9])/.test(t) && !hasAdd9 && !isMaj9 && !isMinor9 && !hasAdd9Micro && !hasBareMicro9;
+                const has9       = /(?:^|[^0-9])9(?![0-9])/.test(t) && !hasAdd9 && !isMaj9 && !isMinor9 && !hasAdd9Micro && !hasBareMicro9 && !hasJ9;
                 // If #11 is present together with 13, we'll handle the sharped 11 inside the 13 stack below
-                const has11      = /(?:^|[^0-9])11(?![0-9])/.test(t) && !hasAdd11 && !hasSharp11 && !hasAdd11Micro && !hasBareMicro11;
-                const has13      = /(?:^|[^0-9])13(?![0-9])/.test(t) && !hasAdd13 && !hasSharp13 && !hasAdd13Micro && !hasBareMicro13;
+                const has11      = /(?:^|[^0-9])11(?![0-9])/.test(t) && !hasAdd11 && !hasSharp11 && !hasAdd11Micro && !hasBareMicro11 && !hasJ11;
+                const has13      = /(?:^|[^0-9])13(?![0-9])/.test(t) && !hasAdd13 && !hasSharp13 && !hasAdd13Micro && !hasBareMicro13 && !hasJ13;
 
                 // maj9
                 if (isMaj9) { add(set, 11); add(set, 14); }
@@ -17511,7 +18928,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
                 if (hasSharp13) { if (!hasMaj7) add(set, 10); add(set, 14); add(set, 17); add(set, 22); }
                 // Explicit 7
-                if (hasPlain7) { add(set, 10); }
+                if (hasPlain7 && !hasJ7) { add(set, 10); }
 
                 // add tones (plain)
                 if (/add9(?![0-9])/.test(t)) add(set, 14);
@@ -17595,6 +19012,33 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                 }
 
+                // Just-intonation degrees (J7, J11, etc.) -> nearest EDO step by ratio
+                const jiRatio = {
+                    2: 9/8,
+                    3: 5/4,
+                    4: 4/3,
+                    5: 3/2,
+                    6: 5/3,
+                    7: 7/4,
+                    9: 9/8,
+                    11: 11/8,
+                    13: 13/8
+                };
+                const addJIDegree = (deg)=>{
+                    const ratio = jiRatio[deg];
+                    if (!ratio) return;
+                    const cents = 1200 * Math.log2(ratio);
+                    const step = Math.round(cents / (1200 / EDO));
+                    const normStep = ((step % EDO) + EDO) % EDO;
+                    set.add(normStep);
+                };
+                const jRe = /J(2|3|4|5|6|7|9|11|13)/g;
+                let jm;
+                while ((jm = jRe.exec(t)) !== null) {
+                    const deg = parseInt(jm[1], 10);
+                    addJIDegree(deg);
+                }
+
                 // Return sorted unique
                 const result = Array.from(set).sort((a,b)=>a-b);
                 return result;
@@ -17614,6 +19058,44 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (/[#♯]/.test(s)) return 'sharp';
                 if (/[b♭d𝄳]/.test(s)) return 'flat';
                 return null;
+            }
+
+            _transposePreferredRootName(name, delta, edo) {
+                if (!name || !Number.isFinite(delta) || !edo) return name || null;
+                const d = ((delta % edo) + edo) % edo;
+                if (d === 0) return name;
+                try {
+                    const norm = this._normalizeChordSymbolsForParse(name);
+                    const m = norm.match(/^([A-G])([#b♭♯𝄲𝄳d]?)([\^v]*)/);
+                    if (!m) return name;
+                    const letter = m[1];
+                    let acc = m[2] || '';
+                    let micro = m[3] || '';
+                    // half-flat/sharp as micro marks
+                    if (acc === 'd' || acc === '𝄳') { acc = 'd'; }
+                    if (acc === '𝄲') { acc = '𝄲'; }
+                    const semi = this.rootToSemitone(letter, (acc === 'd' || acc === '𝄳' || acc === '𝄲') ? '' : acc);
+                    const baseStep = Math.round((semi * edo) / 12);
+                    const ups = (micro.match(/\^/g) || []).length;
+                    const downs = (micro.match(/v/g) || []).length;
+                    const origStep = ((baseStep + ups - downs) % edo + edo) % edo;
+                    const newStep = ((origStep + d) % edo + edo) % edo;
+
+                    // Try to keep the same letter/accidental spelling for small micro shifts
+                    let diff = newStep - baseStep;
+                    if (diff > edo/2) diff -= edo;
+                    if (diff < -edo/2) diff += edo;
+                    const maxMicroSteps = Math.max(1, Math.round(edo / 24));
+                    if (Math.abs(diff) <= maxMicroSteps) {
+                        const microOut = diff > 0 ? '^'.repeat(diff) : (diff < 0 ? 'v'.repeat(-diff) : '');
+                        return this._formatRootWithSymbols(letter, acc, microOut);
+                    }
+
+                    const pref = this._getAccidentalPreference(name);
+                    return this.getRootNameForStepWithPreference(newStep, edo, pref);
+                } catch (_) {
+                    return name;
+                }
             }
 
             getRootNameForStepWithPreference(step, edo = (this.currentTuning || 12), preference = null) {
@@ -17783,6 +19265,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 tail = tail.replace(/^min/i,'m');
                 tail = tail.replace(/^maj/i,'M');
                 tail = tail.replace(/^neutral/i,'n').replace(/^neu/i,'n');
+                // Normalize just intonation marker to uppercase
+                tail = tail.replace(/j/g, 'J');
                 // diminished
                 tail = tail.replace(/^dim/i,'°'); // use ° as canonical dim triad
                 // half-diminished
@@ -17812,7 +19296,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 tail = tail.replace(/[\],;:]+.*$/,'');
                 // Keep valid tail characters, including A–G for slash bass notes (e.g., /G, /Bb)
                 // Include Δ (major) so previously-normalized tokens like CΔ7/CΔ9 survive re-normalization
-                tail = tail.replace(/[^A-GmM°øΔ+suad0-9♭♯/#^vb𝄲𝄳𝄰𝄱𝄬𝄭𝄮𝄯𝅉𝅏]+.*$/,'');
+                tail = tail.replace(/[^A-GmMnJ°øΔ+suad0-9♭♯/#^vb𝄲𝄳𝄰𝄱𝄬𝄭𝄮𝄯𝅉𝅏]+.*$/,'');
 
                 // If tail empty, it's a bare triad: major by default -> ''
                 // If tail equals 'min' was converted to 'm' above.
@@ -18901,7 +20385,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Compose absolute steps with local arrows; global transpose is added inside naming
                     const rootStep = (((baseStep + arrowDelta) % edo) + edo) % edo;
                     const abs = [rootStep, ...degrees.filter(x=>x!==0).map(iv => (rootStep + iv) % edo)];
-                    const labelNew = this.computeFullChordNameFromAbsoluteSteps(abs, edo, null, (model && model.preferredRootName) ? model.preferredRootName : null) || label;
+                    const labelNew = this.computeFullChordNameFromAbsoluteSteps(
+                        abs,
+                        edo,
+                        null,
+                        (model && model.preferredRootName) ? model.preferredRootName : null,
+                        (model && model.preferredBassRel != null) ? model.preferredBassRel : null
+                    ) || label;
 
                     nameEl.textContent = labelNew;
                     nameEl.dataset.lockedName = labelNew;
@@ -23057,6 +24547,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 // Add click event listener for regular mouse clicks (using capture phase for higher priority)
                 element.addEventListener('click', (e) => {
+                    // CALC: tap header in EDIT mode (stopped) to open calculator
+                    if (type === 'chord' && element.classList.contains('extension-header')) {
+                        const column = element.closest('.extension-column');
+                        if (column && this.editArmed && !this._isSequencing && column === this.currentActiveColumnEl) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            try { this.openCalcModal({ column }); } catch(_){ }
+                            return false;
+                        }
+                    }
                     // For chord headers or columns, short click plays; do not open context menus
                     if (type === 'chord' && (element.classList.contains('extension-header') || element.classList.contains('extension-column'))) {
                         e.preventDefault();
@@ -23188,6 +24689,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (type === 'chord' && (element.classList.contains('extension-header') || element.classList.contains('extension-column'))) {
                     const column = element.classList.contains('extension-column') ? element : element.closest('.extension-column');
                     if (!column) { console.error('Could not find parent column'); return; }
+                        if (column.classList.contains('calc-preview-column')) {
+                            const calcChord = this._computeCalcChord();
+                            this._playCalcChordPreview(calcChord);
+                            return;
+                        }
                     const rect = column.getBoundingClientRect();
                     // Only play sustained chords when PLAY is active (isSequencing)
                     if ((this.playMode||'high-low') === 'chords' && this._isSequencing) {
@@ -23271,6 +24777,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             handleNormalTap(element, type) {
                 // Play a strum on normal tap for chord headers and palette chords
                 if (type === 'chord' && element.classList.contains('extension-header')) {
+                    // CALC: tap header in EDIT mode (stopped) to open calculator
+                    try {
+                        const column = element.closest('.extension-column');
+                        if (column && this.editArmed && !this._isSequencing && column === this.currentActiveColumnEl) {
+                            this.openCalcModal({ column });
+                            return;
+                        }
+                    } catch(_){ }
                     // If we just used header-contact to select/switch the chord, don't also auto-strum on touchend.
                     try {
                         const ts = parseInt(element.dataset.xenSuppressTapStrumTs || '0', 10);
@@ -24578,10 +26092,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // 🎵 TETRADS (4-note chords) - favor simplest (triad + one extension)
                 if (pcs12.length === 4) {
-                    // Neutral 7 detection (~10.5)
-                    if (hasNear(uniqueIntervals,0.0) && hasNear(uniqueIntervals,7.0) && hasNear(uniqueIntervals,10.5)) {
-                        if (hasNear(3.0) || hasNear(3.5)) return 'm7v';
-                        if (hasNear(4.0)) return '7v';
+                    // Neutral 7 detection (~10.5) and neutral-third + b7
+                    if (hasNear(uniqueIntervals,0.0) && hasNear(uniqueIntervals,7.0)) {
+                        if (hasNear(3.5) && hasNear(uniqueIntervals,10.0)) return 'n7';
+                        if (hasNear(3.5) && hasNear(uniqueIntervals,10.5)) return 'n7';
+                        if (hasNear(3.0) && hasNear(uniqueIntervals,10.5)) return 'm7v';
+                        if (hasNear(4.0) && hasNear(uniqueIntervals,10.5)) return '7v';
+                    }
+                    // Neutral maj7 detection (~11.0 with neutral third)
+                    if (hasNear(uniqueIntervals,0.0) && hasNear(uniqueIntervals,7.0) && hasNear(uniqueIntervals,11.0)) {
+                        if (hasNear(3.5)) return 'nmaj7';
                     }
                     // Strict sets relative to chosen root (no inversion search)
                     if (setEq([0,4,7,9]))  return (hasNear(uniqueIntervals,10.0,0.5)? '7':'6');
@@ -25375,6 +26895,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } catch (e) {
                     console.warn('saveChordConfiguration: failed to write sessionData.chordExtensions', e);
                 }
+                try {
+                    const sections = window._sections;
+                    const activeId = window._activeSectionId;
+                    if (Array.isArray(sections) && activeId) {
+                        const sec = sections.find(s=>s && s.id === activeId);
+                        if (sec) {
+                            sec.state = sec.state && typeof sec.state === 'object' ? sec.state : {};
+                            sec.state.chordExtensions = cloneJson ? cloneJson(this.chordExtensions) : JSON.parse(JSON.stringify(this.chordExtensions));
+                        }
+                    }
+                } catch(_) { }
                 console.log('?? Chord configuration updated in session data');
             }
             
@@ -29110,7 +30641,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (chordExt.isCustom && Array.isArray(chordExt.intervals) && chordExt.intervals.length > 0) {
                             // Build absolute steps: transposed root + each interval from the transposed root
                             const absNow = [effRoot, ...chordExt.intervals.map(iv => norm(effRoot + iv, edoNow))];
-                            const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow, null, (chordExt && chordExt.preferredRootName) ? chordExt.preferredRootName : null) || chordExt.name;
+                            const prefName = (chordExt && chordExt.preferredRootName)
+                                ? this._transposePreferredRootName(chordExt.preferredRootName, nextLocal, edoNow)
+                                : null;
+                            const recomputed = this.computeFullChordNameFromAbsoluteSteps(
+                                absNow,
+                                edoNow,
+                                null,
+                                prefName,
+                                (chordExt && chordExt.preferredBassRel != null) ? chordExt.preferredBassRel : null
+                            ) || chordExt.name;
                             chordName.textContent = recomputed;
                             chordName.dataset.lockedName = recomputed;
                             chordExt.name = recomputed;
@@ -29345,9 +30885,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Show message for empty state
                     container.innerHTML = `
                         <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: #8fb3d3; font-size: 16px; text-align: center; flex-direction: column;">
-                            <div style="margin-bottom: 10px;">CLICK + to add a CHORD or SEQ to tpye a whole sequence.</div>
+                            <div id="emptyChordSplash" class="empty-chord-splash">XENON — Click here to add chords</div>
                         </div>
                     `;
+                    try {
+                        const splash = container.querySelector('#emptyChordSplash');
+                        if (splash && !splash._wired) {
+                            splash._wired = true;
+                            splash.addEventListener('click', () => {
+                                try { this.openCalcModal && this.openCalcModal(); } catch(_){ }
+                            });
+                        }
+                    } catch(_){ }
                     
                     // Still restore locked chord states if they exist
                     this.restoreLockedChordStates();
@@ -29551,7 +31100,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (chordExt.isCustom && Array.isArray(chordExt.intervals) && chordExt.intervals.length > 0) {
                                 // Build absolute steps: transposed root + each interval from the transposed root
                                 const absNow = [effRoot, ...chordExt.intervals.map(iv => norm(effRoot + iv, edoNow))];
-                                const recomputed = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow, null, (chordExt && chordExt.preferredRootName) ? chordExt.preferredRootName : null) || chordExt.name;
+                                const prefName = (chordExt && chordExt.preferredRootName)
+                                    ? this._transposePreferredRootName(chordExt.preferredRootName, nextLocal, edoNow)
+                                    : null;
+                                const recomputed = this.computeFullChordNameFromAbsoluteSteps(
+                                    absNow,
+                                    edoNow,
+                                    null,
+                                    prefName,
+                                    (chordExt && chordExt.preferredBassRel != null) ? chordExt.preferredBassRel : null
+                                ) || chordExt.name;
                                 chordName.textContent = recomputed;
                                 chordName.dataset.lockedName = recomputed;
                                 chordExt.name = recomputed;
@@ -30082,7 +31640,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             
             // Root selection: leftmost (lowest) note unless a clear major/minor triad exists on another pitch;
             // slash only when bass is the (flat/neutral) seventh
-            computeFullChordNameFromAbsoluteSteps(absSteps, edo = (this.currentTuning || 12), preferredBassAbs = null, preferredRootName = null){
+            computeFullChordNameFromAbsoluteSteps(absSteps, edo = (this.currentTuning || 12), preferredBassAbs = null, preferredRootName = null, preferredBassRel = null){
                 if (!Array.isArray(absSteps) || absSteps.length < 1) return '';
                 // Use absolute steps as-is; global transpose should already be baked in by caller
                 const steps = Array.from(new Set(absSteps.map(s => ((s % edo) + edo) % edo)));
@@ -30127,57 +31685,38 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                 } catch(_){ }
 
-                // Override rule: choose the pitch that yields the clearest quality.
-                // Priority: major/minor triad > half-diminished 7 (ø7) > diminished 7 (°7) > diminished triad (°)
+                // Choose root by simplest symbol and spelling, unless a preferred root was provided.
                 let rootAbs = (preferredRootAbs != null) ? preferredRootAbs : bassAbs;
-                const triadFound = (()=>{
-                    if (preferredRootAbs != null) return true;
-                    const targetMaj = new Set([0,4,7]);
-                    const targetMin = new Set([0,3,7]);
-                    const targetDimTriad = new Set([0,3,6]);
-                    const targetDim7 = new Set([0,3,6,9]);
-                    const targetHalfDim7 = new Set([0,3,6,10]);
-                    const to12 = (step)=> this.stepToSemitone(step, edo);
-                    const scoreForRel = (rel12Arr)=>{
-                        const rel = new Set(rel12Arr);
-                        const hasAll = (set)=> [...set].every(x=> rel.has(x));
-                        // exact-set helpers
-                        const eq = (arr)=> arr.length===rel12Arr.length && arr.every((v,i)=> v===rel12Arr[i]);
-                        if (hasAll(targetMaj) || hasAll(targetMin)) return 100; // strong triads
-                        if (eq([0,3,6,10])) return 90; // ø7
-                        if (eq([0,3,6,9]))  return 85; // °7
-                        if (hasAll(targetDimTriad)) return 80; // diminished triad subset
-                        return -1;
-                    };
-                    let best = {cand: rootAbs, score: -1};
-                    for (const cand of steps) {
-                        const rSemi = to12(cand);
-                        const rel12 = [...new Set(steps.map(s=> ((to12(s) - rSemi + 12) % 12)))].sort((a,b)=>a-b);
-                        const s = scoreForRel(rel12);
-                        if (s > best.score) best = {cand, score: s};
-                    }
-                    if (best.score >= 0 && best.cand !== rootAbs) {
-                        rootAbs = best.cand;
-                        return true;
-                    }
-                    return best.score >= 0;
-                })();
-                const rels = steps.map(s => ((s - rootAbs) % edo + edo) % edo);
                 const prefStyle = preferredRootName ? this._getAccidentalPreference(preferredRootName) : null;
-                const rootName = this.getRootNameForStepWithPreference(rootAbs, edo, prefStyle);
-                const symbol = this.getProperChordSymbol(rels);
-
-                // Slash policy: only when bass is the seventh (flat or neutral 7), otherwise omit
-                let slash = '';
-                if (rootAbs !== bassAbs) {
-                    const semiRoot = this.stepToSemitone(rootAbs, edo);
-                    const semiBass = this.stepToSemitone(bassAbs, edo);
-                    const d = ((semiBass - semiRoot) % 12 + 12) % 12;
-                    const near = (x,y,tol=0.35)=> Math.abs(x-y) <= tol;
-                    if (near(d, 10.0) || near(d, 10.5)) {
-                        const bassName = this.getRootNameForStep(bassAbs, edo);
-                        slash = `/${bassName}`;
+                let rootName = this.getRootNameForStepWithPreference(rootAbs, edo, prefStyle);
+                let symbol = this.getProperChordSymbol(steps.map(s => ((s - rootAbs) % edo + edo) % edo));
+                if (preferredRootAbs == null) {
+                    let best = null;
+                    for (const cand of steps) {
+                        const rels = steps.map(s => ((s - cand) % edo + edo) % edo);
+                        const sym = this.getProperChordSymbol(rels);
+                        const name = this.getRootNameForStepWithPreference(cand, edo, prefStyle);
+                        const addCount = (String(sym).match(/add/g) || []).length;
+                        const susCount = (String(sym).match(/sus/g) || []).length;
+                        const accCount = (String(name).match(/[♯#♭b𝄲𝄳]/g) || []).length;
+                        const microCount = (String(name).match(/[𝅉𝅏]/g) || []).length;
+                        let score = String(sym).length + addCount * 4 + susCount * 2 + accCount * 2 + microCount * 1.5;
+                        if (sym === '' || sym === 'm' || sym === '7' || sym === 'm7' || sym === 'maj7' || sym === 'n' || sym === 'n7') score -= 3;
+                        if (!best || score < best.score) best = { cand, score, sym, name };
                     }
+                    if (best) {
+                        rootAbs = best.cand;
+                        rootName = best.name;
+                        symbol = best.sym;
+                    }
+                }
+
+                // Slash policy: only for explicit slash chords (preferredBassRel provided)
+                let slash = '';
+                if (preferredBassRel != null) {
+                    const bassAbsExplicit = ((rootAbs + preferredBassRel) % edo + edo) % edo;
+                    const bassName = this.getRootNameForStep(bassAbsExplicit, edo);
+                    slash = `/${bassName}`;
                 }
                 const rawLabel = `${rootName}${symbol}${slash}`;
                 return rawLabel;
@@ -30408,7 +31947,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const absModel = [effRootModel, ...degreeStepsModel.map(d => (effRootModel + d) % modelEdo)];
                             const absNow = (modelEdo === edoNow) ? absModel.map(s => ((s%edoNow)+edoNow)%edoNow)
                                                                 : absModel.map(s => mapStep(s, modelEdo, edoNow));
-                            const recomputedLabel = this.computeFullChordNameFromAbsoluteSteps(absNow, edoNow, null, (model && model.preferredRootName) ? model.preferredRootName : null);
+                            const shiftNow = (localDeltaNow + globalDeltaNow) % edoNow;
+                            const prefName = (model && model.preferredRootName)
+                                ? this._transposePreferredRootName(model.preferredRootName, shiftNow, edoNow)
+                                : null;
+                            const recomputedLabel = this.computeFullChordNameFromAbsoluteSteps(
+                                absNow,
+                                edoNow,
+                                null,
+                                prefName,
+                                (model && model.preferredBassRel != null) ? model.preferredBassRel : null
+                            );
                             if (recomputedLabel) {
                                 nameEl.textContent = recomputedLabel;
                                 nameEl.dataset.lockedName = recomputedLabel;
@@ -31835,6 +33384,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                     } catch(_){ }
 
+                    // Apply any pending SECTION switch at beat 1 (bar start)
+                    try {
+                        const tpBar = this._arpTransport.ticksPerBar || 16;
+                        const isBarStart = (this._arpTransport.absTickCounter % tpBar) === 0;
+                        const loopEl = document.getElementById('loopToggle') || document.getElementById('playLoop');
+                        const loopEnabled = loopEl ? !!loopEl.checked : true;
+                        const applyFn = (typeof this._applySectionSwitchById === 'function')
+                            ? this._applySectionSwitchById
+                            : (typeof window._applySectionSwitchById === 'function' ? window._applySectionSwitchById : null);
+                        if (!loopEnabled && isBarStart && this._pendingSectionSwitchId && applyFn) {
+                            applyFn(this._pendingSectionSwitchId);
+                            this._pendingSectionSwitchId = null;
+                        }
+                    } catch(_){ }
+
                     // Apply any pending chord/arp switch if it's time
                     try {
                         if (this._arp?.pendingSwitch) {
@@ -32087,6 +33651,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         pt.nextAt = nowMs;
                                         // Ensure the loop is ticking if it was paused
                                         if (typeof pt.kick === 'function') pt.kick();
+                                    }
+                                    if (psIsCycleStart && this._pendingSectionSwitchId) {
+                                        const loopEl = document.getElementById('loopToggle') || document.getElementById('playLoop');
+                                        const loopEnabled = loopEl ? !!loopEl.checked : true;
+                                        const applyFn = (typeof this._applySectionSwitchById === 'function')
+                                            ? this._applySectionSwitchById
+                                            : (typeof window._applySectionSwitchById === 'function' ? window._applySectionSwitchById : null);
+                                        if (loopEnabled && applyFn) {
+                                            applyFn(this._pendingSectionSwitchId);
+                                            this._pendingSectionSwitchId = null;
+                                        }
                                     }
                                 } catch(_){ /* ignore pattern sync errors */ }
                                 // Update held bass to follow ARP chord switches without gliding
@@ -37878,9 +39453,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         this._renderBellsBars();
                     });
                 }
+                const midiOnForBells = !!(window.midi && window.midi.enabled);
+                if (midiOnForBells) {
+                    this._bellsState.glide = false;
+                    if (this._bellsGlideActive) this._bellsGlideStop();
+                }
+                if (glideMsEl) {
+                    glideMsEl.disabled = midiOnForBells;
+                    try { glideMsEl.title = midiOnForBells ? 'GLIDE disabled when MIDI is enabled' : 'Glide time'; } catch(_){ }
+                }
                 if (!glideToggle._wired) {
                     glideToggle._wired = true;
                     glideToggle.addEventListener('change', () => {
+                        if (window.midi && window.midi.enabled) {
+                            glideToggle.checked = false;
+                            this._bellsState.glide = false;
+                            if (this._bellsGlideActive) this._bellsGlideStop();
+                            return;
+                        }
                         this._bellsState.glide = !!glideToggle.checked;
                         if (!this._bellsState.glide && this._bellsGlideActive) this._bellsGlideStop();
                     });
@@ -38113,6 +39703,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 octSlider.value = String(this._bellsState.baseOct || 4);
                 octVal.textContent = String(this._bellsState.baseOct || 4);
                 glideToggle.checked = !!this._bellsState.glide;
+                glideToggle.disabled = !!(window.midi && window.midi.enabled);
+                try {
+                    glideToggle.title = glideToggle.disabled ? 'GLIDE disabled when MIDI is enabled' : 'Enable glide';
+                } catch(_){ }
                 this._renderBellsBars();
             }
 
@@ -38173,14 +39767,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try {
                                 if (!win.__bellsDragActive) return;
                                 const glideOn = !!this._bellsState?.glide;
-                                if (win.__bellsLastX != null) {
-                                    const dx = e.clientX - win.__bellsLastX;
-                                    const dir = dx > 2 ? 1 : (dx < -2 ? -1 : 0);
-                                    if (dir !== 0 && win.__bellsDir !== 0 && dir !== win.__bellsDir) {
-                                        win.__bellsPlayedSet = new Set();
-                                    }
-                                    if (dir !== 0) win.__bellsDir = dir;
-                                }
                                 win.__bellsLastX = e.clientX;
                                 const el = win.document.elementFromPoint(e.clientX, e.clientY);
                                 const key = el ? el.closest('.bells-key') : null;
@@ -38197,8 +39783,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     if (note) this._bellsGlideSnapTo(note, key, win, e.clientX, e.clientY);
                                     return;
                                 }
-                                if (win.__bellsPlayedSet && win.__bellsPlayedSet.has(idx)) return;
-                                win.__bellsPlayedSet && win.__bellsPlayedSet.add(idx);
+                                if (idx === win.__bellsLastIndex) return;
+                                win.__bellsLastIndex = idx;
                                 if (note) this._playBellsNote(note, key);
                             } catch(_) {}
                         });
@@ -38279,9 +39865,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     this._bellsGlideSnapTo(note, key, win, win.__bellsLastX ?? 0, 0);
                                     return;
                                 }
-                                if (win.__bellsPlayedSet && win.__bellsPlayedSet.has(idx)) return;
+                                if (idx === win.__bellsLastIndex) return;
                                 win.__bellsLastIndex = idx;
-                                win.__bellsPlayedSet && win.__bellsPlayedSet.add(idx);
                                 const rect = win.__bellsLayout?.rect;
                                 if (rect && rect.width > 0) {
                                     const xNorm = Math.max(0, Math.min(1, ((win.__bellsLastX ?? 0) - rect.left) / rect.width));
@@ -38406,6 +39991,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
             _bellsGlideStart(note, key, win, clientX, clientY){
                 try {
+                    if (window.midi && window.midi.enabled) return;
                     if (!note) return;
                     if (this._bellsGlideActive) this._bellsGlideStop();
                     key.__gateMs = 120000;
@@ -40153,64 +41739,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 };
             }
 
-            // Initialize keyboard modal on startup (make it draggable and wire controls)
+            // Initialize CALC modal on startup (make it draggable)
             // Use setTimeout to ensure all other initialization is complete
             setTimeout(() => {
                 try {
-                const keyboardModal = document.getElementById('keyboardModal');
-                if (keyboardModal) {
-                    // Make keyboard modal draggable from startup
-                    if (!keyboardModal._draggableSet) {
-                        makeDraggable(keyboardModal);
-                        keyboardModal._draggableSet = true;
-                        console.log('✅ Keyboard modal made draggable on startup');
-                    }
-                    
-                    // Wire transpose buttons from startup
-                    const transposeUp = document.getElementById('transposeUpBtnModal');
-                    const transposeDown = document.getElementById('transposeDownBtnModal');
-                    const originalUp = document.getElementById('transposeUpBtn');
-                    const originalDown = document.getElementById('transposeDownBtn');
-                    if (transposeUp && originalUp && !transposeUp._wired) {
-                        transposeUp._wired = true;
-                        transposeUp.addEventListener('click', () => originalUp.click());
-                        console.log('✅ Keyboard transpose UP wired on startup');
-                    }
-                    if (transposeDown && originalDown && !transposeDown._wired) {
-                        transposeDown._wired = true;
-                        transposeDown.addEventListener('click', () => originalDown.click());
-                        console.log('✅ Keyboard transpose DOWN wired on startup');
-                    }
-                    
-                    // Generate initial keyboard layout
-                    if (window.omnichord && typeof omnichord.generateRootButtons === 'function') {
-                        // Move root grid into modal
-                        const modalRootGrid = document.getElementById('modalRootGrid');
-                        const rootGrid = document.getElementById('rootGrid');
-                        if (modalRootGrid && rootGrid) {
-                            modalRootGrid.innerHTML = '';
-                            modalRootGrid.appendChild(rootGrid);
-                            rootGrid.style.display = 'block';
+                    const calcModal = document.getElementById('keyboardModal');
+                    if (calcModal) {
+                        if (!calcModal._draggableSet) {
+                            makeDraggable(calcModal);
+                            calcModal._draggableSet = true;
+                            console.log('✅ CALC modal made draggable on startup');
                         }
-                        
-                        omnichord.generateRootButtons();
-                        console.log('✅ Keyboard buttons generated on startup');
                     }
-                    
-                    // Ensure EDO sync is working for keyboard input
-                    const keyboardEDO = document.getElementById('edoQuickInputKeyboard');
+                    // Sync CALC EDO with transport EDO
+                    const calcEDO = document.getElementById('edoQuickInputKeyboard');
                     const transportEDO = document.getElementById('edoQuickInputTransport');
-                    if (keyboardEDO && transportEDO) {
-                        // Sync keyboard EDO with transport EDO
-                        keyboardEDO.value = transportEDO.value;
-                        console.log('✅ Keyboard EDO synced with transport on startup');
+                    if (calcEDO && transportEDO) {
+                        calcEDO.value = transportEDO.value;
                     }
-                    
-                    console.log('✅ Keyboard modal fully initialized on startup');
+                } catch(e) {
+                    console.error('❌ Error initializing CALC modal on startup:', e);
                 }
-            } catch(e) {
-                console.error('❌ Error initializing keyboard modal on startup:', e);
-            }
             }, 100); // Small delay to ensure DOM is ready
 
             // Minimal Web MIDI manager providing init/send/receive APIs and integration
@@ -41995,6 +43544,31 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         };
 
                                         console.log('🎵 scheduleNext called; planPos=', planPos, 'planLen=', Array.isArray(oneLoopPlan)?oneLoopPlan.length:0);
+
+                                        // Apply pending SECTION switch exactly at cycle boundary (before selecting chord 1)
+                                        try {
+                                            const loopOnEarly = (function(){
+                                                try {
+                                                    const el = document.getElementById('loopToggle') || document.getElementById('playLoop');
+                                                    return el ? !!el.checked : true;
+                                                } catch(_){ return true; }
+                                            })();
+                                            if (loopOnEarly && (planPos|0) === 0 && omnichord && omnichord._pendingSectionSwitchId) {
+                                                const applyFn = (typeof omnichord._applySectionSwitchById === 'function')
+                                                    ? omnichord._applySectionSwitchById
+                                                    : (typeof window._applySectionSwitchById === 'function' ? window._applySectionSwitchById : null);
+                                                if (applyFn) {
+                                                    applyFn(omnichord._pendingSectionSwitchId);
+                                                    try {
+                                                        const t = omnichord._arpTransport;
+                                                        if (t) {
+                                                            t._seqRebuildRequested = true;
+                                                            t._seqRebuildWhy = 'section-switch';
+                                                        }
+                                                    } catch(_){ }
+                                                }
+                                            }
+                                        } catch(_){ }
 
                                         // If chords/columns changed during PLAY, rebuild the one-loop plan at the NEXT cycle boundary.
                                         // This ensures the current cycle finishes unchanged, and the new chord plays at the end of the next cycle.
