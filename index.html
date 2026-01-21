@@ -2540,6 +2540,16 @@
         .calc-group-title { font-size: 11px; color: #9db6c8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.6px; }
         .calc-row { display:grid; grid-template-columns: repeat(4, minmax(46px, 1fr)); gap: 6px; }
         .calc-row.tight { grid-template-columns: repeat(6, minmax(42px, 1fr)); }
+        .calc-grid { display:grid; grid-template-columns: 1fr; gap: 8px; }
+        .calc-grid.root { grid-template-columns: 1fr; }
+        .calc-grid.quality { grid-template-columns: repeat(3, minmax(80px, 1fr)); }
+        .calc-note-row { display:flex; gap: 6px; }
+        .calc-note-seg { flex: 1; padding: 6px 4px; }
+        .calc-note-seg.center { flex: 2.2; font-size: 13px; }
+        .calc-note-seg.acc { font-size: 12px; opacity: 0.95; }
+        .calc-micro-row { display:flex; gap: 6px; grid-column: 1 / -1; }
+        .calc-micro-btn { flex: 1; }
+        .calc-keypad-actions { display:grid; grid-template-columns: repeat(3, minmax(90px, 1fr)); gap: 8px; margin-top: 10px; }
         .calc-btn {
             background: #1a2f3c;
             color: #e8f5ff;
@@ -3705,79 +3715,14 @@
                             <div id="calcChordName" class="calc-name">—</div>
                             <div id="calcChordTokens" class="calc-tokens"></div>
                         </div>
-
                         <div class="calc-group">
-                            <div class="calc-group-title">Notes</div>
-                            <div class="calc-row">
-                                <button class="calc-btn" data-calc-note="A">A</button>
-                                <button class="calc-btn" data-calc-note="B">B</button>
-                                <button class="calc-btn" data-calc-note="C">C</button>
-                                <button class="calc-btn" data-calc-note="D">D</button>
+                            <div class="calc-group-title">Keypad</div>
+                            <div id="calcKeypadGrid" class="calc-grid"></div>
+                            <div class="calc-keypad-actions">
+                                <button class="calc-btn action" id="calcAddBtn">ADD</button>
+                                <button class="calc-btn action" id="calcEqualsBtn">=</button>
+                                <button class="calc-btn action" id="calcClearBtn">CLEAR</button>
                             </div>
-                            <div class="calc-row">
-                                <button class="calc-btn" data-calc-note="E">E</button>
-                                <button class="calc-btn" data-calc-note="F">F</button>
-                                <button class="calc-btn" data-calc-note="G">G</button>
-                                <button class="calc-btn action" id="calcBackspaceBtn">⌫</button>
-                            </div>
-                        </div>
-
-                        <div class="calc-group">
-                            <div class="calc-group-title">Accidentals</div>
-                            <div class="calc-row tight" style="flex-wrap:wrap;">
-                                <button class="calc-btn mod" data-calc-acc="dblflat">𝄬</button>
-                                <button class="calc-btn mod" data-calc-acc="threeqflat">𝄭</button>
-                                <button class="calc-btn mod" data-calc-acc="qflat">𝄮</button>
-                                <button class="calc-btn mod" data-calc-acc="nat">𝄯</button>
-                                <button class="calc-btn mod" data-calc-acc="qsharp">𝄰</button>
-                                <button class="calc-btn mod" data-calc-acc="threeqsharp">𝄱</button>
-                                <button class="calc-btn mod" data-calc-acc="dblsharp">𝄲</button>
-                                <button class="calc-btn mod" data-calc-acc="flat">𝄳</button>
-                                <button class="calc-btn mod" data-calc-acc="stepdown">▼</button>
-                                <button class="calc-btn mod" data-calc-acc="stepup">▲</button>
-                                <button class="calc-btn action" id="calcNaturalBtn">Reset</button>
-                            </div>
-                        </div>
-
-                        <div class="calc-group">
-                            <div class="calc-group-title">Quality</div>
-                            <div class="calc-row">
-                                <button class="calc-btn" data-calc-quality="maj">Maj</button>
-                                <button class="calc-btn" data-calc-quality="min">Min</button>
-                                <button class="calc-btn" data-calc-quality="aug">Aug</button>
-                                <button class="calc-btn" data-calc-quality="dim">Dim</button>
-                            </div>
-                            <div class="calc-row">
-                                <button class="calc-btn" data-calc-quality="neu">Neu</button>
-                            </div>
-                        </div>
-
-                        <div class="calc-group">
-                            <div class="calc-group-title">Extensions</div>
-                            <div class="calc-row tight">
-                                <button class="calc-btn" data-calc-ext="5">5</button>
-                                <button class="calc-btn" data-calc-ext="6">6</button>
-                                <button class="calc-btn" data-calc-ext="7">7</button>
-                                <button class="calc-btn" data-calc-ext="9">9</button>
-                                <button class="calc-btn" data-calc-ext="11">11</button>
-                                <button class="calc-btn" data-calc-ext="13">13</button>
-                            </div>
-                        </div>
-
-                        <div class="calc-group">
-                            <div class="calc-group-title">Modifier (next extension)</div>
-                            <div class="calc-row">
-                                <button class="calc-btn mod" data-calc-mod="b">Flat</button>
-                                <button class="calc-btn mod" data-calc-mod="#">Sharp</button>
-                                <button class="calc-btn mod" data-calc-mod="micro">Micro</button>
-                                <button class="calc-btn action" id="calcModClearBtn">Clear</button>
-                            </div>
-                        </div>
-
-                        <div class="calc-actions">
-                            <button class="calc-btn action" id="calcClearBtn">CLEAR</button>
-                            <button class="calc-btn action" id="calcInsertBtn">INSERT</button>
-                            <button class="calc-btn action" id="calcReplaceBtn" style="display:none;">REPLACE</button>
                         </div>
                     </div>
 
@@ -10275,16 +10220,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this.selectedIntervalsOrder = [];
                 // CALC (Chord Calculator) state
                 this.calcState = {
-                    note: 'C',
-                    accidental: 'nat',
+                    stage: 'root',
+                    note: null,
+                    accSymbol: null,
+                    microOffset: 0,
                     quality: 'maj',
                     extensions: [],
                     modifier: null,
+                    addMode: false,
                     useCustomIntervals: false,
                     customIntervals: null,
                     customRootStep: null,
                     customName: null,
-                    insertIndex: null
+                    insertIndex: null,
+                    _accSelected: false
                 };
                 this._calcWired = false;
                 // Track a newly created blank chord to inherit notes on first external strum
@@ -15274,95 +15223,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (this._calcWired) return;
                 const modal = document.getElementById('keyboardModal');
                 if (!modal) return;
-
-                const clearCustom = () => {
-                    if (!this.calcState) return;
-                    this.calcState.useCustomIntervals = false;
-                    this.calcState.customIntervals = null;
-                    this.calcState.customRootStep = null;
-                    this.calcState.customName = null;
-                };
-
-                modal.querySelectorAll('[data-calc-note]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        clearCustom();
-                        this.calcState.note = btn.dataset.calcNote;
-                        this.refreshCalcUI();
-                    });
-                });
-
-                modal.querySelectorAll('[data-calc-acc]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        clearCustom();
-                        this.calcState.accidental = btn.dataset.calcAcc;
-                        this.refreshCalcUI();
-                    });
-                });
-
-                modal.querySelectorAll('[data-calc-quality]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        clearCustom();
-                        this.calcState.quality = btn.dataset.calcQuality;
-                        this.refreshCalcUI();
-                    });
-                });
-
-                modal.querySelectorAll('[data-calc-ext]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        clearCustom();
-                        const ext = btn.dataset.calcExt;
-                        if (!this.calcState.extensions) this.calcState.extensions = [];
-                        if (this.calcState.extensions.includes(ext)) {
-                            this.calcState.extensions = this.calcState.extensions.filter(e => e !== ext);
-                        } else {
-                            this.calcState.extensions = [...this.calcState.extensions, ext];
-                        }
-                        this.refreshCalcUI();
-                    });
-                });
-
-                modal.querySelectorAll('[data-calc-mod]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        clearCustom();
-                        const mod = btn.dataset.calcMod;
-                        this.calcState.modifier = (this.calcState.modifier === mod) ? null : mod;
-                        this.refreshCalcUI();
-                    });
-                });
-
-                const backspaceBtn = document.getElementById('calcBackspaceBtn');
-                if (backspaceBtn) {
-                    backspaceBtn.addEventListener('click', () => {
-                        clearCustom();
-                        if (this.calcState.modifier) {
-                            this.calcState.modifier = null;
-                        } else if (this.calcState.extensions && this.calcState.extensions.length) {
-                            this.calcState.extensions = this.calcState.extensions.slice(0, -1);
-                        } else {
-                            this.calcState.accidental = 'nat';
-                        }
-                        this.refreshCalcUI();
-                    });
-                }
-
-                const naturalBtn = document.getElementById('calcNaturalBtn');
-                if (naturalBtn) {
-                    naturalBtn.addEventListener('click', () => {
-                        clearCustom();
-                        this.calcState.accidental = 'nat';
-                        this.refreshCalcUI();
-                    });
-                }
-
-                const modClearBtn = document.getElementById('calcModClearBtn');
-                if (modClearBtn) {
-                    modClearBtn.addEventListener('click', () => {
-                        clearCustom();
-                        this.calcState.modifier = null;
-                        this.refreshCalcUI();
-                    });
-                }
-
                 const clearBtn = document.getElementById('calcClearBtn');
                 if (clearBtn) {
                     clearBtn.addEventListener('click', () => {
@@ -15371,17 +15231,68 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     });
                 }
 
-                const insertBtn = document.getElementById('calcInsertBtn');
-                if (insertBtn) {
-                    insertBtn.addEventListener('click', () => {
-                        this.insertCalcChordFromState({ replace: false });
+                const addBtn = document.getElementById('calcAddBtn');
+                if (addBtn) {
+                    addBtn.addEventListener('click', () => {
+                        if (!this.calcState) this.resetCalcState();
+                        this.calcState.addMode = !this.calcState.addMode;
+                        this.refreshCalcUI();
                     });
                 }
 
-                const replaceBtn = document.getElementById('calcReplaceBtn');
-                if (replaceBtn) {
-                    replaceBtn.addEventListener('click', () => {
-                        this.insertCalcChordFromState({ replace: true });
+                const equalsBtn = document.getElementById('calcEqualsBtn');
+                if (equalsBtn) {
+                    equalsBtn.addEventListener('click', () => {
+                        const replacing = !!(this.isEditingChord && typeof this.editingOriginalIndex === 'number' && this.editingOriginalIndex >= 0);
+                        this.insertCalcChordFromState({ replace: replacing });
+                    });
+                }
+
+                const grid = document.getElementById('calcKeypadGrid');
+                if (grid && !grid._wired) {
+                    grid._wired = true;
+                    grid.addEventListener('click', (e) => {
+                        const btn = e.target && e.target.closest ? e.target.closest('[data-calc-key]') : null;
+                        if (!btn) return;
+                        if (!this.calcState) this.resetCalcState();
+                        const key = btn.dataset.calcKey;
+                        const type = btn.dataset.calcType;
+                        const clearCustom = () => {
+                            if (!this.calcState) return;
+                            this.calcState.useCustomIntervals = false;
+                            this.calcState.customIntervals = null;
+                            this.calcState.customRootStep = null;
+                            this.calcState.customName = null;
+                        };
+                        clearCustom();
+
+                        if (type === 'note') {
+                            const acc = btn.dataset.calcAcc;
+                            this.calcState.note = key;
+                            this.calcState.accSymbol = (acc === 'b' || acc === '#') ? acc : null;
+                            this.calcState._accSelected = true;
+                            if (typeof this.calcState.microOffset !== 'number') this.calcState.microOffset = 0;
+                            this.calcState.stage = 'quality';
+                        } else if (type === 'micro') {
+                            const delta = (key === 'down') ? -1 : 1;
+                            this.calcState.microOffset = (this.calcState.microOffset || 0) + delta;
+                            this.calcState._accSelected = true;
+                        } else if (this.calcState.stage !== 'root') {
+                            if (type === 'quality') {
+                                this.calcState.quality = key;
+                            } else if (type === 'ext') {
+                                const mod = this.calcState.modifier || null;
+                                const add = !!this.calcState.addMode;
+                                const entry = { label: key, mod, add };
+                                this.calcState.extensions = Array.isArray(this.calcState.extensions) ? this.calcState.extensions : [];
+                                this.calcState.extensions.push(entry);
+                                this.calcState.modifier = null;
+                                this.calcState.addMode = false;
+                            } else if (type === 'mod') {
+                                this.calcState.modifier = (this.calcState.modifier === key) ? null : key;
+                            }
+                        }
+                        this.refreshCalcUI();
                     });
                 }
 
@@ -15419,8 +15330,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (calcPreviewHeader._calcInsertGuard && (now - calcPreviewHeader._calcInsertGuard) < 250) return;
                         if (!headerDragged) {
                             calcPreviewHeader._calcInsertGuard = now;
-                            const calcChord = this._computeCalcChord();
-                            this._playCalcChordPreview(calcChord);
                             this.insertCalcChordFromState({ replace: false });
                         }
                         headerDragStart = null;
@@ -15441,7 +15350,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const endStrum = (x, y) => {
                         if (!strumStart) return;
                         const calcChord = this._computeCalcChord();
-                        this._playCalcChordPreview(calcChord);
                         this.playChordStrum(calcPreview, { name: calcChord.name || 'CALC' }, strumStart.y, y);
                         strumStart = null;
                     };
@@ -15483,16 +15391,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
             resetCalcState() {
                 this.calcState = {
-                    note: 'C',
-                    accidental: 'nat',
+                    stage: 'root',
+                    note: null,
+                    accSymbol: null,
+                    microOffset: 0,
                     quality: 'maj',
                     extensions: [],
                     modifier: null,
+                    addMode: false,
                     useCustomIntervals: false,
                     customIntervals: null,
                     customRootStep: null,
                     customName: null,
-                    insertIndex: null
+                    insertIndex: null,
+                    _accSelected: false
                 };
             }
 
@@ -15561,6 +15473,133 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this.calcState.customIntervals = Array.isArray(chord.intervals) ? chord.intervals.slice() : [];
                 this.calcState.customRootStep = (typeof chord.fixedRootStepAbs === 'number') ? chord.fixedRootStepAbs : (this.currentRoot || 0);
                 this.calcState.customName = chord.name || null;
+                this.calcState.stage = 'root';
+                this.calcState.note = null;
+                this.calcState.accSymbol = null;
+                this.calcState.microOffset = 0;
+                this.calcState._accSelected = false;
+            }
+
+            _calcBuildName(state) {
+                if (!state || !state.note) return '—';
+                const accMap = { b: '♭', '#': '♯', n: '' };
+                const acc = accMap[state.accSymbol] || '';
+                let micro = '';
+                try {
+                    const m = state.microOffset || 0;
+                    if (m < 0) micro = 'v'.repeat(Math.min(4, Math.abs(m)));
+                    if (m > 0) micro = '^'.repeat(Math.min(4, Math.abs(m)));
+                } catch(_){ }
+                const root = `${state.note}${acc}${micro}`;
+                const qual = (state.quality === 'min') ? 'min'
+                    : (state.quality === 'sus2') ? 'sus2'
+                    : (state.quality === 'sus4') ? 'sus4'
+                    : '';
+                const exts = (state.extensions || []).map(ext => {
+                    const mod = ext.mod ? ext.mod : '';
+                    const label = ext.label || '';
+                    if (String(label).startsWith('Maj')) return label; // Maj7/Maj9
+                    return `${ext.add ? 'add' : ''}${mod}${label}`;
+                }).join('');
+                return `${root}${qual}${exts}`.trim();
+            }
+
+            _renderCalcKeypad() {
+                const grid = document.getElementById('calcKeypadGrid');
+                if (!grid || !this.calcState) return;
+                const state = this.calcState;
+                grid.innerHTML = '';
+                grid.classList.toggle('root', state.stage === 'root');
+                grid.classList.toggle('quality', state.stage !== 'root');
+
+                if (state.stage === 'root') {
+                    const notes = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+                    notes.forEach(note => {
+                        const row = document.createElement('div');
+                        row.className = 'calc-note-row';
+
+                        const makeSeg = (label, acc, isCenter) => {
+                            const btn = document.createElement('button');
+                            btn.className = 'calc-btn calc-note-seg' + (isCenter ? ' center' : ' acc');
+                            if (acc === 'b') btn.classList.add('flat');
+                            if (acc === '#') btn.classList.add('sharp');
+                            btn.textContent = label;
+                            btn.dataset.calcType = 'note';
+                            btn.dataset.calcKey = note;
+                            if (acc) btn.dataset.calcAcc = acc;
+                            const isActive = (state.note === note) && ((acc == null && !state.accSymbol) || (acc && state.accSymbol === acc));
+                            if (isActive) btn.classList.add('active');
+                            return btn;
+                        };
+
+                        row.appendChild(makeSeg('b', 'b', false));
+                        row.appendChild(makeSeg(note, null, true));
+                        row.appendChild(makeSeg('#', '#', false));
+                        grid.appendChild(row);
+                    });
+
+                    const microRow = document.createElement('div');
+                    microRow.className = 'calc-micro-row';
+                    const downBtn = document.createElement('button');
+                    downBtn.className = 'calc-btn calc-micro-btn';
+                    downBtn.textContent = 'v';
+                    downBtn.dataset.calcKey = 'down';
+                    downBtn.dataset.calcType = 'micro';
+                    if ((state.microOffset || 0) < 0) downBtn.classList.add('active');
+                    const upBtn = document.createElement('button');
+                    upBtn.className = 'calc-btn calc-micro-btn';
+                    upBtn.textContent = '^';
+                    upBtn.dataset.calcKey = 'up';
+                    upBtn.dataset.calcType = 'micro';
+                    if ((state.microOffset || 0) > 0) upBtn.classList.add('active');
+                    microRow.appendChild(downBtn);
+                    microRow.appendChild(upBtn);
+                    grid.appendChild(microRow);
+                } else {
+                    const items = [
+                        { label: 'sus2', type: 'quality', key: 'sus2' },
+                        { label: 'min', type: 'quality', key: 'min' },
+                        { label: 'sus4', type: 'quality', key: 'sus4' },
+                        { label: '6', type: 'ext', key: '6' },
+                        { label: '7', type: 'ext', key: '7' },
+                        { label: '9', type: 'ext', key: '9' },
+                        { label: 'Maj7', type: 'ext', key: 'Maj7' },
+                        { label: 'Maj9', type: 'ext', key: 'Maj9' },
+                        { label: '11', type: 'ext', key: '11' },
+                        { label: '13', type: 'ext', key: '13' },
+                        { label: '♭', type: 'mod', key: 'b' },
+                        { label: '♯', type: 'mod', key: '#' }
+                    ];
+
+                    items.forEach(item => {
+                        const btn = document.createElement('button');
+                        btn.className = 'calc-btn';
+                        btn.textContent = item.label;
+                        btn.dataset.calcKey = item.key;
+                        btn.dataset.calcType = item.type;
+                        if (item.type === 'quality' && state.quality === item.key) btn.classList.add('active');
+                        if (item.type === 'mod' && state.modifier === item.key) btn.classList.add('active');
+                        grid.appendChild(btn);
+                    });
+
+                    const microRow = document.createElement('div');
+                    microRow.className = 'calc-micro-row';
+                    const downBtn = document.createElement('button');
+                    downBtn.className = 'calc-btn calc-micro-btn';
+                    downBtn.textContent = 'v';
+                    downBtn.dataset.calcKey = 'down';
+                    downBtn.dataset.calcType = 'micro';
+                    if ((state.microOffset || 0) < 0) downBtn.classList.add('active');
+                    const upBtn = document.createElement('button');
+                    upBtn.className = 'calc-btn calc-micro-btn';
+                    upBtn.textContent = '^';
+                    upBtn.dataset.calcKey = 'up';
+                    upBtn.dataset.calcType = 'micro';
+                    if ((state.microOffset || 0) > 0) upBtn.classList.add('active');
+                    microRow.appendChild(downBtn);
+                    microRow.appendChild(upBtn);
+                    grid.appendChild(microRow);
+                }
             }
 
             _computeCalcChord() {
@@ -15576,58 +15615,34 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const noteMap = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
                     const note = state.note || 'C';
                     const baseSemi = noteMap[note] ?? 0;
-                    const accMap = {
-                        dblflat: -2,
-                        threeqflat: -1.5,
-                        qflat: -0.5,
-                        nat: 0,
-                        qsharp: 0.5,
-                        threeqsharp: 1.5,
-                        dblsharp: 2,
-                        flat: -1,
-                        sharp: 1
-                    };
-                    const stepMap = {
-                        stepdown: -1,
-                        stepup: 1
-                    };
-                    if (state.accidental && stepMap[state.accidental]) {
-                        const baseStep = this.mapIntervalToEDO(baseSemi, edo);
-                        rootStep = ((baseStep + stepMap[state.accidental]) % edo + edo) % edo;
-                    } else {
-                        const accOffset = accMap[state.accidental] ?? 0;
-                        const rootSemi = baseSemi + accOffset;
-                        rootStep = ((this.mapIntervalToEDO(rootSemi, edo) % edo) + edo) % edo;
-                    }
+                    const semitoneStep = this.mapIntervalToEDO(1, edo) || 1;
+                    const accSemi = (state.accSymbol === 'b') ? -1 : (state.accSymbol === '#') ? 1 : 0;
+                    const baseStep = this.mapIntervalToEDO(baseSemi, edo);
+                    rootStep = ((baseStep + (accSemi * semitoneStep) + (state.microOffset || 0)) % edo + edo) % edo;
 
-                    const qualityMap = {
-                        maj: 'major',
-                        min: 'minor',
-                        aug: 'augmented',
-                        dim: 'diminished',
-                        neu: 'neutral'
-                    };
-                    const q = qualityMap[state.quality] || 'major';
-                    const baseSemis = this.getBaseTriadForQuality(q) || [0, 4, 7];
+                    let baseSemis = [0, 4, 7];
+                    if (state.quality === 'min') baseSemis = [0, 3, 7];
+                    else if (state.quality === 'sus2') baseSemis = [0, 2, 7];
+                    else if (state.quality === 'sus4') baseSemis = [0, 5, 7];
 
-                    const extOrder = ['5','6','7','9','11','13'];
-                    const extMap = {
-                        '5': [7],
-                        '6': [9],
-                        '7': [10],
-                        '9': [10, 14],
-                        '11': [10, 14, 17],
-                        '13': [10, 14, 17, 21]
+                    const extToSemis = (label, add) => {
+                        if (label === '6') return [9];
+                        if (label === '7') return [10];
+                        if (label === '9') return add ? [14] : [10, 14];
+                        if (label === '11') return add ? [17] : [10, 14, 17];
+                        if (label === '13') return add ? [21] : [10, 14, 17, 21];
+                        if (label === 'Maj7') return [11];
+                        if (label === 'Maj9') return add ? [11, 14] : [11, 14];
+                        return [];
                     };
-                    const selectedExt = extOrder.filter(ext => (state.extensions || []).includes(ext));
-                    const modDelta = state.modifier === 'b' ? -1 : state.modifier === '#' ? 1 : state.modifier === 'micro' ? 0.5 : 0;
-                    const targetExt = (modDelta !== 0 && selectedExt.length) ? selectedExt[selectedExt.length - 1] : null;
 
                     const extSemis = [];
-                    selectedExt.forEach(ext => {
-                        const base = (extMap[ext] || []).slice();
-                        if (ext === targetExt && modDelta !== 0 && base.length) {
-                            base[base.length - 1] = base[base.length - 1] + modDelta;
+                    (state.extensions || []).forEach(ext => {
+                        const add = !!ext.add;
+                        const base = extToSemis(ext.label, add).slice();
+                        if (base.length && ext.mod) {
+                            const delta = ext.mod === 'b' ? -1 : ext.mod === '#' ? 1 : 0;
+                            base[base.length - 1] = base[base.length - 1] + delta;
                         }
                         extSemis.push(...base);
                     });
@@ -15646,7 +15661,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 const name = (state.useCustomIntervals && state.customName)
                     ? state.customName
-                    : (this.computeFullChordNameFromAbsoluteSteps(absSteps, edo, rootStep) || 'Chord');
+                    : (this._calcBuildName(state) || 'Chord');
 
                 const noteNames = absSteps.map(step => this.getMicrotonalNoteName(step));
 
@@ -15664,26 +15679,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 const tokensEl = document.getElementById('calcChordTokens');
                 if (tokensEl) {
-                    const accLabelMap = {
-                        dblflat: '𝄬',
-                        threeqflat: '𝄭',
-                        qflat: '𝄮',
-                        nat: '𝄯',
-                        qsharp: '𝄰',
-                        threeqsharp: '𝄱',
-                        dblsharp: '𝄲',
-                        flat: '𝄳',
-                        sharp: '♯',
-                        stepdown: '▼',
-                        stepup: '▲'
-                    };
-                    const accSymbol = accLabelMap[this.calcState.accidental] || '';
-                    const qualLabel = this.calcState.quality ? this.calcState.quality.toUpperCase() : 'MAJ';
-                    const extLabel = (this.calcState.extensions || []).join(' ');
-                    const modLabel = this.calcState.modifier ? `${this.calcState.modifier}` : '';
                     tokensEl.textContent = this.calcState.useCustomIntervals
-                        ? 'Custom intervals'
-                        : `${this.calcState.note || 'C'}${accSymbol} ${qualLabel}${extLabel ? ' ' + extLabel : ''}${modLabel ? ' ' + modLabel : ''}`.trim();
+                        ? (this.calcState.customName || 'Custom intervals')
+                        : (calc.name || '—');
                 }
 
                 const notesEl = document.getElementById('calcPreviewNotes');
@@ -15695,33 +15693,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this.generateStringsForPreviewColumn(stringsEl, calc.absSteps, previewColumn);
                 }
 
-                // Update active button states
-                const modal = document.getElementById('keyboardModal');
-                if (modal) {
-                    modal.querySelectorAll('[data-calc-note]').forEach(btn => {
-                        btn.classList.toggle('active', btn.dataset.calcNote === this.calcState.note);
-                    });
-                    modal.querySelectorAll('[data-calc-acc]').forEach(btn => {
-                        btn.classList.toggle('active', btn.dataset.calcAcc === this.calcState.accidental);
-                    });
-                    modal.querySelectorAll('[data-calc-quality]').forEach(btn => {
-                        btn.classList.toggle('active', btn.dataset.calcQuality === this.calcState.quality);
-                    });
-                    modal.querySelectorAll('[data-calc-ext]').forEach(btn => {
-                        const ext = btn.dataset.calcExt;
-                        btn.classList.toggle('active', (this.calcState.extensions || []).includes(ext));
-                    });
-                    modal.querySelectorAll('[data-calc-mod]').forEach(btn => {
-                        btn.classList.toggle('active', btn.dataset.calcMod === this.calcState.modifier);
-                    });
-                }
+                this._renderCalcKeypad();
 
-                const replaceBtn = document.getElementById('calcReplaceBtn');
-                if (replaceBtn) {
-                    replaceBtn.style.display = (this.isEditingChord && typeof this.editingOriginalIndex === 'number' && this.editingOriginalIndex >= 0)
-                        ? 'inline-flex'
-                        : 'none';
-                }
+                const addBtn = document.getElementById('calcAddBtn');
+                if (addBtn) addBtn.classList.toggle('active', !!this.calcState.addMode);
             }
 
             _playCalcChordPreview(calcChord) {
@@ -15840,6 +15815,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (col) this.currentActiveColumnEl = col;
                 } catch(_){ }
 
+                this.resetCalcState();
                 this.refreshCalcUI();
             }
 
@@ -36981,6 +36957,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         this._lastPlayGestureColumnEl = columnElement;
                     }
                 } catch(_){ }
+                try {
+                    const calcModal = document.getElementById('keyboardModal');
+                    if (calcModal && calcModal.style.display !== 'none' && columnElement) {
+                        this._loadCalcFromColumn(columnElement);
+                        this.refreshCalcUI();
+                    }
+                } catch(_){ }
                 // Chords mode: play all tones simultaneously in tapped octave + bass root, sustain until release
                 // Only activate CHORDS mode when PLAY is active (isSequencing) - otherwise just strum
                 if ((this.playMode || 'high-low') === 'chords' && this._isSequencing) {
@@ -43710,59 +43693,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // Add startup buffer to ensure smooth audio playback
                                 console.log('🎵 Adding startup buffer to ensure audio readiness...');
                                 setTimeout(() => {
-                                    const loopOnAtStart = (function(){
-                                        try { return loopChk ? !!loopChk.checked : true; } catch(_){ return true; }
-                                    })();
-
-                                    // LOOP OFF: manual chord mode.
-                                    // Start transport (count-in gated) and leave chord changes to header taps only.
-                                    if (!loopOnAtStart) {
-                                        try {
-                                            const tr = omnichord._arpTransport;
-                                            const tpBar2 = tr.ticksPerBar || 16;
-                                            const curTick2 = tr.tickCounter|0;
-                                            const absNow2 = tr.absTickCounter|0;
-                                            const ticksToNextBar2 = (tpBar2 - (curTick2 % tpBar2)) % tpBar2;
-                                            const baseStartAbsTick2 = (absNow2 + ticksToNextBar2) >>> 0;
-
-                                            let countInBeats2 = 0;
-                                            try { countInBeats2 = Math.max(0, parseInt(tr._countInBeatsRequested||0, 10) || 0); } catch(_){ countInBeats2 = 0; }
-                                            try { tr._countInBeatsRequested = 0; } catch(_){ }
-
-                                            if (countInBeats2 > 0) {
-                                                const tpBeat2 = Math.max(1, tr.ticksPerBeat || 1);
-                                                const countInTicks2 = (countInBeats2 * tpBeat2) >>> 0;
-                                                const endAbsTick2 = (baseStartAbsTick2 + countInTicks2) >>> 0;
-                                                tr.startGateAbsTick = endAbsTick2;
-                                                tr.countInActive = true;
-                                                tr.countInStartAbsTick = baseStartAbsTick2;
-                                                tr.countInEndAbsTick = endAbsTick2;
-                                                tr.countInLastBeat = 0;
-                                            } else {
-                                                tr.startGateAbsTick = baseStartAbsTick2;
-                                            }
-
-                                            // No auto chord scheduling
-                                            tr._seqNextSwitchAbsTick = null;
-                                            tr._seqScheduleNext = null;
-                                            tr._seqOneLoopPlan = null;
-                                            tr._seqPlanPos = 0;
-                                            tr._seqAllCols = null;
-                                            tr._seqStartIdx = null;
-
-                                            // Keep transport alive for drums/patterns
-                                            tr.holdStopAtAbsTick = null;
-                                            omnichord._startArpTransport();
-
-                                            // Keep any now-playing highlight as-is (user-driven)
-                                        } catch(e) {
-                                            console.warn('Manual chord mode start error', e);
-                                            try { omnichord._startArpTransport(); } catch(_){ }
-                                        }
-
-                                        // Button already set to STOP below; do not start scheduleNext.
-                                        return;
-                                    }
                                     console.log('🎵 Startup buffer complete, beginning playback');
                                     console.log('🎵 Initial sequenceIndex is:', sequenceIndex);
                                     // Persist timing across steps (and across wraps) for gapless looping
