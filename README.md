@@ -1,4 +1,4 @@
 # XENON
-Microtonal Autoharp by FASTFAST
+Microtonal DAW and Autoharp by FASTFAST
 ALL RIGHTS RESERVED
 DON'T EVEN THINK ABOUT IT
