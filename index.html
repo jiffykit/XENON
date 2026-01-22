@@ -192,8 +192,10 @@
         }
         #chordRuler .chord-ruler-seg.chord {
             --len16: 16;
-            background-image: linear-gradient(to right, rgba(255,255,255,0.16) 0px, rgba(255,255,255,0.16) 1px, transparent 1px, transparent 100%);
-            background-size: calc(100% / var(--len16)) 100%;
+            background-image:
+                linear-gradient(to right, rgba(255,255,255,0.32) 0px, rgba(255,255,255,0.32) 1px, transparent 1px, transparent 100%),
+                linear-gradient(to right, rgba(255,255,255,0.16) 0px, rgba(255,255,255,0.16) 1px, transparent 1px, transparent 100%);
+            background-size: calc(100% / (var(--len16) / 4)) 100%, calc(100% / var(--len16)) 100%;
             background-repeat: repeat;
             opacity: 0.9;
         }
@@ -3721,6 +3723,7 @@
                             <div class="calc-keypad-actions">
                                 <button class="calc-btn action" id="calcAddBtn">ADD</button>
                                 <button class="calc-btn action" id="calcEqualsBtn">=</button>
+                                <button class="calc-btn action" id="calcChangeBtn" style="display:none;">CHANGE CHORD</button>
                                 <button class="calc-btn action" id="calcClearBtn">CLEAR</button>
                             </div>
                         </div>
@@ -9309,7 +9312,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch(_){ }
                             const id = sec.id;
                             const omni = window.omnichord;
-                            const isPlaying = !!(omni && omni._isSequencing);
+                            const isPlaying = !!(omni && (omni._isSequencing || omni._arpTransport?.running));
                             if (isPlaying) {
                                 window._pendingSectionId = id;
                                 if (omni) omni._pendingSectionSwitchId = id;
@@ -15243,8 +15246,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const equalsBtn = document.getElementById('calcEqualsBtn');
                 if (equalsBtn) {
                     equalsBtn.addEventListener('click', () => {
+                        this.insertCalcChordFromState({ replace: false });
+                    });
+                }
+
+                const changeBtn = document.getElementById('calcChangeBtn');
+                if (changeBtn) {
+                    changeBtn.addEventListener('click', () => {
                         const replacing = !!(this.isEditingChord && typeof this.editingOriginalIndex === 'number' && this.editingOriginalIndex >= 0);
-                        this.insertCalcChordFromState({ replace: replacing });
+                        if (!replacing) return;
+                        this.insertCalcChordFromState({ replace: true });
                     });
                 }
 
@@ -15697,6 +15708,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 const addBtn = document.getElementById('calcAddBtn');
                 if (addBtn) addBtn.classList.toggle('active', !!this.calcState.addMode);
+
+                const changeBtn = document.getElementById('calcChangeBtn');
+                const isEditing = !!(this.isEditingChord && typeof this.editingOriginalIndex === 'number' && this.editingOriginalIndex >= 0);
+                if (changeBtn) {
+                    changeBtn.style.display = isEditing ? 'inline-flex' : 'none';
+                    changeBtn.disabled = !isEditing;
+                }
             }
 
             _playCalcChordPreview(calcChord) {
@@ -24584,16 +24602,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 // Add click event listener for regular mouse clicks (using capture phase for higher priority)
                 element.addEventListener('click', (e) => {
-                    // CALC: tap header in EDIT mode (stopped) to open calculator
+                    // Header click: select only (no strum), or load into CALC if open
                     if (type === 'chord' && element.classList.contains('extension-header')) {
                         const column = element.closest('.extension-column');
-                        if (column && this.editArmed && !this._isSequencing && column === this.currentActiveColumnEl) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            e.stopImmediatePropagation();
+                        const calcModal = document.getElementById('keyboardModal');
+                        const calcOpen = !!(calcModal && calcModal.style.display !== 'none');
+                        const loopToggle = document.getElementById('loopToggle');
+                        const loopEnabled = loopToggle ? !!loopToggle.checked : true;
+
+                        if (column && calcOpen) {
                             try { this.openCalcModal({ column }); } catch(_){ }
-                            return false;
+                        } else if (column && this.editArmed && !this._isSequencing && column === this.currentActiveColumnEl) {
+                            try { this.openCalcModal({ column }); } catch(_){ }
+                        } else if (column && !loopEnabled) {
+                            try { this.currentActiveColumnEl = column; } catch(_){ }
+                            try { if (this._arp) this._arp.column = column; } catch(_){ }
+                            try { this.highlightKeyboardForColumn && this.highlightKeyboardForColumn(column); } catch(_){ }
                         }
+
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        return false;
                     }
                     // For chord headers or columns, short click plays; do not open context menus
                     if (type === 'chord' && (element.classList.contains('extension-header') || element.classList.contains('extension-column'))) {
@@ -24699,7 +24729,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (element.dataset.isMouseLongPress === 'true') {
                                 delete element.dataset.isMouseLongPress;
                             } else if (holdTime < this.touchGestures.chordNameLongPressDelay) {
-                                // Short click - treat as normal tap to play
+                                // Short click - treat as normal tap
                                 this.handleNormalTap(element, type);
                             }
                             
@@ -24812,33 +24842,32 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
             
             handleNormalTap(element, type) {
-                // Play a strum on normal tap for chord headers and palette chords
+                // Normal tap behavior for chord headers and palette chords
                 if (type === 'chord' && element.classList.contains('extension-header')) {
+                    const column = element.closest('.extension-column');
+                    const calcModal = document.getElementById('keyboardModal');
+                    const calcOpen = !!(calcModal && calcModal.style.display !== 'none');
+                    const loopToggle = document.getElementById('loopToggle');
+                    const loopEnabled = loopToggle ? !!loopToggle.checked : true;
+
                     // CALC: tap header in EDIT mode (stopped) to open calculator
+                    if (column && calcOpen) {
+                        try { this.openCalcModal({ column }); } catch(_){ }
+                        return;
+                    }
                     try {
-                        const column = element.closest('.extension-column');
                         if (column && this.editArmed && !this._isSequencing && column === this.currentActiveColumnEl) {
                             this.openCalcModal({ column });
                             return;
                         }
                     } catch(_){ }
-                    // If we just used header-contact to select/switch the chord, don't also auto-strum on touchend.
-                    try {
-                        const ts = parseInt(element.dataset.xenSuppressTapStrumTs || '0', 10);
-                        if (ts && (Date.now() - ts) < 800) {
-                            delete element.dataset.xenSuppressTapStrumTs;
-                            return;
-                        }
-                    } catch(_){ }
-                    const column = element.closest('.extension-column');
-                    if (column) {
-                        const header = column.querySelector('.extension-header');
-                        const chordData = (this.getChordDataFromColumn(column, header)) || { name: header ? header.textContent : 'Chord' };
-                        const rect = column.getBoundingClientRect();
-                        const startY = rect.top + Math.max(4, rect.height * 0.08);
-                        const endY = rect.bottom - Math.max(4, rect.height * 0.08);
-                        this.playChordStrum(column, chordData, startY, endY);
+
+                    if (column && !loopEnabled) {
+                        try { this.currentActiveColumnEl = column; } catch(_){ }
+                        try { if (this._arp) this._arp.column = column; } catch(_){ }
+                        try { this.highlightKeyboardForColumn && this.highlightKeyboardForColumn(column); } catch(_){ }
                     }
+                    return;
                 } else if (type === 'palette') {
                     const chordData = this.getPaletteChordDataFromElement(element);
                     const column = element.closest('.palette-chord') || element.closest('.extension-column') || element;
@@ -36249,6 +36278,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try {
                             omnichord.currentActiveColumnEl = column;
                         } catch(_){ }
+                        try { if (omnichord && omnichord._arp) omnichord._arp.column = column; } catch(_){ }
                         try {
                             omnichord.highlightKeyboardForColumn && omnichord.highlightKeyboardForColumn(column);
                         } catch(_){ }
@@ -36952,6 +36982,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
 
             playChordStrum(columnElement, chordData, startY, endY) {
+                try {
+                    const loopToggle = document.getElementById('loopToggle');
+                    const loopEnabled = loopToggle ? !!loopToggle.checked : true;
+                    if (!loopEnabled && columnElement && columnElement.classList && columnElement.classList.contains('extension-column')) {
+                        this.currentActiveColumnEl = columnElement;
+                        if (this._arp) this._arp.column = columnElement;
+                    }
+                } catch(_){ }
                 try {
                     if (this._isSequencing && columnElement && columnElement.classList && columnElement.classList.contains('extension-column')) {
                         this._lastPlayGestureColumnEl = columnElement;
@@ -39281,7 +39319,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         .bells-osc-slider { display:flex; align-items:center; gap:6px; font-size:12px; color:#9db6c8; }
         .bells-osc-slider input[type="range"] { width:120px; }
         #bellsBars { position: relative; width: 100%; height: calc(100vh - 170px); overflow: hidden; }
-        #bellsBars .bells-scroll-track { position:absolute; left:0; top:0; width:100%; height:200%; will-change: transform; transition: transform 0.12s linear; }
+        #bellsBars .bells-scroll-track { position:absolute; left:0; top:0; width:100%; height:200%; will-change: transform; transition: none; }
         #bellsBars .bells-scroll-panel { position: relative; width:100%; height:50%; }
         .bells-key {
             position: absolute; display: flex; align-items: center; justify-content: center;
@@ -39421,8 +39459,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const cols = Array.from(document.querySelectorAll('.extension-column'));
                 const list = [];
                 cols.forEach((col) => {
+                    try {
+                        if (col?.dataset?.isSpacer === 'true') return;
+                    } catch(_){ }
                     const name = col.querySelector('.extension-header .chord-name')?.textContent?.trim() || '';
-                    if (!name || name === '|') return;
+                    const normName = name.replace(/\s+/g, ' ').trim().toLowerCase();
+                    if (!name || name === '|' || normName === 'empty' || normName === '-' || normName === '—' || normName === '–' || normName === 'new') return;
+                    try {
+                        const id = col?.dataset?.chordId;
+                        let model = null;
+                        if (id) model = (this.chordExtensions || []).find(c => String(c?.id) === String(id)) || null;
+                        if (!model && col?.dataset?.originalPosition != null) {
+                            const op = parseInt(String(col.dataset.originalPosition), 10);
+                            if (!isNaN(op) && op >= 0) model = this.chordExtensions?.[op] || null;
+                        }
+                        if (model && (model.isSpacer || (model.isCustom && (!model.intervals || model.intervals.length === 0) && String(model.name || '').trim().toLowerCase() === 'new'))) {
+                            return;
+                        }
+                    } catch(_){ }
                     list.push({ name, column: col });
                 });
                 return list;
@@ -39921,20 +39975,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     } catch(_){ }
                                 }
                                 if (!top) return null;
-                                const rect = top.getBoundingClientRect();
-                                const edge = rect ? Math.max(12, rect.height * 0.2) : 12;
-                                if (rect && y >= rect.bottom - edge) {
-                                    let below = null;
-                                    try {
-                                        const allKeys = Array.from(win.document.querySelectorAll('.bells-key'));
-                                        const candidates = allKeys.map(k=>({ k, r: k.getBoundingClientRect() }))
-                                            .filter(o => x >= o.r.left && x <= o.r.right && o.r.top >= (rect.bottom - 1))
-                                            .sort((a,b)=> a.r.top - b.r.top);
-                                        below = candidates.length ? candidates[0].k : null;
-                                    } catch(_) {}
-                                    if (below) return below;
-                                    if (keys.length > 1) return keys[1];
-                                }
                                 return top;
                             } catch(_){ return null; }
                         };
@@ -40527,7 +40567,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 try {
                     const tr = this._arpTransport;
                     if (!tr || !tr.running) return 0;
-                    const nowAbs = tr.absTickCounter|0;
+                    const tickMsRaw = Number(tr.tickMs) || 0;
+                    const tickMs = (tickMsRaw > 0) ? tickMsRaw : ((tr.beatMs || (60000 / Math.max(20, tr.bpm || 120))) / Math.max(1, tr.ticksPerBeat || 4));
+                    const nowMs = (performance && performance.now) ? performance.now() : Date.now();
+                    const nextAt = Number.isFinite(tr.nextAt) ? tr.nextAt : nowMs;
+                    const lastTickAt = nextAt - Math.max(1, tickMs);
+                    let frac = (nowMs - lastTickAt) / Math.max(1, tickMs);
+                    if (!Number.isFinite(frac)) frac = 0;
+                    frac = Math.max(0, Math.min(1, frac));
+                    const nowAbs = (tr.absTickCounter|0) + frac;
                     const last = Number.isFinite(tr._seqLastSwitchAbsTick) ? (tr._seqLastSwitchAbsTick|0) : null;
                     const hold = Number.isFinite(tr._seqLastHoldTicks) ? (tr._seqLastHoldTicks|0) : null;
                     let dur = hold;
@@ -40551,8 +40599,61 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } catch(_){ }
             }
 
+            _startBellsScrollRAF(){
+                if (this._bellsScrollRafActive) return;
+                this._bellsScrollRafActive = true;
+                const tick = ()=>{
+                    if (!this._bellsScrollRafActive) return;
+                    const wins = this._getOpenBellsWindows();
+                    if (!wins.length) {
+                        this._bellsScrollRafActive = false;
+                        this._bellsScrollRaf = null;
+                        return;
+                    }
+                    wins.forEach(win=>{
+                        const st = this._getBellsState(win);
+                        if ((st?.mode || 'single') !== 'single') return;
+                        try {
+                            const list = this._getBellsChordList();
+                            const nowCol = this._getNowPlayingColumn() || this.currentActiveColumnEl;
+                            const idx = list.findIndex(x => x.column === nowCol);
+                            const nowId = (idx >= 0) ? String(idx) : (nowCol?.dataset?.chordId || nowCol || null);
+                            if (nowId && nowId !== st._lastNowChordId) {
+                                st._lastNowChordId = String(nowId);
+                                try { this._renderBellsBars(win); } catch(_){ }
+                                return;
+                            }
+                            if (this._bellsShouldScroll(win)) {
+                                const nextCol = this._getNextBellsScrollColumn(nowCol);
+                                const nextId = nextCol ? (nextCol?.dataset?.chordId || nextCol) : null;
+                                if (nextId && String(nextId) !== String(st._lastNextChordId || '')) {
+                                    st._lastNextChordId = String(nextId);
+                                    try { this._renderBellsBars(win); } catch(_){ }
+                                    return;
+                                }
+                                try { this._updateBellsScrollPosition(win); } catch(_){ }
+                            }
+                        } catch(_){ }
+                    });
+                    this._bellsScrollRaf = (window.requestAnimationFrame ? window.requestAnimationFrame(tick) : setTimeout(tick, 16));
+                };
+                this._bellsScrollRaf = (window.requestAnimationFrame ? window.requestAnimationFrame(tick) : setTimeout(tick, 16));
+            }
+
+            _stopBellsScrollRAF(){
+                this._bellsScrollRafActive = false;
+                try {
+                    if (this._bellsScrollRaf != null) {
+                        if (window.cancelAnimationFrame) cancelAnimationFrame(this._bellsScrollRaf);
+                        else clearTimeout(this._bellsScrollRaf);
+                    }
+                } catch(_){ }
+                this._bellsScrollRaf = null;
+            }
+
             _startBellsAutoUpdate(){
                 this._stopBellsAutoUpdate();
+                this._startBellsScrollRAF();
                 this._bellsAutoTimer = setInterval(() => {
                     const wins = this._getOpenBellsWindows();
                     if (!wins.length) { this._stopBellsAutoUpdate(); return; }
@@ -40597,6 +40698,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     clearInterval(this._bellsAutoTimer);
                     this._bellsAutoTimer = null;
                 }
+                this._stopBellsScrollRAF();
             }
 
             _getBaseRootForColumn(column) {
@@ -42613,6 +42715,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // Schedule Note Off based on musical intent per section
                                 const epsilonMs = 8;
                                 let offDelay = Math.max(10, decayMsFor(tgt)|0);
+                                let gateFromElement = null;
+                                try {
+                                    gateFromElement = (element && Number.isFinite(element.__gateMs)) ? Number(element.__gateMs) : null;
+                                    if (gateFromElement && !['chord','bass'].includes(tgt)) {
+                                        offDelay = Math.max(10, Math.floor(gateFromElement - epsilonMs));
+                                    }
+                                } catch(_) { gateFromElement = null; }
                                 try {
                                     if ((tgt === 'strum1' || tgt === 'strum2' || tgt === 'bells') && element && Number.isFinite(element.__gateMs)) {
                                         offDelay = Math.max(10, Math.floor(element.__gateMs));
@@ -42653,7 +42762,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     } else if (tgt === 'arp') {
                                         // QUANT-based duration for ARP (e.g., 1/8 note)
                                         // BUT if omnichord has a stored gate duration for this note (from pill metadata), use that instead
-                                        const elGateMs = (element && Number.isFinite(element.__gateMs)) ? element.__gateMs : null;
+                                        const elGateMs = gateFromElement != null ? gateFromElement : ((element && Number.isFinite(element.__gateMs)) ? element.__gateMs : null);
                                         if (elGateMs && elGateMs > 0) {
                                             offDelay = Math.max(10, Math.floor(elGateMs - epsilonMs));
                                         } else if (omnichord._lastArpGateMs && Number.isFinite(omnichord._lastArpGateMs) && omnichord._lastArpGateMs > 0) {
