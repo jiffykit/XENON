@@ -90,7 +90,7 @@
             /* Anchor to XENON bar at bottom */
             position: absolute;
             top: 0;
-            bottom: var(--xenon-footer-h, 28px);
+            bottom: auto;
             left: 80px; /* Right of sidebar */
             right: 0;
             /* Remove vertical line by ensuring no borders on child elements */
@@ -114,14 +114,37 @@
             top: calc(50vh - 12px); /* Position just above the strum-area */
             left: 0;
             right: 0;
-            height: 12px;
+            height: 24px;
             background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
             border-bottom: 1px solid #333333; /* Dark gray border instead of blue */
             cursor: ns-resize;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10;
+            z-index: 15;
+        }
+
+        .chord-collapse-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+            border-bottom: 1px solid #2a2a2a;
+            cursor: ns-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 16;
+        }
+
+        .chord-collapse-handle .resize-grip {
+            width: 36px;
+            height: 4px;
+            background: #ffd046;
+            border-radius: 2px;
+            opacity: 0.8;
         }
 
         .chord-resize-handle:hover {
@@ -129,8 +152,8 @@
         }
 
         .resize-grip {
-            width: 30px;
-            height: 3px;
+            width: 44px;
+            height: 4px;
             background: #8fb3d3;
             border-radius: 2px;
             opacity: 0.6;
@@ -140,17 +163,130 @@
             opacity: 1;
         }
 
+        /* Inline JAM (one octave) under chord view */
+        .jam-area {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: var(--xenon-footer-h, 28px);
+            top: 50vh;
+            background: #000000;
+            border-top: 1px solid #1f2f3a;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 5;
+        }
+        #jamArea #bellsHeader {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 6px 8px;
+            border-bottom: 1px solid #1f2f3a;
+            background: #060c10;
+        }
+        #jamArea #bellsTransportRow { display:flex; align-items:center; gap:8px; }
+        #jamArea .bells-transport-btn {
+            padding: 4px 10px; background: #214051; color: #e8f5ff; border: 1px solid #2b5567;
+            border-radius: 8px; font-size: 12px; cursor: pointer; min-width: 70px; text-align: center;
+        }
+        #jamArea .bells-transport-btn.active { background: #2ecc71; border-color: #27ae60; color: #0a1014; }
+        #jamArea #bellsChords, #jamArea #bellsModeToggle { display: none !important; }
+        #jamArea #bellsControls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        #jamArea #bellsCountLabel,
+        #jamArea #bellsCount,
+        #jamArea #bellsCountValue,
+        #jamArea [for="bellsOctave"],
+        #jamArea #bellsOctave,
+        #jamArea #bellsOctaveValue { display: none !important; }
+        #jamArea #bellsGlideWrap { display:flex; align-items:center; gap:6px; font-size:12px; color:#9db6c8; }
+        #jamArea #bellsDrawerRow { display:flex; align-items:center; gap:8px; margin-top:2px; }
+        #jamArea .bells-gear {
+            width:26px; height:24px; display:inline-flex; align-items:center; justify-content:center;
+            background:#214051; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px;
+            cursor:pointer; font-size:13px; line-height:1; padding:0; flex:0 0 auto;
+        }
+        #jamArea .bells-gear[aria-expanded="true"] { outline:2px solid #ffd046; outline-offset:1px; }
+        #jamArea .bells-drawer { display:none; flex-wrap:wrap; gap:8px; align-items:center; padding:6px 8px; border:1px solid rgba(74,106,112,0.55); border-radius:8px; background:rgba(13,41,56,0.7); }
+        #jamArea .bells-drawer.open { display:flex; }
+        #jamArea .bells-osc-row { display:flex; gap:6px; flex-wrap:wrap; }
+        #jamArea .bells-osc-btn {
+            padding:4px 8px; background:#1a2f3c; color:#e8f5ff; border:1px solid #2b5567;
+            border-radius:6px; font-size:11px; cursor:pointer; min-width:40px; text-align:center;
+        }
+        #jamArea .bells-osc-btn.active { background:#f39c12; border-color:#e67e22; color:#111; }
+        #jamArea .bells-osc-slider { display:flex; align-items:center; gap:6px; font-size:11px; color:#9db6c8; }
+        #jamArea .bells-osc-slider input[type="range"] { width:110px; }
+        #jamArea #bellsBars { position: relative; width: 100%; flex: 1 1 auto; overflow: hidden; touch-action: none; }
+
+        .sidebar-zoom-wrap {
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 4px;
+            border: 1px solid rgba(143,179,211,0.35);
+            border-radius: 10px;
+            background: rgba(7, 14, 18, 0.5);
+        }
+        .sidebar-zoom-label {
+            font-size: 9px;
+            color: #9db6c8;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .sidebar-zoom-value {
+            font-size: 10px;
+            color: #e8f5ff;
+        }
+        .sidebar-zoom-wrap input[type="range"] {
+            writing-mode: bt-lr;
+            -webkit-appearance: slider-vertical;
+            width: 18px;
+            height: 120px;
+            accent-color: #8fb3d3;
+        }
+        #jamArea #bellsBars .bells-scroll-track { position:absolute; left:0; top:0; width:100%; height:200%; will-change: transform; transition: none; }
+        #jamArea #bellsBars .bells-scroll-panel { position: relative; width:100%; height:50%; }
+        #jamArea .bells-key {
+            position: absolute; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: 600; color: #000; text-shadow: 0 1px 0 rgba(255,255,255,0.2);
+            user-select: none; cursor: pointer; border: 2px solid rgba(255,255,255,0.55);
+            border-radius: 6px 6px 0 0;
+            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25), inset 0 0 14px rgba(0,0,0,0.35), 0 4px 14px rgba(0,0,0,0.35);
+            outline: 2px solid rgba(0,0,0,0.35);
+            outline-offset: -2px;
+            overflow: hidden;
+        }
+        #jamArea .bells-key::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255,255,255,0.45), rgba(255,255,255,0.05) 45%, rgba(0,0,0,0) 65%);
+            opacity: 0.25;
+            pointer-events: none;
+            transform: translateX(-30%);
+        }
+        #jamArea .bells-key.ringing::after { opacity: 0.75; animation: bellsShimmer 0.9s linear infinite; }
+        #jamArea .bells-key.bells-dim { filter: brightness(0.9); opacity: 0.9; }
+        #jamArea .bells-key.bells-current { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.65), 0 0 18px rgba(255,255,255,0.25); }
+        #jamArea .bells-natural { height: 100%; z-index: 1; bottom: 0; }
+        #jamArea .bells-accidental { height: 75%; z-index: 2; top: 0; }
+        #jamArea .bells-micro { height: 55%; z-index: 3; top: 0; }
+        #jamArea .bells-micro.small { height: 35%; }
+
         /* Chord Ruler (16th-note divisions) */
         #chordRuler {
             position: absolute;
             left: 0;
             right: 0;
-            height: 10px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-            border-bottom: 1px solid rgba(255,255,255,0.12);
+            height: 14px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+            border-bottom: 1px solid rgba(255,255,255,0.18);
             z-index: 11;
             pointer-events: auto;
-            display: none;
+            display: block;
         }
         #chordRuler .chord-ruler-tooltip {
             position: absolute;
@@ -193,11 +329,12 @@
         #chordRuler .chord-ruler-seg.chord {
             --len16: 16;
             background-image:
-                linear-gradient(to right, rgba(255,255,255,0.32) 0px, rgba(255,255,255,0.32) 1px, transparent 1px, transparent 100%),
-                linear-gradient(to right, rgba(255,255,255,0.16) 0px, rgba(255,255,255,0.16) 1px, transparent 1px, transparent 100%);
-            background-size: calc(100% / (var(--len16) / 4)) 100%, calc(100% / var(--len16)) 100%;
+                linear-gradient(to right, rgba(255,255,255,0.65) 0px, rgba(255,255,255,0.65) 2px, transparent 2px, transparent 100%),
+                linear-gradient(to right, rgba(255,255,255,0.35) 0px, rgba(255,255,255,0.35) 1px, transparent 1px, transparent 100%),
+                linear-gradient(to right, rgba(255,255,255,0.20) 0px, rgba(255,255,255,0.20) 1px, transparent 1px, transparent 100%);
+            background-size: calc(100% / (var(--len16) / 16)) 100%, calc(100% / (var(--len16) / 4)) 100%, calc(100% / var(--len16)) 100%;
             background-repeat: repeat;
-            opacity: 0.9;
+            opacity: 1;
         }
         #chordRuler .chord-ruler-seg.marker {
             background: transparent;
@@ -2525,6 +2662,14 @@
         }
 
         /* CALC (Chord Calculator) */
+        #keyboardModal { overflow: hidden; aspect-ratio: 760 / 520; }
+        #keyboardModal .modal-body { overflow: hidden; }
+        #keyboardModal .calc-layout {
+            width: var(--calc-base-w, 760px);
+            height: var(--calc-base-h, 460px);
+            transform: scale(var(--calc-scale, 1));
+            transform-origin: top left;
+        }
         .calc-layout { display:grid; grid-template-columns: minmax(280px, 1fr) 320px; gap: 14px; height: 100%; }
         .calc-left { display:flex; flex-direction:column; gap: 10px; min-width: 0; }
         .calc-display {
@@ -2620,7 +2765,7 @@
             </div>
             <button class="panel-btn mobile-row-1" data-panel="osc" title="Oscillator settings">OSC</button>
             <button class="panel-btn mobile-row-1" data-panel="fx" title="Effects">FX</button>
-            <button id="openTextChordParserBtn" class="panel-btn mobile-row-1" title="Type or paste a chord sequence">SEQ</button>
+                    <button id="openTextChordParserBtn" class="panel-btn mobile-row-1" title="Type or paste a chord sequence" style="display:none;">SEQ</button>
             <button id="playStopToggleBtn" class="panel-btn mobile-row-1" title="Play/Stop sequence" style="background:#27ae60;border-color:#2ecc71;">PLAY</button>
             <!-- TIME button removed; its controls are now embedded in DRUMS header -->
             
@@ -3232,7 +3377,7 @@
                 <!-- Left Sidebar with Module Buttons and Menu Controls -->
                 <div class="left-sidebar">
                     <!-- Module Buttons -->
-                    <button id="keyboardBtn" class="sidebar-btn" title="Toggle Piano Keyboard" onclick="sidebarBtnClick('keyboard')">KEYS</button>
+                    <button id="keyboardBtn" class="sidebar-btn" title="Toggle CALC" onclick="sidebarBtnClick('keyboard')" style="display:none;">CALC</button>
                     <button id="strumBtn" class="sidebar-btn" title="Toggle Strum Mode" onclick="sidebarBtnClick('strum')">STRUM</button>
                     <button id="chordsBtn" class="sidebar-btn" title="Toggle Chord Mode" onclick="sidebarBtnClick('chords')">CHORDS</button>
                     <button id="drumsBtn" class="sidebar-btn" title="Toggle Drums" onclick="sidebarBtnClick('drums')">DRUMS</button>
@@ -3243,7 +3388,7 @@
 
                     <button id="oscPanelBtn" class="sidebar-btn" title="Oscillator settings">OSC</button>
                     <button id="fxPanelBtn" class="sidebar-btn" title="Effects">FX</button>
-                    <button id="seqPanelBtn" class="sidebar-btn" title="Type or paste a chord sequence">SEQ</button>
+                    <button id="seqPanelBtn" class="sidebar-btn" title="Type or paste a chord sequence" style="display:none;">SEQ</button>
                     <button id="loadXenBtn" class="sidebar-btn" title="Import .XEN session" style="background:#9b59b6;border-color:#8e44ad;">LOAD</button>
                     <button id="saveXenBtn" class="sidebar-btn" title="Export full session (.XEN)" style="background:#10b981;border-color:#34d399;">SAVE</button>
                     <button id="bellsBtnSidebar" class="sidebar-btn" title="Open JAM">JAM</button>
@@ -3254,6 +3399,11 @@
                         <button id="transposeUpBtn" style="width:34px;height:18px;background:#27ae60;border:1px solid #2ecc71;border-radius:4px;color:#fff;font-size:11px;font-weight:600;line-height:1;cursor:pointer;">▲</button>
                         <div class="delta" id="transposeDelta" style="font-size:9px;color:#9db6c8;text-align:center;min-width:30px;">±0</div>
                         <button id="transposeDownBtn" style="width:34px;height:18px;background:#e74c3c;border:1px solid #c0392b;border-radius:4px;color:#fff;font-size:11px;font-weight:600;line-height:1;cursor:pointer;">▼</button>
+                    </div>
+                    <div id="bellsZoomWrap" class="sidebar-zoom-wrap" aria-label="Keyboard zoom" style="display:none;">
+                        <div class="sidebar-zoom-label">Zoom</div>
+                        <input id="bellsZoom" type="range" min="1" max="4" step="1" value="1" />
+                        <div id="bellsZoomValue" class="sidebar-zoom-value">1 key</div>
                     </div>
                 </div>
                 
@@ -3745,11 +3895,106 @@
         <!-- Fretboard/Strings with Resize Handle -->
         <div class="chord-resize-container" style="position: absolute; top: 0; bottom: 0; left: 80px; right: 0;">
             <div id="chordRuler" aria-hidden="true"></div>
+            <div class="chord-collapse-handle" id="chordCollapseHandle">
+                <div class="resize-grip"></div>
+            </div>
             <div class="chord-resize-handle" id="chordResizeHandle">
                 <div class="resize-grip"></div>
             </div>
-            <div class="strum-area" id="strumArea" style="position: absolute; top: 50vh; bottom: var(--xenon-footer-h, 28px); left: 0; right: 0; margin-left: 0;">
+            <div class="strum-area" id="strumArea" style="position: absolute; top: 0; height: 50vh; bottom: auto; left: 0; right: 0; margin-left: 0;">
                 <div class="extension-columns" id="extensionColumns"></div>
+            </div>
+            <div class="jam-area" id="jamArea">
+                <div id="bellsHeader">
+                    <div id="bellsTransportRow">
+                        <button id="bellsPlayBtn" class="bells-transport-btn">PLAY</button>
+                    </div>
+                    <div id="bellsChords"></div>
+                    <div id="bellsModeToggle"><button id="bellsModeToggleBtn" class="bells-mode-btn"></button></div>
+                    <div id="bellsControls">
+                        <label id="bellsCountLabel" for="bellsCount" style="font-size:12px;color:#9db6c8;">NOTES</label>
+                        <input id="bellsCount" type="range" min="1" max="16" value="2" />
+                        <span id="bellsCountValue">2</span>
+                        <label for="bellsOctave" style="font-size:12px;color:#9db6c8;">OCT</label>
+                        <input id="bellsOctave" type="range" min="2" max="6" value="4" />
+                        <span id="bellsOctaveValue">4</span>
+                        <label id="bellsGlideWrap"><input id="bellsGlide" type="checkbox" /> GLIDE</label>
+                    </div>
+                    <div id="bellsDrawerRow">
+                        <button id="bellsGearBtn" class="bells-gear" aria-expanded="false" title="JAM Oscillator">⚙</button>
+                        <div id="bellsDrawer" class="bells-drawer">
+                            <div class="bells-osc-row" id="bellsOscWaveRow">
+                                <button class="bells-osc-btn" data-wave="sine">Sin</button>
+                                <button class="bells-osc-btn" data-wave="sawtooth">Saw</button>
+                                <button class="bells-osc-btn" data-wave="square">Sqr</button>
+                                <button class="bells-osc-btn" data-wave="triangle">Tri</button>
+                                <button class="bells-osc-btn" data-wave="noise">Nse</button>
+                                <button class="bells-osc-btn" data-wave="pulse">Pulse</button>
+                                <button class="bells-osc-btn" data-wave="fullrect">FRect</button>
+                                <button class="bells-osc-btn" data-wave="halfrect">HRect</button>
+                                <button class="bells-osc-btn" data-wave="parabolic">Para</button>
+                                <button class="bells-osc-btn" data-wave="stair">Stair</button>
+                            </div>
+                            <div class="bells-osc-slider">
+                                <span>LEVEL</span>
+                                <input id="bellsOscLevel" type="range" min="0" max="10" value="5" />
+                                <span id="bellsOscLevelValue">50%</span>
+                            </div>
+                            <div class="bells-osc-slider">
+                                <span>DETUNE</span>
+                                <input id="bellsOscDetune" type="range" min="-50" max="50" value="0" />
+                                <span id="bellsOscDetuneValue">0¢</span>
+                            </div>
+                            <div class="bells-osc-slider">
+                                <span>OCT</span>
+                                <input id="bellsOscOctave" type="range" min="-3" max="3" value="0" />
+                                <span id="bellsOscOctaveValue">0</span>
+                            </div>
+                            <div class="bells-osc-slider">
+                                <span>COARSE</span>
+                                <input id="bellsOscCoarse" type="range" min="-24" max="24" value="0" step="1" />
+                                <span id="bellsOscCoarseValue">0 steps</span>
+                            </div>
+                            <div class="bells-osc-slider">
+                                <span>ATTACK</span>
+                                <input id="bellsEnvAttack" type="range" min="0" max="1000" value="5" />
+                                <span id="bellsEnvAttackValue">5ms</span>
+                            </div>
+                            <div class="bells-osc-slider">
+                                <span>DECAY</span>
+                                <input id="bellsEnvDecay" type="range" min="0" max="1000" value="250" />
+                                <span id="bellsEnvDecayValue">250ms</span>
+                            </div>
+                            <div class="bells-osc-slider">
+                                <span>SUSTAIN</span>
+                                <input id="bellsEnvSustain" type="range" min="0" max="100" value="85" />
+                                <span id="bellsEnvSustainValue">85%</span>
+                            </div>
+                            <div class="bells-osc-slider">
+                                <span>RELEASE</span>
+                                <input id="bellsEnvRelease" type="range" min="0" max="2000" value="350" />
+                                <span id="bellsEnvReleaseValue">350ms</span>
+                            </div>
+                            <div class="bells-osc-slider">
+                                <span>GLIDE</span>
+                                <input id="bellsGlideMs" type="range" min="0" max="800" value="0" />
+                                <span id="bellsGlideMsValue">AUTO</span>
+                            </div>
+                            <div class="bells-osc-slider">
+                                <span>FUZZ</span>
+                                <input id="bellsFuzz" type="range" min="0" max="100" value="0" />
+                                <span id="bellsFuzzValue">0%</span>
+                            </div>
+                            <div class="bells-midi-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                <label for="midiIn-bells" style="font-size:11px;color:#9db6c8;">MIDI IN</label>
+                                <input id="midiIn-bells" type="number" min="0" max="15" value="1" title="Listen on MIDI input channel (0-15; 0=omni)" style="width:64px; background:#0d2938; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:2px 4px; font-size:11px;" />
+                                <label for="midiOut-bells" style="font-size:11px;color:#9db6c8;">OUT</label>
+                                <select id="midiOut-bells" title="Select MIDI output port (by name)" style="min-width:160px; background:#0d2938; color:#e8f5ff; border:1px solid #2b5567; border-radius:6px; padding:2px 4px; font-size:11px;"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="bellsBars"></div>
             </div>
         </div>
 
@@ -3978,6 +4223,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     makeDraggable(modal);
                     modal._draggableSet = true;
                 }
+                if (typeof window.ensureCalcScaleObserver === 'function') window.ensureCalcScaleObserver();
+                if (typeof window.updateCalcScale === 'function') window.updateCalcScale();
             }
         };
         
@@ -3994,6 +4241,48 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             const modal = document.getElementById('keyboardModal');
             if (modal) modal.style.display = 'none';
             // Don't disable the CALC toggle - keep button active if used
+        };
+
+        window.updateCalcScale = function() {
+            try {
+                const modal = document.getElementById('keyboardModal');
+                if (!modal) return;
+                const ratio = 760 / 520;
+                if (!modal._calcSizing) {
+                    const rect = modal.getBoundingClientRect();
+                    const targetH = rect.width / ratio;
+                    if (Math.abs(targetH - rect.height) > 1) {
+                        modal._calcSizing = true;
+                        modal.style.height = Math.round(targetH) + 'px';
+                        modal._calcSizing = false;
+                    }
+                }
+                const body = modal.querySelector('.modal-body');
+                const layout = document.getElementById('calcLayout');
+                if (!body || !layout) return;
+                const baseWidth = 760;
+                const baseHeight = 460;
+                const availableW = body.clientWidth || 0;
+                const availableH = body.clientHeight || 0;
+                if (!availableW || !availableH) return;
+                const scale = Math.min(availableW / baseWidth, availableH / baseHeight);
+                body.style.setProperty('--calc-scale', scale.toFixed(4));
+                body.style.setProperty('--calc-base-w', baseWidth + 'px');
+                body.style.setProperty('--calc-base-h', baseHeight + 'px');
+            } catch(_){ }
+        };
+
+        window.ensureCalcScaleObserver = function() {
+            try {
+                const modal = document.getElementById('keyboardModal');
+                if (!modal || modal._calcScaleObserverSet) return;
+                if (typeof ResizeObserver !== 'function') return;
+                const observer = new ResizeObserver(() => {
+                    if (modal.style.display !== 'none') window.updateCalcScale();
+                });
+                observer.observe(modal);
+                modal._calcScaleObserverSet = true;
+            } catch(_){ }
         };
 
         // Modal resize -> scale drum/pattern/bass dot size + spacing
@@ -8267,6 +8556,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
         }
 
+        function _getChordTopOffsetPx() {
+            try {
+                const strip = document.getElementById('patternStrip');
+                if (strip) {
+                    const r = strip.getBoundingClientRect();
+                    if (Number.isFinite(r.bottom)) return Math.ceil(r.bottom + 6);
+                }
+            } catch(_) { }
+            try {
+                const rootArea = document.querySelector('.root-notes-area');
+                if (rootArea) {
+                    const r = rootArea.getBoundingClientRect();
+                    if (Number.isFinite(r.bottom)) return Math.ceil(r.bottom + 6);
+                }
+            } catch(_) { }
+            return 0;
+        }
+
         function _syncXenonFooterHeightVar() {
             try {
                 const footer = document.getElementById('brandFooter');
@@ -8291,103 +8598,145 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
         function initChordResize() {
             const handle = document.getElementById('chordResizeHandle');
+            const topHandle = document.getElementById('chordCollapseHandle');
             const strumArea = document.getElementById('strumArea');
+            const jamArea = document.getElementById('jamArea');
             const ruler = document.getElementById('chordRuler');
+            const RULER_H = 14;
+            const HANDLE_H = 24;
+            const TOP_HANDLE_H = 20;
             
             if (!handle || !strumArea) return;
-            
-            // Initialize positions
-            const initialTop = window.innerHeight * 0.5; // 50vh in pixels
-            strumArea.style.top = initialTop + 'px';
-            handle.style.top = (initialTop - 12) + 'px';
-            try {
-                if (ruler) {
-                    ruler.style.top = (initialTop - 22) + 'px';
-                    ruler.style.display = 'block';
+            const layout = {
+                systemTop: null,
+                splitHeight: null
+            };
+            const minStrumHeight = 80;
+            const hideAllThreshold = 60;
+
+            const applyLayout = () => {
+                const topOffset = _getChordTopOffsetPx();
+                const footerH = _getXenonFooterHeightPx();
+                const bottom = window.innerHeight - footerH;
+                const minSystemHeight = Math.max(120, Math.round(window.innerHeight * 0.25));
+
+                let systemTop = Number.isFinite(layout.systemTop) ? layout.systemTop : topOffset;
+                systemTop = Math.max(topOffset, Math.min(bottom - 20, systemTop));
+                let totalHeight = Math.max(0, bottom - systemTop);
+
+                if (!Number.isFinite(layout.splitHeight)) {
+                    const initialSplit = Math.max(minStrumHeight + RULER_H, Math.min(totalHeight, Math.round(window.innerHeight * 0.5 - systemTop)));
+                    layout.splitHeight = initialSplit;
                 }
-            } catch(_){ }
-            
-            let isResizing = false;
+
+                let splitHeight = layout.splitHeight;
+                if (totalHeight <= minSystemHeight) splitHeight = totalHeight;
+                const minSplit = Math.min(totalHeight, minStrumHeight + RULER_H);
+                splitHeight = Math.max(minSplit, Math.min(totalHeight, splitHeight));
+
+                const showAll = totalHeight > hideAllThreshold;
+                const jamHeight = Math.max(0, totalHeight - splitHeight);
+                const strumHeight = Math.max(0, splitHeight - RULER_H);
+
+                strumArea.style.top = systemTop + 'px';
+                strumArea.style.height = strumHeight + 'px';
+                strumArea.style.display = (showAll && strumHeight > 0) ? 'block' : 'none';
+
+                if (ruler) {
+                    if (showAll && strumHeight > 0) {
+                        ruler.style.top = (systemTop + strumHeight) + 'px';
+                        ruler.style.display = 'block';
+                    } else {
+                        ruler.style.display = 'none';
+                    }
+                }
+
+                if (jamArea) {
+                    if (showAll && jamHeight > 0) {
+                        jamArea.style.display = 'flex';
+                        jamArea.style.top = (systemTop + splitHeight) + 'px';
+                        jamArea.style.bottom = `${footerH}px`;
+                    } else {
+                        jamArea.style.display = 'none';
+                    }
+                }
+
+                handle.style.height = HANDLE_H + 'px';
+                handle.style.top = (systemTop + splitHeight - (HANDLE_H / 2)) + 'px';
+                if (topHandle) {
+                    topHandle.style.height = TOP_HANDLE_H + 'px';
+                    topHandle.style.top = (systemTop - (TOP_HANDLE_H / 2)) + 'px';
+                }
+
+                layout.systemTop = systemTop;
+                layout.splitHeight = splitHeight;
+
+                setTimeout(() => updateStringCompression(), 10);
+            };
+
+            applyLayout();
+
+            let isResizingMid = false;
+            let isResizingTop = false;
             let startY = 0;
+            let startSplit = 0;
             let startTop = 0;
-            
-            handle.style.touchAction = 'none'; // Prevent default touch behaviors
-            
-            handle.addEventListener('mousedown', (e) => {
-                isResizing = true;
-                startY = e.clientY;
-                startTop = parseInt(strumArea.style.top) || initialTop;
+
+            handle.style.touchAction = 'none';
+            if (topHandle) topHandle.style.touchAction = 'none';
+
+            const startResize = (type, y) => {
+                if (type === 'mid') {
+                    isResizingMid = true;
+                    startSplit = layout.splitHeight || 0;
+                } else {
+                    isResizingTop = true;
+                    startTop = layout.systemTop || _getChordTopOffsetPx();
+                }
+                startY = y;
                 document.body.style.userSelect = 'none';
                 document.body.style.cursor = 'ns-resize';
+            };
+
+            handle.addEventListener('pointerdown', (e) => {
+                try { handle.setPointerCapture(e.pointerId); } catch(_){ }
+                startResize('mid', e.clientY);
             });
-            
-            handle.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                isResizing = true;
-                const touch = e.touches[0];
-                startY = touch.clientY;
-                startTop = parseInt(strumArea.style.top) || initialTop;
-                document.body.style.userSelect = 'none';
-            });
-            
-            document.addEventListener('mousemove', (e) => {
-                if (!isResizing) return;
-                
+            if (topHandle) {
+                topHandle.addEventListener('pointerdown', (e) => {
+                    try { topHandle.setPointerCapture(e.pointerId); } catch(_){ }
+                    startResize('top', e.clientY);
+                });
+            }
+
+            const onMove = (e) => {
+                if (!isResizingMid && !isResizingTop) return;
                 const deltaY = e.clientY - startY;
-                // Ensure minimum chordbox area height so strings stay visible
-                const minTop = 200; // Minimum top position
-                const footerH = _getXenonFooterHeightPx();
-                const MIN_CHORD_AREA_PX = 240;
-                const maxTop = window.innerHeight - (MIN_CHORD_AREA_PX + footerH);
-                const newTop = Math.max(minTop, Math.min(maxTop, startTop + deltaY));
-                
-                strumArea.style.top = newTop + 'px';
-                handle.style.top = (newTop - 12) + 'px';
-                try { if (ruler) ruler.style.top = (newTop - 22) + 'px'; } catch(_){ }
-                
-                // Update string compression based on new size
-                setTimeout(() => updateStringCompression(), 10);
-                
-                // Don't change keyboard modal size - keep it minimal
-            });
-            
-            document.addEventListener('touchmove', (e) => {
-                if (!isResizing) return;
-                e.preventDefault();
-                
-                const touch = e.touches[0];
-                const deltaY = touch.clientY - startY;
-                // Ensure minimum chordbox area height so strings stay visible
-                const minTop = 200; // Minimum top position
-                const footerH = _getXenonFooterHeightPx();
-                const MIN_CHORD_AREA_PX = 240;
-                const maxTop = window.innerHeight - (MIN_CHORD_AREA_PX + footerH);
-                const newTop = Math.max(minTop, Math.min(maxTop, startTop + deltaY));
-                
-                strumArea.style.top = newTop + 'px';
-                handle.style.top = (newTop - 12) + 'px';
-                try { if (ruler) ruler.style.top = (newTop - 22) + 'px'; } catch(_){ }
-                
-                // Update string compression based on new size
-                setTimeout(() => updateStringCompression(), 10);
-                
-                // Don't change keyboard modal size - keep it minimal
-            });
-            
-            document.addEventListener('mouseup', () => {
-                if (isResizing) {
-                    isResizing = false;
+                if (isResizingMid) {
+                    layout.splitHeight = startSplit + deltaY;
+                }
+                if (isResizingTop) {
+                    layout.systemTop = startTop + deltaY;
+                }
+                applyLayout();
+            };
+
+            const endResize = () => {
+                if (isResizingMid || isResizingTop) {
+                    isResizingMid = false;
+                    isResizingTop = false;
                     document.body.style.userSelect = '';
                     document.body.style.cursor = '';
                 }
-            });
-            
-            document.addEventListener('touchend', () => {
-                if (isResizing) {
-                    isResizing = false;
-                    document.body.style.userSelect = '';
-                }
-            });
+            };
+
+            document.addEventListener('pointermove', onMove);
+            document.addEventListener('pointerup', endResize);
+            document.addEventListener('pointercancel', endResize);
+
+            window.addEventListener('resize', () => {
+                applyLayout();
+            }, { passive: true });
         }
 
         // Chordbox duration resize (left/right handles)
@@ -8658,6 +9007,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         function ensureChordVisibility() {
             const strumArea = document.getElementById('strumArea');
             const extensionColumns = document.getElementById('extensionColumns');
+            const handle = document.getElementById('chordResizeHandle');
+            const ruler = document.getElementById('chordRuler');
+            const jamArea = document.getElementById('jamArea');
+            const RULER_H = 14;
             
             if (!strumArea || !extensionColumns) return;
             
@@ -8674,25 +9027,25 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             const minTotalHeight = headerHeight + footerHeight + minStringsHeight + 10;
             
             // Check current positioning
-            const currentTop = parseInt(strumArea.style.top) || window.innerHeight * 0.5;
+            const topOffset = _getChordTopOffsetPx();
             const footerH = _getXenonFooterHeightPx();
-            const availableHeight = window.innerHeight - currentTop - footerH;
+            const currentHeight = parseInt(strumArea.style.height) || strumArea.getBoundingClientRect().height || (window.innerHeight * 0.5);
+            const availableHeight = currentHeight;
             
             // If not enough space, adjust position but respect limits
             if (availableHeight < minTotalHeight && chords.length > 0) {
-                const maxTop = window.innerHeight - (minTotalHeight + footerH);
-                const newTop = Math.min(currentTop, maxTop);
-                
-                if (newTop !== currentTop) {
-                    strumArea.style.top = newTop + 'px';
-                    
-                    const handle = document.getElementById('chordResizeHandle');
-                    if (handle) {
-                        handle.style.top = (newTop - 12) + 'px';
-                    }
+                const maxHeight = Math.max(minTotalHeight + RULER_H, window.innerHeight - topOffset - footerH - 180);
+                const newHeight = Math.min(currentHeight + RULER_H, maxHeight);
+                if (newHeight !== currentHeight) {
+                    strumArea.style.top = topOffset + 'px';
+                    strumArea.style.height = Math.max(60, newHeight - RULER_H) + 'px';
+                    if (handle) handle.style.top = (topOffset + newHeight - 12) + 'px';
+                    try { if (ruler) ruler.style.top = (topOffset + Math.max(60, newHeight - RULER_H)) + 'px'; } catch(_){ }
                     try {
-                        const ruler = document.getElementById('chordRuler');
-                        if (ruler) ruler.style.top = (newTop - 22) + 'px';
+                        if (jamArea) {
+                            jamArea.style.top = (topOffset + newHeight) + 'px';
+                            jamArea.style.bottom = `${footerH}px`;
+                        }
                     } catch(_){ }
                 }
             }
@@ -9533,6 +9886,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
                 
                 modal.style.width = Math.round(newWidth) + 'px';
+                if (typeof window.updateCalcScale === 'function') window.updateCalcScale();
             }
             
             // Make function globally accessible
@@ -10241,6 +10595,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this._calcWired = false;
                 // Track a newly created blank chord to inherit notes on first external strum
                 this.pendingBlankChordId = null;
+                this.pendingBlankChordStrumEligible = false;
                 
                 // Clean up corrupted palette data
                 this.cleanupPaletteData();
@@ -14675,6 +15030,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
                 // Track this as a pending blank chord eligible for inheritance on next external strum
                 this.pendingBlankChordId = id;
+                this.pendingBlankChordStrumEligible = true;
                 if (typeof this.saveChordConfiguration === 'function') {
                     try { this.saveChordConfiguration(); } catch (_) {}
                 }
@@ -14722,6 +15078,78 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                     } catch (_) {}
                 }
+            }
+
+            // Create a chord from a dragged root note (single-note chord)
+            _createChordFromRootAbsStep(absStep, tuning, opts) {
+                try {
+                    const edo = tuning || this.currentTuning || 12;
+                    const rootStep = ((absStep % edo) + edo) % edo;
+                    const rootName = this.getRootNameForStep(rootStep, edo);
+
+                    this.createBlankChordColumn(opts);
+                    const id = this.pendingBlankChordId;
+                    if (!id) return;
+                    const idx = (this.chordExtensions || []).findIndex(c => c && String(c.id) === String(id));
+                    const model = (idx >= 0) ? this.chordExtensions[idx] : null;
+                    if (!model) return;
+
+                    try {
+                        if (this.pendingBlankChordId && String(chordId) === String(this.pendingBlankChordId)) {
+                            this.pendingBlankChordStrumEligible = false;
+                        }
+                    } catch(_) {}
+
+                    model.isCustom = true;
+                    model.quality = 'custom';
+                    model.intervals = [0];
+                    model.fixedRootStepAbs = rootStep;
+                    model.fixedRootTuning = edo;
+                    model.lastTuning = edo;
+                    model.name = rootName;
+                    model.preferredRootName = rootName;
+                    this.pendingBlankChordId = null;
+
+                    const column = document.querySelector(`.extension-column[data-chord-id='${id}']`);
+                    if (column) {
+                        const nameEl = column.querySelector('.extension-header .chord-name');
+                        if (nameEl) {
+                            nameEl.textContent = rootName;
+                            nameEl.dataset.lockedName = rootName;
+                        }
+                        const oldContainer = column.querySelector('.strings-column');
+                        if (oldContainer) oldContainer.remove();
+                        this.generateStringsForColumn(column, model.intervals, true);
+                        try { this.highlightKeyboardForColumn(column); } catch(_) {}
+                        this.currentActiveColumnEl = column;
+                    }
+                    try { this.saveChordConfiguration?.(); } catch(_){ }
+                    try { this.updateChordDisplay?.(); } catch(_){ }
+                } catch(_){ }
+            }
+
+            _handleRootKeyDrop(evt, absStep, tuning) {
+                try {
+                    if (!Number.isFinite(absStep)) return;
+                    const x = evt?.clientX;
+                    const y = evt?.clientY;
+                    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+                    const el = document.elementFromPoint(x, y);
+                    if (!el) return;
+                    const container = document.getElementById('extensionColumns');
+                    const strumArea = document.getElementById('strumArea');
+                    const isDropTarget = (el.closest && (el.closest('#extensionColumns') || el.closest('#strumArea')));
+                    if (!isDropTarget) return;
+
+                    const existingCols = container
+                        ? Array.from(container.querySelectorAll('.extension-column'))
+                            .filter(c => c && !c.classList.contains('repeat-marker-column') && c.dataset.isSpacer !== 'true')
+                        : [];
+                    if (existingCols.length === 0) {
+                        this._createChordFromRootAbsStep(absStep, tuning);
+                        return;
+                    }
+                } catch(_){ }
             }
             
             // Auto-close modals that overlap the chord area when creating new chords
@@ -15543,9 +15971,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             return btn;
                         };
 
-                        row.appendChild(makeSeg('b', 'b', false));
+                        row.appendChild(makeSeg('♭', 'b', false));
                         row.appendChild(makeSeg(note, null, true));
-                        row.appendChild(makeSeg('#', '#', false));
+                        row.appendChild(makeSeg('♯', '#', false));
                         grid.appendChild(row);
                     });
 
@@ -16455,6 +16883,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Root-based header color (no greys)
                     try {
                         let accent = null;
+                        const isBlank = !!(chordExt && chordExt.isCustom && (!Array.isArray(chordExt.intervals) || chordExt.intervals.length === 0));
+                        if (isBlank) {
+                            header.style.background = '#000000';
+                            header.style.backgroundImage = 'none';
+                            header.style.borderBottom = '1px solid #222222';
+                            header.style.boxShadow = 'none';
+                            header.style.color = '#9db6c8';
+                            header.style.border = '1px solid #222222';
+                            accent = null;
+                        } else {
                         const isGreyish = (hex)=>{
                             try {
                                 const m = String(hex||'').trim().match(/^#?([0-9a-f]{6})$/i);
@@ -16515,6 +16953,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         header.style.boxShadow = `0 0 10px ${accent}55`;
                         header.style.color = text;
                         header.style.border = `1px solid ${accent}`;
+                        }
                     } catch {}
                     
                     // Editing behavior: Enter to apply, Escape to cancel selection
@@ -20338,6 +20777,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 
                 // Auto-close the TUNING popup/panel after applying
                 if (typeof this.closeBottomPanel === 'function') this.closeBottomPanel();
+                try { this._renderAllBellsBars(); } catch(_) { }
             }
 
             // Remap custom-chord intervals using each chord's ORIGINAL EDO baseline to nearest neighbors in the new EDO.
@@ -29745,6 +30185,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (Number.isFinite(idx) && idx >= 0 && idx < chords.length) chordExt = chords[idx];
                         }
 
+                        // Blank custom chord: keep header neutral/black until user defines it
+                        try {
+                            const isBlank = !!(chordExt && chordExt.isCustom && (!Array.isArray(chordExt.intervals) || chordExt.intervals.length === 0));
+                            if (isBlank) {
+                                header.style.background = '#000000';
+                                header.style.borderBottom = '1px solid #222222';
+                                header.style.boxShadow = 'none';
+                                header.style.color = '#9db6c8';
+                                header.style.border = '1px solid #222222';
+                                return;
+                            }
+                        } catch(_) {}
+
                         let accent = null;
                         const isLocked = !!(chordExt && chordExt.isLocked && chordExt.lockedData);
                         const hasFixed = !!(chordExt && typeof chordExt.fixedRootStepAbs === 'number' && chordExt.fixedRootTuning);
@@ -29845,12 +30298,64 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (this.currentActiveColumnEl) this.highlightKeyboardForColumn(this.currentActiveColumnEl);
                         }
                     };
-                    keyboard.addEventListener('mousedown', (e)=>{ dragging=true; keyboard.classList.add('is-dragging'); startX=e.clientX; startRot=this.keyboardRotation|0; });
+                    keyboard.addEventListener('mousedown', (e)=>{
+                        if (e.target && e.target.closest && e.target.closest('[data-step]')) return;
+                        dragging=true; keyboard.classList.add('is-dragging'); startX=e.clientX; startRot=this.keyboardRotation|0;
+                    });
                     window.addEventListener('mousemove', (e)=>{ if(!dragging) return; applyDrag(e.clientX - startX); });
                     window.addEventListener('mouseup', ()=>{ dragging=false; keyboard.classList.remove('is-dragging'); });
-                    keyboard.addEventListener('touchstart', (e)=>{ dragging=true; keyboard.classList.add('is-dragging'); startX=e.touches[0].clientX; startRot=this.keyboardRotation|0; }, {passive:false});
+                    keyboard.addEventListener('touchstart', (e)=>{
+                        const target = e.target && e.target.closest ? e.target.closest('[data-step]') : null;
+                        if (target) return;
+                        dragging=true; keyboard.classList.add('is-dragging'); startX=e.touches[0].clientX; startRot=this.keyboardRotation|0;
+                    }, {passive:false});
                     window.addEventListener('touchmove', (e)=>{ if(!dragging) return; applyDrag(e.touches[0].clientX - startX); }, {passive:false});
                     window.addEventListener('touchend', ()=>{ dragging=false; keyboard.classList.remove('is-dragging'); }, {passive:false});
+                }
+
+                // Root-note drag (drop into chord area to create the first chord)
+                if (!keyboard.dataset.rootDragBound) {
+                    keyboard.dataset.rootDragBound = '1';
+                    const dragState = { active:false, moved:false, startX:0, startY:0, step:null, tuning:null };
+
+                    const onPointerDown = (e)=>{
+                        const target = e.target && e.target.closest ? e.target.closest('[data-step]') : null;
+                        if (!target) return;
+                        if (e.button != null && e.button !== 0) return;
+                        dragState.active = true;
+                        dragState.moved = false;
+                        dragState.startX = e.clientX;
+                        dragState.startY = e.clientY;
+                        dragState.step = parseInt(target.dataset.step || 'NaN', 10);
+                        dragState.tuning = this.currentTuning || 12;
+                        try { target.setPointerCapture && target.setPointerCapture(e.pointerId); } catch(_){ }
+                        try { e.stopPropagation(); } catch(_){ }
+                    };
+
+                    const onPointerMove = (e)=>{
+                        if (!dragState.active) return;
+                        const dx = e.clientX - dragState.startX;
+                        const dy = e.clientY - dragState.startY;
+                        if (!dragState.moved && Math.hypot(dx, dy) > 6) dragState.moved = true;
+                    };
+
+                    const onPointerUp = (e)=>{
+                        if (!dragState.active) return;
+                        const moved = dragState.moved;
+                        const step = dragState.step;
+                        const tuning = dragState.tuning;
+                        dragState.active = false;
+                        dragState.moved = false;
+                        dragState.step = null;
+                        dragState.tuning = null;
+                        if (!moved) return;
+                        try { this._handleRootKeyDrop(e, step, tuning); } catch(_){ }
+                    };
+
+                    keyboard.addEventListener('pointerdown', onPointerDown, { passive: true });
+                    window.addEventListener('pointermove', onPointerMove, { passive: true });
+                    window.addEventListener('pointerup', onPointerUp, { passive: true });
+                    window.addEventListener('pointercancel', onPointerUp, { passive: true });
                 }
 
                 if (this.gamelanMode) {
@@ -30951,18 +31456,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Show message for empty state
                     container.innerHTML = `
                         <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: #8fb3d3; font-size: 16px; text-align: center; flex-direction: column;">
-                            <div id="emptyChordSplash" class="empty-chord-splash">XENON — Click here to add chords</div>
+                            <div id="emptyChordSplash" class="empty-chord-splash">Welcome to XENON. Drag notes here to create chords</div>
                         </div>
                     `;
-                    try {
-                        const splash = container.querySelector('#emptyChordSplash');
-                        if (splash && !splash._wired) {
-                            splash._wired = true;
-                            splash.addEventListener('click', () => {
-                                try { this.openCalcModal && this.openCalcModal(); } catch(_){ }
-                            });
-                        }
-                    } catch(_){ }
                     
                     // Still restore locked chord states if they exist
                     this.restoreLockedChordStates();
@@ -36798,7 +37294,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (stringElement) {
                     // If a blank chord is pending and user is strumming another column, inherit immediately
                     try {
-                        if (this.pendingBlankChordId) {
+                        if (this.pendingBlankChordId && this.pendingBlankChordStrumEligible) {
                             const srcCol = stringElement.closest && stringElement.closest('.extension-column');
                             const pendingCol = document.querySelector(`.extension-column[data-chord-id='${this.pendingBlankChordId}']`);
                             const isSame = pendingCol && srcCol && pendingCol === srcCol;
@@ -36829,9 +37325,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             this.currentActiveColumnEl = pendingCol;
                                         } catch(_) {}
                                         this.pendingBlankChordId = null;
+                                        this.pendingBlankChordStrumEligible = false;
                                         try { this.saveChordConfiguration(); } catch(_) {}
                                     }
                                 }
+                            } else {
+                                // Any strum after [+] without duplication disarms the one-shot copy
+                                this.pendingBlankChordStrumEligible = false;
                             }
                         }
                     } catch(_) {}
@@ -37017,7 +37517,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // If there's a newly created blank chord pending, and the user strums another chord first,
                 // inherit that strummed chord's tones into the pending blank chord.
                 try {
-                    if (this.pendingBlankChordId && columnElement) {
+                    if (this.pendingBlankChordId && this.pendingBlankChordStrumEligible && columnElement) {
                         const pendingId = this.pendingBlankChordId;
                         // Locate the pending column/model
                         const pendingCol = document.querySelector(`.extension-column[data-chord-id='${pendingId}']`);
@@ -37057,8 +37557,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                             // Clear pending flag to avoid further copies
                             this.pendingBlankChordId = null;
+                            this.pendingBlankChordStrumEligible = false;
                             // Persist
                             try { this.saveChordConfiguration(); } catch(_) {}
+                        }
+                        if (isSameCol || isSeparator) {
+                            // Any strum after [+] without duplication disarms the one-shot copy
+                            this.pendingBlankChordStrumEligible = false;
                         }
                     }
                 } catch(_) {}
@@ -37164,6 +37669,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const baseDelay = Number.isFinite(this.strumDelayMs) ? this.strumDelayMs : 20;
                 const factor = Math.max(1, stringsToPlay.length / Math.max(1, originalCount));
                 const strumDelay = baseDelay / factor;
+                const strumSpanMs = Math.max(0, (stringsToPlay.length - 1) * strumDelay);
+
+                // Highlight keys corresponding to the strummed notes (pitch classes)
+                let strumHighlighted = false;
+                try {
+                    const srcEdo = (lockedChord?.lockedTuning) || this.currentTuning || 12;
+                    const stepSet = new Set();
+                    stringsToPlay.forEach(s => {
+                        const step = parseInt(s.dataset.noteIndex, 10);
+                        if (Number.isFinite(step)) stepSet.add(((step % srcEdo) + srcEdo) % srcEdo);
+                    });
+                    if (stepSet.size) {
+                        this.highlightKeyboardForSteps(Array.from(stepSet), srcEdo);
+                        strumHighlighted = true;
+                    }
+                } catch(_){ }
                 
                 stringsToPlay.forEach((string, index) => {
                     setTimeout(() => {
@@ -37201,13 +37722,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Let the per-note auto-release handle note lengths so attacks have time to be heard
                 // (Previously we forced an early stop at ~200ms which could mute long attacks.)
 
-                // Update keyboard highlighting for current chord tones and keep until next chord
-                try { this.highlightKeyboardForColumn(columnElement); this.currentActiveColumnEl = columnElement; } catch(_) {}
+                // Restore chord-tone highlighting after the strum completes
+                try {
+                    const restoreHighlight = () => {
+                        try { this.highlightKeyboardForColumn(columnElement); this.currentActiveColumnEl = columnElement; } catch(_) {}
+                    };
+                    if (strumHighlighted) setTimeout(restoreHighlight, Math.max(120, strumSpanMs));
+                    else restoreHighlight();
+                } catch(_) {}
                 
                 // Restore original settings if this was a locked chord
                 if (originalSettings) {
                     // Defer restoration until after the strum completes and notes pass their attack/decay
-                    const strumSpanMs = Math.max(0, (stringsToPlay.length - 1) * strumDelay);
                     const noteADMs = Math.max(
                         (this.envelope.attack + this.envelope.decay) * 1000,
                         (this.osc2Envelope.attack + this.osc2Envelope.decay) * 1000
@@ -37647,6 +38173,55 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
 
             // Light the keyboard keys/dots that match the current chord tones
+            highlightKeyboardForSteps(steps, stepsEdo = null){
+                const kb = document.querySelector('#rootGrid .piano-keyboard, #modalRootGrid .piano-keyboard');
+                if (!kb) return;
+                const kbEdo = this.currentTuning || 12;
+                const srcEdo = (stepsEdo || kbEdo);
+                const list = Array.isArray(steps) ? steps : Array.from(steps || []);
+
+                // Clear previous marks
+                kb.querySelectorAll('[data-step]').forEach(el=>{
+                    el.classList.remove('chord-tone');
+                    try { el.style.boxShadow = ''; el.style.outlineColor = ''; } catch(_){ }
+                });
+
+                if (!list.length) return;
+
+                const norm = (v,m)=> ((v % m) + m) % m;
+                list.forEach(step=>{
+                    if (!Number.isFinite(step)) return;
+                    let kbAbs = norm(step, srcEdo);
+                    if (srcEdo !== kbEdo) {
+                        const cents = (kbAbs * 1200) / srcEdo;
+                        kbAbs = Math.round((cents * kbEdo) / 1200);
+                        kbAbs = norm(kbAbs, kbEdo);
+                    }
+                    const semi = this.stepToSemitone(kbAbs, kbEdo);
+                    const color = this.getChromaticColorForSemitone(semi);
+                    if (kbEdo === 12) {
+                        kb.querySelectorAll('[data-step]').forEach(el=>{
+                            const ds = parseInt(el.dataset.step,10);
+                            if ((ds % 12) === (kbAbs % 12)) {
+                                el.classList.add('chord-tone');
+                                try {
+                                    el.style.boxShadow = `0 0 10px 3px ${color}99, 0 0 18px 6px ${color}55`;
+                                    el.style.outlineColor = color;
+                                } catch(_){ }
+                            }
+                        });
+                    } else {
+                        kb.querySelectorAll(`[data-step='${kbAbs}']`).forEach(el=>{
+                            el.classList.add('chord-tone');
+                            try {
+                                el.style.boxShadow = `0 0 10px 3px ${color}99, 0 0 18px 6px ${color}55`;
+                                el.style.outlineColor = color;
+                            } catch(_){ }
+                        });
+                    }
+                });
+            }
+
             highlightKeyboardForColumn(column){
                 // Throttle: only (re)highlight when the effective chord identity changes
                 try {
@@ -37818,6 +38393,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 let tuningSize = (lockedChord?.lockedTuning) || this.currentTuning || 12;
                 // Compute base root exactly like highlight/audio, in EFFECTIVE space (includes transpose as applicable)
                 let baseRoot = 0;
+                let resolvedModel = null;
                 try {
                     // Resolve chord model if present
                     let idxModel = column.dataset.originalPosition != null ? parseInt(column.dataset.originalPosition,10) : -1;
@@ -37826,6 +38402,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         idxModel = (this.chordExtensions || []).findIndex(c => (c.id===id));
                     }
                     const chordModel = (idxModel>=0)? this.chordExtensions[idxModel] : null;
+                    resolvedModel = chordModel;
                     console.log('BASEROOT CALCULATION: lockedChord =', !!lockedChord, 'chordModel =', !!chordModel);
                     console.log('BASEROOT CALCULATION: this.currentRoot =', this.currentRoot, 'this.transposeDelta =', this.transposeDelta);
                     if (lockedChord) {
@@ -37850,6 +38427,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         console.log('BASEROOT CALCULATION: default path, start =', start, 'g =', g, 'l =', l, 'baseRoot =', baseRoot);
                     }
                 } catch {}
+                // If this is a blank custom chord, the first note becomes the root
+                try {
+                    const chordModel = resolvedModel;
+                    const isBlank = !!(chordModel && chordModel.isCustom && (!Array.isArray(chordModel.intervals) || chordModel.intervals.length === 0)
+                        && !(typeof chordModel.fixedRootStepAbs === 'number'));
+                    if (!lockedChord && isBlank) {
+                        const edo = tuningSize || this.currentTuning || 12;
+                        const g = ((this.transposeDelta || 0) % edo + edo) % edo;
+                        const l = ((+column.dataset.localTranspose || 0) % edo + edo) % edo;
+                        const abs = ((absStep % edo) + edo) % edo;
+                        const rootModel = ((abs - g - l) % edo + edo) % edo;
+                        chordModel.fixedRootStepAbs = rootModel;
+                        chordModel.fixedRootTuning = edo;
+                        chordModel.isCustom = true;
+                        chordModel.intervals = [0];
+                        chordModel.lastTuning = edo;
+                        if (!Array.isArray(chordModel.originalIntervals) || !chordModel.originalIntervals.length) {
+                            chordModel.originalIntervals = [0];
+                        }
+                        baseRoot = abs;
+                    }
+                } catch(_) {}
                 // Define keyboard EDO for reference
                 const kbEdo = this.currentTuning || 12;
                 // If the chord's model EDO differs from the keyboard, migrate the chord model to the keyboard EDO first
@@ -37955,7 +38554,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // If this emptied chord is the latest created, mark it pending again for inheritance
                     try {
                         const thisId = column.dataset.chordId;
-                        if (thisId) this.pendingBlankChordId = thisId;
+                        if (thisId) {
+                            this.pendingBlankChordId = thisId;
+                            this.pendingBlankChordStrumEligible = false;
+                        }
                     } catch(_) {}
                     this._scheduleEditSave(column);
                     return;
@@ -38007,6 +38609,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 try {
                     if (this.pendingBlankChordId && String(column.dataset.chordId) === String(this.pendingBlankChordId)) {
                         this.pendingBlankChordId = null;
+                        this.pendingBlankChordStrumEligible = false;
                     }
                 } catch(_) {}
                 // Regenerate strings for this column only; drop exact snapshot so changes apply
@@ -39197,6 +39800,67 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     btnSide._wired = true;
                     btnSide.addEventListener('click', () => this.openBellsWindow());
                 }
+                this._initInlineJam();
+            }
+
+            _getInlineBellsWin(){
+                try {
+                    const jamArea = document.getElementById('jamArea');
+                    if (!jamArea) return null;
+                    const win = window;
+                    win.__bellsInline = true;
+                    win.__bellsInlineRoot = jamArea;
+                    return win;
+                } catch(_){ return null; }
+            }
+
+            _ensureInlineBellsState(win){
+                if (!win) return null;
+                const st = this._getBellsState(win);
+                st.mode = 'single';
+                st.count = 1;
+                st.baseOct = 4;
+                const edo = this.currentTuning || 12;
+                const limits = this._getInlineJamSpanLimits(edo);
+                const defaultSpan = Math.max(limits.minSpan, Math.min(limits.maxSpan, edo + 1));
+                if (!Number.isFinite(st.spanSteps) || st.spanSteps < limits.minSpan) {
+                    st.spanSteps = defaultSpan;
+                }
+                if (!Number.isFinite(st.baseAbsStep)) {
+                    st.baseAbsStep = (st.baseOct || 4) * edo;
+                }
+                return st;
+            }
+
+            _initInlineJam(){
+                const win = this._getInlineBellsWin();
+                if (!win) return;
+                this._ensureInlineBellsState(win);
+                try { this._renderBellsUI(win); } catch(_){ }
+                try { this._renderBellsBars(win); } catch(_){ }
+                this._startBellsAutoUpdate();
+            }
+
+            _getInlineJamSpanLimits(edo){
+                const minSpan = 1;
+                const maxSpan = Math.max(1, (edo * 4));
+                return { minSpan, maxSpan };
+            }
+
+            _computeInlineJamNotes(baseAbsStep, spanSteps, edo){
+                const notes = [];
+                const baseAbs = Math.round(Number.isFinite(baseAbsStep) ? baseAbsStep : 0);
+                const span = Math.max(1, spanSteps | 0);
+                for (let i = 0; i < span; i++) {
+                    const abs = baseAbs + i;
+                    const step = ((abs % edo) + edo) % edo;
+                    const octave = Math.floor(abs / edo);
+                    const label = `${this.getRootNameForStep(step, edo)}${octave}`;
+                    const color = this.getUniversalPitchColorForStep(step, edo).color || '#888';
+                    const freq = this.getFrequency(step, octave, edo);
+                    notes.push({ freq, step, octave, label, color, tuning: edo });
+                }
+                return notes;
             }
 
             openBellsWindow() {
@@ -39251,10 +39915,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
             _renderAllBellsUIs(){
                 this._getOpenBellsWindows().forEach(w => { try { this._renderBellsUI(w); } catch(_){} });
+                const inlineWin = this._getInlineBellsWin();
+                if (inlineWin) {
+                    try { this._ensureInlineBellsState(inlineWin); } catch(_){ }
+                    try { this._renderBellsUI(inlineWin); } catch(_){ }
+                }
             }
 
             _renderAllBellsBars(){
                 this._getOpenBellsWindows().forEach(w => { try { this._renderBellsBars(w); } catch(_){} });
+                const inlineWin = this._getInlineBellsWin();
+                if (inlineWin) {
+                    try { this._ensureInlineBellsState(inlineWin); } catch(_){ }
+                    try { this._renderBellsBars(inlineWin); } catch(_){ }
+                }
             }
 
             _updateAllBellsScrollPositions(){
@@ -39506,10 +40180,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             _renderBellsUI(winOverride=null) {
                 const win = winOverride || this._bellsWin;
                 if (!win || win.closed) return;
+                if (win.__bellsInline) {
+                    try { this._ensureInlineBellsState(win); } catch(_){ }
+                }
                 const doc = win.document;
                 const chordsEl = doc.getElementById('bellsChords');
                 const modeEl = doc.getElementById('bellsModeToggle');
                 const barsEl = doc.getElementById('bellsBars');
+                const zoomWrap = doc.getElementById('bellsZoomWrap');
+                const zoomEl = doc.getElementById('bellsZoom');
+                const zoomValEl = doc.getElementById('bellsZoomValue');
                 const slider = doc.getElementById('bellsCount');
                 const sliderVal = doc.getElementById('bellsCountValue');
                 const sliderLabel = doc.getElementById('bellsCountLabel');
@@ -39560,6 +40240,42 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const st = this._getBellsState(win);
                 if (st.activeIndex >= list.length) st.activeIndex = 0;
                 if (!st.mode) st.mode = 'single';
+
+                const isInline = !!win.__bellsInline;
+                if (zoomWrap && zoomEl && zoomValEl) {
+                    if (isInline) {
+                        const edo = this.currentTuning || 12;
+                        const limits = this._getInlineJamSpanLimits(edo);
+                        zoomWrap.style.display = '';
+                        zoomEl.min = String(limits.minSpan);
+                        zoomEl.max = String(limits.maxSpan);
+                        zoomEl.step = '1';
+                        const curSteps = Math.max(limits.minSpan, Math.min(limits.maxSpan, (st.spanSteps || limits.minSpan) | 0));
+                        zoomEl.value = String(curSteps);
+                        const curOct = curSteps / edo;
+                        zoomValEl.textContent = `${curSteps} ${curSteps === 1 ? 'key' : 'keys'} (${curOct.toFixed(2)}x)`;
+                        if (!zoomEl._wired) {
+                            zoomEl._wired = true;
+                            zoomEl.addEventListener('input', () => {
+                                const edoNow = this.currentTuning || 12;
+                                const lim = this._getInlineJamSpanLimits(edoNow);
+                                const steps = Math.max(lim.minSpan, Math.min(lim.maxSpan, parseInt(zoomEl.value, 10) || lim.minSpan));
+                                const center = (st.baseAbsStep || 0) + ((st.spanSteps || lim.minSpan) - 1) / 2;
+                                const maxAbs = edoNow * 8;
+                                const minAbs = 0;
+                                const maxBase = Math.max(minAbs, maxAbs - (steps - 1));
+                                const nextBase = Math.max(minAbs, Math.min(maxBase, center - ((steps - 1) / 2)));
+                                st.spanSteps = steps;
+                                st.baseAbsStep = nextBase;
+                                const oct = steps / edoNow;
+                                zoomValEl.textContent = `${steps} ${steps === 1 ? 'key' : 'keys'} (${oct.toFixed(2)}x)`;
+                                this._renderBellsBars(win);
+                            });
+                        }
+                    } else {
+                        zoomWrap.style.display = 'none';
+                    }
+                }
 
                 chordsEl.innerHTML = '';
                 if (list.length === 0) {
@@ -39884,18 +40600,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 try {
                     const playBtn = doc.getElementById('bellsPlayBtn');
                     if (playBtn) {
-                        const isRunning = !!(this._arpTransport && this._arpTransport.running);
-                        playBtn.textContent = isRunning ? 'STOP' : 'PLAY';
-                        playBtn.title = isRunning ? 'Stop transport' : 'Start transport';
-                        playBtn.classList.toggle('active', isRunning);
-                        if (!playBtn._wired) {
-                            playBtn._wired = true;
-                            playBtn.addEventListener('click', () => {
-                                try {
-                                    const transportBtn = document.getElementById('playStopToggleBtn');
-                                    if (transportBtn) transportBtn.click();
-                                } catch(_){ }
-                            });
+                        if (win.__bellsInline) {
+                            playBtn.style.display = 'none';
+                        } else {
+                            const isRunning = !!(this._arpTransport && this._arpTransport.running);
+                            playBtn.textContent = isRunning ? 'STOP' : 'PLAY';
+                            playBtn.title = isRunning ? 'Stop transport' : 'Start transport';
+                            playBtn.classList.toggle('active', isRunning);
+                            if (!playBtn._wired) {
+                                playBtn._wired = true;
+                                playBtn.addEventListener('click', () => {
+                                    try {
+                                        const transportBtn = document.getElementById('playStopToggleBtn');
+                                        if (transportBtn) transportBtn.click();
+                                    } catch(_){ }
+                                });
+                            }
                         }
                     }
                 } catch(_){ }
@@ -39909,11 +40629,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const barsEl = doc.getElementById('bellsBars');
                 if (!barsEl) return;
 
+                if (win.__bellsInline) {
+                    try { this._ensureInlineBellsState(win); } catch(_){ }
+                }
                 const st = this._getBellsState(win);
+                const edoInline = this.currentTuning || 12;
                 let notes = [];
                 let count = Math.max(1, Math.min(16, st?.count || 2));
                 const nowCol = this._getNowPlayingColumn();
                 const currentSteps = nowCol ? this._getCurrentChordAbsSteps(nowCol) : null;
+                if (win.__bellsInline) {
+                    const limits = this._getInlineJamSpanLimits(edoInline);
+                    const span = Math.max(limits.minSpan, Math.min(limits.maxSpan, (st.spanSteps || limits.minSpan)|0));
+                    st.spanSteps = span;
+                    const maxAbs = (edoInline * 8);
+                    const minAbs = 0;
+                    const maxBase = Math.max(minAbs, maxAbs - (span - 1));
+                    let baseAbs = Number.isFinite(st.baseAbsStep) ? st.baseAbsStep : ((st.baseOct || 4) * edoInline);
+                    baseAbs = Math.max(minAbs, Math.min(maxBase, baseAbs));
+                    st.baseAbsStep = baseAbs;
+                    notes = this._computeInlineJamNotes(baseAbs, span, edoInline);
+                    count = notes.length;
+                } else
                 if (st?.mode === 'all-chords') {
                     const octCount = Math.max(1, Math.min(6, st?.count || 1));
                     notes = this._computeAllChordsNotes(octCount, st);
@@ -39945,6 +40682,84 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
                 barsEl.innerHTML = '';
 
+                // Inline JAM: drag/pinch on negative space
+                if (win.__bellsInline && !barsEl._inlineJamWired) {
+                    barsEl._inlineJamWired = true;
+                    barsEl._jamPointers = new Map();
+                    barsEl._jamPinchDist = null;
+                    barsEl._jamPinchStart = null;
+                    barsEl._jamDrag = null;
+                    barsEl._jamRaf = null;
+                    const clampBase = (baseAbs, spanSteps)=>{
+                        const maxAbs = edoInline * 8;
+                        const minAbs = 0;
+                        const maxBase = Math.max(minAbs, maxAbs - (spanSteps - 1));
+                        return Math.max(minAbs, Math.min(maxBase, baseAbs));
+                    };
+                    const stepPxForSpan = (span)=>{
+                        const w = barsEl.clientWidth || 1;
+                        return Math.max(8, w / Math.max(1, (span - 1)));
+                    };
+                    const scheduleRender = ()=>{
+                        if (barsEl._jamRaf) return;
+                        barsEl._jamRaf = requestAnimationFrame(()=>{
+                            barsEl._jamRaf = null;
+                            this._renderBellsBars(win);
+                        });
+                    };
+                    const isNegativeSpace = (target)=>{
+                        if (!target) return true;
+                        if (target.closest && target.closest('.bells-key')) return false;
+                        return true;
+                    };
+                    barsEl.addEventListener('pointerdown', (e)=>{
+                        if (!isNegativeSpace(e.target)) return;
+                        try { barsEl.setPointerCapture(e.pointerId); } catch(_){ }
+                        barsEl._jamPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                        if (barsEl._jamPointers.size === 1) {
+                            const limits = this._getInlineJamSpanLimits(edoInline);
+                            const span = st.spanSteps || limits.minSpan;
+                            barsEl._jamDrag = {
+                                startX: e.clientX,
+                                baseAbs: st.baseAbsStep || ((st.baseOct || 4) * edoInline),
+                                spanSteps: span,
+                                stepPx: stepPxForSpan(span)
+                            };
+                        }
+                        if (barsEl._jamPointers.size === 2) {
+                            // Pinch zoom disabled; use the zoom slider instead.
+                            barsEl._jamPinchDist = null;
+                            barsEl._jamPinchStart = null;
+                        }
+                    });
+                    barsEl.addEventListener('pointermove', (e)=>{
+                        if (!barsEl._jamPointers.has(e.pointerId)) return;
+                        barsEl._jamPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                        if (barsEl._jamPointers.size === 2) return;
+                        if (barsEl._jamDrag) {
+                            const drag = barsEl._jamDrag;
+                            const dx = e.clientX - drag.startX;
+                            const span = st.spanSteps || drag.spanSteps || this._getInlineJamSpanLimits(edoInline).minSpan;
+                            const stepDelta = -dx / drag.stepPx;
+                            const nextBase = clampBase(drag.baseAbs + stepDelta, span);
+                            if (nextBase !== st.baseAbsStep) {
+                                st.baseAbsStep = nextBase;
+                                scheduleRender();
+                            }
+                        }
+                    });
+                    const endPointer = (e)=>{
+                        if (barsEl._jamPointers.has(e.pointerId)) barsEl._jamPointers.delete(e.pointerId);
+                        if (barsEl._jamPointers.size < 2) {
+                            barsEl._jamPinchDist = null;
+                            barsEl._jamPinchStart = null;
+                        }
+                        if (barsEl._jamPointers.size === 0) barsEl._jamDrag = null;
+                    };
+                    barsEl.addEventListener('pointerup', endPointer);
+                    barsEl.addEventListener('pointercancel', endPointer);
+                }
+
                 // Drag-to-strum support across keys
                 try {
                     if (!win.__bellsDragWired) {
@@ -39954,7 +40769,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         win.__bellsPlayedSet = new Set();
                         win.__bellsLastX = null;
                         win.__bellsDir = 0;
-                        win.document.addEventListener('pointerup', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; win.__bellsLastX = null; win.__bellsDir = 0; if (this._bellsGlideActive) this._bellsGlideStop(); });
+                        win.document.addEventListener('pointerup', (e) => {
+                            win.__bellsDragActive = false;
+                            win.__bellsLastIndex = -1;
+                            win.__bellsLastX = null;
+                            win.__bellsDir = 0;
+                            if (this._bellsGlideActive) this._bellsGlideStop();
+                            try { this._handleInlineJamDrop(win, e); } catch(_){ }
+                        });
                         win.document.addEventListener('pointercancel', () => { win.__bellsDragActive = false; win.__bellsLastIndex = -1; win.__bellsLastX = null; win.__bellsDir = 0; if (this._bellsGlideActive) this._bellsGlideStop(); });
                         const getKeyAtPoint = (x, y) => {
                             try {
@@ -40027,11 +40849,49 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const p = parseLabel(label);
                     return !!p.base && !!p.micro;
                 };
+                const jiTargets = [
+                    { name: 'C', cents: 0 },
+                    { name: 'D', cents: 1200 * Math.log2(9/8) },
+                    { name: 'E', cents: 1200 * Math.log2(5/4) },
+                    { name: 'F', cents: 1200 * Math.log2(4/3) },
+                    { name: 'G', cents: 1200 * Math.log2(3/2) },
+                    { name: 'A', cents: 1200 * Math.log2(5/3) },
+                    { name: 'B', cents: 1200 * Math.log2(15/8) }
+                ];
+                const buildJINaturalMap = (edo) => {
+                    const stepCents = Array.from({ length: edo }, (_, step) => {
+                        const cents = ((this.getCentValue(step, edo) % 1200) + 1200) % 1200;
+                        return { step, cents };
+                    });
+                    const bestForDegree = new Map();
+                    jiTargets.forEach((d) => {
+                        let best = { step: 0, dist: Infinity };
+                        stepCents.forEach((s) => {
+                            let dist = Math.abs(s.cents - d.cents);
+                            if (dist > 600) dist = 1200 - dist;
+                            if (dist < best.dist) best = { step: s.step, dist };
+                        });
+                        bestForDegree.set(d.name, best);
+                    });
+                    const naturalSteps = new Set(Array.from(bestForDegree.values()).map(v => v.step));
+                    const stepToName = new Map();
+                    stepCents.forEach((s) => {
+                        let best = { name: 'C', dist: Infinity };
+                        jiTargets.forEach((d) => {
+                            let dist = Math.abs(s.cents - d.cents);
+                            if (dist > 600) dist = 1200 - dist;
+                            if (dist < best.dist) best = { name: d.name, dist };
+                        });
+                        stepToName.set(s.step, best.name);
+                    });
+                    return { naturalSteps, stepToName };
+                };
+                const jiMap = buildJINaturalMap(tuning);
 
                 const renderNotes = (noteList, targetEl, opts={}) => {
                     const highlightSteps = opts.highlightSteps || null;
                     const forceFull = !!opts.forceFull;
-                    const addKey = (note, idx, cls, leftPct, widthPct, heightPct, z) => {
+                    const addKey = (note, idx, cls, leftPct, widthPct, heightPct, z, displayLabel) => {
                         const key = doc.createElement('div');
                         key.className = `bells-key ${cls}`;
                         key.dataset.index = String(idx);
@@ -40048,8 +40908,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             key.style.top = '0';
                             key.style.bottom = 'auto';
                         }
-                        key.textContent = note.label;
-                        key.title = note.label;
+                        const label = displayLabel || note.label;
+                        key.textContent = label;
+                        key.title = label;
                         key.__midiOutOverride = win.__bellsMidiOutId || null;
                         key.__bellsInst = win.__bellsInst || null;
                         key.__bellsState = st;
@@ -40057,6 +40918,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (highlightSteps && highlightSteps.has(note.step)) key.classList.add('bells-current');
                         const play = () => this._playBellsNote(note, key);
                         key.addEventListener('pointerdown', (ev) => {
+                            try {
+                                if (win.__bellsInline) {
+                                    win.__jamDragNote = note;
+                                    win.__jamDragStep = note.step;
+                                    win.__jamDragTuning = note.tuning || this.currentTuning || 12;
+                                    win.__jamDragKeyEl = key;
+                                    win.__jamDragStart = { x: ev.clientX, y: ev.clientY };
+                                }
+                            } catch(_) {}
                             try {
                                 win.__bellsDragActive = true;
                                 win.__bellsLastIndex = idx;
@@ -40119,10 +40989,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     absNotes.sort((a,b)=> a.absCents - b.absCents);
                     const minC = absNotes[0]?.absCents ?? 0;
                     const maxC = absNotes[absNotes.length-1]?.absCents ?? (minC + 1200);
-                    const span = Math.max(1, maxC - minC);
+                    const wantsEdgePad = !!(opts.edgePad && absNotes.length > 1);
+                    let padC = 0;
+                    if (wantsEdgePad) {
+                        const firstGap = Math.max(1, absNotes[1].absCents - absNotes[0].absCents);
+                        const lastGap = Math.max(1, absNotes[absNotes.length - 1].absCents - absNotes[absNotes.length - 2].absCents);
+                        padC = Math.max(1, Math.min(firstGap, lastGap) / 2);
+                    }
+                    const span = Math.max(1, (maxC - minC) + padC * 2);
                     const pos = absNotes.map(o => ({
                         ...o,
-                        rel: (o.absCents - minC) / span
+                        rel: (o.absCents - minC + padC) / span
                     }));
                     // Anchor alignment to reduce jumps across chord changes
                     try {
@@ -40162,26 +41039,31 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     pos.forEach((o, i) => {
                         const note = o.note;
-                        const label = note.label || '';
+                        const isJINatural = !!(jiMap && jiMap.naturalSteps && jiMap.naturalSteps.has(note.step));
+                        const jiName = (jiMap && jiMap.stepToName) ? jiMap.stepToName.get(note.step) : null;
+                        const displayLabel = (isJINatural && jiName)
+                            ? `${jiName}${Number.isFinite(note.octave) ? note.octave : ''}`
+                            : (note.label || '');
+                        const label = displayLabel || '';
                         const leftPct = bounds[i].left * 100;
                         const widthPct = Math.max(1.5, (bounds[i].right - bounds[i].left) * 100);
                         if (forceFull) {
-                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1);
-                        } else if (isNaturalLabel(label)) {
-                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1);
+                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, displayLabel);
+                        } else if (isJINatural) {
+                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, displayLabel);
                         } else if (isAccidentalLabel(label)) {
                             const width = Math.min(widthPct, Math.max(5, widthPct * 0.8));
                             const center = (leftPct + widthPct / 2);
-                            addKey(note, o.idx, 'bells-accidental', Math.max(0, Math.min(100-width, center - width/2)), width, 75, 2);
+                            addKey(note, o.idx, 'bells-accidental', Math.max(0, Math.min(100-width, center - width/2)), width, 75, 2, displayLabel);
                         } else if (isMicroLabel(label)) {
                             const microLen = (parseLabel(label).micro || '').length;
                             const cls = microLen > 1 ? 'bells-micro small' : 'bells-micro';
                             const height = microLen > 1 ? 35 : 55;
                             const width = Math.min(widthPct, Math.max(4, widthPct * 0.7));
                             const center = (leftPct + widthPct / 2);
-                            addKey(note, o.idx, cls, Math.max(0, Math.min(100-width, center - width/2)), width, height, 3);
+                            addKey(note, o.idx, cls, Math.max(0, Math.min(100-width, center - width/2)), width, height, 3, displayLabel);
                         } else {
-                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1);
+                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, displayLabel);
                         }
                     });
                 };
@@ -40209,14 +41091,183 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     barsEl.appendChild(track);
                     win.__bellsScrollTrack = track;
                     const stepsA = currentCol ? this._getCurrentChordAbsSteps(currentCol) : null;
-                    renderNotes(currentNotes, panelA, { forceFull: true, setLayout: true, highlightSteps: stepsA });
-                    renderNotes(nextNotesSafe, panelB, { forceFull: true, setLayout: false, highlightSteps: null });
+                    const edgePad = !!win.__bellsInline;
+                    renderNotes(currentNotes, panelA, { forceFull: !win.__bellsInline, setLayout: true, highlightSteps: stepsA, edgePad });
+                    renderNotes(nextNotesSafe, panelB, { forceFull: !win.__bellsInline, setLayout: false, highlightSteps: null, edgePad });
                     this._updateBellsScrollPosition(win);
                     return;
                 }
 
                 try { win.__bellsScrollTrack = null; } catch(_){ }
-                renderNotes(notes, barsEl, { forceFull: (st?.mode === 'single'), setLayout: true, highlightSteps: currentSteps });
+                renderNotes(notes, barsEl, { forceFull: (!win.__bellsInline && st?.mode === 'single'), setLayout: true, highlightSteps: currentSteps, edgePad: !!win.__bellsInline });
+            }
+
+            _handleInlineJamDrop(win, evt) {
+                try {
+                    if (!win || !win.__bellsInline) return;
+                    const note = win.__jamDragNote;
+                    win.__jamDragNote = null;
+                    win.__jamDragKeyEl = null;
+                    if (!note) return;
+                    const x = evt?.clientX;
+                    const y = evt?.clientY;
+                    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+                    const el = document.elementFromPoint(x, y);
+                    if (!el) return;
+                    if (el.closest && el.closest('#jamArea')) return;
+                    const column = (el.closest && el.closest('.extension-column')) ? el.closest('.extension-column') : null;
+                    if (column) {
+                        this._applyJamNoteToColumn(column, note);
+                        return;
+                    }
+                    // If no chords exist yet, allow dropping into the splash/top area to create the first chord
+                    try {
+                        const container = document.getElementById('extensionColumns');
+                        const cols = container
+                            ? Array.from(container.querySelectorAll('.extension-column'))
+                                .filter(c => c && !c.classList.contains('repeat-marker-column') && c.dataset.isSpacer !== 'true')
+                            : [];
+                        const isEmpty = cols.length === 0;
+                        if (isEmpty) {
+                            const isSplash = !!(el.id === 'emptyChordSplash' || (el.closest && el.closest('#emptyChordSplash')));
+                            const inChordZone = !!(el.closest && (el.closest('#extensionColumns') || el.closest('#strumArea')));
+                            const inTopHalf = (y <= (window.innerHeight * 0.5));
+                            if (isSplash || inChordZone || inTopHalf) {
+                                const edo = (note && Number.isFinite(note.tuning)) ? note.tuning : (this.currentTuning || 12);
+                                const step = (note && Number.isFinite(note.step)) ? note.step : null;
+                                const oct = (note && Number.isFinite(note.octave)) ? note.octave : 4;
+                                if (step != null) {
+                                    const absStep = (oct * edo) + step;
+                                    this._createChordFromRootAbsStep(absStep, edo);
+                                    return;
+                                }
+                            }
+                        }
+                    } catch(_){ }
+                    const strumArea = document.getElementById('strumArea');
+                    if (strumArea && (el === strumArea || (strumArea.contains && strumArea.contains(el)))) {
+                        const cols = Array.from(document.querySelectorAll('#extensionColumns .extension-column'))
+                            .filter(c => c && !c.classList.contains('repeat-marker-column') && c.dataset.isSpacer !== 'true');
+                        cols.forEach(col => this._applyJamNoteToColumn(col, note));
+                    }
+                } catch(_){ }
+            }
+
+            _applyJamNoteToColumn(column, note) {
+                try {
+                    if (!column || column.dataset.isSpacer === 'true' || column.classList.contains('repeat-marker-column')) return;
+                    if (this.lockedChords && this.lockedChords.has(column)) return;
+                    const chordId = column.dataset && column.dataset.chordId ? String(column.dataset.chordId) : null;
+                    let model = null;
+                    if (chordId) model = (this.chordExtensions || []).find(c => c && String(c.id) === chordId) || null;
+                    if (!model && column.dataset.originalPosition != null) {
+                        const op = parseInt(column.dataset.originalPosition, 10);
+                        if (!isNaN(op) && op >= 0) model = this.chordExtensions?.[op] || null;
+                    }
+                    if (!model) return;
+
+                    const tuning = model.fixedRootTuning || this.currentTuning || 12;
+                    const srcEdo = (note && Number.isFinite(note.tuning)) ? note.tuning : (this.currentTuning || 12);
+                    const mapStep = (step, src, dst) => {
+                        if (!src || src === dst) return ((step % dst) + dst) % dst;
+                        const cents = ((step % src + src) % src) * (1200 / src);
+                        const mapped = Math.round(cents / (1200 / dst));
+                        return ((mapped % dst) + dst) % dst;
+                    };
+                    const noteStep = (note && Number.isFinite(note.step)) ? note.step : null;
+                    if (noteStep == null) return;
+                    const absStep = (tuning === srcEdo) ? ((noteStep % tuning) + tuning) % tuning : mapStep(noteStep, srcEdo, tuning);
+
+                    const info = this._getBaseRootForColumn(column);
+                    const baseRoot = info.baseRoot;
+                    const g = ((this.transposeDelta || 0) % tuning + tuning) % tuning;
+                    const l = ((+column.dataset.localTranspose || 0) % tuning + tuning) % tuning;
+                    const modelRoot = ((baseRoot - g - l) % tuning + tuning) % tuning;
+
+                    const isBlank = !!(model && model.isCustom && (!Array.isArray(model.intervals) || model.intervals.length === 0)
+                        && !(typeof model.fixedRootStepAbs === 'number'));
+                    if (isBlank) {
+                        // First dragged note defines the root for this blank chord
+                        const newRootModel = ((absStep - g - l) % tuning + tuning) % tuning;
+                        model.isCustom = true;
+                        model.intervals = [0];
+                        model.fixedRootStepAbs = newRootModel;
+                        model.fixedRootTuning = tuning;
+                        model.lastTuning = tuning;
+                        if (!Array.isArray(model.originalIntervals) || !model.originalIntervals.length) {
+                            model.originalIntervals = [0];
+                        }
+                        const rootLabel = this.getRootNameForStep(absStep, tuning);
+                        model.name = rootLabel;
+                        const nameEl = column.querySelector('.extension-header .chord-name');
+                        if (nameEl) {
+                            nameEl.textContent = rootLabel;
+                            nameEl.dataset.lockedName = rootLabel;
+                        }
+                        try { column.dataset.lastIntervals = JSON.stringify(model.intervals || []); } catch(_){ }
+                        const oldContainer = column.querySelector('.strings-column');
+                        if (oldContainer) oldContainer.remove();
+                        this.generateStringsForColumn(column, model.intervals, true);
+                        try { this.highlightKeyboardForColumn(column); } catch(_) {}
+                        try {
+                            if (this.pendingBlankChordId && String(chordId) === String(this.pendingBlankChordId)) {
+                                this.pendingBlankChordId = null;
+                                this.pendingBlankChordStrumEligible = false;
+                            }
+                        } catch(_) {}
+                        try { this.saveChordConfiguration?.(); } catch(_) {}
+                        try { this.updateChordDisplay?.(); } catch(_) {}
+                        return;
+                    }
+
+                    let relSteps = this._getBellsChordSteps(column) || [];
+                    let absSteps = relSteps.map(s => ((baseRoot + s) % tuning + tuning) % tuning);
+                    const exists = absSteps.includes(absStep);
+                    if (exists) {
+                        absSteps = absSteps.filter(s => s !== absStep);
+                    } else {
+                        absSteps.push(absStep);
+                    }
+                    absSteps = Array.from(new Set(absSteps));
+                    const newRel = absSteps.map(s => ((s - baseRoot) % tuning + tuning) % tuning)
+                        .sort((a,b)=> this.stepToSemitone(a, tuning) - this.stepToSemitone(b, tuning));
+
+                    model.isCustom = true;
+                    model.intervals = newRel;
+                    model.fixedRootStepAbs = modelRoot;
+                    model.fixedRootTuning = tuning;
+                    model.lastTuning = tuning;
+                    if (!Array.isArray(model.originalIntervals) || !model.originalIntervals.length) {
+                        model.originalIntervals = newRel.slice();
+                    }
+
+                    if (absSteps.length) {
+                        const label = this.computeFullChordNameFromAbsoluteSteps(absSteps, tuning);
+                        if (label) {
+                            model.name = label;
+                            const nameEl = column.querySelector('.extension-header .chord-name');
+                            if (nameEl) {
+                                nameEl.textContent = label;
+                                nameEl.dataset.lockedName = label;
+                            }
+                        }
+                    } else {
+                        model.name = 'New';
+                        const nameEl = column.querySelector('.extension-header .chord-name');
+                        if (nameEl) {
+                            nameEl.textContent = 'New';
+                            nameEl.dataset.lockedName = '';
+                        }
+                    }
+
+                    try { column.dataset.lastIntervals = JSON.stringify(model.intervals || []); } catch(_){ }
+                    const oldContainer = column.querySelector('.strings-column');
+                    if (oldContainer) oldContainer.remove();
+                    this.generateStringsForColumn(column, model.intervals, true);
+                    try { this.highlightKeyboardForColumn(column); } catch(_) {}
+                    try { this.saveChordConfiguration?.(); } catch(_) {}
+                    try { this.updateChordDisplay?.(); } catch(_) {}
+                } catch(_){ }
             }
 
             _bellsGlideStart(note, key, win, clientX, clientY){
@@ -40656,12 +41707,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 this._startBellsScrollRAF();
                 this._bellsAutoTimer = setInterval(() => {
                     const wins = this._getOpenBellsWindows();
-                    if (!wins.length) { this._stopBellsAutoUpdate(); return; }
+                    const inlineWin = this._getInlineBellsWin();
+                    const hasInline = !!inlineWin;
+                    if (!wins.length && !hasInline) { this._stopBellsAutoUpdate(); return; }
                     const nowCol = this._getNowPlayingColumn() || this.currentActiveColumnEl;
                     if (!nowCol) return;
                     const list = this._getBellsChordList();
                     const idx = list.findIndex(x => x.column === nowCol);
-                    wins.forEach(win => {
+                    const targets = hasInline ? wins.concat([inlineWin]) : wins;
+                    targets.forEach(win => {
+                        if (win && win.__bellsInline) {
+                            try { this._ensureInlineBellsState(win); } catch(_){ }
+                        }
                         const st = this._getBellsState(win);
                         const mode = st.mode || 'single';
                         const lastId = st._lastNowChordId;
