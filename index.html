@@ -54,6 +54,11 @@
             pointer-events: none; /* Don't interfere with interactions */
         }
 
+        /* Startup overlay: show only the modal on a blank page */
+        body.startup-blank > *:not(#startupPromptOverlay) {
+            display: none !important;
+        }
+
         :root {
             --xenon-footer-h: 28px; /* synced at runtime */
         }
@@ -243,6 +248,7 @@
         .sidebar-zoom-wrap input[type="range"] {
             writing-mode: bt-lr;
             -webkit-appearance: slider-vertical;
+            appearance: slider-vertical;
             width: 18px;
             height: 120px;
             accent-color: #8fb3d3;
@@ -275,6 +281,14 @@
         #jamArea .bells-accidental { height: 75%; z-index: 2; top: 0; }
         #jamArea .bells-micro { height: 55%; z-index: 3; top: 0; }
         #jamArea .bells-micro.small { height: 35%; }
+
+        /* PLAY mode (rolling): make all keys full-length for easier play */
+        #jamArea #bellsBars.bells-play-full .bells-accidental,
+        #jamArea #bellsBars.bells-play-full .bells-micro,
+        #jamArea #bellsBars.bells-play-full .bells-micro.small {
+            height: 100% !important;
+            top: 0 !important;
+        }
 
         /* Chord Ruler (16th-note divisions) */
         #chordRuler {
@@ -8613,6 +8627,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             };
             const minStrumHeight = 80;
             const hideAllThreshold = 60;
+            const collapseThreshold = RULER_H + 8;
 
             const applyLayout = () => {
                 const topOffset = _getChordTopOffsetPx();
@@ -8631,19 +8646,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 let splitHeight = layout.splitHeight;
                 if (totalHeight <= minSystemHeight) splitHeight = totalHeight;
-                const minSplit = Math.min(totalHeight, minStrumHeight + RULER_H);
+                const minSplit = 0;
                 splitHeight = Math.max(minSplit, Math.min(totalHeight, splitHeight));
 
                 const showAll = totalHeight > hideAllThreshold;
                 const jamHeight = Math.max(0, totalHeight - splitHeight);
                 const strumHeight = Math.max(0, splitHeight - RULER_H);
+                const isCollapsedStrum = splitHeight <= collapseThreshold;
 
                 strumArea.style.top = systemTop + 'px';
                 strumArea.style.height = strumHeight + 'px';
-                strumArea.style.display = (showAll && strumHeight > 0) ? 'block' : 'none';
+                strumArea.style.display = (showAll && strumHeight > 0 && !isCollapsedStrum) ? 'block' : 'none';
 
                 if (ruler) {
-                    if (showAll && strumHeight > 0) {
+                    if (showAll && strumHeight > 0 && !isCollapsedStrum) {
                         ruler.style.top = (systemTop + strumHeight) + 'px';
                         ruler.style.display = 'block';
                     } else {
@@ -8654,7 +8670,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (jamArea) {
                     if (showAll && jamHeight > 0) {
                         jamArea.style.display = 'flex';
-                        jamArea.style.top = (systemTop + splitHeight) + 'px';
+                        jamArea.style.top = (isCollapsedStrum ? systemTop : (systemTop + splitHeight)) + 'px';
                         jamArea.style.bottom = `${footerH}px`;
                     } else {
                         jamArea.style.display = 'none';
@@ -8662,11 +8678,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
 
                 handle.style.height = HANDLE_H + 'px';
-                handle.style.top = (systemTop + splitHeight - (HANDLE_H / 2)) + 'px';
                 if (topHandle) {
                     topHandle.style.height = TOP_HANDLE_H + 'px';
                     topHandle.style.top = (systemTop - (TOP_HANDLE_H / 2)) + 'px';
                 }
+                const collapsedMidTop = (systemTop + (TOP_HANDLE_H / 2) + 4);
+                handle.style.top = (isCollapsedStrum
+                    ? collapsedMidTop
+                    : (systemTop + splitHeight - (HANDLE_H / 2))) + 'px';
 
                 layout.systemTop = systemTop;
                 layout.splitHeight = splitHeight;
@@ -9700,10 +9719,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         } catch(_){ }
                         const activeSection = (window._sections||[]).find(s=>s && s.id === window._activeSectionId);
+                        const isPlaying = !!(omni && (omni._isSequencing || omni._arpTransport?.running));
                         let state = null;
-                        if (activeSection && activeSection.state) {
-                            state = cloneJson(ensureSectionState(activeSection.state));
+                        if (isPlaying) {
+                            if (activeSection && activeSection.state) {
+                                state = cloneJson(ensureSectionState(activeSection.state));
+                            } else {
+                                state = cloneJson(ensureSectionState(captureSectionState()));
+                            }
                         } else {
+                            // EDIT mode: start a blank section (no chords) while preserving other section state.
                             state = cloneJson(ensureSectionState(captureSectionState()));
                             state.chordExtensions = [];
                         }
@@ -32200,8 +32225,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 return ((s % edo) + edo) % edo;
             }
             
-            // Root selection: leftmost (lowest) note unless a clear major/minor triad exists on another pitch;
-            // slash only when bass is the (flat/neutral) seventh
+            // Root selection: prioritize simple triads/7ths (<=4 notes) regardless of inversion; otherwise use leftmost
+            // slash only when bass is explicitly provided
             computeFullChordNameFromAbsoluteSteps(absSteps, edo = (this.currentTuning || 12), preferredBassAbs = null, preferredRootName = null, preferredBassRel = null){
                 if (!Array.isArray(absSteps) || absSteps.length < 1) return '';
                 // Use absolute steps as-is; global transpose should already be baked in by caller
@@ -32216,42 +32241,61 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     ? ((preferredBassAbs % edo) + edo) % edo
                     : steps.slice().sort((a,b)=> this.stepToSemitone(a, edo) - this.stepToSemitone(b, edo))[0];
 
-                // If a preferred root spelling is provided, honor it.
+                // Prefer simple triads/7ths for small chords (occam's razor)
+                let preferredSimpleSymbol = null;
                 let preferredRootAbs = null;
-                try {
-                    if (preferredRootName) {
-                        const normPref = this._normalizeChordSymbolsForParse(preferredRootName);
-                        const m = normPref.match(/^([A-G])([#b♭♯𝄲𝄳d]?)([\^v]*)/);
-                        if (m) {
-                            let acc = m[2] || '';
-                            let micro = m[3] || '';
-                            // Treat half-flat/sharp as micro marks
-                            if (acc === 'd' || acc === '𝄳') { acc = ''; micro = 'v' + micro; }
-                            if (acc === '𝄲') { acc = ''; micro = '^' + micro; }
-                            const semi = this.rootToSemitone(m[1], acc || '');
-                            const baseStep = Math.round((semi * edo) / 12);
-                            const ups = (micro.match(/\^/g) || []).length;
-                            const downs = (micro.match(/v/g) || []).length;
-                            const targetStep = ((baseStep + ups - downs) % edo + edo) % edo;
-                            if (steps.includes(targetStep)) preferredRootAbs = targetStep;
-                            else {
-                                // Choose nearest by semitone distance
-                                let best = null; let bestDist = Infinity;
-                                for (const s of steps) {
-                                    const d = Math.abs(this.stepToSemitone(s, edo) - this.stepToSemitone(targetStep, edo));
-                                    if (d < bestDist) { bestDist = d; best = s; }
+                let simpleRootOverride = false;
+                if (steps.length <= 4) {
+                    try {
+                        const bestSimple = this._chooseSimpleChordRootAndSymbol(steps, edo);
+                        if (bestSimple && Number.isFinite(bestSimple.root)) {
+                            preferredRootAbs = bestSimple.root;
+                            preferredSimpleSymbol = bestSimple.symbol || '';
+                            simpleRootOverride = true;
+                        }
+                    } catch(_){ }
+                }
+
+                // If a preferred root spelling is provided, honor it (unless we found a simple inversion root)
+                if (!simpleRootOverride) {
+                    try {
+                        if (preferredRootName) {
+                            const normPref = this._normalizeChordSymbolsForParse(preferredRootName);
+                            const m = normPref.match(/^([A-G])([#b♭♯𝄲𝄳d]?)([\^v]*)/);
+                            if (m) {
+                                let acc = m[2] || '';
+                                let micro = m[3] || '';
+                                // Treat half-flat/sharp as micro marks
+                                if (acc === 'd' || acc === '𝄳') { acc = ''; micro = 'v' + micro; }
+                                if (acc === '𝄲') { acc = ''; micro = '^' + micro; }
+                                const semi = this.rootToSemitone(m[1], acc || '');
+                                const baseStep = Math.round((semi * edo) / 12);
+                                const ups = (micro.match(/\^/g) || []).length;
+                                const downs = (micro.match(/v/g) || []).length;
+                                const targetStep = ((baseStep + ups - downs) % edo + edo) % edo;
+                                if (steps.includes(targetStep)) preferredRootAbs = targetStep;
+                                else {
+                                    // Choose nearest by semitone distance
+                                    let best = null; let bestDist = Infinity;
+                                    for (const s of steps) {
+                                        const d = Math.abs(this.stepToSemitone(s, edo) - this.stepToSemitone(targetStep, edo));
+                                        if (d < bestDist) { bestDist = d; best = s; }
+                                    }
+                                    if (best != null) preferredRootAbs = best;
                                 }
-                                if (best != null) preferredRootAbs = best;
                             }
                         }
-                    }
-                } catch(_){ }
+                    } catch(_){ }
+                }
 
                 // Choose root by simplest symbol and spelling, unless a preferred root was provided.
                 let rootAbs = (preferredRootAbs != null) ? preferredRootAbs : bassAbs;
                 const prefStyle = preferredRootName ? this._getAccidentalPreference(preferredRootName) : null;
                 let rootName = this.getRootNameForStepWithPreference(rootAbs, edo, prefStyle);
                 let symbol = this.getProperChordSymbol(steps.map(s => ((s - rootAbs) % edo + edo) % edo));
+                if (preferredSimpleSymbol != null && preferredRootAbs != null && rootAbs === preferredRootAbs) {
+                    symbol = preferredSimpleSymbol;
+                }
                 if (preferredRootAbs == null) {
                     let best = null;
                     for (const cand of steps) {
@@ -32289,14 +32333,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             // Internal: choose the root within absSteps that yields the clearest 12-TET quality
             _chooseBestRootByQuality(absSteps, edo){
                 const uniq = Array.from(new Set(absSteps.map(s => ((s % edo) + edo) % edo)));
-                // Known quality targets in semitones (12-TET)
+                if (!uniq.length) return { root: 0, score: -Infinity, rels12: null };
+                // Known quality targets in semitones (12-TET). Higher score = more preferred.
                 const targets = [
-                    {name:'maj', ints:[0,4,7], score:10},
-                    {name:'min', ints:[0,3,7], score:10},
-                    {name:'dim', ints:[0,3,6], score:8},
-                    {name:'aug', ints:[0,4,8], score:8},
-                    {name:'sus2',ints:[0,2,7], score:7},
-                    {name:'sus4',ints:[0,5,7], score:7},
+                    {name:'maj7', ints:[0,4,7,11], score:12},
+                    {name:'7',    ints:[0,4,7,10], score:11.6},
+                    {name:'m7',   ints:[0,3,7,10], score:11.5},
+                    {name:'mMaj7',ints:[0,3,7,11], score:11.2},
+                    {name:'6',    ints:[0,4,7,9],  score:10.2},
+                    {name:'m6',   ints:[0,3,7,9],  score:10.1},
+                    {name:'maj',  ints:[0,4,7],    score:10},
+                    {name:'min',  ints:[0,3,7],    score:10},
+                    {name:'sus2', ints:[0,2,7],    score:8.5},
+                    {name:'sus4', ints:[0,5,7],    score:8.4},
+                    {name:'dim',  ints:[0,3,6],    score:8},
+                    {name:'aug',  ints:[0,4,8],    score:8},
+                    {name:'ø7',   ints:[0,3,6,10], score:7.5},
+                    {name:'°7',   ints:[0,3,6,9],  score:7.4},
+                    {name:'7sus4',ints:[0,5,7,10], score:7.2},
+                    {name:'add9', ints:[0,2,4,7],  score:7.0},
+                    {name:'madd9',ints:[0,2,3,7],  score:6.9},
+                    {name:'add4', ints:[0,4,5,7],  score:6.8},
+                    {name:'madd4',ints:[0,3,5,7],  score:6.7},
                 ];
                 let best = {root: uniq[0], score: -Infinity, rels12: null};
                 // Precompute semitones for each abs step
@@ -32305,15 +32363,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 uniq.forEach(root => {
                     const rootSemi = semiMap.get(root);
                     const rels12 = uniq.map(s => ((semiMap.get(s) - rootSemi + 12) % 12)).sort((a,b)=>a-b);
-                    // Score against targets: exact subset/superset gets high score
+                    const relSet = new Set(rels12);
                     let sMax = -1;
                     for (const t of targets) {
-                        const tSet = new Set(t.ints);
-                        const relSet = new Set(rels12);
                         const hitAll = t.ints.every(x => relSet.has(x));
                         if (hitAll) sMax = Math.max(sMax, t.score);
                     }
-                    // Minor preference: if both maj/min ambiguous, keep the one whose lowest spelled triad is exact
                     if (sMax > best.score) best = {root, score: sMax, rels12};
                 });
                 // Fallback: pick by minimal semitone (previous behavior) if no quality matched
@@ -32324,6 +32379,40 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     return {root: r, score: 0, rels12};
                 }
                 return best;
+            }
+
+            // Internal: for <=4 notes, pick the simplest triad/7th spelling and its symbol
+            _chooseSimpleChordRootAndSymbol(absSteps, edo){
+                const uniq = Array.from(new Set(absSteps.map(s => ((s % edo) + edo) % edo)));
+                if (!uniq.length) return null;
+                const semiMap = new Map();
+                uniq.forEach(s => semiMap.set(s, this.stepToSemitone(s, edo)));
+                const targets = [
+                    { symbol:'maj7', set:[0,4,7,11] },
+                    { symbol:'7',    set:[0,4,7,10] },
+                    { symbol:'m7',   set:[0,3,7,10] },
+                    { symbol:'mMaj7',set:[0,3,7,11] },
+                    { symbol:'6',    set:[0,4,7,9] },
+                    { symbol:'m6',   set:[0,3,7,9] },
+                    { symbol:'',     set:[0,4,7] },
+                    { symbol:'m',    set:[0,3,7] },
+                    { symbol:'sus2', set:[0,2,7] },
+                    { symbol:'sus4', set:[0,5,7] },
+                    { symbol:'°',    set:[0,3,6] },
+                    { symbol:'+',    set:[0,4,8] },
+                    { symbol:'ø7',   set:[0,3,6,10] },
+                    { symbol:'°7',   set:[0,3,6,9] },
+                    { symbol:'7sus4',set:[0,5,7,10] },
+                ];
+                const setEq = (a,b)=> a.length===b.length && a.every((v,i)=>v===b[i]);
+                for (const root of uniq) {
+                    const rootSemi = semiMap.get(root);
+                    const rels12 = uniq.map(s => ((semiMap.get(s) - rootSemi + 12) % 12)).sort((a,b)=>a-b);
+                    for (const t of targets) {
+                        if (setEq(rels12, t.set)) return { root, symbol: t.symbol };
+                    }
+                }
+                return null;
             }
 
             // Universal pitch colors: C=RED, D=ORANGE, E=YELLOW, F=GREEN, G=BLUE, A=INDIGO, B=VIOLET
@@ -38877,6 +38966,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     peak1.type = 'peaking';
                     const c1 = Math.max(safeMin, Math.min(safeMax, center1));
                     peak1.frequency.setValueAtTime(c1, this.audioContext.currentTime);
+                    // High-pass noise below the played frequency to avoid rumble
+                    const hp1 = this.audioContext.createBiquadFilter();
+                    hp1.type = 'highpass';
+                    hp1.frequency.setValueAtTime(c1, this.audioContext.currentTime);
+                    hp1.Q.setValueAtTime(0.707, this.audioContext.currentTime);
                     // Shape Width controls Q of the resonant peak too
                     {
                         const sw = Math.max(0, Math.min(1, o1.shapeWidth ?? 0.5));
@@ -38887,7 +38981,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Level -> 0..+48 dB; 0 dB means plain brown noise
                     const lvlNorm1 = Math.max(0, Math.min(1, ((inst?.a?.osc?.level ?? this.oscillators.osc1.level) || 0) / 0.125));
                     peak1.gain.setValueAtTime(lvlNorm1 * 48, this.audioContext.currentTime);
-                    osc1.connect(peak1);
+                    osc1.connect(hp1);
+                    hp1.connect(peak1);
                     peak1.connect(osc1Gain);
                 } else {
                     // Direct connect; shaping is embedded in the PeriodicWave
@@ -38902,6 +38997,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     peak2.type = 'peaking';
                     const c2 = Math.max(safeMin, Math.min(safeMax, center2));
                     peak2.frequency.setValueAtTime(c2, this.audioContext.currentTime);
+                    // High-pass noise below the played frequency to avoid rumble
+                    const hp2 = this.audioContext.createBiquadFilter();
+                    hp2.type = 'highpass';
+                    hp2.frequency.setValueAtTime(c2, this.audioContext.currentTime);
+                    hp2.Q.setValueAtTime(0.707, this.audioContext.currentTime);
                     {
                         const sw = Math.max(0, Math.min(1, o2.shapeWidth ?? 0.5));
                         const minQ = 0.5, maxQ = 60;
@@ -38910,7 +39010,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                     const lvlNorm2 = Math.max(0, Math.min(1, ((inst?.b?.osc?.level ?? this.oscillators.osc2.level) || 0) / 0.125));
                     peak2.gain.setValueAtTime(lvlNorm2 * 48, this.audioContext.currentTime);
-                    osc2.connect(peak2);
+                    osc2.connect(hp2);
+                    hp2.connect(peak2);
                     peak2.connect(osc2Gain);
                 } else {
                     osc2.connect(osc2Gain);
@@ -40366,7 +40467,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         env: { attack: 0.005, decay: 0.25, sustain: 0.85, release: 0.35 },
                         fxSend: true
                     });
-                    if (!win.__bellsInst) win.__bellsInst = cloneInst(baseInst);
+                    if (win.__bellsInline) {
+                        win.__bellsInst = baseInst;
+                    } else if (!win.__bellsInst) {
+                        win.__bellsInst = cloneInst(baseInst);
+                    }
                     const inst = win.__bellsInst;
 
                     if (gearBtn && drawer && !gearBtn._wired) {
@@ -41069,6 +41174,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 };
 
                 const wantsScroll = (st?.mode === 'single' && this._bellsShouldScroll(win));
+                const inlinePlayFullKeys = !!(win.__bellsInline && this._arpTransport && this._arpTransport.running);
+                const isPlayRollingInline = !!(inlinePlayFullKeys && wantsScroll);
+                try {
+                    if (barsEl && barsEl.classList) {
+                        barsEl.classList.toggle('bells-play-full', inlinePlayFullKeys);
+                    }
+                } catch(_){ }
                 if (wantsScroll) {
                     const currentCol = this._getNowPlayingColumn() || this._getBellsActiveColumn(st);
                     const nextCol = this._getNextBellsScrollColumn(currentCol) || currentCol;
@@ -41092,14 +41204,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     win.__bellsScrollTrack = track;
                     const stepsA = currentCol ? this._getCurrentChordAbsSteps(currentCol) : null;
                     const edgePad = !!win.__bellsInline;
-                    renderNotes(currentNotes, panelA, { forceFull: !win.__bellsInline, setLayout: true, highlightSteps: stepsA, edgePad });
-                    renderNotes(nextNotesSafe, panelB, { forceFull: !win.__bellsInline, setLayout: false, highlightSteps: null, edgePad });
+                    renderNotes(currentNotes, panelA, { forceFull: (inlinePlayFullKeys ? true : !win.__bellsInline), setLayout: true, highlightSteps: stepsA, edgePad });
+                    renderNotes(nextNotesSafe, panelB, { forceFull: (inlinePlayFullKeys ? true : !win.__bellsInline), setLayout: false, highlightSteps: null, edgePad });
                     this._updateBellsScrollPosition(win);
                     return;
                 }
 
                 try { win.__bellsScrollTrack = null; } catch(_){ }
-                renderNotes(notes, barsEl, { forceFull: (!win.__bellsInline && st?.mode === 'single'), setLayout: true, highlightSteps: currentSteps, edgePad: !!win.__bellsInline });
+                renderNotes(notes, barsEl, { forceFull: (inlinePlayFullKeys || (!win.__bellsInline && st?.mode === 'single')), setLayout: true, highlightSteps: currentSteps, edgePad: !!win.__bellsInline });
             }
 
             _handleInlineJamDrop(win, evt) {
@@ -42575,7 +42687,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const overlay = document.getElementById('startupPromptOverlay');
                 if (overlay && !overlay._wired) {
                     overlay._wired = true;
-                    const hide = ()=>{ try { overlay.style.display = 'none'; } catch(_){ } };
+                    const hide = ()=>{
+                        try { overlay.style.display = 'none'; } catch(_){ }
+                        try { document.body.classList.remove('startup-blank'); } catch(_){ }
+                    };
                     const newBtn = document.getElementById('startupNewProjectBtn');
                     const loadBtn = document.getElementById('startupLoadXenBtn');
                     if (newBtn) newBtn.addEventListener('click', ()=>{ hide(); try { window.__xenStartNewProjectBlank(); } catch(_){ } });
@@ -42583,8 +42698,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
                 // Always show startup prompt on load
                 if (overlay) {
+                    try {
+                        if (document.body && overlay.parentElement !== document.body) {
+                            document.body.appendChild(overlay);
+                        }
+                    } catch(_){ }
                     ensureKeyboardClosed();
                     overlay.style.display = 'flex';
+                    overlay.style.pointerEvents = 'auto';
+                    try { document.body.classList.add('startup-blank'); } catch(_){ }
                 }
             } catch(_){ }
 
