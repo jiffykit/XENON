@@ -126,14 +126,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10002;
+            z-index: 9000;
             pointer-events: auto;
             touch-action: none;
         }
 
         .chord-collapse-handle {
             position: absolute;
-            top: 0;
+            top: -20px;
             left: 0;
             right: 0;
             height: 20px;
@@ -143,7 +143,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10000;
+            z-index: 9000;
             pointer-events: auto;
             touch-action: none;
         }
@@ -279,30 +279,52 @@
         #jamArea #bellsBars .bells-scroll-panel { position: relative; width:100%; height:50%; }
         #jamArea .bells-key {
             position: absolute; display: flex; align-items: center; justify-content: center;
-            font-size: 16px; font-weight: 600; color: #000; text-shadow: 0 1px 0 rgba(255,255,255,0.2);
-            user-select: none; cursor: pointer; border: 2px solid rgba(255,255,255,0.55);
-            border-radius: 6px 6px 0 0;
-            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25), inset 0 0 14px rgba(0,0,0,0.35), 0 4px 14px rgba(0,0,0,0.35);
-            outline: 2px solid rgba(0,0,0,0.35);
-            outline-offset: -2px;
-            overflow: hidden;
+            font-size: 17px; font-weight: 800; color: #f7fbff; letter-spacing: 0.4px;
+            text-shadow: none;
+            user-select: none; cursor: pointer; border: none;
+            border-radius: 8px 8px 6px 6px;
+            box-shadow: none;
+            outline: none;
+            overflow: visible;
         }
-        #jamArea .bells-key::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(120deg, rgba(255,255,255,0.45), rgba(255,255,255,0.05) 45%, rgba(0,0,0,0) 65%);
-            opacity: 0.25;
-            pointer-events: none;
-            transform: translateX(-30%);
-        }
+        #jamArea .bells-key::before { display: none; }
+        #jamArea .bells-key::after { display: none; }
         #jamArea .bells-key.ringing::after { opacity: 0.75; animation: bellsShimmer 0.9s linear infinite; }
         #jamArea .bells-key.bells-dim { filter: brightness(0.9); opacity: 0.9; }
         #jamArea .bells-key.bells-current { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.65), 0 0 18px rgba(255,255,255,0.25); }
-        #jamArea .bells-natural { height: 100%; z-index: 1; bottom: 0; }
-        #jamArea .bells-accidental { height: 75%; z-index: 2; top: 0; }
-        #jamArea .bells-micro { height: 55%; z-index: 3; top: 0; }
+        #jamArea .bells-natural { height: 100%; z-index: 1; bottom: 0; font-size: 20px; }
+        #jamArea .bells-natural::before,
+        #jamArea .bells-accidental::before,
+        #jamArea .bells-micro::before,
+        #jamArea .bells-micro.small::before { display: none; }
+        #jamArea .bells-accidental { height: 75%; z-index: 2; top: 0; font-size: 14px; font-weight: 700; }
+        #jamArea .bells-accidental::before { left: -20%; right: -20%; height: 76%; top: 50%; transform: translateY(-50%); border-radius: 16px 16px 12px 12px; }
+        #jamArea .bells-micro { height: 55%; z-index: 3; top: 0; font-size: 12px; font-weight: 700; }
+        #jamArea .bells-micro::before { left: -18%; right: -18%; height: 70%; top: 50%; transform: translateY(-50%); border-radius: 14px 14px 10px 10px; }
         #jamArea .bells-micro.small { height: 35%; }
+        #jamArea .bells-block {
+            position: absolute;
+            border-radius: 16px;
+            pointer-events: none;
+            z-index: 0;
+            box-shadow: none;
+            border: none;
+        }
+        #jamArea .bells-block-label {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: center;
+            font-weight: 800;
+            font-size: 20px;
+            letter-spacing: 0.6px;
+            pointer-events: none;
+            text-shadow: none;
+        }
+        #jamArea .bells-block-natural { border-radius: 18px; }
+        #jamArea .bells-block-accidental { border-radius: 16px; }
 
         /* PLAY mode (rolling): make all keys full-length for easier play */
         #jamArea #bellsBars.bells-play-full .bells-accidental,
@@ -2436,7 +2458,7 @@
             border: 3px solid #4a90e2;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.8), 0 0 20px rgba(74, 144, 226, 0.3);
-            z-index: 2000;
+            z-index: 12000;
             display: none;
             min-width: 100px; /* Allow scaling down to 100x100 */
             min-height: 100px;
@@ -8712,6 +8734,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             const RULER_H = 24;
             const HANDLE_H = 36;
             const TOP_HANDLE_H = 20;
+            const TOP_HANDLE_CLEARANCE = Math.ceil(TOP_HANDLE_H / 2) + 6;
+            const CENTER_HANDLE_OFFSET = 6;
             
             if (!handle || !strumArea) return;
             const layout = {
@@ -8745,19 +8769,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const showAll = totalHeight > hideAllThreshold;
                 const jamHeight = Math.max(0, totalHeight - splitHeight);
                 const strumHeight = Math.max(0, splitHeight - RULER_H);
+                const adjustedStrumHeight = Math.max(0, strumHeight - TOP_HANDLE_CLEARANCE);
                 const isCollapsedStrum = splitHeight <= collapseThreshold;
                 try { document.documentElement.classList.toggle('strum-collapsed', !!isCollapsedStrum); } catch(_){ }
                 const collapsedMidTop = (systemTop + (TOP_HANDLE_H / 2) + 4);
-                const belowRulerTop = (systemTop + splitHeight + 4);
+                const belowRulerTop = (systemTop + splitHeight + 4 + CENTER_HANDLE_OFFSET);
                 const handleTop = (isCollapsedStrum ? collapsedMidTop : belowRulerTop);
 
-                strumArea.style.top = systemTop + 'px';
-                strumArea.style.height = strumHeight + 'px';
-                strumArea.style.display = (showAll && strumHeight > 0 && !isCollapsedStrum) ? 'block' : 'none';
+                strumArea.style.top = (systemTop + TOP_HANDLE_CLEARANCE) + 'px';
+                strumArea.style.height = adjustedStrumHeight + 'px';
+                strumArea.style.display = (showAll && adjustedStrumHeight > 0 && !isCollapsedStrum) ? 'block' : 'none';
 
                 if (ruler) {
-                    if (showAll && strumHeight > 0 && !isCollapsedStrum) {
-                        ruler.style.top = (systemTop + strumHeight) + 'px';
+                    if (showAll && adjustedStrumHeight > 0 && !isCollapsedStrum) {
+                        ruler.style.top = (systemTop + TOP_HANDLE_CLEARANCE + adjustedStrumHeight) + 'px';
                         ruler.style.display = 'block';
                     } else {
                         ruler.style.display = 'none';
@@ -10189,14 +10214,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             // Reset all floating modals to base z-index
             document.querySelectorAll('.floating-modal').forEach(modal => {
                 modal.classList.remove('modal-active');
-                modal.style.zIndex = '10000';
+                modal.style.zIndex = '12000';
             });
             // Bring specified modal to front with higher z-index
             const modal = document.getElementById(modalId);
             if (modal) {
                 modal.classList.add('modal-active');
                 modal.style.display = 'block';
-                modal.style.zIndex = '10001';
+                modal.style.zIndex = '12010';
                 console.log('Brought modal to front:', modalId, 'z-index:', modal.style.zIndex);
 
                 // Ensure modal is draggable (by header) the first time it is brought to front
@@ -19113,9 +19138,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             applyChordPreset(preset) {
                 if (!preset) return;
                 const cloneJson = (v)=>{ try { return JSON.parse(JSON.stringify(v)); } catch(_){ return v; } };
+                const normalizeSectionLoopRanges = (sections)=>{
+                    if (!Array.isArray(sections)) return;
+                    sections.forEach(sec=>{
+                        if (!sec || typeof sec !== 'object') return;
+                        sec.state = (sec.state && typeof sec.state === 'object') ? sec.state : {};
+                        const lr = sec.state.loopRange;
+                        // Force full-range loop markers on load for every section
+                        sec.state.loopRange = {
+                            start: 0,
+                            end: 0,
+                            startId: (lr && lr.startId) ? lr.startId : null,
+                            endId: (lr && lr.endId) ? lr.endId : null,
+                            edgeLeft: true,
+                            edgeRight: true
+                        };
+                    });
+                };
                 try {
                     if (preset.sections && Array.isArray(preset.sections)) {
                         window._sections = cloneJson(preset.sections);
+                        normalizeSectionLoopRanges(window._sections);
                         if (typeof window._renderSectionButtons === 'function') window._renderSectionButtons();
                         const activeId = preset.activeSectionId || (window._sections[0]?.id || 'A');
                         window._activeSectionId = activeId;
@@ -19134,6 +19177,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     else if (typeof this.generateExtensionColumns === 'function') this.generateExtensionColumns();
                 } catch(_){ }
                 try { this.saveChordConfiguration && this.saveChordConfiguration(); } catch(_){ }
+                try {
+                    if (typeof window.__xenApplyChordLayout === 'function') window.__xenApplyChordLayout();
+                    if (typeof updateStringCompression === 'function') updateStringCompression();
+                } catch(_){ }
             }
             getDefaultSequencePresets() {
                 // Defaults provided by user (old preset list removed)
@@ -19216,6 +19263,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try { applySectionState(sec.state); } catch(_){ }
                     }
                 }
+                try {
+                    if (typeof window.__xenApplyChordLayout === 'function') window.__xenApplyChordLayout();
+                    if (typeof updateStringCompression === 'function') updateStringCompression();
+                } catch(_){ }
                 return true;
             }
 
@@ -19250,6 +19301,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const deltaEl = document.getElementById('transposeDelta');
                 if (deltaEl) deltaEl.textContent = '0';
                 this.autoCreateColumnsFromText(list);
+                try {
+                    if (typeof window.__xenApplyChordLayout === 'function') window.__xenApplyChordLayout();
+                    if (typeof updateStringCompression === 'function') updateStringCompression();
+                } catch(_){ }
             }
 
             // Convert Roman numeral sequence to concrete chord names in current key
@@ -29088,6 +29143,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try {
                             if (Array.isArray(sessionData.sections) && sessionData.sections.length) {
                                 window._sections = cloneJson(sessionData.sections);
+                                // Force loop markers to full range for every section on load
+                                window._sections.forEach(sec=>{
+                                    if (!sec || typeof sec !== 'object') return;
+                                    sec.state = (sec.state && typeof sec.state === 'object') ? sec.state : {};
+                                    const lr = sec.state.loopRange;
+                                    sec.state.loopRange = {
+                                        start: 0,
+                                        end: 0,
+                                        startId: (lr && lr.startId) ? lr.startId : null,
+                                        endId: (lr && lr.endId) ? lr.endId : null,
+                                        edgeLeft: true,
+                                        edgeRight: true
+                                    };
+                                });
                                 const activeId = sessionData.activeSectionId || window._sections[0]?.id || 'A';
                                 window._activeSectionId = activeId;
                                 window._pendingSectionId = sessionData.pendingSectionId || null;
@@ -29548,6 +29617,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // ==== REGENERATE UI ====
                         this.regenerateChordGrid();
                         this.syncOscillatorUI();
+                        try {
+                            if (typeof window.__xenApplyChordLayout === 'function') window.__xenApplyChordLayout();
+                            if (typeof updateStringCompression === 'function') updateStringCompression();
+                            if (typeof ensureChordVisibility === 'function') ensureChordVisibility();
+                        } catch(_){ }
 
                         // ==== RESTORE MULTI-INSTANCE STATE (PATTERN / DRUM) + MODAL GEOMETRY ====
                         try {
@@ -34592,46 +34666,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         }
                     } catch(_) { }
-
-                    // START COUNT-IN: 4-beat audible/visual count-in while the global start gate is active.
-                    // This is used when starting from STOPPED so drums/patterns/chords all begin together after the count.
-                    try {
-                        const tr = this._arpTransport;
-                        if (tr && tr.countInActive && tr.countInEndAbsTick != null) {
-                            const nowAbs = tr.absTickCounter|0;
-                            const startAbs = (tr.countInStartAbsTick|0) || 0;
-                            const endAbs = tr.countInEndAbsTick|0;
-                            const tpBeat = Math.max(1, tr.ticksPerBeat||1);
-
-                            if (nowAbs >= endAbs) {
-                                tr.countInActive = false;
-                                tr.countInStartAbsTick = null;
-                                tr.countInEndAbsTick = null;
-                                tr.countInLastBeat = 0;
-                                try {
-                                    const el = tr._countInEl || (tr._countInEl = document.getElementById('countInDisplay'));
-                                    if (el) el.style.display = 'none';
-                                } catch(_){ }
-                            } else if (nowAbs >= startAbs && ((nowAbs - startAbs) % tpBeat) === 0) {
-                                const beatIdx = (((nowAbs - startAbs) / tpBeat) | 0) + 1;
-                                if (beatIdx !== (tr.countInLastBeat|0)) {
-                                    tr.countInLastBeat = beatIdx;
-                                    // Click: accented 1, lighter 2-4
-                                    const freq = (beatIdx === 1) ? 1400 : 1000;
-                                    const dur = Math.max(10, Math.min(45, Math.floor(tr.tickMs * 0.45)));
-                                    this._clickMetronome(freq, dur);
-                                    // UI: show 1..N
-                                    try {
-                                        const el = tr._countInEl || (tr._countInEl = document.getElementById('countInDisplay'));
-                                        if (el) {
-                                            el.textContent = String(beatIdx);
-                                            el.style.display = 'flex';
-                                        }
-                                    } catch(_){ }
-                                }
-                            }
-                        }
-                    } catch(_){ }
 
                     // During count-in, pre-apply any pending sequencer rebuilds
                     try {
@@ -40944,23 +40978,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         #bellsBars .bells-scroll-panel { position: relative; width:100%; height:50%; }
         .bells-key {
             position: absolute; display: flex; align-items: center; justify-content: center;
-            font-size: 22px; font-weight: 600; color: #000; text-shadow: 0 1px 0 rgba(255,255,255,0.2);
-            user-select: none; cursor: pointer; border: 2px solid rgba(255,255,255,0.55);
-            border-radius: 6px 6px 0 0;
-            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25), inset 0 0 14px rgba(0,0,0,0.35), 0 4px 14px rgba(0,0,0,0.35);
-            outline: 2px solid rgba(0,0,0,0.35);
-            outline-offset: -2px;
-            overflow: hidden;
+            font-size: 20px; font-weight: 800; color: #f7fbff; letter-spacing: 0.4px;
+            text-shadow: none;
+            user-select: none; cursor: pointer; border: none;
+            border-radius: 8px 8px 6px 6px;
+            box-shadow: none;
+            outline: none;
+            overflow: visible;
         }
-        .bells-key::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(120deg, rgba(255,255,255,0.45), rgba(255,255,255,0.05) 45%, rgba(0,0,0,0) 65%);
-            opacity: 0.25;
-            pointer-events: none;
-            transform: translateX(-30%);
-        }
+        .bells-key::before { display: none; }
+        .bells-key::after { display: none; }
         .bells-key.ringing::after {
             opacity: 0.75;
             animation: bellsShimmer 0.9s linear infinite;
@@ -40971,10 +40998,39 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             0% { transform: translateX(-120%); }
             100% { transform: translateX(120%); }
         }
-        .bells-natural { height: 100%; z-index: 1; bottom: 0; }
-        .bells-accidental { height: 75%; z-index: 2; top: 0; }
-        .bells-micro { height: 55%; z-index: 3; top: 0; }
+        .bells-natural { height: 100%; z-index: 1; bottom: 0; font-size: 24px; }
+        .bells-natural::before,
+        .bells-accidental::before,
+        .bells-micro::before,
+        .bells-micro.small::before { display: none; }
+        .bells-accidental { height: 75%; z-index: 2; top: 0; font-size: 16px; font-weight: 700; }
+        .bells-accidental::before { left: -20%; right: -20%; height: 76%; top: 50%; transform: translateY(-50%); border-radius: 16px 16px 12px 12px; }
+        .bells-micro { height: 55%; z-index: 3; top: 0; font-size: 14px; font-weight: 700; }
+        .bells-micro::before { left: -18%; right: -18%; height: 70%; top: 50%; transform: translateY(-50%); border-radius: 14px 14px 10px 10px; }
         .bells-micro.small { height: 35%; }
+        .bells-block {
+            position: absolute;
+            border-radius: 16px;
+            pointer-events: none;
+            z-index: 0;
+            box-shadow: none;
+            border: none;
+        }
+        .bells-block-label {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: center;
+            font-weight: 800;
+            font-size: 22px;
+            letter-spacing: 0.6px;
+            pointer-events: none;
+            text-shadow: none;
+        }
+        .bells-block-natural { border-radius: 18px; }
+        .bells-block-accidental { border-radius: 16px; }
     .bells-empty { padding: 24px; color: #9db6c8; font-size: 18px; }
   </style>
 </head>
@@ -41849,7 +41905,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const noteNames = this.getNoteNames();
                 const tuning = (notes[0] && notes[0].tuning) ? notes[0].tuning : (this.currentTuning || 12);
                 const parseLabel = (label) => {
-                    const name = String(label || '').replace(/[0-9]/g,'');
+                    const raw = String(label || '')
+                        .replace(/[0-9]/g,'')
+                        .replace(/♭/g, 'b')
+                        .replace(/♯/g, '#');
+                    const name = raw;
                     const m = name.match(/^([A-G])([#b]?)(.*)$/);
                     if (!m) return { base: name, acc: '', micro: '' };
                     return { base: m[1], acc: m[2] || '', micro: m[3] || '' };
@@ -41908,14 +41968,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const renderNotes = (noteList, targetEl, opts={}) => {
                     const highlightSteps = opts.highlightSteps || null;
                     const forceFull = !!opts.forceFull;
-                    const addKey = (note, idx, cls, leftPct, widthPct, heightPct, z, displayLabel, titleLabel) => {
+                    const addKey = (note, idx, cls, leftPct, widthPct, heightPct, z, displayLabel, titleLabel, blockEl = null) => {
                         const key = doc.createElement('div');
                         key.className = `bells-key ${cls}`;
                         key.dataset.index = String(idx);
                         key.__bellsNote = note;
                         key.style.background = note.color;
-                        key.style.left = `${leftPct}%`;
-                        key.style.width = `${widthPct}%`;
+                        const keyGapPx = 2;
+                        key.style.left = `calc(${leftPct}% + ${keyGapPx / 2}px)`;
+                        key.style.width = `calc(${widthPct}% - ${keyGapPx}px)`;
                         key.style.height = `${heightPct}%`;
                         key.style.zIndex = String(z);
                         if (cls.includes('bells-natural')) {
@@ -41934,7 +41995,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (highlightSteps && !highlightSteps.has(note.step)) key.classList.add('bells-dim');
                         if (highlightSteps && highlightSteps.has(note.step)) key.classList.add('bells-current');
                         const play = () => this._playBellsNote(note, key);
-                        key.addEventListener('pointerdown', (ev) => {
+                        const onPointerDown = (ev) => {
                             try {
                                 if (win.__bellsInline) {
                                     win.__jamDragNote = note;
@@ -41974,8 +42035,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } else {
                                 this._playBellsNote(useNote, useKey);
                             }
-                        });
-                        key.addEventListener('pointerenter', (ev) => {
+                        };
+                        const onPointerEnter = (ev) => {
                             try {
                                 if (!win.__bellsDragActive) return;
                                 if (st?.glide) {
@@ -41992,8 +42053,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 }
                                 play();
                             } catch(_) {}
-                        });
+                        };
+                        key.addEventListener('pointerdown', onPointerDown);
+                        key.addEventListener('pointerenter', onPointerEnter);
                         key.addEventListener('touchstart', (e) => { e.preventDefault(); play(); }, { passive: false });
+                        if (blockEl) {
+                            blockEl.addEventListener('pointerdown', onPointerDown);
+                            blockEl.addEventListener('pointerenter', onPointerEnter);
+                            blockEl.addEventListener('touchstart', (e) => { e.preventDefault(); play(); }, { passive: false });
+                        }
                         targetEl.appendChild(key);
                     };
 
@@ -42042,6 +42110,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const right = i === pos.length-1 ? 1 : (o.rel + pos[i+1].rel) / 2;
                         return { left, right };
                     });
+                    const getContrastColor = (hex) => {
+                        try {
+                            const h = String(hex || '').replace('#','');
+                            if (h.length < 6) return '#ffffff';
+                            const r = parseInt(h.slice(0,2), 16);
+                            const g = parseInt(h.slice(2,4), 16);
+                            const b = parseInt(h.slice(4,6), 16);
+                            const yiq = (r*299 + g*587 + b*114) / 1000;
+                            return yiq >= 140 ? '#0b0f14' : '#ffffff';
+                        } catch (_) {
+                            return '#ffffff';
+                        }
+                    };
                     try {
                         if (opts.setLayout) {
                             const rect = targetEl.getBoundingClientRect();
@@ -42064,20 +42145,67 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const inline = !!win.__bellsInline;
                         const spacingWidth = Math.max(0, (bounds[i].right - bounds[i].left) * 100);
                         const rawLabel = displayLabel || '';
+                        const labelForClass = rawLabel || note.label || this.getMicrotonalNoteName(note.step, tuning) || '';
                         const label = ((inline && spacingWidth < 2.2) ? '' : rawLabel) || '';
+                        const keyLabel = (isNaturalLabel(labelForClass) || isAccidentalLabel(labelForClass)) ? '' : label;
                         const leftPct = bounds[i].left * 100;
                         const widthPct = Math.max(inline ? 0.6 : 1.5, spacingWidth);
-                        if (forceFull) {
-                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, label, displayLabel);
+                        const prevCenter = (i > 0 ? pos[i - 1].rel : 0) * 100;
+                        const nextCenter = (i < pos.length - 1 ? pos[i + 1].rel : 1) * 100;
+                        const blockLeft = Math.max(0, prevCenter);
+                        const blockRight = Math.min(100, nextCenter);
+                        const blockWidth = Math.max(0, blockRight - blockLeft);
+                        const isLabelNatural = isNaturalLabel(labelForClass);
+                        const isAccidental = isAccidentalLabel(labelForClass);
+                        if (isLabelNatural || isAccidental) {
+                            const block = doc.createElement('div');
+                            const blockClass = isLabelNatural ? 'bells-block bells-block-natural' : 'bells-block bells-block-accidental';
+                            const blockHeight = isLabelNatural ? 58 : 44;
+                            const blockTop = 42;
+                            const blockGapPx = isAccidental ? 1 : 2;
+                            block.className = blockClass;
+                            block.style.left = `calc(${blockLeft}% + ${blockGapPx / 2}px)`;
+                            block.style.width = `calc(${blockWidth}% - ${blockGapPx}px)`;
+                            block.style.height = isAccidental ? `calc(${blockHeight}% - 20px)` : `${blockHeight}%`;
+                            block.style.top = `${blockTop}%`;
+                            block.style.background = note.color;
+                            const blockLabel = doc.createElement('div');
+                            blockLabel.className = 'bells-block-label';
+                            blockLabel.textContent = displayLabel || labelForClass;
+                            blockLabel.style.color = getContrastColor(note.color);
+                            block.appendChild(blockLabel);
+                            targetEl.appendChild(block);
+                            if (forceFull) {
+                                addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, keyLabel, displayLabel, block);
+                            } else if (isJINatural) {
+                                addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, keyLabel, displayLabel, block);
+                            } else if (isAccidentalLabel(labelForClass)) {
+                                const minAcc = inline ? 0.9 : 5;
+                                const width = Math.min(widthPct, Math.max(minAcc, widthPct * 0.8));
+                                const center = (leftPct + widthPct / 2);
+                                addKey(note, o.idx, 'bells-accidental', Math.max(0, Math.min(100-width, center - width/2)), width, 75, 2, keyLabel, displayLabel, block);
+                            } else if (isMicroLabel(labelForClass)) {
+                                const microLen = (parseLabel(labelForClass).micro || '').length;
+                                const cls = microLen > 1 ? 'bells-micro small' : 'bells-micro';
+                                const height = microLen > 1 ? 35 : 55;
+                                const minMicro = inline ? 0.7 : 4;
+                                const width = Math.min(widthPct, Math.max(minMicro, widthPct * 0.7));
+                                const center = (leftPct + widthPct / 2);
+                                addKey(note, o.idx, cls, Math.max(0, Math.min(100-width, center - width/2)), width, height, 3, label, displayLabel);
+                            } else {
+                                addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, keyLabel, displayLabel, block);
+                            }
+                        } else if (forceFull) {
+                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, keyLabel, displayLabel);
                         } else if (isJINatural) {
-                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, label, displayLabel);
-                        } else if (isAccidentalLabel(rawLabel)) {
+                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, keyLabel, displayLabel);
+                        } else if (isAccidentalLabel(labelForClass)) {
                             const minAcc = inline ? 0.9 : 5;
                             const width = Math.min(widthPct, Math.max(minAcc, widthPct * 0.8));
                             const center = (leftPct + widthPct / 2);
-                            addKey(note, o.idx, 'bells-accidental', Math.max(0, Math.min(100-width, center - width/2)), width, 75, 2, label, displayLabel);
-                        } else if (isMicroLabel(rawLabel)) {
-                            const microLen = (parseLabel(rawLabel).micro || '').length;
+                            addKey(note, o.idx, 'bells-accidental', Math.max(0, Math.min(100-width, center - width/2)), width, 75, 2, keyLabel, displayLabel);
+                        } else if (isMicroLabel(labelForClass)) {
+                            const microLen = (parseLabel(labelForClass).micro || '').length;
                             const cls = microLen > 1 ? 'bells-micro small' : 'bells-micro';
                             const height = microLen > 1 ? 35 : 55;
                             const minMicro = inline ? 0.7 : 4;
@@ -42085,7 +42213,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const center = (leftPct + widthPct / 2);
                             addKey(note, o.idx, cls, Math.max(0, Math.min(100-width, center - width/2)), width, height, 3, label, displayLabel);
                         } else {
-                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, label, displayLabel);
+                            addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, keyLabel, displayLabel);
                         }
                     });
                 };
@@ -45546,6 +45674,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     
                     freshButton.addEventListener('click', (ev) => {
                         try { ev.preventDefault(); ev.stopPropagation(); } catch(_){ }
+                        try {
+                            if (freshButton._handlingClick) return;
+                            freshButton._handlingClick = true;
+                            setTimeout(()=>{ try { freshButton._handlingClick = false; } catch(_){ } }, 0);
+                        } catch(_){ }
                         console.log('🎵 BRACKET-AWARE CLICK HANDLER CALLED');
                         console.log('🎵 DEBUG: autoharp._isSequencing =', autoharp._isSequencing);
                         
@@ -45653,6 +45786,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                 // Ensure pattern instances also restart from beat 1 with the main transport
                                 try { stopAllPatterns(true); } catch(_){ }
+
+                                // 4b. Arm count-in gate immediately BEFORE starting transport
+                                try {
+                                    const tr = autoharp._arpTransport;
+                                    if (tr) {
+                                        const tpBeat = Math.max(1, tr.ticksPerBeat || 1);
+                                        const countInBeats = 4;
+                                        const countInTicks = (countInBeats * tpBeat) >>> 0;
+                                        tr.startGateAbsTick = countInTicks;
+                                        tr.countInActive = true;
+                                        tr.countInStartAbsTick = 0;
+                                        tr.countInEndAbsTick = countInTicks;
+                                        tr.countInLastBeat = 0;
+                                        tr.countInTickCounter = 0;
+                                        tr.countInTicksTotal = countInTicks;
+                                        tr._countInBeatsRequested = 0;
+                                    }
+                                } catch(_){ }
+                                // Start transport now so count-in runs (audio is gated)
+                                try { autoharp._startArpTransport(); } catch(_){ }
                                 
                                 // 5. BUILD ONE-LOOP LOOKAHEAD PLAN AND START ALL SYSTEMS SIMULTANEOUSLY
                                 console.log('🎵 SYNC: Starting all transport systems together...');
@@ -46096,8 +46249,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 autoharp._isSequencing = true;
                                 const tpBar = autoharp._arpTransport.ticksPerBar || 16;
 
-                                // Always do a 4-beat count-in when starting from STOPPED.
-                                try { autoharp._arpTransport._countInBeatsRequested = 4; } catch(_){ }
+                                // Always do a 4-beat count-in when starting from STOPPED (skip if already armed).
+                                try {
+                                    const tr = autoharp._arpTransport;
+                                    const alreadyArmed = !!(tr && tr.countInActive && Number.isFinite(tr.countInTicksTotal));
+                                    if (!alreadyArmed) tr._countInBeatsRequested = 4;
+                                } catch(_){ }
                                 
                                 // Get loop checkbox (UI uses loopToggle)
                                 const loopChk = document.getElementById('loopToggle') || document.getElementById('playLoop');
