@@ -136,44 +136,46 @@
             left: 0;
             right: 0;
             height: 36px;
-            background: transparent;
+            background: #000000;
             border-bottom: none;
             cursor: ns-resize;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9000;
+            z-index: 9800;
             pointer-events: auto;
             touch-action: none;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 -1px 0 rgba(255, 255, 255, 0.08);
         }
 
         .chord-collapse-handle {
             position: absolute;
-            top: -20px;
+            top: -40px;
             left: 0;
             right: 0;
-            height: 20px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+            height: 40px;
+            background: #000000;
             border-bottom: 1px solid #2a2a2a;
             cursor: ns-resize;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9000;
+            z-index: 9800;
             pointer-events: auto;
             touch-action: none;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 -1px 0 rgba(255, 255, 255, 0.08);
         }
 
         .chord-collapse-handle .resize-grip {
-            width: 36px;
-            height: 4px;
+            width: 54px;
+            height: 6px;
             background: #ffd046;
-            border-radius: 2px;
+            border-radius: 3px;
             opacity: 0.8;
         }
 
         .chord-resize-handle:hover {
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+            background: #000000;
         }
 
         .resize-grip {
@@ -440,7 +442,7 @@
             cursor: pointer;
             border: none;
             border-radius: 8px 8px 6px 6px;
-            box-shadow: none;
+            box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 0, 0, 0.35);
             outline: none;
             overflow: visible;
             opacity: 1;
@@ -470,21 +472,39 @@
 
         #jamArea .bells-key::before,
         #jamArea .bells-key::after {
-            display: none;
             content: '';
             position: absolute;
-            inset: 0 0 55% 0;
-            border-radius: 0 0 6px 6px;
             pointer-events: none;
             z-index: 1;
         }
 
-        #jamArea .bells-key.ringing::after {
+        #jamArea .bells-key::before {
             display: block;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 2px;
+            background: var(--bells-color, rgba(255, 255, 255, 0.85));
+            border-radius: 8px 8px 0 0;
             opacity: 0.95;
-            background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.55) 28%, rgba(255, 255, 255, 0) 70%);
+        }
+
+        #jamArea .bells-key::after {
+            display: block;
+            left: 0;
+            right: 0;
+            top: -2px;
+            height: 18px;
+            border-radius: 10px 10px 8px 8px;
+            opacity: 0;
+            background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.45) 35%, rgba(255, 255, 255, 0) 75%);
+            filter: blur(2px);
+        }
+
+        #jamArea .bells-key.ringing::after {
+            opacity: 0.95;
             mix-blend-mode: screen;
-            filter: saturate(1.2) brightness(1.3);
+            filter: saturate(1.2) brightness(1.3) blur(2px);
         }
 
         #jamArea .bells-key.ringing,
@@ -519,7 +539,7 @@
             height: 100%;
             z-index: 1;
             bottom: 0;
-            font-size: 20px;
+            font-size: clamp(18px, 3.6vw, 46px);
         }
 
         #jamArea .bells-natural::before,
@@ -571,31 +591,43 @@
             position: absolute;
             border-radius: 0;
             pointer-events: none;
-            z-index: 1;
-            box-shadow: none;
+            z-index: 7;
+            box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.6);
             border: none;
             opacity: 1;
             transition: box-shadow 0.18s ease;
         }
 
-        #jamArea .bells-block-label {
+        #jamArea .bells-block::before {
+            content: '';
             position: absolute;
             left: 0;
             right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            text-align: center;
-            font-weight: 800;
-            font-size: clamp(10px, 1.1vw, 20px);
-            letter-spacing: 0.6px;
+            top: 0;
+            height: 2px;
+            background: var(--bells-color, rgba(255, 255, 255, 0.85));
+            opacity: 0.95;
             pointer-events: none;
-            text-shadow: none;
+        }
+
+        #jamArea .bells-block-label {
+            position: relative;
+            left: auto;
+            right: auto;
+            top: auto;
+            transform: none;
+            text-align: center;
+            font-weight: 900;
+            font-size: clamp(16px, 3.6vw, 46px);
+            letter-spacing: 1.4px;
+            pointer-events: none;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.55), 0 0 8px rgba(0, 0, 0, 0.35);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             line-height: 1;
-            padding: 0 2px;
-            z-index: 6;
+            padding: 0 6px;
+            z-index: 12;
         }
 
         #jamArea .bells-label-overlay {
@@ -611,6 +643,7 @@
             pointer-events: none;
             opacity: 1;
             transition: box-shadow 0.18s ease;
+            z-index: 12;
         }
 
         #jamArea .bells-block-natural {
@@ -635,9 +668,10 @@
             left: 0;
             right: 0;
             height: 34px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02));
+            background: #000000;
+            background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02));
             border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-            z-index: 12;
+            z-index: 9500;
             pointer-events: auto;
             display: block;
             touch-action: none;
@@ -1026,6 +1060,40 @@
             row-gap: 6px;
         }
 
+        .chordbox-gear {
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(13, 41, 56, 0.85);
+            color: #e8f5ff;
+            border: 1px solid #4a6870;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .chordbox-gear:hover {
+            background: rgba(33, 64, 81, 0.95);
+        }
+
+        .chordbox-gear:active {
+            transform: translateY(1px);
+        }
+
+        #oscModal #oscillatorsSection {
+            display: none;
+        }
+
+        #oscModal .chordbox-osc-controls {
+            display: grid !important;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 6px;
+        }
+
         .extension-header:hover {
             /* Minimal hover feedback to avoid interfering with tap/hold system */
             background: rgba(255, 255, 255, 0.05);
@@ -1170,6 +1238,12 @@
             background-image: var(--root-tint-gradient, none);
             background-repeat: no-repeat;
             background-size: cover;
+        }
+
+        .strum-header-only #strumArea .strings-column,
+        .strum-header-only #strumArea .note-labels,
+        .strum-header-only #strumArea .note-label {
+            display: none !important;
         }
 
         .note-label {
@@ -3885,7 +3959,6 @@
                 <input id="edoQuickInput" type="number" min="5" max="53" value="24" title="Steps per octave"
                     style="width:56px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 6px;font-size:13px;" />
             </div>
-            <button class="panel-btn mobile-row-1" data-panel="osc" title="Oscillator settings">OSC</button>
             <button class="panel-btn mobile-row-1" data-panel="fx" title="Effects">FX</button>
             <button id="openTextChordParserBtn" class="panel-btn mobile-row-1" title="Type or paste a chord sequence"
                 style="display:none;">SEQ</button>
@@ -4121,12 +4194,131 @@
     <div id="oscModal" class="floating-modal"
         style="top:80px; left:220px; width:412px; height:803px; display:none; overflow:hidden;">
         <div class="modal-header">
-            <span>Oscillators</span>
+            <span id="chordboxSynthTitle">Chordbox Synth</span>
             <div style="display:flex; gap:6px; align-items:center;">
                 <button id="closeOscModal" class="modal-close" style="background:#e74c3c;">×</button>
             </div>
         </div>
         <div class="modal-body" style="height:calc(100% - 44px); overflow:hidden; padding:14px;">
+            <div id="chordboxSynthEditor" class="synth-section" style="padding:0 4px 8px 4px; overflow:hidden;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <h5 style="font-size:12px; margin:0; color:#8fb3d3;">Chordbox Synth</h5>
+                    <span id="chordboxSynthName" style="font-size:10px; color:#9db6c8;">No chord selected</span>
+                </div>
+                <div class="oscillator-controls chordbox-osc-controls" style="margin-bottom:8px; flex-wrap:wrap;">
+                    <div class="osc-btn chordbox-osc-btn active" data-wave="sine"
+                        style="font-size:11px; padding:6px 8px;">Sin</div>
+                    <div class="osc-btn chordbox-osc-btn" data-wave="sawtooth" style="font-size:11px; padding:6px 8px;">
+                        Saw</div>
+                    <div class="osc-btn chordbox-osc-btn" data-wave="square" style="font-size:11px; padding:6px 8px;">
+                        Sqr</div>
+                    <div class="osc-btn chordbox-osc-btn" data-wave="triangle" style="font-size:11px; padding:6px 8px;">
+                        Tri</div>
+                    <div class="osc-btn chordbox-osc-btn" data-wave="noise" style="font-size:11px; padding:6px 8px;">
+                        Nse</div>
+                    <div class="osc-btn chordbox-osc-btn" data-wave="pulse" style="font-size:11px; padding:6px 8px;">
+                        Pulse</div>
+                    <div class="osc-btn chordbox-osc-btn" data-wave="fullrect" style="font-size:11px; padding:6px 8px;">
+                        FRect</div>
+                    <div class="osc-btn chordbox-osc-btn" data-wave="halfrect" style="font-size:11px; padding:6px 8px;">
+                        HRect</div>
+                    <div class="osc-btn chordbox-osc-btn" data-wave="parabolic"
+                        style="font-size:11px; padding:6px 8px;">
+                        Para</div>
+                    <div class="osc-btn chordbox-osc-btn" data-wave="stair" style="font-size:11px; padding:6px 8px;">
+                        Stair</div>
+                </div>
+                <div class="slider-container chordbox-pulse-width" style="display:none; margin-bottom:6px;">
+                    <label style="font-size:9px;">Pulse Width</label>
+                    <input type="range" class="synth-slider" id="chordboxPulseWidth" min="5" max="95" value="50"
+                        style="height:20px;">
+                    <div class="slider-value" id="chordboxPulseWidthValue" style="font-size:9px;">50%</div>
+                </div>
+                <div class="slider-container chordbox-shape-width" style="margin-bottom:6px;">
+                    <label style="font-size:9px;">Width of Shape</label>
+                    <input type="range" class="synth-slider" id="chordboxShapeWidth" min="0" max="100" value="50"
+                        style="height:20px;">
+                    <div class="slider-value" id="chordboxShapeWidthValue" style="font-size:9px;">50%</div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
+                    <div class="slider-container">
+                        <label style="font-size:9px;">Level</label>
+                        <input type="range" class="synth-slider" id="chordboxLevel" min="0" max="100" value="50"
+                            style="height:20px;">
+                        <div class="slider-value" id="chordboxLevelValue" style="font-size:9px;">50%</div>
+                    </div>
+                    <div class="slider-container">
+                        <label style="font-size:9px;">Detune</label>
+                        <input type="range" class="synth-slider" id="chordboxDetune" min="-100" max="100" value="0"
+                            style="height:20px;">
+                        <div class="slider-value" id="chordboxDetuneValue" style="font-size:9px;">0¢</div>
+                    </div>
+                    <div class="slider-container">
+                        <label style="font-size:9px;">Transpose</label>
+                        <input type="range" class="synth-slider" id="chordboxTranspose" min="-24" max="24" value="0"
+                            step="1" style="height:20px;">
+                        <div class="slider-value" id="chordboxTransposeValue" style="font-size:9px;">0 steps</div>
+                    </div>
+                </div>
+                <h6 style="font-size:10px; margin:6px 0 4px 0; color:#f39c12;">Envelope</h6>
+                <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:3px;">
+                    <div class="slider-container">
+                        <label style="font-size:8px;">Attack</label>
+                        <input type="range" class="envelope-slider" id="chordboxAttack" min="0" max="2000" value="10"
+                            style="height:18px;">
+                        <div class="slider-value" id="chordboxAttackValue" style="font-size:8px;">10ms</div>
+                    </div>
+                    <div class="slider-container">
+                        <label style="font-size:8px;">Decay</label>
+                        <input type="range" class="envelope-slider" id="chordboxDecay" min="0" max="2000" value="200"
+                            style="height:18px;">
+                        <div class="slider-value" id="chordboxDecayValue" style="font-size:8px;">200ms</div>
+                    </div>
+                    <div class="slider-container">
+                        <label style="font-size:8px;">Sustain</label>
+                        <input type="range" class="envelope-slider" id="chordboxSustain" min="0" max="100" value="80"
+                            style="height:18px;">
+                        <div class="slider-value" id="chordboxSustainValue" style="font-size:8px;">80%</div>
+                    </div>
+                    <div class="slider-container">
+                        <label style="font-size:8px;">Release</label>
+                        <input type="range" class="envelope-slider" id="chordboxRelease" min="0" max="2000" value="400"
+                            style="height:18px;">
+                        <div class="slider-value" id="chordboxReleaseValue" style="font-size:8px;">400ms</div>
+                    </div>
+                </div>
+                <div
+                    style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; padding:6px; background:rgba(13,41,56,0.7); border-radius:6px; border:1px solid #2b5567;">
+                    <div class="slider-container" style="min-width:220px;">
+                        <label style="font-size:9px;">FX Send</label>
+                        <input type="range" class="synth-slider" id="chordboxFxSend" min="0" max="200" value="100"
+                            style="height:18px;">
+                        <div class="slider-value" id="chordboxFxSendValue" style="font-size:9px;">100%</div>
+                    </div>
+                    <span style="font-size:10px; color:#9db6c8;">MIDI Out</span>
+                    <select id="chordboxMidiDevice" title="MIDI output device"
+                        style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:11px;min-width:180px;"></select>
+                    <select id="chordboxMidiChannel" title="MIDI channel"
+                        style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:11px;min-width:70px;">
+                        <option value="1">Ch 1</option>
+                        <option value="2">Ch 2</option>
+                        <option value="3">Ch 3</option>
+                        <option value="4">Ch 4</option>
+                        <option value="5">Ch 5</option>
+                        <option value="6">Ch 6</option>
+                        <option value="7">Ch 7</option>
+                        <option value="8">Ch 8</option>
+                        <option value="9">Ch 9</option>
+                        <option value="10">Ch 10</option>
+                        <option value="11">Ch 11</option>
+                        <option value="12">Ch 12</option>
+                        <option value="13">Ch 13</option>
+                        <option value="14">Ch 14</option>
+                        <option value="15">Ch 15</option>
+                        <option value="16">Ch 16</option>
+                    </select>
+                </div>
+            </div>
             <div class="synth-section" id="oscillatorsSection" style="padding:0 4px 8px 4px; overflow:hidden;">
                 <!-- Instrument Presets Toolbar -->
                 <div id="instrumentPresetsBar" style="display:flex; align-items:center; gap:8px; margin:6px 0 10px 0;">
@@ -4499,6 +4691,12 @@
                                 title="Default velocity for this section"
                                 style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
                         </div>
+                        <div style="display:flex;flex-direction:column;gap:3px;min-width:120px;">
+                            <label style="font-size:10px;color:#9db6c8;">VOICE MAX</label>
+                            <input id="chordVoiceMax" type="number" min="3" max="6" step="1" value="3"
+                                title="Max voices for chord voice-leading (3–6)"
+                                style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
+                        </div>
                     </div>
                     <div class="oscillator-controls" style="margin-bottom:8px;">
                         <div class="osc-btn active" data-wave="sine" data-inst="chord"
@@ -4683,7 +4881,6 @@
                     <button id="createNewChordBtnSidebar" class="sidebar-btn" title="Add Chord"
                         style="background:#27ae60;border-color:#2ecc71;">+</button>
 
-                    <button id="oscPanelBtn" class="sidebar-btn" title="Oscillator settings">OSC</button>
                     <button id="fxPanelBtn" class="sidebar-btn" title="Effects">FX</button>
                     <button id="seqPanelBtn" class="sidebar-btn" title="Type or paste a chord sequence"
                         style="display:none;">SEQ</button>
@@ -10226,7 +10423,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const ruler = document.getElementById('chordRuler');
                 const RULER_H = 24;
                 const HANDLE_H = 36;
-                const TOP_HANDLE_H = 20;
+                const TOP_HANDLE_H = 40;
                 const TOP_HANDLE_CLEARANCE = Math.ceil(TOP_HANDLE_H / 2) + 6;
                 const CENTER_HANDLE_OFFSET = 6;
 
@@ -10264,7 +10461,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const strumHeight = Math.max(0, splitHeight - RULER_H);
                     const adjustedStrumHeight = Math.max(0, strumHeight - TOP_HANDLE_CLEARANCE);
                     const isCollapsedStrum = splitHeight <= collapseThreshold;
+                    const headerOnlyThreshold = (() => {
+                        try {
+                            const headerEl = strumArea.querySelector('.extension-header');
+                            const h = headerEl ? headerEl.getBoundingClientRect().height : 90;
+                            return Math.max(72, Math.ceil(h + 10));
+                        } catch (_) {
+                            return 100;
+                        }
+                    })();
+                    const showHeaderOnly = showAll && adjustedStrumHeight > 0 && !isCollapsedStrum && adjustedStrumHeight <= headerOnlyThreshold;
                     try { document.documentElement.classList.toggle('strum-collapsed', !!isCollapsedStrum); } catch (_) { }
+                    try { document.documentElement.classList.toggle('strum-header-only', !!showHeaderOnly); } catch (_) { }
                     const collapsedMidTop = (systemTop + (TOP_HANDLE_H / 2) + 4);
                     const belowRulerTop = (systemTop + splitHeight + 4 + CENTER_HANDLE_OFFSET);
                     const handleTop = (isCollapsedStrum ? collapsedMidTop : belowRulerTop);
@@ -12253,6 +12461,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // When false, fold all degrees into a single octave.
                     // Default to compact one-octave voicing as requested.
                     this.splitExtendedChordsAcrossOctaves = false;
+                    // CHORDS voice-leading max voices (3–6)
+                    this._chordsVoiceMax = 3;
                     // Keyboard rotation across EDO steps (drag left/right rotates visible order)
                     this.keyboardRotation = 0;
                     // Global keyboard listener guard/handle
@@ -12340,6 +12550,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             fxSend: true
                         }
                     };
+
+                    // Per-chordbox synth defaults (independent from global instruments)
+                    this._defaultChordboxSynth = {
+                        oscType: 'sine',
+                        level: 0.5,
+                        fxSend: 1.0,
+                        env: { attack: 0.01, decay: 0.2, sustain: 0.8, release: 0.4 },
+                        pitch: { transpose: 0, detune: 0 },
+                        pulseWidth: 0.5,
+                        shapeWidth: 0.5,
+                        midi: { enabled: false, deviceId: '', channel: 1 }
+                    };
+                    this._lastCreatedChordboxSynth = null;
+                    this._activeChordboxSynthTarget = null;
+                    this._chordboxSynthEditorWired = false;
 
                     // BELLS glide time override (ms). Null => auto (speed-based).
                     this._bellsGlideMs = null;
@@ -16998,6 +17223,430 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this.playNotePreview(interval);
                 }
 
+                _cloneChordboxSynthConfig(source) {
+                    const base = source || this._defaultChordboxSynth;
+                    if (typeof structuredClone === 'function') {
+                        try { return structuredClone(base); } catch (_) { }
+                    }
+                    return JSON.parse(JSON.stringify(base));
+                }
+
+                _getChordboxSynthTemplate() {
+                    if (this._lastCreatedChordboxSynth) return this._lastCreatedChordboxSynth;
+                    try {
+                        const list = Array.isArray(this.chordExtensions) ? this.chordExtensions : [];
+                        for (let i = list.length - 1; i >= 0; i--) {
+                            const ext = list[i];
+                            if (!ext || ext.isRepeatMarker || ext.isSeparator || ext.name === '|') continue;
+                            if (ext.synth) return ext.synth;
+                        }
+                    } catch (_) { }
+                    return this._defaultChordboxSynth;
+                }
+
+                _assignChordboxSynthConfig(model) {
+                    if (!model) return null;
+                    if (!model.synth) {
+                        model.synth = this._cloneChordboxSynthConfig(this._getChordboxSynthTemplate());
+                    }
+                    this._lastCreatedChordboxSynth = model.synth;
+                    return model.synth;
+                }
+
+                _ensureChordboxSynthConfig(model) {
+                    if (!model) return null;
+                    if (!model.synth) {
+                        model.synth = this._cloneChordboxSynthConfig(this._getChordboxSynthTemplate());
+                    }
+                    return model.synth;
+                }
+
+                _getChordModelFromColumn(column) {
+                    if (!column) return null;
+                    try {
+                        const id = column.dataset.chordId;
+                        if (id) {
+                            const idx = (this.chordExtensions || []).findIndex(c => c && String(c.id) === String(id));
+                            if (idx >= 0) return this.chordExtensions[idx];
+                        }
+                        if (column.dataset.originalPosition != null) {
+                            const op = parseInt(column.dataset.originalPosition, 10);
+                            if (!isNaN(op) && this.chordExtensions && this.chordExtensions[op]) return this.chordExtensions[op];
+                        }
+                    } catch (_) { }
+                    return null;
+                }
+
+                _getChordboxSynthForElement(element, sourceType) {
+                    const rawType = String(sourceType || '');
+                    const baseType = rawType.startsWith('arp') ? 'arp' : rawType;
+                    if (baseType !== 'chord' && baseType !== 'strum') return null;
+                    if (!element || !element.closest) return null;
+                    const column = element.closest('.extension-column');
+                    if (!column) return null;
+                    const model = this._getChordModelFromColumn(column);
+                    if (!model) return null;
+                    return this._ensureChordboxSynthConfig(model);
+                }
+
+                _chordboxLevelToGain(level) {
+                    const v = Number(level);
+                    const norm = Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.5;
+                    return norm * 0.125;
+                }
+
+                _buildChordboxInstrument(synth) {
+                    const safeSynth = synth || this._defaultChordboxSynth;
+                    const oscType = ['sine', 'square', 'triangle', 'sawtooth', 'noise', 'pulse', 'fullrect', 'halfrect', 'parabolic', 'stair']
+                        .includes(safeSynth.oscType)
+                        ? safeSynth.oscType
+                        : 'sine';
+                    const transpose = Math.max(-24, Math.min(24, parseInt(safeSynth?.pitch?.transpose || 0, 10) || 0));
+                    const pulseWidth = Math.max(0.05, Math.min(0.95, Number(safeSynth?.pulseWidth ?? 0.5)));
+                    const shapeWidth = Math.max(0, Math.min(1, Number(safeSynth?.shapeWidth ?? 0.5)));
+                    return {
+                        __chordbox: true,
+                        osc: {
+                            type: oscType,
+                            detune: Number(safeSynth?.pitch?.detune || 0),
+                            level: this._chordboxLevelToGain(safeSynth?.level),
+                            octave: 0,
+                            coarse: transpose,
+                            pulseWidth: pulseWidth,
+                            shapeWidth: shapeWidth
+                        },
+                        env: {
+                            attack: Math.max(0, Number(safeSynth?.env?.attack || 0.01)),
+                            decay: Math.max(0, Number(safeSynth?.env?.decay || 0.2)),
+                            sustain: Math.max(0, Math.min(1, Number(safeSynth?.env?.sustain ?? 0.8))),
+                            release: Math.max(0, Number(safeSynth?.env?.release || 0.4))
+                        },
+                        fxSend: Math.max(0, Math.min(2, Number(safeSynth?.fxSend ?? 1)))
+                    };
+                }
+
+                _syncChordboxSynthEditor(synth, column) {
+                    const target = synth || this._defaultChordboxSynth;
+                    const nameEl = document.getElementById('chordboxSynthName');
+                    if (nameEl) {
+                        const label = column?.querySelector?.('.extension-header .chord-name')?.textContent?.trim() || 'Chordbox';
+                        nameEl.textContent = label;
+                    }
+                    const setActiveWave = (wave) => {
+                        document.querySelectorAll('.chordbox-osc-btn').forEach(btn => {
+                            btn.classList.toggle('active', btn.dataset.wave === wave);
+                        });
+                    };
+                    const oscType = target.oscType || 'sine';
+                    setActiveWave(oscType);
+                    const usesShapeWidth = ['sine', 'square', 'triangle', 'sawtooth', 'pulse', 'fullrect', 'halfrect', 'parabolic', 'stair']
+                        .includes(oscType);
+                    const pulseContainer = document.querySelector('.chordbox-pulse-width');
+                    if (pulseContainer) pulseContainer.style.display = (oscType === 'pulse') ? 'block' : 'none';
+                    const shapeContainer = document.querySelector('.chordbox-shape-width');
+                    if (shapeContainer) shapeContainer.style.display = usesShapeWidth ? 'block' : 'none';
+                    const levelEl = document.getElementById('chordboxLevel');
+                    const levelVal = document.getElementById('chordboxLevelValue');
+                    if (levelEl) levelEl.value = String(Math.round((target.level ?? 0.5) * 100));
+                    if (levelVal) levelVal.textContent = `${Math.round((target.level ?? 0.5) * 100)}%`;
+                    const pwEl = document.getElementById('chordboxPulseWidth');
+                    const pwVal = document.getElementById('chordboxPulseWidthValue');
+                    if (pwEl) pwEl.value = String(Math.round(Math.max(0.05, Math.min(0.95, Number(target?.pulseWidth ?? 0.5))) * 100));
+                    if (pwVal) pwVal.textContent = `${Math.round(Math.max(0.05, Math.min(0.95, Number(target?.pulseWidth ?? 0.5))) * 100)}%`;
+                    const swEl = document.getElementById('chordboxShapeWidth');
+                    const swVal = document.getElementById('chordboxShapeWidthValue');
+                    if (swEl) swEl.value = String(Math.round(Math.max(0, Math.min(1, Number(target?.shapeWidth ?? 0.5))) * 100));
+                    if (swVal) swVal.textContent = `${Math.round(Math.max(0, Math.min(1, Number(target?.shapeWidth ?? 0.5))) * 100)}%`;
+                    const detuneEl = document.getElementById('chordboxDetune');
+                    const detuneVal = document.getElementById('chordboxDetuneValue');
+                    if (detuneEl) detuneEl.value = String(Math.round(target?.pitch?.detune || 0));
+                    if (detuneVal) detuneVal.textContent = `${Math.round(target?.pitch?.detune || 0)}¢`;
+                    const transEl = document.getElementById('chordboxTranspose');
+                    const transVal = document.getElementById('chordboxTransposeValue');
+                    if (transEl) transEl.value = String(parseInt(target?.pitch?.transpose || 0, 10) || 0);
+                    if (transVal) transVal.textContent = `${parseInt(target?.pitch?.transpose || 0, 10) || 0} steps`;
+                    const atkEl = document.getElementById('chordboxAttack');
+                    const atkVal = document.getElementById('chordboxAttackValue');
+                    if (atkEl) atkEl.value = String(Math.round((target?.env?.attack || 0.01) * 1000));
+                    if (atkVal) atkVal.textContent = `${Math.round((target?.env?.attack || 0.01) * 1000)}ms`;
+                    const decEl = document.getElementById('chordboxDecay');
+                    const decVal = document.getElementById('chordboxDecayValue');
+                    if (decEl) decEl.value = String(Math.round((target?.env?.decay || 0.2) * 1000));
+                    if (decVal) decVal.textContent = `${Math.round((target?.env?.decay || 0.2) * 1000)}ms`;
+                    const susEl = document.getElementById('chordboxSustain');
+                    const susVal = document.getElementById('chordboxSustainValue');
+                    if (susEl) susEl.value = String(Math.round((target?.env?.sustain ?? 0.8) * 100));
+                    if (susVal) susVal.textContent = `${Math.round((target?.env?.sustain ?? 0.8) * 100)}%`;
+                    const relEl = document.getElementById('chordboxRelease');
+                    const relVal = document.getElementById('chordboxReleaseValue');
+                    if (relEl) relEl.value = String(Math.round((target?.env?.release || 0.4) * 1000));
+                    if (relVal) relVal.textContent = `${Math.round((target?.env?.release || 0.4) * 1000)}ms`;
+
+                    const fxSendEl = document.getElementById('chordboxFxSend');
+                    const fxSendVal = document.getElementById('chordboxFxSendValue');
+                    if (fxSendEl) fxSendEl.value = String(Math.round(Math.max(0, Math.min(2, Number(target?.fxSend ?? 1))) * 100));
+                    if (fxSendVal) fxSendVal.textContent = `${Math.round(Math.max(0, Math.min(2, Number(target?.fxSend ?? 1))) * 100)}%`;
+
+                    const midiDevice = document.getElementById('chordboxMidiDevice');
+                    const midiChannel = document.getElementById('chordboxMidiChannel');
+                    if (midiDevice && window.midi && typeof window.midi.populateOutputSelect === 'function') {
+                        try { window.midi.populateOutputSelect(midiDevice); } catch (_) { }
+                    }
+                    if (midiDevice) midiDevice.value = target?.midi?.deviceId || '';
+                    if (midiChannel) midiChannel.value = String(Math.max(1, Math.min(16, parseInt(target?.midi?.channel || 1, 10))));
+                }
+
+                _wireChordboxSynthEditor() {
+                    if (this._chordboxSynthEditorWired) return;
+                    this._chordboxSynthEditorWired = true;
+                    const getTarget = () => this._activeChordboxSynthTarget;
+
+                    document.querySelectorAll('.chordbox-osc-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const wave = btn.dataset.wave || 'sine';
+                            synth.oscType = wave;
+                            const usesShapeWidth = ['sine', 'square', 'triangle', 'sawtooth', 'pulse', 'fullrect', 'halfrect', 'parabolic', 'stair']
+                                .includes(wave);
+                            const pulseContainer = document.querySelector('.chordbox-pulse-width');
+                            if (pulseContainer) pulseContainer.style.display = (wave === 'pulse') ? 'block' : 'none';
+                            const shapeContainer = document.querySelector('.chordbox-shape-width');
+                            if (shapeContainer) shapeContainer.style.display = usesShapeWidth ? 'block' : 'none';
+                            this._syncChordboxSynthEditor(synth, this._activeChordboxSynthColumn);
+                        });
+                    });
+
+                    const pwEl = document.getElementById('chordboxPulseWidth');
+                    if (pwEl) {
+                        pwEl.addEventListener('input', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const pct = Math.min(95, Math.max(5, parseInt(e.target.value || '50', 10) || 50));
+                            synth.pulseWidth = pct / 100;
+                            const v = document.getElementById('chordboxPulseWidthValue');
+                            if (v) v.textContent = `${pct}%`;
+                        });
+                    }
+                    const swEl = document.getElementById('chordboxShapeWidth');
+                    if (swEl) {
+                        swEl.addEventListener('input', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const pct = Math.min(100, Math.max(0, parseInt(e.target.value || '50', 10) || 50));
+                            synth.shapeWidth = pct / 100;
+                            const v = document.getElementById('chordboxShapeWidthValue');
+                            if (v) v.textContent = `${pct}%`;
+                        });
+                    }
+
+                    const levelEl = document.getElementById('chordboxLevel');
+                    if (levelEl) {
+                        levelEl.addEventListener('input', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const pct = Math.max(0, Math.min(100, parseInt(e.target.value || '0', 10) || 0));
+                            synth.level = pct / 100;
+                            const v = document.getElementById('chordboxLevelValue');
+                            if (v) v.textContent = `${pct}%`;
+                        });
+                    }
+                    const detuneEl = document.getElementById('chordboxDetune');
+                    if (detuneEl) {
+                        detuneEl.addEventListener('input', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const val = Math.max(-100, Math.min(100, parseInt(e.target.value || '0', 10) || 0));
+                            synth.pitch.detune = val;
+                            const v = document.getElementById('chordboxDetuneValue');
+                            if (v) v.textContent = `${val}¢`;
+                        });
+                    }
+                    const transEl = document.getElementById('chordboxTranspose');
+                    if (transEl) {
+                        transEl.addEventListener('input', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const val = parseInt(e.target.value || '0', 10) || 0;
+                            synth.pitch.transpose = val;
+                            const v = document.getElementById('chordboxTransposeValue');
+                            if (v) v.textContent = `${val} steps`;
+                        });
+                    }
+                    const atkEl = document.getElementById('chordboxAttack');
+                    if (atkEl) {
+                        atkEl.addEventListener('input', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const ms = Math.max(0, parseInt(e.target.value || '0', 10) || 0);
+                            synth.env.attack = ms / 1000;
+                            const v = document.getElementById('chordboxAttackValue');
+                            if (v) v.textContent = `${ms}ms`;
+                        });
+                    }
+                    const decEl = document.getElementById('chordboxDecay');
+                    if (decEl) {
+                        decEl.addEventListener('input', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const ms = Math.max(0, parseInt(e.target.value || '0', 10) || 0);
+                            synth.env.decay = ms / 1000;
+                            const v = document.getElementById('chordboxDecayValue');
+                            if (v) v.textContent = `${ms}ms`;
+                        });
+                    }
+                    const susEl = document.getElementById('chordboxSustain');
+                    if (susEl) {
+                        susEl.addEventListener('input', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const pct = Math.max(0, Math.min(100, parseInt(e.target.value || '0', 10) || 0));
+                            synth.env.sustain = pct / 100;
+                            const v = document.getElementById('chordboxSustainValue');
+                            if (v) v.textContent = `${pct}%`;
+                        });
+                    }
+                    const relEl = document.getElementById('chordboxRelease');
+                    if (relEl) {
+                        relEl.addEventListener('input', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const ms = Math.max(0, parseInt(e.target.value || '0', 10) || 0);
+                            synth.env.release = ms / 1000;
+                            const v = document.getElementById('chordboxReleaseValue');
+                            if (v) v.textContent = `${ms}ms`;
+                        });
+                    }
+
+                    const fxSendEl = document.getElementById('chordboxFxSend');
+                    if (fxSendEl) {
+                        fxSendEl.addEventListener('input', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const pct = Math.max(0, Math.min(200, parseInt(e.target.value || '0', 10) || 0));
+                            synth.fxSend = pct / 100;
+                            const v = document.getElementById('chordboxFxSendValue');
+                            if (v) v.textContent = `${pct}%`;
+                        });
+                    }
+
+                    const midiDevice = document.getElementById('chordboxMidiDevice');
+                    if (midiDevice) {
+                        midiDevice.addEventListener('change', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            synth.midi.deviceId = String(e.target.value || '');
+                        });
+                    }
+                    const midiChannel = document.getElementById('chordboxMidiChannel');
+                    if (midiChannel) {
+                        midiChannel.addEventListener('change', (e) => {
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            synth.midi.channel = Math.max(1, Math.min(16, parseInt(e.target.value || '1', 10) || 1));
+                        });
+                    }
+                }
+
+                _openChordboxSynthModal(column) {
+                    const modal = document.getElementById('oscModal');
+                    if (!modal || !column) return;
+                    const model = this._getChordModelFromColumn(column);
+                    if (!model) return;
+                    const title = document.getElementById('chordboxSynthTitle');
+                    if (title) title.textContent = 'Chordbox Synth';
+                    const chordboxEditor = document.getElementById('chordboxSynthEditor');
+                    const oscSection = document.getElementById('oscillatorsSection');
+                    if (chordboxEditor) chordboxEditor.style.display = 'block';
+                    if (oscSection) oscSection.style.display = 'none';
+                    const synth = this._ensureChordboxSynthConfig(model);
+                    this._activeChordboxSynthTarget = model;
+                    this._activeChordboxSynthColumn = column;
+                    this._wireChordboxSynthEditor();
+                    this._syncChordboxSynthEditor(synth, column);
+                    modal.style.display = 'block';
+                    bringModalToFront('oscModal');
+                    if (!modal._draggableSet) {
+                        makeDraggable(modal);
+                        modal._draggableSet = true;
+                    }
+                }
+
+                _openChordsSettingsModal() {
+                    const modal = document.getElementById('oscModal');
+                    if (!modal) return;
+                    const title = document.getElementById('chordboxSynthTitle');
+                    if (title) title.textContent = 'CHORDS Settings';
+                    const chordboxEditor = document.getElementById('chordboxSynthEditor');
+                    const oscSection = document.getElementById('oscillatorsSection');
+                    if (chordboxEditor) chordboxEditor.style.display = 'none';
+                    if (oscSection) oscSection.style.display = 'block';
+
+                    const tabBtns = document.querySelectorAll('.osc-tab-btn');
+                    const tabStrum1 = document.getElementById('tab-strum1');
+                    const tabStrum2 = document.getElementById('tab-strum2');
+                    const tabChord = document.getElementById('tab-chord');
+                    if (tabStrum1 && tabStrum2 && tabChord) {
+                        tabBtns.forEach(b => b.classList.remove('active'));
+                        const btn = Array.from(tabBtns).find(b => b.dataset.tab === 'chord');
+                        if (btn) btn.classList.add('active');
+                        tabStrum1.style.display = 'none';
+                        tabStrum2.style.display = 'none';
+                        tabChord.style.display = 'block';
+                    }
+                    const voiceMax = document.getElementById('chordVoiceMax');
+                    if (voiceMax) voiceMax.value = String(this._getChordVoiceLeadingMax ? this._getChordVoiceLeadingMax() : 3);
+
+                    modal.style.display = 'block';
+                    bringModalToFront('oscModal');
+                    if (!modal._draggableSet) {
+                        makeDraggable(modal);
+                        modal._draggableSet = true;
+                    }
+                    setTimeout(() => {
+                        try { tabChord && tabChord.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) { }
+                    }, 0);
+                }
+
+                _createChordboxGearButton(column) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'chordbox-gear';
+                    btn.title = 'Chordbox synth settings';
+                    btn.textContent = '⚙️';
+                    const open = (e) => {
+                        try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
+                        this._openChordboxSynthModal(column);
+                    };
+                    btn.addEventListener('pointerdown', (e) => {
+                        btn.__skipClick = true;
+                        open(e);
+                    }, { passive: false });
+                    btn.addEventListener('touchstart', (e) => {
+                        btn.__skipClick = true;
+                        open(e);
+                    }, { passive: false });
+                    btn.addEventListener('click', (e) => {
+                        if (btn.__skipClick) { btn.__skipClick = false; return; }
+                        open(e);
+                    });
+                    return btn;
+                }
+
                 // Create a brand-new blank chord column (no carry-over), set it active, and arm editing
                 // Optional: { insertAfterId } inserts immediately to the right of that chord.
                 createBlankChordColumn(opts) {
@@ -17046,6 +17695,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         len16: 16,
                         position: insertPosition
                     };
+                    this._assignChordboxSynthConfig(newChord);
 
                     // Insert the chord at the calculated position
                     this.chordExtensions.splice(insertPosition, 0, newChord);
@@ -21121,6 +21771,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Also capture a baseline of the original relative intervals for EDO remaps
                         originalIntervals: intervals.slice()
                     };
+                    this._assignChordboxSynthConfig(newChord);
                     console.log('🎵 addChordFromName:', norm, '| rootStep =', rootStep, '| fixedRootStepAbs =', newChord.fixedRootStepAbs, '| intervals =', intervals);
                     this.chordExtensions.push(newChord);
 
@@ -21538,9 +22189,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const mRoot = t.match(/^([A-Ga-g])([#b\-d]?)([\^v]*)(.*)$/);
                     if (!mRoot) return null;
                     const letter = mRoot[1].toUpperCase();
-                    const acc = (mRoot[2] === '-') ? 'b' : (mRoot[2] || '');
+                    let acc = (mRoot[2] === '-') ? 'b' : (mRoot[2] || '');
                     const micro = mRoot[3] || '';
                     let tail = mRoot[4] || '';
+                    // If the accidental parsed as 'd' but the tail starts with 'im',
+                    // treat it as the 'dim' quality (Bdim, Ddim, etc.) rather than quarter-flat.
+                    if (acc === 'd' && /^im/i.test(tail)) {
+                        tail = 'd' + tail;
+                        acc = '';
+                    }
                     // Normalize spacing before interpreting quality/extensions
                     tail = tail.trim();
                     // Normalize common spaced variants like "Maj 7", "Maj 9" → "maj7", "maj9"
@@ -22700,6 +23357,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         this.autoGenerateChordQualities(chordData);
                     } else {
                         // For standard chord extensions without specific intervals
+                        this._assignChordboxSynthConfig(chordData);
                         this.chordExtensions.push(chordData);
                         this.saveChordConfiguration(); // Use consistent save method
                     }
@@ -22745,6 +23403,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             root: chordData.root ?? this.currentRoot ?? 0,
                             tuning: chordData.tuning ?? this.currentTuning ?? 12
                         };
+                        this._assignChordboxSynthConfig(qualityChord);
 
                         // Add to chord extensions for the 3-column layout
                         this.chordExtensions.push(qualityChord);
@@ -24833,6 +25492,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                 document.querySelectorAll(`.osc-btn[data-inst="${instName}"]`).forEach(b => b.classList.remove('active'));
                                 btn.classList.add('active');
+                                if (instName === 'chord') {
+                                    const isSequencing = !!(omni._arpTransport && omni._arpTransport.running && omni._isSequencing && omni.chordsEnabled);
+                                    if (isSequencing) {
+                                        omni._pendingChordOscType = wave;
+                                        omni._pendingChordRevoice = true;
+                                        const c = document.getElementById(`${instName}PulseWidthContainer`);
+                                        if (c) c.style.display = (wave === 'pulse') ? 'block' : 'none';
+                                        return;
+                                    }
+                                }
                                 omni.instruments[instName].osc.type = wave;
                                 const c = document.getElementById(`${instName}PulseWidthContainer`);
                                 if (c) c.style.display = (wave === 'pulse') ? 'block' : 'none';
@@ -24999,9 +25668,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             });
                         }
                     };
-                    wireVal('chordShapeWidth', (e) => { const pct = Math.max(0, Math.min(100, parseInt(e.target.value) || 50)); this.instruments.chord.osc.shapeWidth = pct / 100; const v = document.getElementById('chordShapeWidthValue'); if (v) v.textContent = `${pct}%`; });
-                    wireVal('chordPulseWidth', (e) => { const pct = Math.max(5, Math.min(95, parseInt(e.target.value) || 50)); this.instruments.chord.osc.pulseWidth = pct / 100; const v = document.getElementById('chordPulseWidthValue'); if (v) v.textContent = `${pct}%`; });
-                    wireVal('chordDetune', (e) => { const v = parseInt(e.target.value) || 0; this.instruments.chord.osc.detune = v; const l = document.getElementById('chordDetuneValue'); if (l) l.textContent = `${v}¢`; });
+                    const queueChordRevoice = () => {
+                        try {
+                            if (this.chordsEnabled && this._isSequencing && this._arpTransport && this._arpTransport.running) {
+                                this._pendingChordRevoice = true;
+                            }
+                        } catch (_) { }
+                    };
+                    wireVal('chordShapeWidth', (e) => { const pct = Math.max(0, Math.min(100, parseInt(e.target.value) || 50)); this.instruments.chord.osc.shapeWidth = pct / 100; const v = document.getElementById('chordShapeWidthValue'); if (v) v.textContent = `${pct}%`; queueChordRevoice(); });
+                    wireVal('chordPulseWidth', (e) => { const pct = Math.max(5, Math.min(95, parseInt(e.target.value) || 50)); this.instruments.chord.osc.pulseWidth = pct / 100; const v = document.getElementById('chordPulseWidthValue'); if (v) v.textContent = `${pct}%`; queueChordRevoice(); });
+                    wireVal('chordDetune', (e) => { const v = parseInt(e.target.value) || 0; this.instruments.chord.osc.detune = v; const l = document.getElementById('chordDetuneValue'); if (l) l.textContent = `${v}¢`; queueChordRevoice(); });
                     wireVal('chordLevel', (e) => {
                         const v = parseInt(e.target.value) || 0;
                         this.instruments.chord.osc.level = (v / 10) * 0.125;
@@ -25009,12 +25685,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (l) l.textContent = `${v * 10}%`;
                         // Apply immediately to sustained/gliding chord voices.
                         try { this._applyLiveChordOutputLevel(); } catch (_) { }
+                        queueChordRevoice();
                     });
-                    wireVal('chordOctave', (e) => { const v = parseInt(e.target.value) || 0; this.instruments.chord.osc.octave = v; const l = document.getElementById('chordOctaveValue'); if (l) l.textContent = String(v); });
-                    wireVal('chordCoarse', (e) => { const v = parseInt(e.target.value) || 0; this.instruments.chord.osc.coarse = v; const l = document.getElementById('chordCoarseValue'); if (l) l.textContent = `${v} steps`; });
-                    wireVal('chordAttackSlider', (e) => { const ms = Math.max(3, parseInt(e.target.value) || 10); this.instruments.chord.env.attack = ms / 1000; const l = document.getElementById('chordAttackValue'); if (l) l.textContent = `${ms}ms`; });
-                    wireVal('chordDecaySlider', (e) => { const ms = Math.max(0, parseInt(e.target.value) || 200); this.instruments.chord.env.decay = ms / 1000; const l = document.getElementById('chordDecayValue'); if (l) l.textContent = `${ms}ms`; });
-                    wireVal('chordSustainSlider', (e) => { const pct = Math.max(0, Math.min(100, parseInt(e.target.value) || 70)); this.instruments.chord.env.sustain = pct / 100; const l = document.getElementById('chordSustainValue'); if (l) l.textContent = `${pct}%`; });
+                    wireVal('chordOctave', (e) => { const v = parseInt(e.target.value) || 0; this.instruments.chord.osc.octave = v; const l = document.getElementById('chordOctaveValue'); if (l) l.textContent = String(v); queueChordRevoice(); });
+                    wireVal('chordCoarse', (e) => { const v = parseInt(e.target.value) || 0; this.instruments.chord.osc.coarse = v; const l = document.getElementById('chordCoarseValue'); if (l) l.textContent = `${v} steps`; queueChordRevoice(); });
+                    wireVal('chordAttackSlider', (e) => { const ms = Math.max(3, parseInt(e.target.value) || 10); this.instruments.chord.env.attack = ms / 1000; const l = document.getElementById('chordAttackValue'); if (l) l.textContent = `${ms}ms`; queueChordRevoice(); });
+                    wireVal('chordDecaySlider', (e) => { const ms = Math.max(0, parseInt(e.target.value) || 200); this.instruments.chord.env.decay = ms / 1000; const l = document.getElementById('chordDecayValue'); if (l) l.textContent = `${ms}ms`; queueChordRevoice(); });
+                    wireVal('chordSustainSlider', (e) => { const pct = Math.max(0, Math.min(100, parseInt(e.target.value) || 70)); this.instruments.chord.env.sustain = pct / 100; const l = document.getElementById('chordSustainValue'); if (l) l.textContent = `${pct}%`; queueChordRevoice(); });
                     wireVal('chordReleaseSlider', (e) => {
                         const el = e.target;
                         if (this._isChordChoirSlideMode && this._isChordChoirSlideMode()) {
@@ -25031,6 +25708,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const l = document.getElementById('chordReleaseValue');
                             if (l) l.textContent = `${ms}ms`;
                         }
+                        queueChordRevoice();
+                    });
+                    wireVal('chordVoiceMax', (e) => {
+                        const v = Math.max(3, Math.min(6, parseInt(e.target.value, 10) || 3));
+                        this._chordsVoiceMax = v;
+                        e.target.value = String(v);
                     });
 
                     // ARP instrument controls (and arp-variants like arp2/arp3)
@@ -28531,6 +29214,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         isCustom: true,
                         id: 'duplicate_' + Date.now()
                     };
+                    this._assignChordboxSynthConfig(duplicateChord);
 
                     // Add to chord extensions
                     this.chordExtensions.push(duplicateChord);
@@ -28586,6 +29270,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         isCustom: true,
                         id: `duplicate_${Date.now()}_${Math.floor(Math.random() * 1e6)}`
                     };
+                    this._assignChordboxSynthConfig(newChord);
                     const insertAt = (idx !== -1) ? (idx + 1) : this.chordExtensions.length;
                     this.chordExtensions.splice(insertAt, 0, newChord);
                     this.normalizeChordPositions?.();
@@ -28906,6 +29591,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         extensions: [...(this.currentEditingColumn.extensions || [])],
                         intervals: this.currentEditingColumn.intervals || null
                     };
+                    this._assignChordboxSynthConfig(columnCopy);
 
                     // Add to chord extensions so it gets all 3 flavors
                     this.chordExtensions.push(columnCopy);
@@ -29294,7 +29980,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         this.customChords.push(customChord);
                     } else {
                         // Handle standard chord extension
-                        this.chordExtensions.push({ ...chordData });
+                        const copy = { ...chordData };
+                        this._assignChordboxSynthConfig(copy);
+                        this.chordExtensions.push(copy);
                         this.saveChordConfiguration();
                     }
 
@@ -29726,6 +30414,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         chordsEnabled: this.chordsEnabled,
                         arpEnabled: this.arpEnabled,
                         bassEnabled: this.bassEnabled,
+                        chordsVoiceMax: this._chordsVoiceMax || 3,
 
                         // ==== OSCILLATOR SETTINGS - COMPLETE ====
                         oscillators: {
@@ -30266,6 +30955,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (sessionData.chordsEnabled !== undefined) this.chordsEnabled = sessionData.chordsEnabled;
                                 if (sessionData.arpEnabled !== undefined) this.arpEnabled = sessionData.arpEnabled;
                                 if (sessionData.bassEnabled !== undefined) this.bassEnabled = sessionData.bassEnabled;
+                                if (sessionData.chordsVoiceMax !== undefined) {
+                                    const v = Math.max(3, Math.min(6, parseInt(sessionData.chordsVoiceMax, 10) || 3));
+                                    this._chordsVoiceMax = v;
+                                    const el = document.getElementById('chordVoiceMax');
+                                    if (el) el.value = String(v);
+                                }
 
                                 // ==== OSCILLATOR SETTINGS RESTORATION ====
                                 if (sessionData.oscillators) {
@@ -31227,6 +31922,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         syncADSR('bassAttackSlider', 'bassDecaySlider', 'bassSustainSlider', 'bassReleaseSlider',
                             'bassAttackValue', 'bassDecayValue', 'bassSustainValue', 'bassReleaseValue',
                             this.instruments.bass.env);
+                    }
+
+                    const voiceMax = document.getElementById('chordVoiceMax');
+                    if (voiceMax) {
+                        voiceMax.value = String(this._getChordVoiceLeadingMax ? this._getChordVoiceLeadingMax() : (this._chordsVoiceMax || 3));
                     }
 
                     console.log('🎵 Oscillator and envelope UI synchronized');
@@ -32969,6 +33669,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
 
                     // (buttonsContainer kept for other action buttons)
+                    const gearBtn = this._createChordboxGearButton(column);
+                    if (gearBtn) buttonsContainer.appendChild(gearBtn);
                     // Per-column transpose controls (single-column path)
                     const { downBtn, upBtn } = createTransposeButtons();
                     let _pressGuard = false;
@@ -33316,6 +34018,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                             return; // go to next item
                         }
+                        this._ensureChordboxSynthConfig(chordExt);
                         const column = document.createElement('div');
                         column.className = 'extension-column';
                         column.dataset.chordType = chordIds[this.chordExtensions.indexOf(chordExt)];
@@ -33402,6 +34105,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
 
                         // Per-column transpose controls
+                        const gearBtn = this._createChordboxGearButton(column);
+                        if (gearBtn) buttonsContainer.appendChild(gearBtn);
                         const { downBtn, upBtn } = createTransposeButtons();
                         // Prevent double-fire on touch; normalize modulo
                         let _pressGuard = false;
@@ -35739,14 +36444,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     this._arp.npc = Number.isFinite(ps.npc) ? ps.npc : (this._arp.npc || 3);
                                     if (ps.enableChord) {
                                         try {
+                                            if (this._pendingChordOscType && this.instruments?.chord?.osc) {
+                                                this.instruments.chord.osc.type = this._pendingChordOscType;
+                                                this._pendingChordOscType = null;
+                                            }
                                             // Ensure chord voices sustain (no auto-release)
                                             this._sustainActive = true;
                                             let rows = Array.isArray(ps.chordRows) ? ps.chordRows : [];
-                                            const anyActiveChord = !!(this.activeChordOscillators && this.activeChordOscillators.size > 0);
+                                            let anyActiveChord = !!(this.activeChordOscillators && this.activeChordOscillators.size > 0);
                                             // OSC (XENON) chords should keep gliding as before.
                                             // MIDI should still emit each chord change even when OSC glides.
                                             const midiEnabled = !!(window.midi && window.midi.enabled);
                                             const choirSlide = !!(this.chordsEnabled && this._arpTransport && this._arpTransport.running);
+                                            let oscChanged = false;
+                                            const revoiceRequested = !!this._pendingChordRevoice;
+                                            try {
+                                                if (this._pendingChordOscType && this.instruments?.chord?.osc) {
+                                                    this.instruments.chord.osc.type = this._pendingChordOscType;
+                                                    this._pendingChordOscType = null;
+                                                    oscChanged = true;
+                                                }
+                                            } catch (_) { }
                                             // Choir-slide wants all chord tones (extensions) within one octave.
                                             try {
                                                 if (choirSlide && ps.column && typeof this._buildFullChordOneOctaveRows === 'function') {
@@ -35773,10 +36491,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                             // Choir-slide: never retrigger chord voices on chord changes; only glide pitch.
                                             // (We still seed voices once on the first chord.)
-                                            if (!choirSlide) {
+                                            if (!choirSlide || oscChanged || revoiceRequested) {
                                                 // Legacy behavior: hard switch chord layer each step
                                                 try { this.stopAllActiveNotes('chord'); } catch (_) { }
                                                 try { if (this._chordSlideVoices) this._chordSlideVoices.clear(); } catch (_) { }
+                                                anyActiveChord = false;
                                             }
 
                                             // Calculate chord sustain duration.
@@ -35811,10 +36530,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             try {
                                                 if (midiEnabled && window.midi && typeof window.midi.sendNoteOn === 'function') {
                                                     const midi = window.midi;
-                                                    const outId = midi.outputForSource ? midi.outputForSource('chord') : null;
-                                                    const baseCh = (midi.channelMap && (midi.channelMap.chord || midi.channelMap.default)) ? (midi.channelMap.chord || midi.channelMap.default) : 3;
-                                                    const vel = (midi.perSourceVelocity && Number.isFinite(midi.perSourceVelocity.chord)) ? midi.perSourceVelocity.chord : (midi.defaultVelocity || 100);
-                                                    const perOct = (midi.perSourceOctave && Number.isFinite(midi.perSourceOctave.chord)) ? (midi.perSourceOctave.chord | 0) : 0;
+                                                    const chordboxSynth = this._getChordboxSynthForElement(ps.column || null, 'chord');
+                                                    const chordboxMidiEnabled = !!(midiEnabled && chordboxSynth && chordboxSynth.midi && !choirSlide);
+                                                    const chordboxMidiDevice = chordboxSynth?.midi?.deviceId || '';
+                                                    const chordboxMidiChannel = Math.max(1, Math.min(16, parseInt(chordboxSynth?.midi?.channel || 1, 10) || 1));
+                                                    const chordboxTranspose = Math.max(-24, Math.min(24, parseInt(chordboxSynth?.pitch?.transpose || 0, 10) || 0));
+
+                                                    const outId = chordboxMidiEnabled
+                                                        ? (chordboxMidiDevice || null)
+                                                        : (midi.outputForSource ? midi.outputForSource('chord') : null);
+                                                    const baseCh = chordboxMidiEnabled
+                                                        ? chordboxMidiChannel
+                                                        : ((midi.channelMap && (midi.channelMap.chord || midi.channelMap.default)) ? (midi.channelMap.chord || midi.channelMap.default) : 3);
+                                                    const vel = chordboxMidiEnabled
+                                                        ? (midi.defaultVelocity || 100)
+                                                        : ((midi.perSourceVelocity && Number.isFinite(midi.perSourceVelocity.chord)) ? midi.perSourceVelocity.chord : (midi.defaultVelocity || 100));
+                                                    const perOct = chordboxMidiEnabled
+                                                        ? 0
+                                                        : ((midi.perSourceOctave && Number.isFinite(midi.perSourceOctave.chord)) ? (midi.perSourceOctave.chord | 0) : 0);
                                                     const edo = this.currentTuning || 12;
                                                     const cStep = (typeof this.semitoneToStep === 'function') ? this.semitoneToStep(0, edo) : 0;
                                                     const gateMs = Math.max(10, Math.floor((barMs || 0) - 8));
@@ -35845,6 +36578,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                             // Map EDO step+octave to MIDI note anchored at C4=60
                                                             let note = 60 + ((oct - 4) * edo) + (step - cStep);
                                                             note += perOct * 12;
+                                                            if (chordboxMidiEnabled) note += chordboxTranspose;
                                                             // De-dupe by final normalized note+channel
                                                             const normed = midi.normalizeNoteChannel ? midi.normalizeNoteChannel(note, baseCh) : { note, channel: baseCh };
                                                             const n2 = normed.note | 0; const ch2 = normed.channel | 0;
@@ -35867,7 +36601,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             } catch (_) { }
 
                                             // Seed chord voices if none are playing yet (first step)
-                                            if (!anyActiveChord || !choirSlide) {
+                                            if (!anyActiveChord || !choirSlide || revoiceRequested || oscChanged) {
                                                 const played = new Set();
                                                 const bfLive = this._arp?.bassLiveFreq || this._heldBassLiveFreq || this._heldBassVoiceKey || null;
                                                 const groupId = ((this._chordSlideGroupId || 0) + 1) >>> 0; this._chordSlideGroupId = groupId;
@@ -35891,6 +36625,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                         try { if (this._chordSlideVoices) this._chordSlideVoices.set(r, { startFreq: f, startLog2: Math.log2(f), groupId }); } catch (_) { }
                                                     }
                                                 });
+                                                try { this._pendingChordRevoice = false; } catch (_) { }
                                             } else {
                                                 // Voices already exist: glide them to the new chord targets
                                                 try {
@@ -35899,6 +36634,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                     try { if (window.DEBUG_CHOIR_SLIDE) console.log('[CHOIR] glide->targets', { glideSec, targets: targets.length }); } catch (_) { }
                                                     this._retuneActiveChordVoicesToTargets && this._retuneActiveChordVoicesToTargets(targets, 0, glideSec);
                                                 } catch (_) { }
+                                                try { this._pendingChordRevoice = false; } catch (_) { }
                                             }
                                         } catch (_) { }
                                     }
@@ -37155,6 +37891,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         return Math.max(1, Math.min(64, (this._arp?.npc || 3) | 0));
                     }
                 }
+                _getChordVoiceLeadingMax() {
+                    try {
+                        const raw = parseInt(document.getElementById('chordVoiceMax')?.value || '', 10);
+                        const v = Number.isFinite(raw) ? raw : (this._chordsVoiceMax || 3);
+                        return Math.max(3, Math.min(6, v | 0));
+                    } catch (_) {
+                        return Math.max(3, Math.min(6, (this._chordsVoiceMax || 3) | 0));
+                    }
+                }
                 _computeChordSlideTargets(targetColumnEl) {
                     this._dbg && this._dbg('SLIDE/TARGETS:start', targetColumnEl?.dataset?.chordId || targetColumnEl?.dataset?.originalPosition, 'octLock=', this._slideOctaveLock);
                     try {
@@ -37164,11 +37909,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const lockedOct = Number.isFinite(this._slideOctaveLock) ? this._slideOctaveLock : null;
                         const tappedOct = Number.isFinite(lockedOct) ? lockedOct : (Number.isFinite(this._lastTappedOctave) ? this._lastTappedOctave : (this._chordsModeAnchorOctave ?? 4));
                         const baseOct = Math.max(3, Math.min(9, tappedOct));
-                        const npcTarget = this._getGlobalNpc();
+                        const npcTarget = this._getChordVoiceLeadingMax ? this._getChordVoiceLeadingMax() : 3;
                         // Collect candidate strings across octaves [3..9]
                         const allStrings = Array.from(targetColumnEl.querySelectorAll('.strings-column .string'))
                             .filter(s => { const o = parseInt(s.dataset.octave || '0', 10); return Number.isFinite(o) && o >= 3 && o <= 9; });
-                        // Fast path: build an ascending ladder across octaves aligned by desired degrees
                         const fOf = (el) => {
                             try {
                                 const tuning = this.currentTuning || 12;
@@ -37180,33 +37924,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch (_) { return NaN; }
                         };
                         const tuning = this.currentTuning || 12;
-                        const degsOrdered = Array.from(new Set(desiredDegrees.map(iv => ((iv % tuning) + tuning) % tuning)))
-                            .sort((a, b) => this.stepToSemitone(a, tuning) - this.stepToSemitone(b, tuning));
-                        const byOct = new Map();
-                        for (const s of allStrings) {
-                            const o = parseInt(s.dataset.octave || '0', 10);
-                            if (!byOct.has(o)) byOct.set(o, []);
-                            byOct.get(o).push(s);
-                        }
-                        const alignOct = (o) => {
-                            const grp = (byOct.get(o) || []).slice().sort((a, b) => (fOf(a) || 0) - (fOf(b) || 0));
-                            if (!grp.length) return [];
-                            if (!degsOrdered.length) return grp;
-                            const gMap = new Map(grp.map(r => [((parseInt(r.dataset.interval, 10) || 0) % tuning + tuning) % tuning, r]));
-                            const out = [];
-                            degsOrdered.forEach(d => { const rr = gMap.get(d); if (rr) out.push(rr); });
-                            return out.length ? out : grp;
-                        };
-                        const octsAsc = []; for (let o = baseOct; o <= 9; o++) octsAsc.push(o);
-                        const ladder = octsAsc.flatMap(o => alignOct(o));
-                        if (ladder.length) {
-                            const picked = ladder.slice(0, npcTarget);
-                            picked.sort((a, b) => (fOf(a) || 0) - (fOf(b) || 0));
-                            this._dbg && this._dbg('SLIDE/TARGETS:end', 'count=', picked.length);
-                            return picked;
-                        }
-                        // Fallback to single-octave logic below if no ladder could be formed
                         const strings = allStrings.filter(s => parseInt(s.dataset.octave || '0', 10) === baseOct);
+                        const lowOct = baseOct;
+                        const highOct = baseOct;
                         // Group by degree to preserve chord tones; prefer nearest to previous voicing if known
                         const degSet = new Set(desiredDegrees.map(iv => ((iv % tuning) + tuning) % tuning));
                         const byDeg = new Map();
@@ -37334,6 +38054,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (best && !picked.includes(best)) picked.push(best);
                         }
                         picked.sort((a, b) => (parseFloat(a.dataset.frequency) || 0) - (parseFloat(b.dataset.frequency) || 0));
+                        try {
+                            const maxVoices = (typeof this._getChordVoiceLeadingMax === 'function') ? this._getChordVoiceLeadingMax() : 3;
+                            if (Number.isFinite(maxVoices)) {
+                                const maxV = Math.max(1, maxVoices | 0);
+                                if (picked.length > maxV) picked.length = maxV;
+                                if (picked.length > 0 && picked.length < maxV) {
+                                    const base = picked.slice();
+                                    let i = 0;
+                                    while (picked.length < maxV && i < maxV * 3) {
+                                        picked.push(base[i % base.length]);
+                                        i++;
+                                    }
+                                }
+                            }
+                        } catch (_) { }
                         return picked;
                     } catch (_) {
                         return [];
@@ -40567,6 +41302,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const isDomEl = element && typeof element === 'object' && (element.closest || element.classList || element.querySelector);
                     const safeElement = isDomEl ? element : null;
                     const columnElement = safeElement && safeElement.closest ? safeElement.closest('.extension-column') : null;
+                    const chordboxSynth = this._getChordboxSynthForElement(safeElement, baseType);
+                    const voiceLeadingActive = !!(this.chordsEnabled && this._isSequencing && this._arpTransport && this._arpTransport.running);
                     try {
                         if ((baseType === 'strum' || baseType === 'chord') && safeElement && safeElement.closest) {
                             const holdMs = this._getGlowHoldMsForSource(baseType);
@@ -40630,6 +41367,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             oscillatorPool = this.activeBassOscillators; inst = { a: this.instruments.bass, b: null }; break;
                         default:
                             oscillatorPool = this.activeOscillators; inst = { a: this.instruments.strum1, b: this.instruments.strum2 }; break;
+                    }
+                    if (chordboxSynth && (baseType === 'chord' || baseType === 'strum')) {
+                        const allowChordbox = (baseType !== 'chord') || !voiceLeadingActive;
+                        if (allowChordbox) {
+                            const chordboxInst = this._buildChordboxInstrument(chordboxSynth);
+                            inst = { a: chordboxInst, b: null, __singleOsc: true, __chordbox: true };
+                        }
                     }
                     // Per-window JAM oscillator overrides
                     try {
@@ -40791,7 +41535,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
 
                     // Create oscillator 2 (or noise)
-                    const useSecond = (baseType === 'strum' || baseType === 'default');
+                    const useSecond = (baseType === 'strum' || baseType === 'default') && !(inst && inst.__singleOsc);
                     const o2 = inst?.b?.osc || this.oscillators.osc2;
                     if (useSecond && o2 && o2.type === 'noise') {
                         osc2 = this.createNoiseSource();
@@ -40923,6 +41667,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     // FX Send routing based on instrument setting
                     const instrumentType = baseType === 'strum' ? 'strum1' : instrumentKey; // Handle strum mapping / variants
+                    const chordboxFxSend = (chordboxSynth && (baseType === 'chord' || baseType === 'strum'))
+                        ? Math.max(0, Math.min(2, Number(chordboxSynth?.fxSend ?? 1)))
+                        : null;
                     const sendToFX = (baseType === 'bells' && safeElement && safeElement.__bellsInst)
                         ? (safeElement.__bellsInst.fxSend ?? true)
                         : (this.instruments[instrumentType]?.fxSend ?? true);
@@ -40936,7 +41683,32 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     finalMixer.connect(dcBlockVoice);
                     dcBlockVoice.connect(panner);
 
-                    if (sendToFX) {
+                    if (chordboxFxSend != null) {
+                        const sendAmt = Math.max(0, Math.min(2, chordboxFxSend));
+                        const dryAmt = sendAmt <= 1 ? (1 - sendAmt) : 0;
+
+                        if (!this.dryGainNode) {
+                            this.dryGainNode = this.audioContext.createGain();
+                            this.dryGainNode.connect(this.audioContext.destination);
+                            this.dryGainNode.gain.value = this.masterVolume;
+                        }
+
+                        if (dryAmt > 0.0001) {
+                            const dryGain = this.audioContext.createGain();
+                            dryGain.gain.value = dryAmt;
+                            panner.connect(dryGain);
+                            dryGain.connect(this.dryGainNode);
+                        }
+
+                        if (sendAmt > 0.0001) {
+                            const sendGain = this.audioContext.createGain();
+                            sendGain.gain.value = sendAmt;
+                            panner.connect(sendGain);
+                            sendGain.connect(this.gainNode);
+                        }
+
+                        if (window.DEBUG_AUDIO) console.log(`[${sourceType.toUpperCase()}] Chordbox FX send=${Math.round(sendAmt * 100)}% dry=${Math.round(dryAmt * 100)}%`);
+                    } else if (sendToFX) {
                         // Send to effects chain (reverb, delay, etc.) via master gainNode
                         const useBellsFuzz = (baseType === 'bells') && !!(safeElement?.__bellsState?.glide) && (this._bellsFuzz?.amount > 0);
                         if (useBellsFuzz && this._bellsFuzz?.input) {
@@ -42000,9 +42772,25 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
         .bells-key.bells-natural,
         .bells-key.bells-accidental { color: #f7fbff; }
         .bells-key::before { display: none; }
-        .bells-key::after { display: none; }
+        .bells-key::after {
+            content: '';
+            position: absolute;
+            pointer-events: none;
+            z-index: 1;
+            display: block;
+            left: 0;
+            right: 0;
+            top: -2px;
+            height: 18px;
+            border-radius: 10px 10px 8px 8px;
+            opacity: 0;
+            background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.45) 35%, rgba(255,255,255,0) 75%);
+            filter: blur(2px);
+        }
         .bells-key.ringing::after {
-            opacity: 0.75;
+            opacity: 0.95;
+            mix-blend-mode: screen;
+            filter: saturate(1.2) brightness(1.3) blur(2px);
             animation: bellsShimmer 0.9s linear infinite;
         }
         .bells-key.ringing,
@@ -43209,19 +43997,55 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         } catch (_) { }
 
-                        pos.forEach((o, i) => {
+                        const noteMeta = pos.map((o, i) => {
                             const note = o.note;
                             const isJINatural = !!(jiMap && jiMap.naturalSteps && jiMap.naturalSteps.has(note.step));
                             const jiName = (jiMap && jiMap.stepToName) ? jiMap.stepToName.get(note.step) : null;
                             const displayLabel = (isJINatural && jiName)
                                 ? `${jiName}${Number.isFinite(note.octave) ? note.octave : ''}`
                                 : (note.label || '');
+                            const rawLabel = displayLabel || '';
+                            const labelForClass = rawLabel || note.label || this.getMicrotonalNoteName(note.step, tuning) || '';
+                            const parsed = parseLabel(labelForClass);
+                            const isLabelNatural = isNaturalLabel(labelForClass);
+                            const isAccidental = isAccidentalLabel(labelForClass);
+                            const isTrueJINatural = !!(jiMap && jiMap.naturalSteps && isLabelNatural && parsed?.base && jiMap.naturalSteps.has(note.step));
+                            const group = isMicroLabel(labelForClass)
+                                ? 'micro'
+                                : (isAccidental ? 'accidental' : 'natural');
+                            return { o, i, displayLabel, labelForClass, isTrueJINatural, group };
+                        });
+                        const orderedMeta = [
+                            ...noteMeta.filter(m => m.group === 'natural'),
+                            ...noteMeta.filter(m => m.group === 'micro'),
+                            ...noteMeta.filter(m => m.group === 'accidental')
+                        ];
+                        const getBigLabel = (note, labelFallback) => {
+                            try {
+                                const edo = Number.isFinite(tuning) ? tuning : (this.currentTuning || 12);
+                                if (edo === 12 && note && Number.isFinite(note.step)) {
+                                    const pc = ((note.step % 12) + 12) % 12;
+                                    const map = ['C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'Bb', 'B'];
+                                    return map[pc] || (labelFallback || '');
+                                }
+                            } catch (_) { }
+                            const raw = String(labelFallback || '').replace(/[0-9]/g, '').trim();
+                            return raw || labelFallback || '';
+                        };
+                        orderedMeta.forEach((meta) => {
+                            const o = meta.o;
+                            const i = meta.i;
+                            const note = o.note;
+                            const displayLabel = meta.displayLabel;
                             const inline = !!win.__bellsInline;
                             const spacingWidth = Math.max(0, (bounds[i].right - bounds[i].left) * 100);
                             const rawLabel = displayLabel || '';
-                            const labelForClass = rawLabel || note.label || this.getMicrotonalNoteName(note.step, tuning) || '';
+                            const labelForClass = meta.labelForClass || rawLabel || note.label || this.getMicrotonalNoteName(note.step, tuning) || '';
                             const label = ((inline && spacingWidth < 2.2) ? '' : rawLabel) || '';
-                            const keyLabel = (isNaturalLabel(labelForClass) || isAccidentalLabel(labelForClass)) ? '' : label;
+                            const bigLabel = getBigLabel(note, displayLabel || labelForClass || label);
+                            const keyLabel = isNaturalLabel(labelForClass)
+                                ? bigLabel
+                                : (isAccidentalLabel(labelForClass) ? '' : label);
                             const leftBase = bounds[i].left * 100;
                             const widthBase = Math.max(inline ? 0.6 : 1.5, spacingWidth);
                             const centerBase = leftBase + (widthBase / 2);
@@ -43254,7 +44078,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const parsed = parseLabel(labelForClass);
                             const isLabelNatural = isNaturalLabel(labelForClass);
                             const isAccidental = isAccidentalLabel(labelForClass);
-                            const isTrueJINatural = !!(jiMap && jiMap.naturalSteps && isLabelNatural && parsed?.base && jiMap.naturalSteps.has(note.step));
+                            const isTrueJINatural = meta.isTrueJINatural;
                             if (isTrueJINatural || isAccidental) {
                                 const block = doc.createElement('div');
                                 const blockClass = isTrueJINatural ? 'bells-block bells-block-natural' : 'bells-block bells-block-accidental';
@@ -43277,7 +44101,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 block.style.background = note.color;
                                 const blockLabel = doc.createElement('div');
                                 blockLabel.className = 'bells-block-label';
-                                blockLabel.textContent = displayLabel || labelForClass;
+                                blockLabel.textContent = bigLabel || displayLabel || labelForClass;
                                 blockLabel.style.color = getContrastColor(note.color);
                                 if (clampedHeight >= 10) targetEl.appendChild(block);
                                 const labelWrap = doc.createElement('div');
@@ -43286,9 +44110,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 labelWrap.style.width = block.style.width;
                                 labelWrap.style.top = block.style.top;
                                 labelWrap.style.height = block.style.height;
-                                labelWrap.style.zIndex = '6';
+                                labelWrap.style.zIndex = '50';
                                 labelWrap.appendChild(blockLabel);
-                                if (clampedHeight >= 10) targetEl.appendChild(labelWrap);
+                                const appendLabelWrap = () => {
+                                    if (clampedHeight >= 10) targetEl.appendChild(labelWrap);
+                                };
                                 const glow = doc.createElement('div');
                                 glow.className = 'bells-glow';
                                 glow.style.left = block.style.left;
@@ -43298,12 +44124,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (clampedHeight >= 10) targetEl.appendChild(glow);
                                 if (forceFull || isTrueJINatural) {
                                     addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, keyLabel, displayLabel, block, labelWrap, glow);
+                                    appendLabelWrap();
                                 } else if (isAccidentalLabel(labelForClass)) {
                                     const minAcc = inline ? 0.9 : 5;
                                     const maxWidth = Math.max(0.4, widthPct - keyGapPct * 1.5);
                                     const width = Math.min(maxWidth, Math.max(minAcc, widthPct * 0.8));
                                     const center = (leftPct + widthPct / 2);
                                     addKey(note, o.idx, 'bells-accidental', Math.max(0, Math.min(100 - width, center - width / 2)), width, 75, 2, keyLabel, displayLabel, block, labelWrap, glow);
+                                    appendLabelWrap();
                                 } else if (isMicroLabel(labelForClass)) {
                                     const microLen = (parseLabel(labelForClass).micro || '').length;
                                     const cls = microLen > 1 ? 'bells-micro small' : 'bells-micro';
@@ -43313,8 +44141,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const width = Math.min(maxWidth, Math.max(minMicro, widthPct * 0.7));
                                     const center = (leftPct + widthPct / 2);
                                     addKey(note, o.idx, cls, Math.max(0, Math.min(100 - width, center - width / 2)), width, height, 3, label, displayLabel);
+                                    appendLabelWrap();
                                 } else {
                                     addKey(note, o.idx, 'bells-accidental', leftPct, widthPct, 75, 2, keyLabel, displayLabel, block, labelWrap, glow);
+                                    appendLabelWrap();
                                 }
                             } else if (forceFull || isTrueJINatural) {
                                 addKey(note, o.idx, 'bells-natural', leftPct, widthPct, 100, 1, keyLabel, displayLabel);
@@ -44903,6 +45733,36 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const chordsBtn = document.getElementById('chordsBtn');
                     if (chordsBtn) chordsBtn.classList.toggle('active', !!autoharp.chordsEnabled);
                 } catch (_) { }
+                try {
+                    const chordsBtn = document.getElementById('chordsBtn');
+                    if (chordsBtn && !chordsBtn._chordsLongPressWired) {
+                        chordsBtn._chordsLongPressWired = true;
+                        let pressTimer = null;
+                        const clear = () => {
+                            if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+                        };
+                        const start = () => {
+                            clear();
+                            chordsBtn.__longPressTriggered = false;
+                            const delay = Math.max(300, Math.min(1200, (autoharp?.touchGestures?.longPressDelay || 550)));
+                            pressTimer = setTimeout(() => {
+                                chordsBtn.__longPressTriggered = true;
+                                try { autoharp._openChordsSettingsModal && autoharp._openChordsSettingsModal(); } catch (_) { }
+                            }, delay);
+                        };
+                        chordsBtn.addEventListener('pointerdown', start, { passive: true });
+                        chordsBtn.addEventListener('pointerup', clear, { passive: true });
+                        chordsBtn.addEventListener('pointercancel', clear, { passive: true });
+                        chordsBtn.addEventListener('pointerleave', clear, { passive: true });
+                        chordsBtn.addEventListener('click', (e) => {
+                            if (chordsBtn.__longPressTriggered) {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                chordsBtn.__longPressTriggered = false;
+                            }
+                        }, true);
+                    }
+                } catch (_) { }
 
                 // Basic JAM tests (run manually in console: window.runJamTests())
                 window.runJamTests = function () {
@@ -46243,6 +47103,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Send MIDI Note On first to avoid race with quick releases
                         try {
                             if (midi.enabled) {
+                                const rawType = String(sourceType || 'default');
+                                const baseType = rawType.startsWith('arp') ? 'arp' : rawType;
+                                const chordboxSynth = (baseType === 'chord' || baseType === 'strum')
+                                    ? autoharp._getChordboxSynthForElement(element, baseType)
+                                    : null;
+                                const voiceLeadingActive = !!(autoharp.chordsEnabled && autoharp._isSequencing && autoharp._arpTransport && autoharp._arpTransport.running);
+                                const chordboxMidiEnabled = !!(midi.enabled && chordboxSynth && chordboxSynth.midi && !(baseType === 'chord' && voiceLeadingActive));
+                                const chordboxMidiDevice = chordboxSynth?.midi?.deviceId || '';
+                                const chordboxMidiChannel = Math.max(1, Math.min(16, parseInt(chordboxSynth?.midi?.channel || 1, 10) || 1));
+                                const chordboxTranspose = Math.max(-24, Math.min(24, parseInt(chordboxSynth?.pitch?.transpose || 0, 10) || 0));
+
                                 const note = freqToMidiNote(frequency);
                                 const pointerKey = (element && element.__touchHold && element.__touchPointerKey) ? element.__touchPointerKey : null;
                                 const holdTouch = !!pointerKey;
@@ -46251,6 +47122,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (sourceType === 'default') {
                                     // Mirror to all five primary sections so oscillators still fire independently
                                     targets = ['strum1', 'strum2', 'chord', 'arp', 'bass'];
+                                }
+                                if (chordboxMidiEnabled) {
+                                    targets = ['__chordbox__'];
                                 }
                                 const velInput = document.getElementById('midiDefaultVelocity');
                                 const vGlobal = velInput ? Math.max(1, Math.min(127, parseInt(velInput.value || '100', 10))) : 100;
@@ -46271,22 +47145,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     } catch (_) { return 200; }
                                 };
                                 for (const tgt of targets) {
-                                    const chBase = channelForSource(tgt);
-                                    const perOct = (midi.perSourceOctave && Number.isFinite(midi.perSourceOctave[tgt])) ? (midi.perSourceOctave[tgt] | 0) : 0;
+                                    const isChordbox = (tgt === '__chordbox__');
+                                    const tgtType = isChordbox ? baseType : tgt;
+                                    const chBase = isChordbox ? chordboxMidiChannel : channelForSource(tgt);
+                                    const perOct = (!isChordbox && midi.perSourceOctave && Number.isFinite(midi.perSourceOctave[tgt])) ? (midi.perSourceOctave[tgt] | 0) : 0;
                                     const stepsPerOct = (window?.autoharp?.currentTuning | 0) || 12;
-                                    const effNote = note + (perOct * stepsPerOct);
+                                    const effNote = note + (perOct * stepsPerOct) + (isChordbox ? chordboxTranspose : 0);
                                     const norm = midi.normalizeNoteChannel(effNote, chBase);
                                     const nNote = norm.note; const nCh = norm.channel;
-                                    let outSel = midi.outputForSource(tgt);
+                                    let outSel = isChordbox ? (chordboxMidiDevice || null) : midi.outputForSource(tgt);
                                     if (tgt === 'bells' && element && element.__midiOutOverride) outSel = element.__midiOutOverride;
                                     const key = `${nNote}@${nCh}@${(outSel || '*')}`;
-                                    if ((tgt === 'strum1' || tgt === 'strum2') && midi.noteState.has(key) && !midi.sustain) {
+                                    if (!isChordbox && (tgt === 'strum1' || tgt === 'strum2') && midi.noteState.has(key) && !midi.sustain) {
                                         midi.sendNoteOff(nNote, nCh, outSel);
                                     }
-                                    if (tgt === 'chord' && midi.noteState.has(key) && !midi.sustain) {
+                                    if (!isChordbox && tgt === 'chord' && midi.noteState.has(key) && !midi.sustain) {
                                         midi.sendNoteOff(nNote, nCh, outSel);
                                     }
-                                    const perV = (midi.perSourceVelocity && Number.isFinite(midi.perSourceVelocity[tgt])) ? (midi.perSourceVelocity[tgt] | 0) : vGlobal;
+                                    const perV = isChordbox
+                                        ? vGlobal
+                                        : ((midi.perSourceVelocity && Number.isFinite(midi.perSourceVelocity[tgt])) ? (midi.perSourceVelocity[tgt] | 0) : vGlobal);
                                     // Per-note velocity override (pattern/arp steps) wins
                                     let noteVel = null;
                                     try {
@@ -46298,28 +47176,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     if (holdTouch) {
                                         try {
                                             const list = autoharp._touchMidiHoldNotes.get(pointerKey) || [];
-                                            list.push({ note: nNote, channel: nCh, outSel, target: tgt });
+                                            list.push({ note: nNote, channel: nCh, outSel, target: tgtType });
                                             autoharp._touchMidiHoldNotes.set(pointerKey, list);
                                         } catch (_) { }
                                         continue; // Defer Note Off until touch release
                                     }
                                     // Schedule Note Off based on musical intent per section
                                     const epsilonMs = 8;
-                                    let offDelay = Math.max(10, decayMsFor(tgt) | 0);
+                                    let offDelay = Math.max(10, decayMsFor(tgtType) | 0);
                                     let gateFromElement = null;
                                     try {
                                         gateFromElement = (element && Number.isFinite(element.__gateMs)) ? Number(element.__gateMs) : null;
-                                        if (gateFromElement && !['chord', 'bass'].includes(tgt)) {
+                                        if (gateFromElement && !['chord', 'bass'].includes(tgtType)) {
                                             offDelay = Math.max(10, Math.floor(gateFromElement - epsilonMs));
                                         }
                                     } catch (_) { gateFromElement = null; }
                                     try {
-                                        if ((tgt === 'strum1' || tgt === 'strum2' || tgt === 'bells') && element && Number.isFinite(element.__gateMs)) {
+                                        if ((tgtType === 'strum1' || tgtType === 'strum2' || tgtType === 'bells') && element && Number.isFinite(element.__gateMs)) {
                                             offDelay = Math.max(10, Math.floor(element.__gateMs));
                                         }
                                     } catch (_) { }
                                     try {
-                                        if (tgt === 'chord') {
+                                        if (tgtType === 'chord') {
                                             // Align CHORD MIDI note-off to the next DRUM bar boundary for tight chord changes
                                             let useOff = null;
                                             const tp = autoharp._arpTransport;
@@ -46347,7 +47225,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 useOff = Math.max(10, Math.floor(holdMs - epsilonMs));
                                             }
                                             offDelay = Math.max(10, useOff | 0);
-                                        } else if (tgt === 'arp') {
+                                        } else if (tgtType === 'arp') {
                                             // QUANT-based duration for ARP (e.g., 1/8 note)
                                             // BUT if autoharp has a stored gate duration for this note (from pill metadata), use that instead
                                             const elGateMs = gateFromElement != null ? gateFromElement : ((element && Number.isFinite(element.__gateMs)) ? element.__gateMs : null);
@@ -46376,7 +47254,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 }
                                                 offDelay = Math.max(10, Math.floor(quantMs - epsilonMs));
                                             }
-                                        } else if (tgt === 'bass') {
+                                        } else if (tgtType === 'bass') {
                                             // Match CHORD behavior: HOLD-based duration for BASS
                                             const bpmEl = document.getElementById('universalBpm');
                                             const bpm = bpmEl ? (parseFloat(bpmEl.value) || 120) : (autoharp._arpTransport?.bpm || 120);
@@ -46412,21 +47290,37 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     autoharp.stopFrequency = function (frequency, element, sourceType = 'default') {
                         try {
                             if (midi.enabled) {
+                                const rawType = String(sourceType || 'default');
+                                const baseType = rawType.startsWith('arp') ? 'arp' : rawType;
+                                const chordboxSynth = (baseType === 'chord' || baseType === 'strum')
+                                    ? autoharp._getChordboxSynthForElement(element, baseType)
+                                    : null;
+                                const voiceLeadingActive = !!(autoharp.chordsEnabled && autoharp._isSequencing && autoharp._arpTransport && autoharp._arpTransport.running);
+                                const chordboxMidiEnabled = !!(midi.enabled && chordboxSynth && chordboxSynth.midi && !(baseType === 'chord' && voiceLeadingActive));
+                                const chordboxMidiDevice = chordboxSynth?.midi?.deviceId || '';
+                                const chordboxMidiChannel = Math.max(1, Math.min(16, parseInt(chordboxSynth?.midi?.channel || 1, 10) || 1));
+                                const chordboxTranspose = Math.max(-24, Math.min(24, parseInt(chordboxSynth?.pitch?.transpose || 0, 10) || 0));
+
                                 const note = freqToMidiNote(frequency);
                                 let targets = (sourceType === 'strum') ? ['strum1', 'strum2'] : [sourceType];
                                 if (sourceType === 'default') {
                                     targets = ['strum1', 'strum2', 'chord', 'arp', 'bass'];
                                 }
+                                if (chordboxMidiEnabled) {
+                                    targets = ['__chordbox__'];
+                                }
                                 for (const tgt of targets) {
+                                    const isChordbox = (tgt === '__chordbox__');
+                                    const tgtType = isChordbox ? baseType : tgt;
                                     // Do not send immediate Note Off for CHORD/ARP/BASS; allow HOLD/QUANT timers to release
-                                    if (tgt === 'chord' || tgt === 'arp' || tgt === 'bass') continue;
-                                    const chBase = channelForSource(tgt);
-                                    const perOct = (midi.perSourceOctave && Number.isFinite(midi.perSourceOctave[tgt])) ? (midi.perSourceOctave[tgt] | 0) : 0;
+                                    if (tgtType === 'chord' || tgtType === 'arp' || tgtType === 'bass') continue;
+                                    const chBase = isChordbox ? chordboxMidiChannel : channelForSource(tgt);
+                                    const perOct = (!isChordbox && midi.perSourceOctave && Number.isFinite(midi.perSourceOctave[tgt])) ? (midi.perSourceOctave[tgt] | 0) : 0;
                                     const stepsPerOct = (window?.autoharp?.currentTuning | 0) || 12;
-                                    const effNote = note + (perOct * stepsPerOct);
+                                    const effNote = note + (perOct * stepsPerOct) + (isChordbox ? chordboxTranspose : 0);
                                     const norm = midi.normalizeNoteChannel(effNote, chBase);
                                     const nNote = norm.note; const nCh = norm.channel;
-                                    const outSel = midi.outputForSource(tgt);
+                                    const outSel = isChordbox ? (chordboxMidiDevice || null) : midi.outputForSource(tgt);
                                     midi.sendNoteOff(nNote, nCh, outSel);
                                 }
                             }
@@ -48430,6 +49324,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (id === 'osc') {
                         const oscModal = document.getElementById('oscModal');
                         if (oscModal) {
+                            const title = document.getElementById('chordboxSynthTitle');
+                            if (title) title.textContent = 'Oscillators';
+                            const chordboxEditor = document.getElementById('chordboxSynthEditor');
+                            const oscSection = document.getElementById('oscillatorsSection');
+                            if (chordboxEditor) chordboxEditor.style.display = 'none';
+                            if (oscSection) oscSection.style.display = 'block';
                             oscModal.style.display = 'block';
                             bringModalToFront('oscModal');
                             if (!oscModal._draggableSet) {
@@ -49201,22 +50101,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 }
                             });
                         }
-                    }
-
-                    const oscPanelBtn = document.getElementById('oscPanelBtn');
-                    if (oscPanelBtn) {
-                        oscPanelBtn.addEventListener('click', () => {
-                            // Open OSC floating modal
-                            const oscModal = document.getElementById('oscModal');
-                            if (oscModal) {
-                                oscModal.style.display = 'block';
-                                bringModalToFront('oscModal');
-                                if (!oscModal._draggableSet) {
-                                    makeDraggable(oscModal);
-                                    oscModal._draggableSet = true;
-                                }
-                            }
-                        });
                     }
 
                     const fxPanelBtn = document.getElementById('fxPanelBtn');
