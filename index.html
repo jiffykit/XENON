@@ -32,6 +32,24 @@
             -webkit-touch-callout: none;
         }
 
+        /* Performance safeguards for weaker systems (visuals only). */
+        .perf-low .string-core.vibrating {
+            animation: none !important;
+            transform: translateY(0) scaleY(1) !important;
+        }
+
+        .perf-low .step-pulse,
+        .perf-low .extension-header.now-playing.pulse,
+        .perf-low .extension-column-header.now-playing.pulse,
+        .perf-low .pulse {
+            animation: none !important;
+        }
+
+        .perf-low #jamArea .bells-glow,
+        .perf-low #jamArea .bells-master-glow {
+            filter: blur(40px) !important;
+        }
+
         /* Base layout and background (black background layer for modals) */
         body {
             font-family: var(--retro-font) !important;
@@ -881,6 +899,11 @@
             border-left: 1px solid rgba(0, 0, 0, 0.55);
         }
 
+        .chord-length-locked .chordbox-resize-handle {
+            display: none !important;
+            pointer-events: none !important;
+        }
+
         .strum-collapsed .chordbox-resize-handle {
             bottom: auto;
             top: 0;
@@ -982,6 +1005,21 @@
             touch-action: manipulation;
         }
 
+        .lock-button::before,
+        .chordbox-synth-lock::before,
+        #projectLockBtn::before {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border-radius: 8px;
+            background: transparent;
+        }
+
+        #projectLockBtn {
+            position: relative;
+            touch-action: manipulation;
+        }
+
         .lock-button:hover {
             background: rgba(255, 255, 255, 0.2);
             border-color: rgba(255, 255, 255, 0.5);
@@ -1058,6 +1096,134 @@
             position: relative;
             flex-wrap: wrap;
             row-gap: 6px;
+        }
+
+        /* Chordbox footer (controls moved out of header for touch-safe strumming) */
+        .chordbox-header {
+            min-height: 55px;
+            max-height: 55px;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 6px;
+            flex-wrap: nowrap;
+        }
+
+        .chordbox-footer {
+            min-height: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 4px 6px 8px 6px;
+            background: var(--chordbox-footer-bg, rgba(0, 0, 0, 0.6));
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            pointer-events: auto;
+        }
+
+        .chordbox-footer-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .chordbox-footer .chord-action-button,
+        .chordbox-footer .chordbox-gear,
+        .chordbox-footer .chordbox-synth-lock {
+            pointer-events: auto;
+        }
+
+        .chordbox-synth-lock {
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            z-index: 100;
+            position: relative;
+            pointer-events: auto;
+            touch-action: manipulation;
+        }
+
+        .chordbox-synth-lock:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        .chordbox-synth-lock.locked {
+            background: #4CAF50;
+            border-color: #45a049;
+            color: #fff;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+        }
+
+        .chordbox-osc-btn.locked {
+            pointer-events: none;
+            opacity: 0.45;
+            filter: grayscale(0.6);
+        }
+
+        .chordbox-synth-locked .chordbox-resize-handle {
+            pointer-events: none;
+            opacity: 0.35;
+        }
+
+        /* Project lock: disable structural/timing edits while keeping playback controls active */
+        .project-locked .chordbox-footer .chord-action-button,
+        .project-locked .chordbox-footer .chordbox-gear,
+        .project-locked .chordbox-footer .chordbox-synth-lock,
+        .project-locked .chordbox-resize-handle,
+        .project-locked .extension-header .chord-name {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .project-locked #patternGrid,
+        .project-locked #drumGrid,
+        .project-locked #bassGrid,
+        .project-locked .pattern-grid,
+        .project-locked .drum-grid {
+            pointer-events: none;
+        }
+
+        .project-locked #oscModal #chordboxSynthEditor input,
+        .project-locked #oscModal #chordboxSynthEditor select,
+        .project-locked #oscModal #chordboxSynthEditor .osc-btn,
+        .project-locked #oscModal #chordboxSynthEditor button {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .project-locked #oscModal #oscillatorsSection input,
+        .project-locked #oscModal #oscillatorsSection select,
+        .project-locked #oscModal #oscillatorsSection .osc-btn,
+        .project-locked #oscModal #oscillatorsSection button {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .project-locked #midiModal input,
+        .project-locked #midiModal select,
+        .project-locked #midiModal button {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        #projectLockBtn.locked {
+            background: #f39c12 !important;
+            border-color: #e67e22 !important;
+            color: #111 !important;
+            box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
         }
 
         .chordbox-gear {
@@ -1626,7 +1792,8 @@
             }
 
             .lock-button,
-            .chord-action-button {
+            .chord-action-button,
+            .chordbox-synth-lock {
                 width: 44px;
                 height: 44px;
                 font-size: 20px;
@@ -3478,6 +3645,36 @@
 
         /* hide scrollbar in WebKit */
 
+        .glue-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .glue-btn {
+            background: #1e3a5f;
+            color: #e8f5ff;
+            border: 1px solid #3b6a7a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .glue-btn.primary {
+            background: #0ea5e9;
+            border-color: #38bdf8;
+            color: #042b3b;
+            font-weight: 700;
+        }
+
+        .glue-btn.cancel {
+            background: #374151;
+            border-color: #4b5563;
+        }
+
         .add-column-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
@@ -3887,6 +4084,8 @@
         style="position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.95);border:2px solid #333333;border-radius:12px;padding:20px;display:flex;align-items:center;gap:15px;z-index:12000;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.8);">
         <button id="playStopTransportBtn"
             style="width:60px;height:48px;background:#27ae60;border:2px solid #2ecc71;border-radius:8px;color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▶</button>
+        <button id="projectLockBtn"
+            style="width:72px;height:48px;background:#1f2937;border:2px solid #4a6870;border-radius:8px;color:#e8f5ff;font-size:12px;font-weight:800;letter-spacing:0.6px;cursor:pointer;display:flex;align-items:center;justify-content:center;">LOCK</button>
         <div id="countInDisplay"
             style="min-width:42px;height:48px;display:none;align-items:center;justify-content:center;background:#111827;border:2px solid #334155;border-radius:10px;color:#e8f5ff;font-weight:900;font-size:20px;letter-spacing:1px;">
             1</div>
@@ -4317,6 +4516,13 @@
                         <option value="15">Ch 15</option>
                         <option value="16">Ch 16</option>
                     </select>
+                </div>
+                <div style="display:flex; justify-content:center; margin-top:10px;">
+                    <button id="chordboxCopyUnlockedBtn" class="osc-btn"
+                        title="Copy current chordbox settings to all unlocked chordboxes"
+                        style="background:#10b981; border-color:#059669; padding:8px 10px; font-size:11px;">
+                        Copy Settings to Unlocked Chords
+                    </button>
                 </div>
             </div>
             <div class="synth-section" id="oscillatorsSection" style="padding:0 4px 8px 4px; overflow:hidden;">
@@ -4906,6 +5112,10 @@
                         <input id="bellsZoom" type="range" min="1" max="4" step="1" value="1" />
                         <div id="bellsZoomValue" class="sidebar-zoom-value">1 key</div>
                     </div>
+                    <button id="undoBtnSidebar" class="sidebar-btn" title="Undo (Ctrl+Z)"
+                        style="background:#334155;border-color:#475569;">UNDO</button>
+                    <button id="redoBtnSidebar" class="sidebar-btn" title="Redo (Ctrl+Shift+Z)"
+                        style="background:#1f2937;border-color:#334155;">REDO</button>
                 </div>
 
                 <!-- Main Content Area -->
@@ -5513,6 +5723,22 @@
             </div>
         </div>
 
+        <!-- Glue Chords Modal -->
+        <div id="glueModal" class="modal-overlay" style="display:none;">
+            <div class="modal-content" style="width:min(92vw, 420px);">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <div style="font-size:16px; font-weight:700;">Glue Chords</div>
+                    <button id="glueModalClose" class="modal-close">×</button>
+                </div>
+                <div id="glueModalInfo" style="font-size:12px; color:#cfe6ff; line-height:1.35;"></div>
+                <div class="glue-actions">
+                    <button id="glueKeepLeftBtn" class="glue-btn primary">Keep Left</button>
+                    <button id="glueKeepRightBtn" class="glue-btn primary">Keep Right</button>
+                    <button id="glueCancelBtn" class="glue-btn cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Fretboard/Strings with Resize Handle -->
         <div class="chord-resize-container" style="position: absolute; top: 0; bottom: 0; left: 80px; right: 0;">
             <div id="chordRuler" aria-hidden="true"></div>
@@ -5871,22 +6097,34 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
 
         <script>
-            // Mute console logs for performance (default ON); enable with window.enableLogs()
+            // Hard-disable all console output for deterministic, audio-first performance.
             (function () {
                 try {
-                    const flag = (typeof window !== 'undefined' && window.localStorage) ? window.localStorage.getItem('muteConsole') : null;
-                    const shouldMute = (flag !== '0'); // default to muted unless explicitly enabled
-                    if (shouldMute && window.console) {
-                        const methods = ['log', 'info', 'debug', 'warn', 'error', 'trace', 'group', 'groupCollapsed', 'groupEnd', 'time', 'timeEnd', 'table'];
-                        methods.forEach(function (m) { if (typeof window.console[m] === 'function') window.console[m] = function () { }; });
-                    }
-                    if (!window.enableLogs) window.enableLogs = function () { try { if (window.localStorage) { localStorage.setItem('muteConsole', '0'); location.reload(); } } catch (_) { } };
-                    if (!window.disableLogs) window.disableLogs = function () { try { if (window.localStorage) { localStorage.setItem('muteConsole', '1'); location.reload(); } } catch (_) { } };
-                    if (!window.testLogs) window.testLogs = function () { console.log('Console test - if you see this, logs are enabled'); console.warn('Warning test'); console.error('Error test'); };
+                    if (!window.console) return;
+                    const noop = function () { };
+                    const methods = ['log', 'info', 'debug', 'warn', 'error', 'trace', 'group', 'groupCollapsed', 'groupEnd', 'time', 'timeEnd', 'table'];
+                    methods.forEach(function (m) { if (typeof window.console[m] === 'function') window.console[m] = noop; });
+                } catch (_) { }
+            })();
+
+            // Detect weaker systems to selectively simplify visuals while preserving audio fidelity.
+            (function () {
+                try {
+                    const dm = Number(navigator.deviceMemory || 0);
+                    const hc = Number(navigator.hardwareConcurrency || 0);
+                    const prefersReduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+                    const lowMem = dm > 0 && dm <= 4;
+                    const lowCore = hc > 0 && hc <= 4;
+                    const perfLow = prefersReduce || lowMem || lowCore;
+                    window.__perfLow = !!perfLow;
+                    if (perfLow) document.documentElement.classList.add('perf-low');
                 } catch (_) { }
             })();
 
             function applyParsedChordToColumn(ctx, column, chordExt, parsed, targetLen16, chordName) {
+                try {
+                    if (ctx && ctx.lockedChords && ctx.lockedChords.has(column)) return false;
+                } catch (_) { }
                 // Find the correct target chord (stable across reorders)
                 let idx = -1;
                 try {
@@ -6320,6 +6558,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (lenHint) lenHint.textContent = `Cycle: ${currentLen} steps`;
 
                             const applyLen = (newLenRaw) => {
+                                try { if (window.autoharp && window.autoharp._projectLocked) return; } catch (_) { }
                                 const maxLen = getMaxLen();
                                 let newLen = Math.max(1, Math.min(maxLen, newLenRaw | 0));
                                 const oldLen = Math.max(1, Math.min(maxLen, parseInt(grid.dataset.length || '16', 10) || 16));
@@ -6955,6 +7194,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     };
                     function noteId(row, stepIdx) { return `r${row}s${stepIdx}`; }
 
+                    const rebuildPatternAudioSnapshot = () => {
+                        try {
+                            const lanes = Array.from(gridEl.querySelectorAll('.pattern-lane'));
+                            const snapLanes = lanes.map(lane => {
+                                const steps = Array.from(lane.querySelectorAll('.pattern-step'));
+                                const D = Math.max(1, steps.length || getLaneD(lane, 16));
+                                const active = steps.map(s => s.classList.contains('active') ? 1 : 0);
+                                const vel = steps.map(s => parseInt(s.dataset.vel || '100', 10) || 100);
+                                const len = steps.map(s => parseInt(s.dataset.len || '0', 10) || 0);
+                                const tie = steps.map(s => (s.dataset.tie === '1') ? 1 : 0);
+                                return { D, active, vel, len, tie };
+                            });
+                            gridEl._audioSnapshot = { lanes: snapLanes };
+                            gridEl._pendingAudioEdits = false;
+                        } catch (_) { }
+                    };
+
                     function scheduleStep(absTickNow, barTick, ticksPerBar) {
                         const tpb = Math.max(1, ticksPerBar | 0);
                         const bt = Math.max(0, barTick | 0);
@@ -6963,6 +7219,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (bt === 0 && typeof pt._pendingApply === 'function') {
                             try { pt._pendingApply(); } catch (_) { }
                             pt._pendingApply = null;
+                        }
+
+                        // Apply queued visual edits to audio only at bar boundary
+                        if (bt === 0) {
+                            if (gridEl && (gridEl._pendingAudioEdits || !gridEl._audioSnapshot)) {
+                                rebuildPatternAudioSnapshot();
+                            }
                         }
 
                         // If muted, still advance time but do not trigger audio.
@@ -6991,11 +7254,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
 
                         const rows = gridEl.querySelectorAll('.pattern-row');
+                        const snap = gridEl ? gridEl._audioSnapshot : null;
                         const baseFallback = Math.max(1, parseInt(gridEl.dataset.length || '16', 10) || 16);
                         rows.forEach((rowEl, rowIdx) => {
                             const lane = rowEl.querySelector('.pattern-lane');
                             if (!lane) return;
-                            const D = Math.max(1, (lane.querySelectorAll('.pattern-step').length | 0) || getLaneD(lane, baseFallback));
+                            const laneSnap = (snap && snap.lanes && snap.lanes[rowIdx]) ? snap.lanes[rowIdx] : null;
+                            const D = Math.max(1, (laneSnap && laneSnap.D) ? laneSnap.D : ((lane.querySelectorAll('.pattern-step').length | 0) || getLaneD(lane, baseFallback)));
                             // Fraction-based scheduling: works even when ticksPerBar is clamped and not divisible by D.
                             const frac = bt / tpb;
                             const stepIdx = Math.max(0, Math.min(D - 1, Math.floor(frac * D + 1e-9)));
@@ -7005,14 +7270,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try { lane.style.setProperty('--steps-per-bar', String(D)); } catch (_) { }
                             const cell = lane.querySelector(`.pattern-step[data-step="${stepIdx}"]`);
                             if (!cell) return;
-                            if (!cell.classList.contains('active')) return;
-                            if (cell.dataset.tie === '1') return;
+                            const stepActive = laneSnap ? !!laneSnap.active[stepIdx] : cell.classList.contains('active');
+                            const stepTied = laneSnap ? !!laneSnap.tie[stepIdx] : (cell.dataset.tie === '1');
+                            if (!stepActive) return;
+                            if (stepTied) return;
 
                             // Visual feedback: pulse the dot when it fires.
                             try { window._pulseStepEl && window._pulseStepEl(cell); } catch (_) { }
 
-                            const lenSteps = Math.max(1, Math.min(D - stepIdx, parseInt(cell.dataset.len || '1', 10) || 1));
-                            const vel = (window.getStepVelocity ? (window.getStepVelocity(cell) ?? 100) : (parseInt(cell.dataset.vel || '100', 10) || 100));
+                            const lenRaw = laneSnap ? (laneSnap.len[stepIdx] || 1) : (parseInt(cell.dataset.len || '1', 10) || 1);
+                            const lenSteps = Math.max(1, Math.min(D - stepIdx, lenRaw));
+                            const vel = laneSnap ? (laneSnap.vel[stepIdx] || 100)
+                                : (window.getStepVelocity ? (window.getStepVelocity(cell) ?? 100) : (parseInt(cell.dataset.vel || '100', 10) || 100));
                             const vid = noteId(rowIdx, stepIdx);
                             const durTicks = Math.max(1, Math.round((lenSteps * tpb) / D));
                             const offAbsTick = (absTickNow | 0) + durTicks;
@@ -7163,6 +7432,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const gridEl = (modalEl.querySelector('[data-role="patternGrid"]') || modalEl.querySelector('#patternGrid') || modalEl.querySelector('.pattern-grid'));
                     if (!gridEl) return;
                     if (!gridEl._wiredPatternInstanceGrid) gridEl._wiredPatternInstanceGrid = true;
+                    const markPending = () => {
+                        try {
+                            const omni = window.autoharp;
+                            if (omni && omni._isSequencing) gridEl._pendingAudioEdits = true;
+                        } catch (_) { }
+                    };
+                    const isProjectLocked = () => {
+                        try { return !!(window.autoharp && window.autoharp._projectLocked); } catch (_) { return false; }
+                    };
                     const lenFromGrid = () => {
                         const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
                         return Math.max(1, Math.min(maxLen, parseInt(gridEl.dataset.length || '16', 10) || 16));
@@ -7186,6 +7464,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (lane._wiredPatternLaneInstance) return;
                         lane._wiredPatternLaneInstance = true;
                         lane.addEventListener('mousedown', (e) => {
+                            if (isProjectLocked()) return;
                             const st = e.target && e.target.classList && e.target.classList.contains('pattern-step') ? e.target : null;
                             if (!st) return;
                             if (e.button !== 0) return;
@@ -7217,6 +7496,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
                                 st.dataset.vel = String(newVel);
                                 try { window.updateStepVelocityClass && window.updateStepVelocityClass(st); } catch (_) { }
+                                markPending();
                             };
 
                             const applyLen = (clientX) => {
@@ -7225,6 +7505,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
                                 const idx = Math.max(0, Math.min(steps.length - 1, Math.floor((x / rect.width) * steps.length)));
                                 setHeadLen(lane, headIdx, idx - headIdx + 1);
+                                markPending();
                             };
 
                             const onMove = (ev) => {
@@ -7266,6 +7547,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Touch drag support: tap toggles (click handler); drag edits length/velocity.
                         lane.addEventListener('touchstart', (e) => {
                             try {
+                                if (isProjectLocked()) return;
                                 const touch = e.touches && e.touches[0] ? e.touches[0] : null;
                                 if (!touch) return;
                                 const st = e.target && e.target.classList && e.target.classList.contains('pattern-step') ? e.target : null;
@@ -7298,6 +7580,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
                                     st.dataset.vel = String(newVel);
                                     try { window.updateStepVelocityClass && window.updateStepVelocityClass(st); } catch (_) { }
+                                    markPending();
                                 };
                                 const applyLen = (clientX) => {
                                     ensureActive();
@@ -7305,6 +7588,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
                                     const idx = Math.max(0, Math.min(steps.length - 1, Math.floor((x / rect.width) * steps.length)));
                                     setHeadLen(lane, headIdx, idx - headIdx + 1);
+                                    markPending();
                                 };
 
                                 const onMove = (ev) => {
@@ -7340,6 +7624,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch (_) { }
                         }, { passive: true });
                         lane.addEventListener('click', (e) => {
+                            if (isProjectLocked()) return;
                             const st = e.target && e.target.classList && e.target.classList.contains('pattern-step') ? e.target : null;
                             if (!st) return;
                             if (st.classList.contains('disabled')) return;
@@ -7367,10 +7652,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 st.dataset.len = st.dataset.len || '1';
                             }
                             try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { }
+                            markPending();
 
                             // Click-audition (only when turning on). Mute gating is enforced inside _playPatternNote.
                             try {
                                 if (!wasActive) {
+                                    const omni = window.autoharp;
+                                    if (omni && omni._isSequencing) return;
                                     const rowIdx = parseInt(lane.dataset.row || '0', 10) || 0;
                                     const stepIdx = parseInt(st.dataset.step || '0', 10) || 0;
                                     const steps = Array.from(lane.querySelectorAll('.pattern-step'));
@@ -7395,6 +7683,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         lane.addEventListener('contextmenu', (e) => {
                             const st = e.target && e.target.classList && e.target.classList.contains('pattern-step') ? e.target : null;
                             if (!st) return;
+                            if (isProjectLocked()) return;
                             e.preventDefault();
                             if (st.classList.contains('disabled')) return;
                             try {
@@ -7411,6 +7700,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 }
                             } catch (_) { }
                             try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { }
+                            markPending();
                         });
                     });
 
@@ -8451,15 +8741,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (!window._pulseStepEl) {
                     window._pulseStepEl = function (el) {
                         try {
+                            if (window.__perfLow) return;
                             if (!el || !el.classList) return;
                             try { if (el._pulseTimer) { clearTimeout(el._pulseTimer); el._pulseTimer = null; } } catch (_) { }
                             el.classList.remove('step-pulse');
-                            try { void el.offsetWidth; } catch (_) { }
-                            el.classList.add('step-pulse');
-                            el._pulseTimer = setTimeout(() => {
-                                try { el.classList.remove('step-pulse'); } catch (_) { }
-                                try { el._pulseTimer = null; } catch (_) { }
-                            }, 170);
+                            requestAnimationFrame(() => {
+                                try {
+                                    el.classList.add('step-pulse');
+                                    el._pulseTimer = setTimeout(() => {
+                                        try { el.classList.remove('step-pulse'); } catch (_) { }
+                                        try { el._pulseTimer = null; } catch (_) { }
+                                    }, 170);
+                                } catch (_) { }
+                            });
                         } catch (_) { }
                     };
                 }
@@ -8933,6 +9227,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 grid._liveInstanceSyncTimer = setTimeout(() => {
                                     try { saveActiveFromUI(); } catch (_) { }
                                 }, 40);
+                                try { const omni = window.autoharp; if (omni && omni._isSequencing) grid._pendingAudioEdits = true; } catch (_) { }
                             } catch (_) { }
                         };
 
@@ -8991,8 +9286,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const inst = getActiveInstance();
                                     if (inst) {
                                         const st = captureEditorState();
-                                        if (st) inst.state = st;
-                                        inst.len = st ? st.len : inst.len;
+                                        if (st) {
+                                            const isPlaying = !!(window.autoharp && window.autoharp._isSequencing);
+                                            if (isPlaying) {
+                                                inst.pendingState = st;
+                                            } else {
+                                                inst.state = st;
+                                                inst.len = st ? st.len : inst.len;
+                                            }
+                                        }
                                     }
                                 } catch (_) { }
                             };
@@ -10111,11 +10413,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // Mouse drag events
                 marker.addEventListener('dragstart', (e) => {
+                    if (window.autoharp && window.autoharp._projectLocked) { try { e.preventDefault(); } catch (_) { } return; }
                     marker.style.cursor = 'grabbing';
                     e.dataTransfer.setData('text/plain', marker.textContent);
                     e.dataTransfer.effectAllowed = 'move';
                     marker.classList.add('dragging');
-                    console.log('🎵 Started dragging element:', marker.textContent || marker.className);
                 });
 
                 marker.addEventListener('dragend', (e) => {
@@ -10124,11 +10426,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     document.querySelectorAll('.drop-target').forEach(el => {
                         el.classList.remove('drop-target');
                     });
-                    console.log('🎵 Finished dragging element:', marker.textContent || marker.className);
                 });
 
                 // Touch drag events
                 marker.addEventListener('touchstart', (e) => {
+                    if (window.autoharp && window.autoharp._projectLocked) { try { e.preventDefault(); } catch (_) { } return; }
                     e.preventDefault();
                     const touch = e.touches[0];
                     marker.style.cursor = 'grabbing';
@@ -10142,7 +10444,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         offsetY: touch.clientY - marker.getBoundingClientRect().top
                     };
 
-                    console.log('🎵 Touch started dragging element:', marker.textContent || marker.className);
                 });
 
                 marker.addEventListener('touchmove', (e) => {
@@ -10172,6 +10473,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (!touchDragData) return;
                     e.preventDefault();
 
+                    if (window.autoharp && window.autoharp._projectLocked) {
+                        marker.style.cursor = 'grab';
+                        marker.classList.remove('dragging');
+                        document.querySelectorAll('.drop-target').forEach(el => {
+                            el.classList.remove('drop-target');
+                        });
+                        touchDragData = null;
+                        return;
+                    }
+
                     const touch = e.changedTouches[0];
                     const container = document.getElementById('extensionColumns');
                     if (!container) return;
@@ -10183,7 +10494,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (target && target !== marker) {
                         // Insert before the target element
                         container.insertBefore(marker, target);
-                        console.log('🎵 Touch dropped element before:', target.textContent || target.querySelector('.extension-header')?.textContent);
                     }
 
                     // Cleanup
@@ -10248,6 +10558,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 container.addEventListener('drop', (e) => {
                     e.preventDefault();
+                    if (window.autoharp && window.autoharp._projectLocked) return;
                     const dragging = document.querySelector('.dragging');
                     if (dragging && (dragging.classList.contains('repeat-marker-column') || dragging.classList.contains('extension-column'))) {
                         const target = e.target.closest('.extension-column, .repeat-marker-column');
@@ -10255,7 +10566,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (target && target !== dragging) {
                             // Insert before the target element
                             container.insertBefore(dragging, target);
-                            console.log('🎵 Dropped element before:', target.textContent || target.querySelector('.extension-header')?.textContent);
                             target.classList.remove('drop-target');
                         } else {
                             // Enhanced drop-anywhere logic for container
@@ -10270,7 +10580,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (allElements.length === 0) {
                                 // Empty container, just append
                                 container.appendChild(dragging);
-                                console.log('🎵 Dropped in empty container');
                             } else {
                                 // Find insertion point based on mouse position
                                 let insertBefore = null;
@@ -10289,11 +10598,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                 if (insertBefore) {
                                     container.insertBefore(dragging, insertBefore);
-                                    console.log('🎵 Dropped before closest element');
                                 } else {
                                     // Drop at the end
                                     container.appendChild(dragging);
-                                    console.log('🎵 Dropped at end');
                                 }
                             }
                         }
@@ -10604,7 +10911,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                     }
                 } catch (_) { }
-
                 const getLen16 = (col) => {
                     const raw = col && col.dataset ? col.dataset.len16 : null;
                     let v = parseInt(raw || '16', 10);
@@ -10612,8 +10918,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     return Math.max(1, Math.min(1024, v | 0));
                 };
 
+                const isLengthLocked = (col) => {
+                    try { if (col.classList && col.classList.contains('chord-length-locked')) return true; } catch (_) { }
+                    try { if (col.querySelector('.lock-button')?.classList?.contains('locked')) return true; } catch (_) { }
+                    try { if (omni && omni.lockedChords && omni.lockedChords.has(col)) return true; } catch (_) { }
+                    return false;
+                };
+
                 const setLen16 = (col, len16) => {
                     if (!col) return;
+                    if (isLengthLocked(col)) return;
                     const v = Math.max(1, Math.min(1024, (len16 | 0) || 1));
                     col.dataset.len16 = String(v);
                     col.style.setProperty('--len16', String(v));
@@ -10638,6 +10952,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     } catch (_) { }
                 };
 
+                const ensureLenTooltip = () => {
+                    if (!ruler) return null;
+                    let tip = ruler.querySelector('.chord-len-tooltip');
+                    if (tip) return tip;
+                    tip = document.createElement('div');
+                    tip.className = 'chord-len-tooltip';
+                    tip.style.position = 'absolute';
+                    tip.style.top = '-2px';
+                    tip.style.transform = 'translate(-50%, -100%)';
+                    tip.style.padding = '2px 6px';
+                    tip.style.fontSize = '11px';
+                    tip.style.borderRadius = '6px';
+                    tip.style.background = 'rgba(10, 10, 10, 0.85)';
+                    tip.style.color = '#fff';
+                    tip.style.pointerEvents = 'none';
+                    tip.style.display = 'none';
+                    tip.style.zIndex = '10';
+                    try { ruler.appendChild(tip); } catch (_) { }
+                    return tip;
+                };
+
                 const ensureHandlesForColumn = (col) => {
                     if (!col || col._xenLenHandlesAdded) return;
                     col._xenLenHandlesAdded = true;
@@ -10653,54 +10988,62 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     col.appendChild(right);
                 };
 
+                const ensureAllHandles = () => {
+                    const cols = Array.from(rootContainer.querySelectorAll('.extension-column'));
+                    cols.forEach(ensureHandlesForColumn);
+                };
+
+                ensureAllHandles();
+
+                let rebuildTimer = null;
                 const requestSafeRebuild = () => {
-                    try { window.requestSequencerRebuild && window.requestSequencerRebuild('len16'); } catch (_) { }
+                    if (rebuildTimer) return;
+                    rebuildTimer = setTimeout(() => {
+                        rebuildTimer = null;
+                        try { omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch (_) { }
+                        try { window.requestSequencerRebuild && window.requestSequencerRebuild('len'); } catch (_) { }
+                    }, 30);
                 };
 
-                const ensureLenTooltip = () => {
-                    if (!ruler) return null;
-                    if (!ruler._lenTooltip) {
-                        const tip = document.createElement('div');
-                        tip.className = 'chord-ruler-tooltip';
-                        tip.style.display = 'none';
-                        ruler.appendChild(tip);
-                        ruler._lenTooltip = tip;
-                    }
-                    return ruler._lenTooltip;
-                };
-
-                // Add handles to every chord column
-                const allChordCols = Array.from(rootContainer.querySelectorAll('.extension-column'));
-                allChordCols.forEach(col => {
-                    // Ensure a default len if missing
-                    try { if (!col.dataset.len16) setLen16(col, 16); } catch (_) { }
-                    ensureHandlesForColumn(col);
-                });
-
-                // Wire drag behavior once (event delegation)
                 if (rootContainer._xenLenResizeWired) return;
                 rootContainer._xenLenResizeWired = true;
 
-                rootContainer.addEventListener('pointerdown', (e) => {
-                    const handle = e.target && e.target.classList ? e.target.closest('.chordbox-resize-handle') : null;
-                    if (!handle) return;
-                    const col = handle.closest('.extension-column');
+                let activeResize = null;
+                const activePointers = new Map();
+
+                const stopActiveResize = () => {
+                    try { if (activeResize?.onMove) document.removeEventListener('pointermove', activeResize.onMove, true); } catch (_) { }
+                    try { if (activeResize?.onUp) document.removeEventListener('pointerup', activeResize.onUp, true); } catch (_) { }
+                    try { if (activeResize?.onUp) document.removeEventListener('pointercancel', activeResize.onUp, true); } catch (_) { }
+                    try { if (activeResize?.hideTip) activeResize.hideTip(); } catch (_) { }
+                    activeResize = null;
+                };
+
+                const edgeSideAt = (col, clientX) => {
+                    if (!col) return null;
+                    const rect = col.getBoundingClientRect();
+                    const edgePx = 10;
+                    if (clientX >= rect.right - edgePx) return 'right';
+                    if (clientX <= rect.left + edgePx) return 'left';
+                    return null;
+                };
+
+                const startResizeSession = (col, side, neighborMode, startEvent) => {
                     if (!col) return;
-
-                    try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
-
-                    const side = handle.classList.contains('left') ? 'left' : 'right';
+                    if (isLengthLocked(col)) return;
                     const rowEl = col.parentElement || rootContainer;
                     const timelineCols = Array.from(rowEl.querySelectorAll('.extension-column'));
                     const idx = timelineCols.indexOf(col);
-                    const neighbor = (side === 'right') ? (timelineCols[idx + 1] || null) : (timelineCols[idx - 1] || null);
+                    const neighbor = (neighborMode === 'paired')
+                        ? (side === 'right' ? (timelineCols[idx + 1] || null) : (timelineCols[idx - 1] || null))
+                        : null;
+                    if (neighbor && isLengthLocked(neighbor)) return;
 
-                    // Determine unit width in pixels (based on current summed 16ths)
                     const totalLen16 = timelineCols.reduce((acc, c) => acc + getLen16(c), 0);
                     const rowWidthPx = Math.max(1, rowEl.getBoundingClientRect().width);
                     const unitPx = Math.max(1, rowWidthPx / Math.max(1, totalLen16));
 
-                    const startX = e.clientX;
+                    const startX = startEvent.clientX;
                     const startThis = getLen16(col);
                     const startNeighbor = neighbor ? getLen16(neighbor) : null;
                     let lastDeltaUnits = 0;
@@ -10711,9 +11054,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const showTip = (len16) => {
                         if (!tipEl || !ruler) return;
                         try {
-                            const hRect = handle.getBoundingClientRect();
+                            const hRect = col.getBoundingClientRect();
                             const rRect = ruler.getBoundingClientRect();
-                            const left = (hRect.left + (hRect.width / 2)) - rRect.left;
+                            const left = (side === 'right' ? hRect.right : hRect.left) - rRect.left;
                             tipEl.style.left = `${left}px`;
                             tipEl.textContent = `${len16} steps`;
                             tipEl.style.display = 'block';
@@ -10737,14 +11080,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                         if (neighbor) {
                             if (side === 'right') {
-                                // newThis = startThis + delta, newNext = startNext - delta
                                 const minDelta = -(startThis - 1);
                                 const maxDelta = (startNeighbor - 1);
                                 deltaUnits = Math.max(minDelta, Math.min(maxDelta, deltaUnits));
                                 setLen16(col, startThis + deltaUnits);
                                 setLen16(neighbor, startNeighbor - deltaUnits);
                             } else {
-                                // left handle: newThis = startThis - delta, newPrev = startPrev + delta
                                 const minDelta = -(startNeighbor - 1);
                                 const maxDelta = (startThis - 1);
                                 deltaUnits = Math.max(minDelta, Math.min(maxDelta, deltaUnits));
@@ -10752,7 +11093,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 setLen16(neighbor, startNeighbor + deltaUnits);
                             }
                         } else {
-                            // No neighbor on that side: adjust this chordbox only (sequence total may grow/shrink freely)
                             const minDelta = -(startThis - 1);
                             const maxDelta = 1024 - startThis;
                             deltaUnits = Math.max(minDelta, Math.min(maxDelta, deltaUnits));
@@ -10776,20 +11116,65 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     };
 
                     const onUp = () => {
-                        try { document.removeEventListener('pointermove', onMove, true); } catch (_) { }
-                        try { document.removeEventListener('pointerup', onUp, true); } catch (_) { }
-                        try { document.removeEventListener('pointercancel', onUp, true); } catch (_) { }
-
-                        try { hideTip(); } catch (_) { }
-
-                        try { omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch (_) { }
+                        stopActiveResize();
                         requestSafeRebuild();
                     };
 
-                    try { document.addEventListener('pointermove', onMove, true); } catch (_) { }
-                    try { document.addEventListener('pointerup', onUp, true); } catch (_) { }
-                    try { document.addEventListener('pointercancel', onUp, true); } catch (_) { }
-                }, true);
+                    activeResize = { col, side, neighborMode, onMove, onUp, hideTip, startX };
+                    document.addEventListener('pointermove', onMove, true);
+                    document.addEventListener('pointerup', onUp, true);
+                    document.addEventListener('pointercancel', onUp, true);
+                };
+
+                rootContainer.addEventListener('pointerdown', (e) => {
+                    if (window.autoharp && window.autoharp._projectLocked) return;
+                    const handle = e.target && e.target.classList ? e.target.closest('.chordbox-resize-handle') : null;
+                    let col = handle ? handle.closest('.extension-column') : (e.target && e.target.closest ? e.target.closest('.extension-column') : null);
+                    if (!col) return;
+                    if (isLengthLocked(col)) return;
+
+                    ensureHandlesForColumn(col);
+
+                    const side = handle
+                        ? (handle.classList.contains('left') ? 'left' : 'right')
+                        : edgeSideAt(col, e.clientX);
+                    if (!side) return;
+
+                    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, col, side });
+                    try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
+
+                    if (activeResize) {
+                        if (e.pointerType === 'touch' && activeResize.col === col && activeResize.side === side && activeResize.neighborMode === 'paired') {
+                            stopActiveResize();
+                            startResizeSession(col, side, 'solo', e);
+                        }
+                        return;
+                    }
+
+                    if (e.pointerType === 'touch') {
+                        startResizeSession(col, side, 'paired', e);
+                    } else {
+                        startResizeSession(col, side, 'paired', e);
+                    }
+                }, { passive: false });
+
+                rootContainer.addEventListener('pointerup', (e) => {
+                    activePointers.delete(e.pointerId);
+                }, { passive: true });
+
+                rootContainer.addEventListener('pointercancel', (e) => {
+                    activePointers.delete(e.pointerId);
+                }, { passive: true });
+
+                if (!rootContainer._xenLenResizeObserver) {
+                    try {
+                        const obs = new MutationObserver(() => {
+                            ensureAllHandles();
+                        });
+                        obs.observe(rootContainer, { childList: true, subtree: true });
+                        rootContainer._xenLenResizeObserver = obs;
+                    } catch (_) { }
+                }
             }
 
             // Monitor and adjust string compression based on available space
@@ -10804,8 +11189,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     const availableHeight = column.clientHeight || column.offsetHeight || 0;
                     const headerEl = column.querySelector('.extension-header');
+                    const footerEl = column.querySelector('.extension-footer');
                     const headerHeight = headerEl ? Math.ceil(headerEl.getBoundingClientRect().height) : 56;
-                    const stringsHeight = Math.max(0, availableHeight - headerHeight);
+                    const footerHeight = footerEl ? Math.ceil(footerEl.getBoundingClientRect().height) : 0;
+                    const stringsHeight = Math.max(0, availableHeight - headerHeight - footerHeight);
 
                     // Keep strings container height synced to the column size
                     try {
@@ -11244,6 +11631,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     const splitChordAt = (col, splitStep) => {
                         const omni = window.autoharp;
+                        if (omni && omni._projectLocked) return;
                         if (!omni || !Array.isArray(omni.chordExtensions)) return;
                         const list = omni.chordExtensions;
                         const idx = findChordIndex(col, list);
@@ -11312,6 +11700,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         };
 
                         ruler.addEventListener('pointerdown', (e) => {
+                            if (window.autoharp && window.autoharp._projectLocked) return;
                             if (e.button != null && e.button !== 0) return;
                             if (e.target && e.target.classList && e.target.classList.contains('chord-ruler-loop-marker')) return;
                             try { e.preventDefault(); } catch (_) { }
@@ -12471,11 +12860,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Undo stack for chord edits
                     this._undoStack = [];
                     this._undoIndex = -1;
-                    this._undoMax = 50;
+                    this._undoMax = 8;
                     this._lastUndoPushAt = 0;
                     // Track last selected chord column (for Delete in edit mode)
                     this._lastSelectedChordColumn = null;
                     this._lastSelectedChordId = null;
+                    // Project lock (transport-level live performance safety)
+                    this._projectLocked = false;
                     // Editing flow flags
                     this.isEditingChord = false;
                     // Global transpose accumulator (steps from session start)
@@ -12485,6 +12876,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this._editArmTimer = null;
                     this._editSaveTimer = null;
                     this.editingOriginalIndex = null;
+                    // Glue (join) gesture state
+                    this._glueGesturesWired = false;
+                    this._glueModalWired = false;
+                    this._glueContext = null;
+                    this._glueHoldTimer = null;
+                    this._glueHoldPointerId = null;
+                    this._glueHoldStart = null;
+                    this._glueHoldPair = null;
+                    this._glueHoverTimer = null;
+                    this._glueHoverKey = null;
+                    // Global undo/redo (full session snapshots)
+                    this._xenHistory = [];
+                    this._xenHistoryIndex = -1;
+                    this._xenHistoryMax = 8;
+                    this._xenHistoryBusy = false;
+                    this._xenHistoryTimer = null;
+                    this._xenHistoryLastSig = '';
+                    this._xenPendingHistoryApply = null;
+                    this._xenPendingHistoryTimer = null;
+                    this._xenHistoryWired = false;
 
                     // ADSR envelope settings
                     this.envelope = {
@@ -13066,6 +13477,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     // If never started, align cycle start to the next Beat 1.
                                     // Beat 1 is king: apply any queued changes only at the next bar boundary.
                                     if (curTick === 0) {
+                                        if (inst.pendingState) {
+                                            try {
+                                                inst.state = inst.pendingState;
+                                                inst.len = inst.pendingState.len || inst.len;
+                                            } catch (_) { }
+                                            inst.pendingState = null;
+                                        }
                                         if (inst.pendingLen != null) {
                                             applyLenToState(inst, inst.pendingLen);
                                             inst.pendingLen = null;
@@ -13143,6 +13561,46 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         } catch (_) { }
 
+                        // Base drum grid (non-instance): snapshot edits and apply at bar boundary
+                        try {
+                            if (gridEl) {
+                                if (curTick === 0 && (gridEl._pendingAudioEdits || !gridEl._audioSnapshot)) {
+                                    const lanesSnap = Array.from(document.querySelectorAll('.drum-lane')).map(lane => {
+                                        const steps = Array.from(lane.querySelectorAll('.drum-step'));
+                                        const D = Math.max(1, steps.length || 16);
+                                        const active = steps.map(s => s.classList.contains('active') ? 1 : 0);
+                                        const vel = steps.map(s => parseInt(s.dataset.vel || '100', 10) || 100);
+                                        let vol = 0.8;
+                                        let send = 0;
+                                        let midi = '';
+                                        let pitch = 0;
+                                        let atk = 2;
+                                        let dec = 180;
+                                        try {
+                                            const row = lane.closest('.drum-row');
+                                            const volEl = row ? row.querySelector('.drum-volume') : null;
+                                            const sendEl = row ? row.querySelector('.drum-send') : null;
+                                            const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
+                                            const midiEl = row ? row.querySelector('.drum-midi input[type="text"]') : null;
+                                            const pitchEl = row ? row.querySelector('.drum-params input[title$="Pitch"]') : null;
+                                            const atkEl = row ? row.querySelector('.drum-params input[title$="Attack"]') : null;
+                                            const decEl = row ? row.querySelector('.drum-params input[title$="Decay"]') : null;
+                                            vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value || '80', 10) / 100)) : 0.8;
+                                            const sendPct = sendEl ? (parseInt(sendEl.value || '0', 10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
+                                            send = Math.max(0, Math.min(1, sendPct / 100));
+                                            midi = midiEl ? String(midiEl.value || '').trim() : '';
+                                            pitch = pitchEl ? (parseInt(pitchEl.value || '0', 10) || 0) : 0;
+                                            atk = atkEl ? (parseFloat(atkEl.value || '2') || 2) : 2;
+                                            dec = decEl ? (parseFloat(decEl.value || '180') || 180) : 180;
+                                        } catch (_) { }
+                                        return { D, active, vel, vol, send, midi, pitch, atk, dec };
+                                    });
+                                    gridEl._audioSnapshot = { lanes: lanesSnap };
+                                    gridEl._pendingAudioEdits = false;
+                                }
+                            }
+                        } catch (_) { }
+
                         // At bar boundary, apply either manual override (highest precedence) or mapped pattern from active column
                         if (curTick === 0) {
                             if (this._drumPendingPattern != null) {
@@ -13180,6 +13638,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                         // Move playheads per-lane using each lane's D against global bar fraction
                         const lanes = document.querySelectorAll('.drum-lane');
+                        const drumSnap = gridEl ? gridEl._audioSnapshot : null;
                         if (lanes && lanes.length) {
                             const frac = fracCycle; // 0..1 across cycle
                             // Normalize bar width visually to the max denominator among lanes.
@@ -13239,9 +13698,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (!__DRUMS_ACTIVE__) { /* gated */ }
                         } catch (_) { var __DRUMS_ACTIVE__ = true; }
                         lanes.forEach((lane, rowIdx) => {
+                            const snapLane = (drumSnap && drumSnap.lanes && drumSnap.lanes[rowIdx]) ? drumSnap.lanes[rowIdx] : null;
                             const qStr = lane.dataset.quant || '';
                             let N = steps, D = steps;
                             if (qStr) { const m = qStr.match(/^(\d+)\/(\d+)$/); if (m) { const n = parseInt(m[1], 10), d = parseInt(m[2], 10); if (Number.isFinite(d) && d > 0) D = d; if (Number.isFinite(n) && n > 0) N = Math.min(n, D); } else { const mn = qStr.match(/^(\d+)$/); if (mn) { const d = parseInt(mn[1], 10); if (Number.isFinite(d) && d > 0) { D = d; N = d; } } } }
+                            if (snapLane && snapLane.D) { D = Math.max(1, snapLane.D | 0); N = Math.min(N, D); }
                             const frac = fracCycle;
                             // Compute lane-local step from continuous bar fraction to support clamped ticksPerBar
                             const laneStepIdx = Math.max(0, Math.min(D - 1, Math.floor(frac * D + 1e-9)));
@@ -13264,24 +13725,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const volEl = rowEl ? rowEl.querySelector('.drum-volume') : null;
                             const sendEl = rowEl ? rowEl.querySelector('.drum-send') : null;
                             const fxEl = rowEl ? rowEl.querySelector('.drum-fx input[type="checkbox"]') : null;
-                            const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value || '80', 10) / 100)) : 0.8;
-                            const sendPct = sendEl ? (parseInt(sendEl.value || '0', 10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
-                            const send = Math.max(0, Math.min(1, sendPct / 100));
+                            const vol = snapLane ? Math.max(0, Math.min(1, snapLane.vol)) : (volEl ? Math.max(0, Math.min(1, parseInt(volEl.value || '80', 10) / 100)) : 0.8);
+                            const send = snapLane ? Math.max(0, Math.min(1, snapLane.send)) : Math.max(0, Math.min(1, (sendEl ? (parseInt(sendEl.value || '0', 10) || 0) : (fxEl && fxEl.checked ? 100 : 0)) / 100));
 
                             // Skip bass processing here - it's now handled separately from bass modal
-                            if (stepEl && stepEl.classList.contains('active')) {
+                            const stepActive = snapLane ? !!snapLane.active[laneStepIdx] : (stepEl && stepEl.classList.contains('active'));
+                            if (stepEl && stepActive) {
                                 // Get step velocity (0-127), convert to 0-1 range for volume
-                                const stepVel = parseInt(stepEl.dataset.vel || '100', 10);
+                                const stepVel = snapLane ? (snapLane.vel[laneStepIdx] || 100) : parseInt(stepEl.dataset.vel || '100', 10);
                                 const velFactor = stepVel / 127;
                                 const finalVol = vol * velFactor;
                                 // Fire internal synth with velocity-adjusted volume
-                                this._triggerDrumSound(rowIdx | 0, finalVol, send);
+                                this._triggerDrumSound(rowIdx | 0, finalVol, send, snapLane ? { pitch: snapLane.pitch, attackMs: snapLane.atk, decayMs: snapLane.dec } : undefined);
                                 try { window._pulseStepEl && window._pulseStepEl(stepEl); } catch (_) { }
                                 // Also mirror per-lane MIDI if provided
                                 try {
                                     const midi = window.midi; if (midi && midi.enabled && rowIdx < 9) {
                                         const ctrls = lane._controls || {};
-                                        const noteStr = (ctrls.midiInput?.value || '').trim();
+                                        const noteStr = snapLane ? String(snapLane.midi || '') : (ctrls.midiInput?.value || '').trim();
                                         const midiNote = this._parseMidiNoteName(noteStr);
                                         if (Number.isFinite(midiNote)) {
                                             const vel = stepVel; // Use step velocity directly for MIDI
@@ -14256,6 +14717,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Helper: immediate autosave to current slot
                             this._saveDrumPattern = () => {
                                 try {
+                                    try { if (this._isSequencing) { const grid = document.getElementById('drumGrid'); if (grid) grid._pendingAudioEdits = true; } } catch (_) { }
                                     const n = Math.max(1, parseInt(document.getElementById('drumPatternNumber')?.value || '1', 10));
                                     this._drumPatterns.set(n, captureGrid());
                                     try { this._drumPatternLaneQuants.set(n, captureLaneQuants()); } catch (_) { }
@@ -15128,6 +15590,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 } else {
                                     // Drum step: mousedown for toggle + velocity drag
                                     s.addEventListener('mousedown', (e) => {
+                                        if (this._projectLocked) return;
                                         if (e.button !== 0) return;
                                         e.preventDefault();
 
@@ -15143,6 +15606,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
                                             s.dataset.vel = String(newVel);
                                             try { window.updateStepVelocityClass(s); } catch (_) { }
+                                            try { if (this._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
                                         };
 
                                         const onMove = (ev) => {
@@ -15189,8 +15653,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 const nowActive = !wasActive;
                                                 if (nowActive) s.classList.add('active'); else s.classList.remove('active');
                                                 // Click-audition: if turning on, preview the hit
-                                                if (nowActive) previewDrumStep();
+                                                if (nowActive && !this._isSequencing) previewDrumStep();
                                             }
+                                            try { if (this._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
                                             // Autosave drum grid after toggle
                                             try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
                                         };
@@ -15201,6 +15666,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                     // Touch: tap toggle + vertical drag velocity
                                     s.addEventListener('touchstart', (e) => {
+                                        if (this._projectLocked) return;
                                         if (s._touchDragActive) return; // prevent duplicate via synthetic mouse
                                         s._touchDragActive = true;
                                         try { e.preventDefault(); } catch (_) { }
@@ -15220,6 +15686,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
                                             s.dataset.vel = String(newVel);
                                             try { window.updateStepVelocityClass(s); } catch (_) { }
+                                            try { if (this._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
                                         };
 
                                         const onMove = (ev) => {
@@ -15250,9 +15717,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 const nowActive = !wasActive;
                                                 if (nowActive) s.classList.add('active'); else s.classList.remove('active');
                                                 // Tap-audition: if turning on, preview the hit
-                                                if (nowActive) previewDrumStep();
+                                                if (nowActive && !this._isSequencing) previewDrumStep();
                                             }
 
+                                            try { if (this._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
                                             try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
                                             s._touchDragActive = false;
                                         };
@@ -16633,6 +17101,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (patternQuantSelect && !patternQuantSelect._patternWired) {
                             patternQuantSelect._patternWired = true;
                             patternQuantSelect.addEventListener('change', () => {
+                                if (window.autoharp && window.autoharp._projectLocked) return;
                                 const val = String(patternQuantSelect.value || '1/16').trim();
                                 patternQuantSelect.dataset.pending = '1';
                                 try { patternQuantSelect.classList.add('pending-change'); } catch (_) { }
@@ -16707,9 +17176,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         }
                                     }
                                 }
-                            } catch (e) {
-                                console.error('Error rebuilding pattern tie overlays:', e);
-                            }
+                            } catch (e) { }
                         };
 
                         // Rebuild a single PATTERN lane to match its per-row Q (N/D) setting.
@@ -16870,6 +17337,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (patternClear && !patternClear._wired) {
                                     patternClear._wired = true;
                                     patternClear.addEventListener('click', () => {
+                                        if (window.autoharp && window.autoharp._projectLocked) return;
                                         try {
                                             const pg = document.getElementById('patternGrid');
                                             if (!pg) return;
@@ -16896,6 +17364,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (drumClear && !drumClear._wired) {
                                     drumClear._wired = true;
                                     drumClear.addEventListener('click', () => {
+                                        if (window.autoharp && window.autoharp._projectLocked) return;
                                         try {
                                             const dg = document.getElementById('drumGrid');
                                             if (!dg) return;
@@ -16913,6 +17382,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (bassClear && !bassClear._wired) {
                                     bassClear._wired = true;
                                     bassClear.addEventListener('click', () => {
+                                        if (window.autoharp && window.autoharp._projectLocked) return;
                                         try {
                                             const bg = document.getElementById('bassGrid');
                                             if (!bg) return;
@@ -16940,6 +17410,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (inc && !inc._wired) {
                                 inc._wired = true;
                                 inc.addEventListener('click', () => {
+                                    if (window.autoharp && window.autoharp._projectLocked) return;
                                     const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
                                     const cur = Math.max(1, Math.min(maxLen, parseInt(patternGrid.dataset.length || '16', 10) || 16));
                                     const nextLen = Math.min(maxLen, cur + 1);
@@ -16952,6 +17423,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (dec && !dec._wired) {
                                 dec._wired = true;
                                 dec.addEventListener('click', () => {
+                                    if (window.autoharp && window.autoharp._projectLocked) return;
                                     const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
                                     const cur = Math.max(1, Math.min(maxLen, parseInt(patternGrid.dataset.length || '16', 10) || 16));
                                     const nextLen = Math.max(1, cur - 1);
@@ -16968,6 +17440,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                 // Mouse events
                                 handle.addEventListener('mousedown', (e) => {
+                                    if (window.autoharp && window.autoharp._projectLocked) return;
                                     e.preventDefault();
                                     const startX = e.clientX; const startLen = parseInt(patternGrid.dataset.length || '16', 10) || 16;
                                     const move = (ev) => {
@@ -16990,6 +17463,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                 // Touch events
                                 handle.addEventListener('touchstart', (e) => {
+                                    if (window.autoharp && window.autoharp._projectLocked) return;
                                     e.preventDefault();
                                     const touch = e.touches[0];
                                     const startX = touch.clientX; const startLen = parseInt(patternGrid.dataset.length || '16', 10) || 16;
@@ -17052,7 +17526,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // ============= NEW CHORD CREATION SYSTEM =============
 
                 enterChordCreationMode() {
-                    console.log('?? Entering chord creation mode');
                     this.chordCreationMode = true;
                     // When entering fresh creation mode (not from edit), clear edit flags
                     if (!this.isEditingChord) {
@@ -17394,16 +17867,132 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                     if (midiDevice) midiDevice.value = target?.midi?.deviceId || '';
                     if (midiChannel) midiChannel.value = String(Math.max(1, Math.min(16, parseInt(target?.midi?.channel || 1, 10))));
+
+                    try { this._applyChordboxSynthLockToEditor(column); } catch (_) { }
+                }
+
+                _isChordboxSynthLocked(column, model) {
+                    try {
+                        if (model && typeof model.synthLocked === 'boolean') return !!model.synthLocked;
+                    } catch (_) { }
+                    try {
+                        if (column && column.dataset && column.dataset.synthLocked) return String(column.dataset.synthLocked) === '1';
+                    } catch (_) { }
+                    return false;
+                }
+
+                _applyChordboxSynthLockToEditor(column) {
+                    const model = this._getChordModelFromColumn ? this._getChordModelFromColumn(column) : this._activeChordboxSynthTarget;
+                    const locked = this._isChordboxSynthLocked(column, model);
+                    const editor = document.getElementById('chordboxSynthEditor');
+                    if (editor) {
+                        if (locked) editor.dataset.locked = '1';
+                        else { try { delete editor.dataset.locked; } catch (_) { editor.dataset.locked = ''; } }
+                        editor.querySelectorAll('input, select, button').forEach(el => {
+                            if (el && el.id === 'chordboxCopyUnlockedBtn') return;
+                            try { el.disabled = !!locked; el.setAttribute('aria-disabled', locked ? 'true' : 'false'); } catch (_) { }
+                        });
+                        editor.querySelectorAll('.chordbox-osc-btn').forEach(btn => {
+                            try { btn.classList.toggle('locked', !!locked); } catch (_) { }
+                        });
+                    }
+                }
+
+                _setChordboxSynthLockState(column, model, locked, opts = {}) {
+                    const next = !!locked;
+                    const current = this._isChordboxSynthLocked(column, model);
+                    if (!opts.force && current === next) return;
+                    try { if (model) model.synthLocked = next; } catch (_) { }
+                    try { if (column && column.dataset) column.dataset.synthLocked = next ? '1' : '0'; } catch (_) { }
+                    try { if (column && column.classList) column.classList.toggle('chordbox-synth-locked', next); } catch (_) { }
+
+                    try {
+                        const btn = column?.querySelector?.('.chordbox-synth-lock');
+                        if (btn) {
+                            btn.classList.toggle('locked', next);
+                            btn.textContent = next ? '🔒' : '🔓';
+                            btn.title = next ? 'Unlock chordbox synth' : 'Lock chordbox synth';
+                        }
+                    } catch (_) { }
+
+                    try {
+                        const nameEl = column?.querySelector?.('.extension-header .chord-name');
+                        if (nameEl) nameEl.setAttribute('contenteditable', next ? 'false' : 'true');
+                    } catch (_) { }
+
+                    try { this._applyChordboxSynthLockToEditor(column); } catch (_) { }
+                }
+
+                // Copilot: tidied scope after requested change
+                _copyChordboxSynthToUnlocked() {
+                    try {
+                        const sourceModel = this._activeChordboxSynthTarget;
+                        if (!sourceModel) return;
+                        const sourceSynth = this._ensureChordboxSynthConfig(sourceModel);
+                        if (!sourceSynth) return;
+                        const snapshot = this._cloneChordboxSynthConfig(sourceSynth);
+                        const list = Array.isArray(this.chordExtensions) ? this.chordExtensions : [];
+                        list.forEach(model => {
+                            if (!model || model.isRepeatMarker || model.isSeparator || model.name === '|') return;
+                            if (model.synthLocked) return;
+                            model.synth = this._cloneChordboxSynthConfig(snapshot);
+                        });
+                        try {
+                            if (this._activeChordboxSynthColumn) {
+                                const activeSynth = this._ensureChordboxSynthConfig(this._activeChordboxSynthTarget);
+                                this._syncChordboxSynthEditor(activeSynth, this._activeChordboxSynthColumn);
+                            }
+                        } catch (_) { }
+                    } catch (_) { }
+                }
+
+                _setProjectLockState(locked) {
+                    const next = !!locked;
+                    if (this._projectLocked === next) return;
+                    this._projectLocked = next;
+                    try { document.documentElement.classList.toggle('project-locked', next); } catch (_) { }
+                    try {
+                        const btn = document.getElementById('projectLockBtn');
+                        if (btn) {
+                            btn.classList.toggle('locked', next);
+                            btn.setAttribute('aria-pressed', next ? 'true' : 'false');
+                            btn.textContent = next ? 'LOCKED' : 'LOCK';
+                        }
+                    } catch (_) { }
+                    try {
+                        const disable = (id, flag) => {
+                            const el = document.getElementById(id);
+                            if (!el) return;
+                            try { el.disabled = !!flag; } catch (_) { }
+                        };
+                        disable('transportBpm', next);
+                        disable('universalTimeSignature', next);
+                        disable('edoQuickInputTransport', next);
+                        disable('drumLenInc', next);
+                        disable('drumLenDec', next);
+                        disable('patternLenInc', next);
+                        disable('patternLenDec', next);
+                        disable('newSectionBtn', next);
+                        disable('newPatternBtn', next);
+                        disable('newDrumBtn', next);
+                        disable('resetChordsBtn', next);
+                        disable('saveSessionBtn', next);
+                        disable('loadSessionBtn', next);
+                        disable('edoDivisions', next);
+                        disable('midiBtn', next);
+                    } catch (_) { }
                 }
 
                 _wireChordboxSynthEditor() {
                     if (this._chordboxSynthEditorWired) return;
                     this._chordboxSynthEditorWired = true;
                     const getTarget = () => this._activeChordboxSynthTarget;
+                    const isLocked = () => this._isChordboxSynthLocked(this._activeChordboxSynthColumn, getTarget());
 
                     document.querySelectorAll('.chordbox-osc-btn').forEach(btn => {
                         btn.addEventListener('click', (e) => {
                             e.preventDefault();
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17422,6 +18011,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const pwEl = document.getElementById('chordboxPulseWidth');
                     if (pwEl) {
                         pwEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17434,6 +18024,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const swEl = document.getElementById('chordboxShapeWidth');
                     if (swEl) {
                         swEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17447,6 +18038,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const levelEl = document.getElementById('chordboxLevel');
                     if (levelEl) {
                         levelEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17459,6 +18051,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const detuneEl = document.getElementById('chordboxDetune');
                     if (detuneEl) {
                         detuneEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17471,6 +18064,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const transEl = document.getElementById('chordboxTranspose');
                     if (transEl) {
                         transEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17483,6 +18077,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const atkEl = document.getElementById('chordboxAttack');
                     if (atkEl) {
                         atkEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17495,6 +18090,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const decEl = document.getElementById('chordboxDecay');
                     if (decEl) {
                         decEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17507,6 +18103,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const susEl = document.getElementById('chordboxSustain');
                     if (susEl) {
                         susEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17519,6 +18116,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const relEl = document.getElementById('chordboxRelease');
                     if (relEl) {
                         relEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17532,6 +18130,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const fxSendEl = document.getElementById('chordboxFxSend');
                     if (fxSendEl) {
                         fxSendEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17545,6 +18144,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const midiDevice = document.getElementById('chordboxMidiDevice');
                     if (midiDevice) {
                         midiDevice.addEventListener('change', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
@@ -17554,10 +18154,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const midiChannel = document.getElementById('chordboxMidiChannel');
                     if (midiChannel) {
                         midiChannel.addEventListener('change', (e) => {
+                            if (isLocked()) return;
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
                             synth.midi.channel = Math.max(1, Math.min(16, parseInt(e.target.value || '1', 10) || 1));
+                        });
+                    }
+
+                    const copyUnlockedBtn = document.getElementById('chordboxCopyUnlockedBtn');
+                    if (copyUnlockedBtn && !copyUnlockedBtn._wired) {
+                        copyUnlockedBtn._wired = true;
+                        copyUnlockedBtn.addEventListener('click', (e) => {
+                            try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
+                            this._copyChordboxSynthToUnlocked();
                         });
                     }
                 }
@@ -17578,6 +18188,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this._activeChordboxSynthColumn = column;
                     this._wireChordboxSynthEditor();
                     this._syncChordboxSynthEditor(synth, column);
+                    try { this._applyChordboxSynthLockToEditor(column); } catch (_) { }
                     modal.style.display = 'block';
                     bringModalToFront('oscModal');
                     if (!modal._draggableSet) {
@@ -17650,8 +18261,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Create a brand-new blank chord column (no carry-over), set it active, and arm editing
                 // Optional: { insertAfterId } inserts immediately to the right of that chord.
                 createBlankChordColumn(opts) {
+                    // Copilot: tidied scope after requested change
+                    if (this._projectLocked) return;
                     const options = (opts && typeof opts === 'object') ? opts : {};
                     const insertAfterId = (options.insertAfterId != null) ? String(options.insertAfterId) : null;
+                    const focusName = options.focusName !== false;
                     // Ensure chord extensions array exists
                     if (!Array.isArray(this.chordExtensions)) this.chordExtensions = [];
 
@@ -17741,22 +18355,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Scroll into view slightly
                         try { column.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } catch (_) { }
                         // Immediately focus the chord name for typing a symbol (e.g., Dm, Em7)
-                        try {
-                            const nameEl = column.querySelector('.extension-header .chord-name');
-                            if (nameEl) {
-                                nameEl.setAttribute('contenteditable', 'true');
-                                nameEl.setAttribute('spellcheck', 'false');
-                                nameEl.focus();
-                                // Select all text for quick overwrite
-                                const sel = window.getSelection && window.getSelection();
-                                if (sel && document.createRange) {
-                                    const range = document.createRange();
-                                    range.selectNodeContents(nameEl);
-                                    sel.removeAllRanges();
-                                    sel.addRange(range);
+                        if (focusName) {
+                            try {
+                                const nameEl = column.querySelector('.extension-header .chord-name');
+                                if (nameEl) {
+                                    nameEl.setAttribute('contenteditable', 'true');
+                                    nameEl.setAttribute('spellcheck', 'false');
+                                    nameEl.focus();
+                                    // Select all text for quick overwrite
+                                    const sel = window.getSelection && window.getSelection();
+                                    if (sel && document.createRange) {
+                                        const range = document.createRange();
+                                        range.selectNodeContents(nameEl);
+                                        sel.removeAllRanges();
+                                        sel.addRange(range);
+                                    }
                                 }
-                            }
-                        } catch (_) { }
+                            } catch (_) { }
+                        }
                     }
                 }
 
@@ -17767,7 +18383,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const rootStep = ((absStep % edo) + edo) % edo;
                         const rootName = this.getRootNameForStep(rootStep, edo);
 
-                        this.createBlankChordColumn(opts);
+                        this.createBlankChordColumn({ ...(opts || {}), focusName: false });
                         const id = this.pendingBlankChordId;
                         if (!id) return;
                         const idx = (this.chordExtensions || []).findIndex(c => c && String(c.id) === String(id));
@@ -17805,6 +18421,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                         try { this.saveChordConfiguration?.(); } catch (_) { }
                         try { this.updateChordDisplay?.(); } catch (_) { }
+                        try { this._queueXenUndoSnapshot?.('root-drop'); } catch (_) { }
                     } catch (_) { }
                 }
 
@@ -18869,6 +19486,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         ? this.editingOriginalIndex
                         : (typeof this.calcState.insertIndex === 'number' ? this.calcState.insertIndex : this.chordExtensions.length);
 
+                    if (replacing) {
+                        const target = this.chordExtensions[insertPosition];
+                        let isLocked = !!(target && (target.isLocked || target.lockedData));
+                        try {
+                            const col = document.querySelector(`.extension-column[data-chord-id='${String(target?.id || '')}']`);
+                            if (col && this.lockedChords && this.lockedChords.has(col)) isLocked = true;
+                        } catch (_) { }
+                        if (isLocked) {
+                            alert('This chord is locked and cannot be edited.');
+                            return;
+                        }
+                    }
+
                     // Insert before closing brackets if needed
                     if (!replacing) {
                         for (let i = this.chordExtensions.length - 1; i >= 0; i--) {
@@ -18883,6 +19513,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     // Preserve existing chord metadata if replacing
                     let preserved = {};
+                    let preservedLen16 = null;
                     if (replacing && this.chordExtensions[insertPosition]) {
                         const oldChord = this.chordExtensions[insertPosition];
                         preserved = {
@@ -18894,6 +19525,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             lastTuning: oldChord.lastTuning,
                             originalIntervals: oldChord.originalIntervals
                         };
+                        try {
+                            const v = parseInt(oldChord.len16, 10);
+                            if (Number.isFinite(v) && v > 0) preservedLen16 = v;
+                        } catch (_) { }
+                    }
+                    if (replacing && preservedLen16 == null) {
+                        try {
+                            const col = document.querySelector(`.extension-column[data-chord-id='${String(preserved.id || '')}']`);
+                            const v = parseInt(col?.dataset?.len16 || '', 10);
+                            if (Number.isFinite(v) && v > 0) preservedLen16 = v;
+                        } catch (_) { }
                     }
 
                     let headerAccentColor = '#14b8a6';
@@ -18910,6 +19552,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         id: preserved.id || ('custom_' + Date.now()),
                         createdAt: preserved.createdAt || Date.now(),
                         position: insertPosition,
+                        len16: (Number.isFinite(preservedLen16) && preservedLen16 > 0) ? preservedLen16 : 16,
                         originalRoot: this.currentRoot,
                         originalTuning: preserved.originalTuning || this.currentTuning,
                         originalGamelanMode: preserved.originalGamelanMode ?? this.gamelanMode,
@@ -18988,6 +19631,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
 
                 finalizePreviewChord(chordName) {
+                    if (this._projectLocked) return;
                     // Remove the preview column
                     this.removePreviewChordColumn();
                     this._pushChordUndoState('finalizePreviewChord');
@@ -18998,7 +19642,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Do not save truly blank or single-note chords
                     const nonRootCount = ivs.filter(v => v !== 0).length;
                     if (!ivs.length || nonRootCount === 0) {
-                        console.warn('Skipping save: blank chord has no tones beyond root.');
                         return;
                     }
                     const minIv = Math.min(...ivs);
@@ -19031,6 +19674,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     // Preserve existing chord metadata if editing in place
                     let preserved = {};
+                    let preservedLen16 = null;
                     if (replacing && this.chordExtensions[position]) {
                         const oldChord = this.chordExtensions[position];
                         preserved = {
@@ -19042,6 +19686,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             lastTuning: oldChord.lastTuning,
                             originalIntervals: oldChord.originalIntervals
                         };
+                        try {
+                            const v = parseInt(oldChord.len16, 10);
+                            if (Number.isFinite(v) && v > 0) preservedLen16 = v;
+                        } catch (_) { }
                     }
 
                     // Create new chord extension with exact intervals and position tracking
@@ -19053,6 +19701,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         id: preserved.id || ('custom_' + Date.now()),
                         createdAt: preserved.createdAt || Date.now(),
                         position: position, // Track exact position in array
+                        len16: (Number.isFinite(preservedLen16) && preservedLen16 > 0) ? preservedLen16 : 16,
                         // Keep the original root for reference but don't auto-lock
                         originalRoot: this.currentRoot,
                         // Track tuning metadata to support future remaps between EDOs
@@ -19067,14 +19716,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Capture the original intervals at creation/edit baseline for future EDO remaps
                         originalIntervals: preserved.originalIntervals || normalized.slice()
                     };
-
-                    console.log('🔧 finalizePreviewChord - saving chord:', {
-                        name: chordName,
-                        intervals: [...this.selectedIntervals],
-                        isCustom: true,
-                        currentTuning: this.currentTuning,
-                        selectedIntervals: this.selectedIntervals
-                    });
 
                     // Add to chord extensions: replace original index when editing, else append
                     if (replacing) {
@@ -19102,7 +19743,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Restore normal root button functionality
                     this.restoreNormalRootButtons();
 
-                    console.log(`? Created chord: ${finalName} at position ${position} with intervals:`, normalized);
                 }
 
                 // Keep chord.position fields in sync with array order
@@ -19134,11 +19774,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         }
                     } catch (_) { }
-                    console.log('🎨🎨🎨 generateExactChordColumns CALLED - chordExtensions.length =', this.chordExtensions.length);
-                    if (this.chordExtensions.length > 0) {
-                        console.log('🎨 First chord:', this.chordExtensions[0].name, '| fixedRootStepAbs =', this.chordExtensions[0].fixedRootStepAbs, '| intervals =', this.chordExtensions[0].intervals);
-                    }
-                    console.log('Generating exact chord columns (no variants)');
                     const container = document.getElementById('extensionColumns');
 
                     // Clear container completely to remove any leftover columns
@@ -19327,7 +19962,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (!column.dataset.instanceId) {
                             column.dataset.instanceId = `${column.dataset.chordId}__${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
                         }
-                        column.style.flex = '1'; // Each column takes equal width
+                        // Duration: each CHORDBOX represents N sixteenth-notes (default 16)
+                        try {
+                            let len16 = parseInt((chordExt && chordExt.len16 != null) ? chordExt.len16 : 16, 10);
+                            if (!Number.isFinite(len16) || len16 <= 0) len16 = 16;
+                            len16 = Math.max(1, Math.min(1024, len16 | 0));
+                            chordExt.len16 = len16;
+                            column.dataset.len16 = String(len16);
+                            column.style.setProperty('--len16', String(len16));
+                            column.style.flexGrow = String(len16);
+                            column.style.flexShrink = '1';
+                            column.style.flexBasis = '0px';
+                        } catch (_) {
+                            column.style.flexGrow = '16';
+                            column.style.flexShrink = '1';
+                            column.style.flexBasis = '0px';
+                        }
                         column.style.height = '100%';
                         column.style.border = 'none';
                         column.style.borderRadius = '0';
@@ -19341,7 +19991,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                         // Create header with chord name and lock button
                         const header = document.createElement('div');
-                        header.className = 'extension-header';
+                        header.className = 'extension-header chordbox-header';
 
                         // Create chord name span (inline-editable)
                         const chordName = document.createElement('span');
@@ -19373,9 +20023,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
 
 
-                        // Create buttons container
-                        const buttonsContainer = document.createElement('div');
-                        buttonsContainer.className = 'header-buttons';
+                        // Create footer container for chordbox controls
+                        const footer = document.createElement('div');
+                        footer.className = 'extension-footer chordbox-footer';
+                        const footerControls = document.createElement('div');
+                        footerControls.className = 'chordbox-footer-controls';
 
 
                         // Add buttons to container
@@ -19459,12 +20111,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 this.generateStringsForColumnWithLockedSettings(column, chordExt.intervals, lockedChord);
                             } else {
                                 // For unlocked columns, regenerate using current global settings and the chord model
-                                console.log('🔧 DEBUG ACTIVE PATH: About to call generateStringsForColumn with intervals:', chordExt.intervals, 'isCustom:', chordExt.isCustom, 'chordName:', chordExt.name);
                                 this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
                             }
 
                             // Update keyboard highlighting
                             try { this.highlightKeyboardForColumn(column); } catch { }
+                            try { this._queueXenUndoSnapshot?.('local-transpose'); } catch (_) { }
                             // release guard on next microtask to collapse duplicate events
                             Promise.resolve().then(() => { _pressGuard = false; });
                         };
@@ -19472,15 +20124,44 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         upBtn.addEventListener('pointerdown', onPointer(+1));
                         downBtn.addEventListener('pointerdown', onPointer(-1));
 
-                        buttonsContainer.appendChild(downBtn);
-                        buttonsContainer.appendChild(upBtn);
+                        footerControls.appendChild(downBtn);
+                        footerControls.appendChild(upBtn);
+
+                        // Gear (synth settings)
+                        const gearBtn = this._createChordboxGearButton(column);
+                        footerControls.appendChild(gearBtn);
+
+                        // Per-chord synth lock
+                        const lockBtn = document.createElement('button');
+                        lockBtn.type = 'button';
+                        lockBtn.className = 'chordbox-synth-lock';
+                        lockBtn.textContent = '🔓';
+                        lockBtn.title = 'Lock chordbox synth';
+                        const toggleLock = (e) => {
+                            try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
+                            const next = !this._isChordboxSynthLocked(column, chordExt);
+                            this._setChordboxSynthLockState(column, chordExt, next);
+                        };
+                        lockBtn.addEventListener('pointerdown', (e) => {
+                            lockBtn.__skipClick = true;
+                            toggleLock(e);
+                        }, { passive: false });
+                        lockBtn.addEventListener('touchstart', (e) => {
+                            lockBtn.__skipClick = true;
+                            toggleLock(e);
+                        }, { passive: false });
+                        lockBtn.addEventListener('click', (e) => {
+                            if (lockBtn.__skipClick) { lockBtn.__skipClick = false; return; }
+                            toggleLock(e);
+                        });
+                        footerControls.appendChild(lockBtn);
+                        footer.appendChild(footerControls);
 
                         // Initialize per-column local transpose from model (default 0)
                         const initLocalTranspose = (typeof chordExt.localTranspose === 'number') ? chordExt.localTranspose : 0;
                         column.dataset.localTranspose = String(initLocalTranspose);
 
                         header.appendChild(chordName);
-                        header.appendChild(buttonsContainer);
 
                         // Root-based header color (no greys)
                         try {
@@ -19493,6 +20174,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 header.style.boxShadow = 'none';
                                 header.style.color = '#9db6c8';
                                 header.style.border = '1px solid #222222';
+                                try { column.style.setProperty('--chordbox-footer-bg', '#000000'); } catch (_) { }
                                 accent = null;
                             } else {
                                 const isGreyish = (hex) => {
@@ -19555,12 +20237,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 header.style.boxShadow = `0 0 10px ${accent}55`;
                                 header.style.color = text;
                                 header.style.border = `1px solid ${accent}`;
+                                try { column.style.setProperty('--chordbox-footer-bg', accent); } catch (_) { }
                             }
                         } catch { }
 
                         // Editing behavior: Enter to apply, Escape to cancel selection
                         const applyTypedName = () => {
                             try {
+                                if (this.lockedChords && this.lockedChords.has(column)) return;
                                 const rawInput = (chordName.textContent || '').trim();
                                 if (!rawInput) return;
 
@@ -19659,16 +20343,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             header.style.borderBottom = `2px solid ${accent}`;
                             header.style.boxShadow = `0 0 10px ${accent}55`;
                             header.style.color = text;
+                            try { column.style.setProperty('--chordbox-footer-bg', accent); } catch (_) { }
                         } catch { }
 
                         column.appendChild(header);
+                        column.appendChild(footer);
+
+                        if (chordExt.isLocked && chordExt.lockedData) {
+                            column.classList.add('chord-length-locked');
+                        } else {
+                            column.classList.remove('chord-length-locked');
+                        }
+
+                        // Apply initial synth lock state for this chordbox
+                        try { this._setChordboxSynthLockState(column, chordExt, !!chordExt.synthLocked, { force: true }); } catch (_) { }
 
                         // Generate chord intervals and strings
                         const intervals = chordExt.intervals || this.getBaseTriadForQuality(chordExt.name.toLowerCase());
 
                         // If this chord is locked, generate strings using its locked settings
                         if (chordExt.isLocked && chordExt.lockedData) {
-                            console.log('?? Generating strings with locked settings for:', chordExt.name);
                             // Update header to effective root (locked root + local transpose)
                             try {
                                 const edo = chordExt.lockedData.lockedTuning || this.currentTuning || 12;
@@ -19701,8 +20395,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const sc = column.querySelector('.strings-column');
                             if (sc) {
                                 const headerEl = column.querySelector('.extension-header');
+                                const footerEl = column.querySelector('.extension-footer');
                                 const headerPx = Math.max(56, headerEl ? headerEl.offsetHeight : 56);
-                                sc.style.height = `calc(100% - ${headerPx}px)`;
+                                const footerPx = Math.max(0, footerEl ? footerEl.offsetHeight : 0);
+                                sc.style.height = `calc(100% - ${headerPx + footerPx}px)`;
                             }
                         } else {
                             container.appendChild(column);
@@ -19878,15 +20574,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // Apply a global transpose by n EDO steps; rootless: rename headers from absolute steps when possible and retune
                 applyTransposeStep(n = 0) {
-                    console.log('=== TRANSPOSE DEBUG ===');
-                    console.log('applyTransposeStep called with n =', n);
-                    console.log('Before: this.transposeDelta =', this.transposeDelta);
+                    if (this._projectLocked) return;
                     if (!n) return;
                     const edo = this.currentTuning || 12;
                     this.transposeDelta = (((this.transposeDelta || 0) + n) % edo + edo) % edo;
-                    console.log('After: this.transposeDelta =', this.transposeDelta);
-                    console.log('Current active column element:', this.currentActiveColumnEl);
-                    console.log('=== TRANSPOSE DEBUG END ===');
                     // Refresh keyboard labels and chord-tone highlights
                     try { this.generateRootButtons(); } catch (_) { }
                     // Rename headers (build from each chord's fixed-root baseline; include LOCAL transpose only here; map via nearest-neighbor)
@@ -19999,9 +20690,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         });
                     } catch (_) { }
                     // Refresh keyboard highlights after global transpose
-                    console.log('About to call highlightKeyboardForColumn with:', this.currentActiveColumnEl);
-                    console.log('Current this.transposeDelta before highlighting:', this.transposeDelta);
-                    try { if (this.currentActiveColumnEl) this.highlightKeyboardForColumn(this.currentActiveColumnEl); } catch (e) { console.log('Error highlighting:', e); }
+                    try { if (this.currentActiveColumnEl) this.highlightKeyboardForColumn(this.currentActiveColumnEl); } catch (_) { }
+                    try { this._queueXenUndoSnapshot?.('global-transpose'); } catch (_) { }
                 }
 
                 // ================== TEXT → CHORDS PARSER ==================
@@ -20377,7 +21067,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // New: create sequence from current textarea content; honors Roman detection and Repeat Unique Sections
                 createSequenceFromTextarea() {
-                    console.log('🎵🎵🎵 createSequenceFromTextarea CALLED 🎵🎵🎵');
+                    if (this._projectLocked) return;
                     const input = document.getElementById('textChordInput');
                     const modal = document.getElementById('textChordModal');
                     if (!input) return;
@@ -20388,7 +21078,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // ALWAYS use bracket-aware parsing for proper repeat marker support
                     const list = this.extractChordsFromTextPreserveOrder(material);
 
-                    try { console.log('[SEQ] material =', material, '| list =', list, '| EDO =', this.currentTuning); } catch { }
                     if (!list.length) return;
                     // Reset global transpose and rebuild
                     this.transposeDelta = 0;
@@ -20458,17 +21147,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     // Parse for VISUAL DISPLAY - keep compact form with repeat markers
                     const compactChords = this.parseCompactChordSequence(text);
-                    console.log('🎵 Compact parsing:', text, '→', compactChords);
-
-                    // Debug log the parsed structure  
-                    const debugStructure = compactChords.map(item => {
-                        if (item.startsWith('__REPEAT_')) return `[REPEAT:${item.replace('__REPEAT_', '').replace('__', '')}]`;
-                        if (item.startsWith('__BRACKET_')) return `[BRACKET:${item.replace('__BRACKET_', '').replace('__', '')}]`;
-                        if (item === '__SECTION__') return '[SECTION]';
-                        return item;
-                    });
-                    console.log('🎵 Parsed structure:', debugStructure.join(' | '));
-
                     return compactChords;
                 }
 
@@ -20504,7 +21182,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // Expand compact sequence for playback (expands all repeats)
                 expandSequenceForPlayback(compactSequence, opts = {}) {
-                    console.log('🎵 Expanding sequence for playbook:', compactSequence);
                     const forceExpand = !!opts.forceExpand;
 
                     // Check if loop is enabled (or force expansion when parsing text)
@@ -21664,10 +22341,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // Map chord name to a chordExtensions entry with computed intervals. Returns {chord, position, rootSemitone, rootStep}
                 addChordFromName(chordName) {
+                    if (this._projectLocked) return null;
                     // Safety check: don't process repeat markers as chords
                     if (!chordName || typeof chordName !== 'string') return null;
                     if (/^[xX]\d+$/.test(chordName.trim())) {
-                        console.log('🎵 Skipping repeat marker in addChordFromName:', chordName);
                         return null;
                     }
                     this._pushChordUndoState('addChordFromName');
@@ -21703,7 +22380,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try {
                                 const semiBack = Math.round((rootStep * 12) / this.currentTuning) % 12;
                                 if (semiBack !== ((rootSemitone % 12) + 12) % 12) {
-                                    console.warn('[ADD] Root mismatch, adjusting step. norm=', norm, 'rootSemi=', rootSemitone, 'computedStep=', rootStep, 'semiBack=', semiBack, 'EDO=', this.currentTuning);
                                     // Find nearest step for this semitone in current EDO
                                     const stepCents = Array.from({ length: this.currentTuning }, (_, i) => this.getCentValue(i, this.currentTuning));
                                     const centsTarget = (rootSemitone * 1200) / 12;
@@ -21718,8 +22394,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Exclude slash bass from stacked-interval parsing; it will be added explicitly below
                     const tailForIntervals = quality.replace(/\/[A-G](?:#|b)?/, '');
                     let intervals = this.parseChordQualityToIntervals(tailForIntervals);
-                    try { console.log('[ADD] name=', norm, 'rootSemi=', rootSemitone, 'rootStep=', rootStep, 'intervals(steps)=', intervals, 'EDO=', this.currentTuning); } catch { }
-
                     // Slash chord handling: if tail contains "/<bass>", add that bass pitch as an extra interval
                     // Example: G/F -> add b7 (F relative to G)
                     let preferredBassRel = null;
@@ -21772,7 +22446,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         originalIntervals: intervals.slice()
                     };
                     this._assignChordboxSynthConfig(newChord);
-                    console.log('🎵 addChordFromName:', norm, '| rootStep =', rootStep, '| fixedRootStepAbs =', newChord.fixedRootStepAbs, '| intervals =', intervals);
                     this.chordExtensions.push(newChord);
 
                     // If we're currently sequencing (PLAY active), defer sequence/plan rebuild until the next cycle.
@@ -23436,6 +24109,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
 
                 updateExistingChord(newChordData) {
+                    if (this.currentEditingChord && (this.currentEditingChord.isLocked || this.currentEditingChord.lockedData)) {
+                        alert('This chord is locked and cannot be edited.');
+                        return;
+                    }
                     if (this.currentEditingChord.isCustom) {
                         const index = this.customChords.findIndex(c => c.id === this.currentEditingChord.id);
                         if (index !== -1) {
@@ -24197,12 +24874,32 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Transport Controls Integration
                     this.initTransportControls = () => {
                         const playBtn = document.getElementById('playStopTransportBtn');
+                        const projectLockBtn = document.getElementById('projectLockBtn');
                         const loopToggle = document.getElementById('loopToggle');
                         const prevBtn = document.getElementById('prevChordBtn');
                         const nextBtn = document.getElementById('nextChordBtn');
                         const bpmInput = document.getElementById('transportBpm');
                         const transportVolInput = document.getElementById('transportMasterVolume');
                         const legacyPlayToggle = document.getElementById('playStopToggleBtn');
+
+                        if (projectLockBtn && !projectLockBtn._wired) {
+                            projectLockBtn._wired = true;
+                            const handleProjectLock = (e) => {
+                                try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
+                                if (e.type === 'click' && projectLockBtn.__lastPointerDown) {
+                                    const delta = performance.now() - projectLockBtn.__lastPointerDown;
+                                    if (delta < 400) return;
+                                }
+                                if (e.type === 'pointerdown') {
+                                    projectLockBtn.__lastPointerDown = performance.now();
+                                }
+                                this._setProjectLockState(!this._projectLocked);
+                            };
+                            projectLockBtn.addEventListener('pointerdown', handleProjectLock);
+                            projectLockBtn.addEventListener('click', handleProjectLock);
+                            // Sync initial state
+                            try { this._setProjectLockState(!!this._projectLocked); } catch (_) { }
+                        }
 
                         // Master BPM setter - single source of truth
                         const setMasterBpm = (raw) => {
@@ -26831,12 +27528,30 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch (_) { }
                             return false;
                         })();
-                        if (tag === 'INPUT' || tag === 'TEXTAREA' || isEditable || e.isComposing) return;
+                        if (tag === 'INPUT' || tag === 'TEXTAREA' || isEditable || e.isComposing) {
+                            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z')) {
+                                e.preventDefault();
+                                try { this.undoEditState(); } catch (_) { }
+                            } else if ((e.ctrlKey || e.metaKey) && !e.altKey && ((e.shiftKey && (e.key === 'z' || e.key === 'Z')) || (e.key === 'y' || e.key === 'Y'))) {
+                                e.preventDefault();
+                                try { this.redoEditState(); } catch (_) { }
+                            }
+                            return;
+                        }
 
-                        // Undo (Ctrl/Cmd+Z)
-                        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z')) {
+                        // Undo/Redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl+Y)
+                        if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'z' || e.key === 'Z')) {
                             e.preventDefault();
-                            try { this.undoChordEdit(); } catch (_) { }
+                            if (e.shiftKey) {
+                                try { this.redoEditState(); } catch (_) { }
+                            } else {
+                                try { this.undoEditState(); } catch (_) { }
+                            }
+                            return;
+                        }
+                        if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'y' || e.key === 'Y')) {
+                            e.preventDefault();
+                            try { this.redoEditState(); } catch (_) { }
                             return;
                         }
 
@@ -27534,6 +28249,433 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                 }
 
+                _wireGlueModal() {
+                    if (this._glueModalWired) return;
+                    this._glueModalWired = true;
+                    const modal = document.getElementById('glueModal');
+                    if (!modal) return;
+                    const info = document.getElementById('glueModalInfo');
+                    const closeBtn = document.getElementById('glueModalClose');
+                    const cancelBtn = document.getElementById('glueCancelBtn');
+                    const keepLeftBtn = document.getElementById('glueKeepLeftBtn');
+                    const keepRightBtn = document.getElementById('glueKeepRightBtn');
+
+                    const close = () => {
+                        modal.style.display = 'none';
+                        this._glueContext = null;
+                    };
+
+                    if (closeBtn) closeBtn.addEventListener('click', close);
+                    if (cancelBtn) cancelBtn.addEventListener('click', close);
+                    if (keepLeftBtn) keepLeftBtn.addEventListener('click', () => {
+                        this._applyGlueJoin('left');
+                        close();
+                    });
+                    if (keepRightBtn) keepRightBtn.addEventListener('click', () => {
+                        this._applyGlueJoin('right');
+                        close();
+                    });
+
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) close();
+                    });
+
+                    if (info) info.textContent = '';
+                }
+
+                _getChordIndexFromColumn(column) {
+                    if (!column || !Array.isArray(this.chordExtensions)) return -1;
+                    const list = this.chordExtensions;
+                    const chordId = column.dataset && column.dataset.chordId ? String(column.dataset.chordId) : '';
+                    if (chordId) {
+                        const idx = list.findIndex(c => c && String(c.id || '') === chordId);
+                        if (idx >= 0) return idx;
+                    }
+                    const origPos = column.dataset && column.dataset.originalPosition != null
+                        ? parseInt(column.dataset.originalPosition, 10)
+                        : null;
+                    if (Number.isFinite(origPos) && origPos >= 0 && origPos < list.length) return origPos;
+                    return -1;
+                }
+
+                _getNeighborChordColumn(column, dir) {
+                    if (!column) return null;
+                    let node = column;
+                    while (node) {
+                        node = (dir > 0) ? node.nextElementSibling : node.previousElementSibling;
+                        if (!node) return null;
+                        if (node.classList && node.classList.contains('extension-column')) return node;
+                    }
+                    return null;
+                }
+
+                _getGluePairFromPoint(header, clientX) {
+                    if (!header || !clientX) return null;
+                    const col = header.closest('.extension-column');
+                    if (!col) return null;
+                    const rect = header.getBoundingClientRect();
+                    const edgePx = 10;
+                    if (clientX >= rect.right - edgePx) {
+                        const right = this._getNeighborChordColumn(col, 1);
+                        if (right) return { left: col, right };
+                    }
+                    if (clientX <= rect.left + edgePx) {
+                        const left = this._getNeighborChordColumn(col, -1);
+                        if (left) return { left, right: col };
+                    }
+                    return null;
+                }
+
+                _openGlueModal(leftCol, rightCol) {
+                    if (!leftCol || !rightCol) return;
+                    if (this._projectLocked) return;
+                    this._wireGlueModal();
+                    const modal = document.getElementById('glueModal');
+                    const info = document.getElementById('glueModalInfo');
+                    if (!modal || !info) return;
+
+                    const nameOf = (col) => col?.querySelector?.('.extension-header .chord-name')?.textContent?.trim() || 'Chord';
+                    const lenOf = (col) => {
+                        try {
+                            const idx = this._getChordIndexFromColumn(col);
+                            const model = (idx >= 0) ? this.chordExtensions[idx] : null;
+                            const v2 = parseInt(model?.len16 || '', 10);
+                            if (Number.isFinite(v2) && v2 > 0) return v2;
+                        } catch (_) { }
+                        try {
+                            const v = parseInt(col?.dataset?.len16 || '', 10);
+                            if (Number.isFinite(v) && v > 0) return v;
+                        } catch (_) { }
+                        return 16;
+                    };
+
+                    const leftName = nameOf(leftCol);
+                    const rightName = nameOf(rightCol);
+                    const leftLen = lenOf(leftCol);
+                    const rightLen = lenOf(rightCol);
+                    const total = Math.max(1, Math.min(1024, (leftLen + rightLen) | 0));
+
+                    info.textContent = `Left: ${leftName} (${leftLen}) + Right: ${rightName} (${rightLen}) = ${total} steps`;
+                    this._glueContext = { leftCol, rightCol };
+                    modal.style.display = 'flex';
+                }
+
+                _applyGlueJoin(keepSide = 'left') {
+                    if (this._projectLocked) return;
+                    const ctx = this._glueContext;
+                    if (!ctx || !ctx.leftCol || !ctx.rightCol) return;
+                    if (!Array.isArray(this.chordExtensions)) return;
+                    const leftIdx = this._getChordIndexFromColumn(ctx.leftCol);
+                    const rightIdx = this._getChordIndexFromColumn(ctx.rightCol);
+                    if (leftIdx < 0 || rightIdx < 0) return;
+
+                    const list = this.chordExtensions;
+                    const leftModel = list[leftIdx];
+                    const rightModel = list[rightIdx];
+                    const lenFromCol = (col, model) => {
+                        try {
+                            const v2 = parseInt(model?.len16 || '', 10);
+                            if (Number.isFinite(v2) && v2 > 0) return v2;
+                        } catch (_) { }
+                        try {
+                            const v = parseInt(col?.dataset?.len16 || '', 10);
+                            if (Number.isFinite(v) && v > 0) return v;
+                        } catch (_) { }
+                        return 16;
+                    };
+                    const leftLen = lenFromCol(ctx.leftCol, leftModel);
+                    const rightLen = lenFromCol(ctx.rightCol, rightModel);
+                    const totalLenRaw = (leftLen + rightLen) | 0;
+                    const totalLen = Math.max(1, Math.min(1024, totalLenRaw));
+
+                    const keepLeft = (keepSide === 'left');
+                    const keepModel = keepLeft ? leftModel : rightModel;
+                    if (keepModel) {
+                        // Defensive: ensure keep model has the up-to-date combined length
+                        keepModel.len16 = totalLen;
+                    }
+                    const keepId = keepModel?.id || null;
+                    const removeIdx = keepLeft ? rightIdx : leftIdx;
+
+                    this._pushChordUndoState('glue');
+                    if (Number.isFinite(removeIdx) && removeIdx >= 0) list.splice(removeIdx, 1);
+
+                    // Ensure the kept model (by id) is updated with the summed length
+                    if (keepId) {
+                        const ref = list.find(c => c && String(c.id || '') === String(keepId));
+                        if (ref) ref.len16 = totalLen;
+                    } else if (keepModel) {
+                        keepModel.len16 = totalLen;
+                    }
+
+                    // Also update the kept DOM column length immediately (prevents any visual reset)
+                    try {
+                        const keepCol = document.querySelector(`.extension-column[data-chord-id='${keepId}']`);
+                        if (keepCol) {
+                            keepCol.dataset.len16 = String(totalLen);
+                            keepCol.style.setProperty('--len16', String(totalLen));
+                            keepCol.style.flexGrow = String(totalLen);
+                            keepCol.style.flexShrink = '1';
+                            keepCol.style.flexBasis = '0px';
+                        }
+                    } catch (_) { }
+
+                    this.normalizeChordPositions();
+                    this.saveChordConfiguration();
+                    this.regenerateColumnsWithoutVariants();
+                    try { window.requestSequencerRebuild && window.requestSequencerRebuild('glue'); } catch (_) { }
+
+                    if (keepId) {
+                        try {
+                            const col = document.querySelector(`.extension-column[data-chord-id='${keepId}']`);
+                            if (col) this.currentActiveColumnEl = col;
+                        } catch (_) { }
+                    }
+                }
+
+                _wireGlueGestures() {
+                    if (this._glueGesturesWired) return;
+                    this._glueGesturesWired = true;
+                    const container = document.getElementById('extensionColumns');
+                    if (!container) return;
+
+                    const holdMs = 1000;
+                    const hoverMs = 1000;
+
+                    const clearHold = () => {
+                        if (this._glueHoldTimer) { clearTimeout(this._glueHoldTimer); }
+                        this._glueHoldTimer = null;
+                        this._glueHoldPointerId = null;
+                        this._glueHoldStart = null;
+                        this._glueHoldPair = null;
+                    };
+
+                    const clearHover = () => {
+                        if (this._glueHoverTimer) { clearTimeout(this._glueHoverTimer); }
+                        this._glueHoverTimer = null;
+                        this._glueHoverKey = null;
+                    };
+
+                    const samePair = (a, b) => {
+                        if (!a || !b) return false;
+                        return a.left === b.left && a.right === b.right;
+                    };
+
+                    const startHold = (pair, e) => {
+                        clearHold();
+                        this._glueHoldPointerId = e.pointerId;
+                        this._glueHoldStart = { x: e.clientX, y: e.clientY };
+                        this._glueHoldPair = pair;
+                        this._glueHoldTimer = setTimeout(() => {
+                            this._openGlueModal(pair.left, pair.right);
+                            clearHold();
+                        }, holdMs);
+                    };
+
+                    container.addEventListener('pointerdown', (e) => {
+                        if (this._projectLocked) return;
+                        if (e.pointerType !== 'touch') return;
+                        const header = e.target?.closest?.('.extension-header');
+                        if (!header) return;
+                        const pair = this._getGluePairFromPoint(header, e.clientX);
+                        if (!pair) return;
+                        startHold(pair, e);
+                        try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
+                    }, { passive: false, capture: true });
+
+                    container.addEventListener('pointermove', (e) => {
+                        if (this._projectLocked) return;
+                        if (e.pointerType === 'touch') {
+                            if (this._glueHoldPointerId == null || e.pointerId !== this._glueHoldPointerId) return;
+                            if (!this._glueHoldStart || !this._glueHoldPair) return;
+                            const dx = Math.abs(e.clientX - this._glueHoldStart.x);
+                            const dy = Math.abs(e.clientY - this._glueHoldStart.y);
+                            if (dx > 12 || dy > 12) { clearHold(); return; }
+                            const header = e.target?.closest?.('.extension-header');
+                            if (!header) { clearHold(); return; }
+                            const pair = this._getGluePairFromPoint(header, e.clientX);
+                            if (!samePair(pair, this._glueHoldPair)) { clearHold(); return; }
+                        } else if (e.pointerType === 'mouse') {
+                            if (e.buttons && e.buttons !== 0) { clearHover(); return; }
+                            const header = e.target?.closest?.('.extension-header');
+                            if (!header) { clearHover(); return; }
+                            const pair = this._getGluePairFromPoint(header, e.clientX);
+                            if (!pair) { clearHover(); return; }
+                            const leftKey = pair.left?.dataset?.chordId || pair.left?.dataset?.originalPosition || '';
+                            const rightKey = pair.right?.dataset?.chordId || pair.right?.dataset?.originalPosition || '';
+                            const key = `${leftKey}|${rightKey}`;
+                            if (this._glueHoverKey !== key) {
+                                clearHover();
+                                this._glueHoverKey = key;
+                                this._glueHoverTimer = setTimeout(() => {
+                                    this._openGlueModal(pair.left, pair.right);
+                                    clearHover();
+                                }, hoverMs);
+                            }
+                        }
+                    }, { passive: true, capture: true });
+
+                    container.addEventListener('pointerup', () => { clearHold(); }, { passive: true, capture: true });
+                    container.addEventListener('pointercancel', () => { clearHold(); }, { passive: true, capture: true });
+                    container.addEventListener('pointerleave', () => { clearHold(); clearHover(); }, { passive: true, capture: true });
+                }
+
+                _queueXenUndoSnapshot(reason = '') {
+                    if (this._isSequencing) return;
+                    if (this._xenHistoryBusy) return;
+                    if (this._xenHistoryTimer) clearTimeout(this._xenHistoryTimer);
+                    this._xenHistoryTimer = setTimeout(() => {
+                        this._xenHistoryTimer = null;
+                        try { this._pushXenUndoSnapshot(reason); } catch (_) { }
+                    }, 220);
+                }
+
+                _pushXenUndoSnapshot(reason = '') {
+                    if (this._isSequencing) return;
+                    if (this._xenHistoryBusy) return;
+                    let state = null;
+                    try {
+                        state = this.exportXenState({ returnObject: true, skipDownload: true });
+                    } catch (_) { state = null; }
+                    if (!state) return;
+                    let sig = '';
+                    try { sig = JSON.stringify(state); } catch (_) { sig = ''; }
+                    if (sig && sig === this._xenHistoryLastSig) return;
+                    this._xenHistoryLastSig = sig;
+
+                    if (this._xenHistoryIndex < this._xenHistory.length - 1) {
+                        this._xenHistory = this._xenHistory.slice(0, this._xenHistoryIndex + 1);
+                    }
+                    this._xenHistory.push(state);
+                    if (this._xenHistory.length > this._xenHistoryMax) {
+                        this._xenHistory.shift();
+                    }
+                    this._xenHistoryIndex = this._xenHistory.length - 1;
+                }
+
+                _applyXenHistoryIndex(targetIndex) {
+                    if (this._xenHistoryBusy) return;
+                    if (!this._xenHistory.length) return;
+                    if (targetIndex < 0 || targetIndex >= this._xenHistory.length) return;
+
+                    const applyNow = () => {
+                        const snapshot = this._xenHistory[targetIndex];
+                        if (!snapshot) return;
+                        this._xenHistoryBusy = true;
+                        try {
+                            const json = JSON.stringify(snapshot);
+                            const blob = new Blob([json], { type: 'application/json' });
+                            const file = new File([blob], 'undo.xen', { type: 'application/json' });
+                            const p = this.importXenState(file);
+                            Promise.resolve(p).finally(() => {
+                                this._xenHistoryBusy = false;
+                                this._xenHistoryIndex = targetIndex;
+                                try { this._xenHistoryLastSig = json; } catch (_) { }
+                            });
+                        } catch (_) {
+                            this._xenHistoryBusy = false;
+                        }
+                    };
+
+                    if (this._isSequencing) {
+                        this._xenPendingHistoryApply = targetIndex;
+                        if (!this._xenPendingHistoryTimer) {
+                            this._xenPendingHistoryTimer = setInterval(() => {
+                                try {
+                                    const t = this._arpTransport;
+                                    if (!this._isSequencing) {
+                                        clearInterval(this._xenPendingHistoryTimer);
+                                        this._xenPendingHistoryTimer = null;
+                                        const idx = this._xenPendingHistoryApply;
+                                        this._xenPendingHistoryApply = null;
+                                        if (Number.isFinite(idx)) applyNow(idx);
+                                        return;
+                                    }
+                                    if (t && t.ticksPerBar && Number.isFinite(t.absTickCounter)) {
+                                        if ((t.absTickCounter % t.ticksPerBar) === 0) {
+                                            try { if (typeof this._panicStopSequencer === 'function') this._panicStopSequencer('undo'); else if (typeof this.stop === 'function') this.stop(); } catch (_) { }
+                                            clearInterval(this._xenPendingHistoryTimer);
+                                            this._xenPendingHistoryTimer = null;
+                                            const idx = this._xenPendingHistoryApply;
+                                            this._xenPendingHistoryApply = null;
+                                            if (Number.isFinite(idx)) applyNow(idx);
+                                        }
+                                    }
+                                } catch (_) { }
+                            }, 60);
+                        }
+                        return;
+                    }
+
+                    applyNow();
+                }
+
+                undoXen() {
+                    if (!this._xenHistory.length) return;
+                    const next = Math.max(0, this._xenHistoryIndex - 1);
+                    if (next === this._xenHistoryIndex) return;
+                    this._applyXenHistoryIndex(next);
+                }
+
+                redoXen() {
+                    if (!this._xenHistory.length) return;
+                    const next = Math.min(this._xenHistory.length - 1, this._xenHistoryIndex + 1);
+                    if (next === this._xenHistoryIndex) return;
+                    this._applyXenHistoryIndex(next);
+                }
+
+                _wireGlobalUndoTracking() {
+                    if (this._xenHistoryWired) return;
+                    this._xenHistoryWired = true;
+
+                    const shouldTrackInput = (el) => {
+                        if (!el) return false;
+                        const tag = (el.tagName || '').toLowerCase();
+                        if (tag === 'input' || tag === 'select' || tag === 'textarea') return true;
+                        return false;
+                    };
+
+                    document.addEventListener('input', (e) => {
+                        if (shouldTrackInput(e.target)) this._queueXenUndoSnapshot('input');
+                    }, true);
+
+                    document.addEventListener('change', (e) => {
+                        if (shouldTrackInput(e.target)) this._queueXenUndoSnapshot('change');
+                    }, true);
+
+                    document.addEventListener('click', (e) => {
+                        const t = e.target;
+                        if (t && t.closest && (t.closest('.drum-step') || t.closest('.pattern-step'))) {
+                            this._queueXenUndoSnapshot('step');
+                        }
+                        if (t && t.closest && (t.closest('.drum-row') || t.closest('.pattern-grid'))) {
+                            // Conservative: avoid flooding, but capture pattern/drum edits
+                            this._queueXenUndoSnapshot('grid');
+                        }
+                    }, true);
+
+                    document.addEventListener('blur', (e) => {
+                        const t = e.target;
+                        if (t && t.classList && t.classList.contains('chord-name')) {
+                            this._queueXenUndoSnapshot('chord-name');
+                        }
+                    }, true);
+
+                    const ext = document.getElementById('extensionColumns');
+                    if (ext && !ext._xenUndoObserver) {
+                        const obs = new MutationObserver((mutations) => {
+                            for (const m of mutations) {
+                                if (m.type === 'childList') { this._queueXenUndoSnapshot('chord-list'); break; }
+                                if (m.type === 'attributes' && m.attributeName === 'data-len16') { this._queueXenUndoSnapshot('len16'); break; }
+                            }
+                        });
+                        obs.observe(ext, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-len16'] });
+                        ext._xenUndoObserver = obs;
+                    }
+
+                    try { this._queueXenUndoSnapshot('init'); } catch (_) { }
+                }
+
                 _setLastSelectedChordColumn(column, headerEl = null) {
                     try {
                         if (!column) return;
@@ -28007,6 +29149,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             lockButton.classList.remove('locked');
                             lockButton.title = 'Lock chord with current root & settings';
                         }
+                        try { columnElement.classList.remove('chord-length-locked'); } catch (_) { }
 
                         // Keep action buttons visible when unlocked - they should always be available
 
@@ -28173,6 +29316,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         lockButton.classList.add('locked');
                         lockButton.title = `Locked to ${this.getNoteNames()[currentRoot] || currentRoot} root with all settings`;
                     }
+                    try { columnElement.classList.add('chord-length-locked'); } catch (_) { }
 
                     // Action buttons remain visible (they should always be available)
                     // No edit/hide/duplicate header buttons anymore
@@ -28602,12 +29746,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Style the container like main columns
                     // Use real header height to size strings correctly in two-row mode
                     const headerEl = column.querySelector('.extension-header');
+                    const footerEl = column.querySelector('.extension-footer');
                     const headerPx = Math.max(56, headerEl ? headerEl.offsetHeight : 56);
+                    const footerPx = Math.max(0, footerEl ? footerEl.offsetHeight : 0);
                     stringsContainer.style.cssText = `
                     flex: 1;
                     overflow: hidden;
                     padding: 1px;
-                    height: calc(100% - ${headerPx}px);
+                    height: calc(100% - ${headerPx + footerPx}px);
                     display: flex;
                     flex-direction: column;
                     justify-content: space-evenly;
@@ -28665,7 +29811,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         stringsContainer.appendChild(stringElement);
                     });
 
-                    column.appendChild(stringsContainer);
+                    if (footerEl) column.insertBefore(stringsContainer, footerEl);
+                    else column.appendChild(stringsContainer);
 
                     // Add locked icon and visual indication this is using exact frequencies
                     const header = column.querySelector('.extension-header');
@@ -30049,7 +31196,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                  *  - Older .omg or .xen with fileType 'OMG-nichord Session' or missing schemaVersion are translated.
                  *  - Fields absent in legacy are defaulted.
                  */
-                exportXenState() {
+                exportXenState(opts = {}) {
                     // Ensure the Pattern Editor state is committed into banks BEFORE we serialize.
                     // Otherwise, dots edited in clone Pattern instances (arp2/arp3/...) may never be saved
                     // unless the user switches pattern numbers.
@@ -30826,6 +31973,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         legacy: { version: '2.0' }
                     };
 
+                    if (opts && (opts.returnObject || opts.skipDownload)) {
+                        return sessionData;
+                    }
+
                     const dataStr = JSON.stringify(sessionData, null, 2);
                     const dataBlob = new Blob([dataStr], { type: 'application/json' });
                     const url = URL.createObjectURL(dataBlob);
@@ -30838,6 +31989,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     URL.revokeObjectURL(url);
 
                     console.log('🎵 Complete session saved as .XEN file');
+                    return sessionData;
                 }
                 // Legacy alias (kept for any external references still calling old method name)
                 saveSessionAsOMG() { return this.exportXenState(); }
@@ -32678,6 +33830,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     header.style.boxShadow = 'none';
                                     header.style.color = '#9db6c8';
                                     header.style.border = '1px solid #222222';
+                                    try { column.style.setProperty('--chordbox-footer-bg', '#000000'); } catch (_) { }
                                     return;
                                 }
                             } catch (_) { }
@@ -32720,6 +33873,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             header.style.boxShadow = `0 0 10px ${accent}55`;
                             header.style.color = text;
                             header.style.border = `1px solid ${accent}`;
+                            try { column.style.setProperty('--chordbox-footer-bg', accent); } catch (_) { }
                         });
                     } catch (_) { /* noop */ }
                 }
@@ -33654,23 +34808,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     column.style.margin = '0';
                     column.style.padding = '0';
 
-                    // Create header with chord name and action buttons
+                    // Create header with chord name only
                     const header = document.createElement('div');
-                    header.className = 'extension-header';
+                    header.className = 'extension-header chordbox-header';
 
                     // Create chord name span
                     const chordName = document.createElement('span');
                     chordName.className = 'chord-name';
                     chordName.textContent = chordExt.name;
 
-                    // Create buttons container
-                    const buttonsContainer = document.createElement('div');
-                    buttonsContainer.className = 'header-buttons';
+                    // Create footer container for chordbox controls
+                    const footer = document.createElement('div');
+                    footer.className = 'extension-footer chordbox-footer';
+                    const footerControls = document.createElement('div');
+                    footerControls.className = 'chordbox-footer-controls';
 
-
-                    // (buttonsContainer kept for other action buttons)
-                    const gearBtn = this._createChordboxGearButton(column);
-                    if (gearBtn) buttonsContainer.appendChild(gearBtn);
                     // Per-column transpose controls (single-column path)
                     const { downBtn, upBtn } = createTransposeButtons();
                     let _pressGuard = false;
@@ -33720,18 +34872,48 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (oldContainer) oldContainer.remove();
                         // IMPORTANT: For custom (“+”) chords, always use the stored custom intervals
                         // to avoid wiping strings due to empty extension-derived intervals
-                        console.log('🔧 DEBUG: About to call generateStringsForColumn with intervals:', chordExt.intervals, 'isCustom:', chordExt.isCustom);
                         this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
+                        try { this._queueXenUndoSnapshot?.('local-transpose'); } catch (_) { }
                         Promise.resolve().then(() => { _pressGuard = false; });
                     };
                     const onPointer = (delta) => (e) => { e.preventDefault(); e.stopPropagation(); applyLocalTranspose(delta); };
                     upBtn.addEventListener('pointerdown', onPointer(+1));
                     downBtn.addEventListener('pointerdown', onPointer(-1));
-                    buttonsContainer.appendChild(downBtn);
-                    buttonsContainer.appendChild(upBtn);
+                    footerControls.appendChild(downBtn);
+                    footerControls.appendChild(upBtn);
+
+                    // Gear (synth settings)
+                    const gearBtn = this._createChordboxGearButton(column);
+                    if (gearBtn) footerControls.appendChild(gearBtn);
+
+                    // Per-chord synth lock
+                    const lockBtn = document.createElement('button');
+                    lockBtn.type = 'button';
+                    lockBtn.className = 'chordbox-synth-lock';
+                    lockBtn.textContent = '🔓';
+                    lockBtn.title = 'Lock chordbox synth';
+                    const toggleLock = (e) => {
+                        try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
+                        const next = !this._isChordboxSynthLocked(column, chordExt);
+                        this._setChordboxSynthLockState(column, chordExt, next);
+                    };
+                    lockBtn.addEventListener('pointerdown', (e) => {
+                        lockBtn.__skipClick = true;
+                        toggleLock(e);
+                    }, { passive: false });
+                    lockBtn.addEventListener('touchstart', (e) => {
+                        lockBtn.__skipClick = true;
+                        toggleLock(e);
+                    }, { passive: false });
+                    lockBtn.addEventListener('click', (e) => {
+                        if (lockBtn.__skipClick) { lockBtn.__skipClick = false; return; }
+                        toggleLock(e);
+                    });
+                    footerControls.appendChild(lockBtn);
+
+                    footer.appendChild(footerControls);
 
                     header.appendChild(chordName);
-                    header.appendChild(buttonsContainer);
 
                     // Root-based header color (no greys)
                     try {
@@ -33789,6 +34971,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         header.style.boxShadow = `0 0 10px ${accent}55`;
                         header.style.color = text;
                         header.style.border = `1px solid ${accent}`;
+                        try { column.style.setProperty('--chordbox-footer-bg', accent); } catch (_) { }
                     } catch (_) { }
 
                     // Short click on header handled by generic gesture routing elsewhere
@@ -33798,6 +34981,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Generate strings for this chord using the shared renderer
                     const intervals = this.getChordIntervals(chordExt.extensions || []);
                     this.generateStringsForColumn(column, intervals, chordExt.isCustom || false);
+                    column.appendChild(footer);
+                    try { this._setChordboxSynthLockState(column, chordExt, !!chordExt.synthLocked, { force: true }); } catch (_) { }
                     // Initialize per-column local transpose from model, defaulting to 0
                     if (!column.dataset.localTranspose) column.dataset.localTranspose = String(chordExt.localTranspose || 0);
 
@@ -34057,9 +35242,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             column.dataset.isSpacer = 'true';
                         }
 
-                        // Create header with chord name and action buttons
+                        // Create header with chord name only
                         const header = document.createElement('div');
-                        header.className = 'extension-header';
+                        header.className = 'extension-header chordbox-header';
 
                         // Create chord name span (inline-editable)
                         const chordName = document.createElement('span');
@@ -34097,16 +35282,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             chordName.textContent = chordExt.name;
                         }
 
-                        // Create buttons container
-                        const buttonsContainer = document.createElement('div');
-                        buttonsContainer.className = 'header-buttons';
-
-                        // Create hide button (ALWAYS VISIBLE)
-
+                        // Create footer container for chordbox controls
+                        const footer = document.createElement('div');
+                        footer.className = 'extension-footer chordbox-footer';
+                        const footerControls = document.createElement('div');
+                        footerControls.className = 'chordbox-footer-controls';
 
                         // Per-column transpose controls
                         const gearBtn = this._createChordboxGearButton(column);
-                        if (gearBtn) buttonsContainer.appendChild(gearBtn);
                         const { downBtn, upBtn } = createTransposeButtons();
                         // Prevent double-fire on touch; normalize modulo
                         let _pressGuard = false;
@@ -34115,14 +35298,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (_pressGuard) return; // avoid accidental double-fire on first tap
                             _pressGuard = true;
                             const edoNow = chordExt.fixedRootTuning || this.currentTuning || 24; // use column/root tuning
-
-                            console.log('=== LOCAL TRANSPOSE RESPELLING (v2) ===');
-                            console.log('Transposing chord by', delta, 'steps in', edoNow, 'EDO');
-                            console.log('this.currentTuning =', this.currentTuning);
-                            console.log('Current intervals:', chordExt.intervals);
-                            console.log('Current chord should be CEG in 24EDO: [0, 8, 14]');
-                            console.log('Current fixedRootStepAbs:', chordExt.fixedRootStepAbs);
-                            console.log('Current fixedRootStepAbs:', chordExt.fixedRootStepAbs);
 
                             // Non-baking: adjust local transpose offset only
                             const prevLocal = parseInt(column.dataset.localTranspose || '0', 10) || 0;
@@ -34176,6 +35351,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
                             }
                             try { this.currentActiveColumnEl = column; this.highlightKeyboardForColumn(column); } catch { }
+                            try { this._queueXenUndoSnapshot?.('local-transpose'); } catch (_) { }
                             Promise.resolve().then(() => { _pressGuard = false; });
                         };
                         const onPointer = (delta) => (e) => { e.preventDefault(); e.stopPropagation(); applyLocalTranspose(delta); };
@@ -34189,13 +35365,40 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                         // pointerdown covers mouse/touch/pen without double fires
 
-                        // Add buttons to container
-                        // Keep only local transpose and piano lock
-                        buttonsContainer.appendChild(downBtn);
-                        buttonsContainer.appendChild(upBtn);
+                        // Add buttons to footer
+                        // Keep only local transpose and synth lock
+                        footerControls.appendChild(downBtn);
+                        footerControls.appendChild(upBtn);
+                        if (gearBtn) footerControls.appendChild(gearBtn);
+
+                        // Per-chord synth lock
+                        const lockBtn = document.createElement('button');
+                        lockBtn.type = 'button';
+                        lockBtn.className = 'chordbox-synth-lock';
+                        lockBtn.textContent = '🔓';
+                        lockBtn.title = 'Lock chordbox synth';
+                        const toggleLock = (e) => {
+                            try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
+                            const next = !this._isChordboxSynthLocked(column, chordExt);
+                            this._setChordboxSynthLockState(column, chordExt, next);
+                        };
+                        lockBtn.addEventListener('pointerdown', (e) => {
+                            lockBtn.__skipClick = true;
+                            toggleLock(e);
+                        }, { passive: false });
+                        lockBtn.addEventListener('touchstart', (e) => {
+                            lockBtn.__skipClick = true;
+                            toggleLock(e);
+                        }, { passive: false });
+                        lockBtn.addEventListener('click', (e) => {
+                            if (lockBtn.__skipClick) { lockBtn.__skipClick = false; return; }
+                            toggleLock(e);
+                        });
+                        footerControls.appendChild(lockBtn);
+
+                        footer.appendChild(footerControls);
 
                         header.appendChild(chordName);
-                        header.appendChild(buttonsContainer);
 
                         // Root-based header color (no greys)
                         try {
@@ -34328,10 +35531,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                         column.appendChild(header);
 
-                        // Add elements to header
-                        header.appendChild(chordName);
-                        header.appendChild(buttonsContainer);
-
                         // Remove duplicate simplified handler; playback handled above
 
                         column.appendChild(header);
@@ -34362,6 +35561,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         }
 
+                        column.appendChild(footer);
+                        try { this._setChordboxSynthLockState(column, chordExt, !!chordExt.synthLocked, { force: true }); } catch (_) { }
+
                         // Enable long-press drag reordering
                         this.attachColumnDragHandlers(column);
                         if (useTwoRows) {
@@ -34371,8 +35573,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const sc = column.querySelector('.strings-column');
                             if (sc) {
                                 const headerEl = column.querySelector('.extension-header');
+                                const footerEl = column.querySelector('.extension-footer');
                                 const headerPx = Math.max(56, headerEl ? headerEl.offsetHeight : 56);
-                                sc.style.height = `calc(100% - ${headerPx}px)`;
+                                const footerPx = Math.max(0, footerEl ? footerEl.offsetHeight : 0);
+                                sc.style.height = `calc(100% - ${headerPx + footerPx}px)`;
                             }
                         } else {
                             container.appendChild(column);
@@ -34865,14 +36069,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         stringsContainer.className = 'strings-column';
                         // Compute dynamic header height for robust layout in two-row mode
                         const headerEl = column.querySelector('.extension-header');
+                        const footerEl = column.querySelector('.extension-footer');
                         const headerPx = Math.max(56, headerEl ? headerEl.offsetHeight : 56);
-                        stringsContainer.style.cssText = `flex:1; overflow:hidden; padding:1px; height: calc(100% - ${headerPx}px); display:flex; flex-direction:column; justify-content:center; align-items:center; color:#8fb3d3; font-size:12px; opacity:0.8;`;
+                        const footerPx = Math.max(0, footerEl ? footerEl.offsetHeight : 0);
+                        stringsContainer.style.cssText = `flex:1; overflow:hidden; padding:1px; height: calc(100% - ${headerPx + footerPx}px); display:flex; flex-direction:column; justify-content:center; align-items:center; color:#8fb3d3; font-size:12px; opacity:0.8;`;
                         // Respect global invert-strings preference
                         try { if (document.documentElement.classList.contains('invert-strings')) stringsContainer.style.flexDirection = 'column-reverse'; } catch (_) { }
                         const hint = document.createElement('div');
                         hint.textContent = 'Tap keys to add notes';
                         stringsContainer.appendChild(hint);
-                        column.appendChild(stringsContainer);
+                        const footerElInsert = column.querySelector('.extension-footer');
+                        if (footerElInsert) column.insertBefore(stringsContainer, footerElInsert);
+                        else column.appendChild(stringsContainer);
                         // Footer removed; ensure fit after insertion
                         this.ensureStringsFullyVisible(stringsContainer);
                         return;
@@ -35120,13 +36328,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     stringsContainer.className = 'strings-column';
                     // Use real header height if available to avoid clipping
                     const headerEl = column.querySelector('.extension-header');
+                    const footerEl = column.querySelector('.extension-footer');
                     const headerPx = Math.max(56, headerEl ? headerEl.offsetHeight : headerHeight);
-                    const stringsHeightPx = Math.max(0, (column.offsetHeight || availableHeight) - headerPx - 2);
+                    const footerPx = Math.max(0, footerEl ? footerEl.offsetHeight : 0);
+                    const stringsHeightPx = Math.max(0, (column.offsetHeight || availableHeight) - headerPx - footerPx - 2);
                     stringsContainer.style.cssText = `
                     flex: 1;
                     overflow: hidden;
                     padding: 1px 1px 8px 1px; /* bottom bounding box */
-                    height: calc(100% - ${headerPx}px);
+                    height: calc(100% - ${headerPx + footerPx}px);
                     display: flex;
                     flex-direction: column;
                     justify-content: flex-start; /* we'll distribute gaps manually */
@@ -35219,7 +36429,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         core.style.setProperty('--vib-period', period + 'ms');
                     });
                     // Append first, then fit and apply play mode
-                    column.appendChild(stringsContainer);
+                    const footerElInsert = column.querySelector('.extension-footer');
+                    if (footerElInsert) column.insertBefore(stringsContainer, footerElInsert);
+                    else column.appendChild(stringsContainer);
                     // Footer removed; height already correct. Now ensure fit and stretch gaps to fill height.
                     this.ensureStringsFullyVisible(stringsContainer);
                     try { this._distributeStringGapsToFill(stringsContainer); } catch (_) { }
@@ -44333,6 +45545,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (nameEl) {
                                 nameEl.textContent = rootLabel;
                                 nameEl.dataset.lockedName = rootLabel;
+                                try { nameEl.blur && nameEl.blur(); } catch (_) { }
                             }
                             try { column.dataset.lastIntervals = JSON.stringify(model.intervals || []); } catch (_) { }
                             const oldContainer = column.querySelector('.strings-column');
@@ -44347,6 +45560,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch (_) { }
                             try { this.saveChordConfiguration?.(); } catch (_) { }
                             try { this.updateChordDisplay?.(); } catch (_) { }
+                            try { this._pushEditUndoState('chord-note', { force: true }); } catch (_) { }
                             return;
                         }
 
@@ -44372,13 +45586,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
 
                         if (absSteps.length) {
-                            const label = this.computeFullChordNameFromAbsoluteSteps(absSteps, tuning);
+                            const label = this.computeFullChordNameFromAbsoluteSteps(absSteps, tuning) || this.getRootNameForStep(absStep, tuning);
                             if (label) {
                                 model.name = label;
                                 const nameEl = column.querySelector('.extension-header .chord-name');
                                 if (nameEl) {
                                     nameEl.textContent = label;
                                     nameEl.dataset.lockedName = label;
+                                    try { nameEl.blur && nameEl.blur(); } catch (_) { }
                                 }
                             }
                         } else {
@@ -44387,6 +45602,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (nameEl) {
                                 nameEl.textContent = 'New';
                                 nameEl.dataset.lockedName = '';
+                                try { nameEl.blur && nameEl.blur(); } catch (_) { }
                             }
                         }
 
@@ -44397,6 +45613,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try { this.highlightKeyboardForColumn(column); } catch (_) { }
                         try { this.saveChordConfiguration?.(); } catch (_) { }
                         try { this.updateChordDisplay?.(); } catch (_) { }
+                        try { this._pushEditUndoState('chord-note', { force: true }); } catch (_) { }
                     } catch (_) { }
                 }
 
@@ -45729,6 +46946,29 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 autoharp = new MicrotonalOmnichord();
                 window.autoharp = autoharp; // Make it globally accessible
                 try { autoharp.setDebug?.(true); console.log('[DEBUG] window.load: autoharp ready; debug=', !!autoharp._debug); } catch (_) { }
+                try { autoharp._wireGlueGestures?.(); } catch (_) { }
+                try { autoharp._wireGlobalUndoTracking?.(); } catch (_) { }
+                // Touch-safe chordbox synth lock (delegated)
+                if (!window.__chordboxSynthLockTouchWired) {
+                    window.__chordboxSynthLockTouchWired = true;
+                    const handleChordboxLock = (e) => {
+                        const btn = e.target?.closest?.('.chordbox-synth-lock');
+                        if (!btn || !window.autoharp) return;
+                        try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
+                        const now = (performance?.now ? performance.now() : Date.now());
+                        if (btn.__lastLockTap && (now - btn.__lastLockTap) < 300 && e.type !== 'click') return;
+                        btn.__lastLockTap = now;
+                        const column = btn.closest('.extension-column');
+                        const model = window.autoharp._getChordModelFromColumn ? window.autoharp._getChordModelFromColumn(column) : null;
+                        const next = !window.autoharp._isChordboxSynthLocked(column, model);
+                        window.autoharp._setChordboxSynthLockState(column, model, next);
+                    };
+                    document.addEventListener('pointerdown', handleChordboxLock, { passive: false, capture: true });
+                    document.addEventListener('pointerup', handleChordboxLock, { passive: false, capture: true });
+                    document.addEventListener('touchstart', handleChordboxLock, { passive: false, capture: true });
+                    document.addEventListener('touchend', handleChordboxLock, { passive: false, capture: true });
+                    document.addEventListener('click', handleChordboxLock, { passive: false, capture: true });
+                }
                 try {
                     const chordsBtn = document.getElementById('chordsBtn');
                     if (chordsBtn) chordsBtn.classList.toggle('active', !!autoharp.chordsEnabled);
@@ -50140,6 +51380,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         saveXenBtn.addEventListener('click', () => {
                             const originalBtn = document.getElementById('bottomExportOMGBtn');
                             if (originalBtn) originalBtn.click();
+                        });
+                    }
+
+                    const undoBtnSidebar = document.getElementById('undoBtnSidebar');
+                    if (undoBtnSidebar) {
+                        undoBtnSidebar.addEventListener('click', () => {
+                            try { window.autoharp && autoharp.undoXen && autoharp.undoXen(); } catch (_) { }
+                        });
+                    }
+
+                    const redoBtnSidebar = document.getElementById('redoBtnSidebar');
+                    if (redoBtnSidebar) {
+                        redoBtnSidebar.addEventListener('click', () => {
+                            try { window.autoharp && autoharp.redoXen && autoharp.redoXen(); } catch (_) { }
                         });
                     }
 
