@@ -4458,6 +4458,12 @@
                             step="1" style="height:20px;">
                         <div class="slider-value" id="chordboxTransposeValue" style="font-size:9px;">0 steps</div>
                     </div>
+                    <div class="slider-container">
+                        <label style="font-size:9px;">Octave</label>
+                        <input type="range" class="synth-slider" id="chordboxOctave" min="-4" max="4" value="0"
+                            step="1" style="height:20px;">
+                        <div class="slider-value" id="chordboxOctaveValue" style="font-size:9px;">0 (0 steps)</div>
+                    </div>
                 </div>
                 <h6 style="font-size:10px; margin:6px 0 4px 0; color:#f39c12;">Envelope</h6>
                 <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:3px;">
@@ -5305,8 +5311,8 @@
                                     style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;">CLEAR</button>
                                 <select id="universalPattern" title="ARP Pattern"
                                     style="width:80px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:2px 4px;font-size:11px;">
-                                    <option value="up" selected>Up</option>
-                                    <option value="down">Down</option>
+                                    <option value="up">Up</option>
+                                    <option value="down" selected>Down</option>
                                     <option value="updown">UpDn</option>
                                     <option value="downup">DnUp</option>
                                     <option value="walk-up">Walk↑</option>
@@ -12968,7 +12974,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         level: 0.5,
                         fxSend: 1.0,
                         env: { attack: 0.01, decay: 0.2, sustain: 0.8, release: 0.4 },
-                        pitch: { transpose: 0, detune: 0 },
+                        pitch: { transpose: 0, detune: 0, octave: 0 },
                         pulseWidth: 0.5,
                         shapeWidth: 0.5,
                         midi: { enabled: false, deviceId: '', channel: 1 }
@@ -17775,6 +17781,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         ? safeSynth.oscType
                         : 'sine';
                     const transpose = Math.max(-24, Math.min(24, parseInt(safeSynth?.pitch?.transpose || 0, 10) || 0));
+                    const edoSteps = (this.currentTuning || this.getTuningStepsPerOctave?.() || 12);
+                    const octaveSteps = Math.max(-4, Math.min(4, parseInt(safeSynth?.pitch?.octave || 0, 10) || 0)) * edoSteps;
                     const pulseWidth = Math.max(0.05, Math.min(0.95, Number(safeSynth?.pulseWidth ?? 0.5)));
                     const shapeWidth = Math.max(0, Math.min(1, Number(safeSynth?.shapeWidth ?? 0.5)));
                     return {
@@ -17784,7 +17792,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             detune: Number(safeSynth?.pitch?.detune || 0),
                             level: this._chordboxLevelToGain(safeSynth?.level),
                             octave: 0,
-                            coarse: transpose,
+                            coarse: transpose + octaveSteps,
                             pulseWidth: pulseWidth,
                             shapeWidth: shapeWidth
                         },
@@ -17838,6 +17846,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const transVal = document.getElementById('chordboxTransposeValue');
                     if (transEl) transEl.value = String(parseInt(target?.pitch?.transpose || 0, 10) || 0);
                     if (transVal) transVal.textContent = `${parseInt(target?.pitch?.transpose || 0, 10) || 0} steps`;
+                    const octEl = document.getElementById('chordboxOctave');
+                    const octVal = document.getElementById('chordboxOctaveValue');
+                    if (octEl) octEl.value = String(parseInt(target?.pitch?.octave || 0, 10) || 0);
+                    if (octVal) {
+                        const edo = this.currentTuning || this.getTuningStepsPerOctave?.() || 12;
+                        const ov = parseInt(target?.pitch?.octave || 0, 10) || 0;
+                        const steps = ov * edo;
+                        const sign = ov > 0 ? '+' : '';
+                        octVal.textContent = `${sign}${ov} (${steps} steps)`;
+                    }
                     const atkEl = document.getElementById('chordboxAttack');
                     const atkVal = document.getElementById('chordboxAttackValue');
                     if (atkEl) atkEl.value = String(Math.round((target?.env?.attack || 0.01) * 1000));
@@ -18072,6 +18090,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             synth.pitch.transpose = val;
                             const v = document.getElementById('chordboxTransposeValue');
                             if (v) v.textContent = `${val} steps`;
+                        });
+                    }
+                    const octEl = document.getElementById('chordboxOctave');
+                    if (octEl) {
+                        octEl.addEventListener('input', (e) => {
+                            if (isLocked()) return;
+                            const model = getTarget();
+                            if (!model) return;
+                            const synth = this._ensureChordboxSynthConfig(model);
+                            const val = Math.max(-4, Math.min(4, parseInt(e.target.value || '0', 10) || 0));
+                            synth.pitch.octave = val;
+                            const v = document.getElementById('chordboxOctaveValue');
+                            if (v) {
+                                const edo = this.currentTuning || this.getTuningStepsPerOctave?.() || 12;
+                                const steps = val * edo;
+                                const sign = val > 0 ? '+' : '';
+                                v.textContent = `${sign}${val} (${steps} steps)`;
+                            }
                         });
                     }
                     const atkEl = document.getElementById('chordboxAttack');
@@ -25134,7 +25170,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this.playMode = this.playMode || 'high-low';
                     // STRUM semantics (legacy): UP/DOWN describe DISPLAY orientation (high-at-top vs low-at-top).
                     // ALT modes change traversal pattern but should not implicitly flip orientation.
-                    this.strumMode = this.strumMode || 'up'; // up | down | alt-centers | alt-ends
+                    this.strumMode = this.strumMode || 'down'; // up | down | alt-centers | alt-ends
                     this.strumOrientation = this.strumOrientation || ((this.strumMode === 'down') ? 'down' : 'up'); // up | down
                     // STRUM is always enabled; CHORD vs ARP is a single exclusive toggle
                     this.strumEnabled = true;
@@ -27658,7 +27694,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (!this._isSequencing) return;
                                 // Only act when ARP is engaged or a sequence is active
                                 const patEl = document.getElementById('universalPattern');
-                                const pat = (patEl && patEl.value) ? patEl.value : (this._arp?.pattern || 'up');
+                                const pat = (patEl && patEl.value) ? patEl.value : (this._arp?.pattern || 'down');
                                 if (!this._arpTransport) this._ensureArpTransport();
                                 if (!this._arp) this._ensureArpDefaults();
                                 // If no column context, ignore
@@ -31614,7 +31650,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         transportBpm: bpmForSave,
                         quantize: document.getElementById('universalQuant')?.value || 'beat:1',
                         timeSignature: document.getElementById('universalTimeSignature')?.value || '4/4',
-                        pattern: document.getElementById('universalPattern')?.value || 'up',
+                        pattern: document.getElementById('universalPattern')?.value || 'down',
                         // Persist custom typed pattern (if any) from companion text field
                         patternText: document.getElementById('universalPatternText')?.value || '',
                         loop: loopForSave,
@@ -31629,7 +31665,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             chordsNpc: this._arp?.chordsNpc || 3,
                             chordQuant: this._arp?.chordQuant || '1/4',
                             chordsHold: this._arp?.chordsHold || 'bar:1',
-                            pattern: this._arp?.pattern || 'up',
+                            pattern: this._arp?.pattern || 'down',
                             gateMs: this._arp?.gateMs || 50,
                             gatePct: this._arp?.gatePct || 50,
                             glide: this._arp?.glide || false,
@@ -31644,7 +31680,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                         // ==== STRUM SETTINGS ====
                         strumDelayMs: this.strumDelayMs,
-                        strumMode: this.strumMode || 'up',
+                        strumMode: this.strumMode || 'down',
 
                         // ==== SLIDE SETTINGS ====
                         chordSlideEnabled: !!document.getElementById('chordSlide')?.checked,
@@ -36945,7 +36981,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         chordsHold: 'bar:1',
                         npc: 3,
                         chordsNpc: 3,
-                        pattern: 'up',
+                        pattern: 'down',
                         gatePct: 50,
                         // Sequence/chord state
                         active: false,
@@ -39012,7 +39048,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         return o >= 3 && o <= 9; // C3–C9 range for pattern arpeggios
                     });
                     const npc = Math.max(1, (this._getGlobalNpc ? this._getGlobalNpc() : (this._arp.npc | 0)));
-                    const pat = this._arp.pattern || 'up';
+                    const pat = this._arp.pattern || 'down';
                     // Determine tapped step within tapped octave for anchoring NPC palette
                     let tappedStep = null;
                     try {
@@ -49995,7 +50031,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 // Apply pattern to generate proper ARP sequence
                                                 let arpSeq = [];
                                                 if (arpOn) {
-                                                    const pattern = autoharp._arp?.pattern || 'up';
+                                                    const pattern = autoharp._arp?.pattern || 'down';
                                                     // Use builder only for custom typed patterns; otherwise, build from npcEffective so tensions are included
                                                     let usedBuilder = false;
                                                     try {
@@ -50339,7 +50375,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         // Apply pattern to generate proper ARP sequence
                                         let arpSeq = [];
                                         if (arpOn) {
-                                            const pattern = autoharp._arp?.pattern || 'up';
+                                            const pattern = autoharp._arp?.pattern || 'down';
                                             // Prefer central builder only when a custom pattern text is provided
                                             let usedBuilder = false;
                                             try {
@@ -50872,7 +50908,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const rowsAll = Array.from(col.querySelectorAll('.strings-column .string'));
                                 const within = rowsAll.filter(r => { const o = parseInt(r.dataset.octave || '0', 10); return o >= 5 && o <= 9; });
                                 const npc = Math.max(1, (autoharp._getGlobalNpc ? autoharp._getGlobalNpc() : (autoharp._arp?.npc | 0) || 3));
-                                const seq = autoharp._buildArpSequence(within, autoharp._arp.pattern || 'up', null).slice(0, npc);
+                                const seq = autoharp._buildArpSequence(within, autoharp._arp.pattern || 'down', null).slice(0, npc);
                                 if (!autoharp._arpTransport) autoharp._ensureArpTransport();
                                 const absTick = autoharp._arpTransport.absTickCounter | 0;
                                 autoharp._arp.pendingSwitch = { atAbsTick: (absTick + 1) >>> 0, alignPhaseToTickCounter: false, seq, bassFreq: autoharp._arp.bassFreq, column: col };
