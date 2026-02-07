@@ -32059,6 +32059,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                 // ==== CHORD DATA ====
                                 if (sessionData.chordExtensions) this.chordExtensions = sessionData.chordExtensions;
+                                const _ensureChordBasics = (list) => {
+                                    try {
+                                        if (!Array.isArray(list)) return [];
+                                        list.forEach((c, i) => {
+                                            if (!c || typeof c !== 'object') return;
+                                            if (!c.id) c.id = `ch_${i}_${Date.now()}`;
+                                            const len16 = parseInt(c.len16, 10);
+                                            c.len16 = (Number.isFinite(len16) && len16 > 0) ? Math.max(1, Math.min(1024, len16 | 0)) : 16;
+                                            if (typeof c.localTranspose !== 'number') c.localTranspose = 0;
+                                            c.position = i;
+                                        });
+                                        return list;
+                                    } catch (_) { return list || []; }
+                                };
+                                this.chordExtensions = _ensureChordBasics(this.chordExtensions);
                                 if (sessionData.customChords) this.customChords = sessionData.customChords;
                                 if (sessionData.paletteChords) this.paletteChords = sessionData.paletteChords;
                                 if (sessionData.currentRoot !== undefined) this.currentRoot = sessionData.currentRoot;
@@ -32071,6 +32086,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 try {
                                     if (Array.isArray(sessionData.sections) && sessionData.sections.length) {
                                         window._sections = cloneJson(sessionData.sections);
+                                        // If a section state is missing chordExtensions (or empty), hydrate it from top-level
+                                        try {
+                                            const topChords = Array.isArray(sessionData.chordExtensions) ? cloneJson(sessionData.chordExtensions) : [];
+                                            if (topChords.length) {
+                                                window._sections.forEach(sec => {
+                                                    if (!sec || typeof sec !== 'object') return;
+                                                    sec.state = (sec.state && typeof sec.state === 'object') ? sec.state : {};
+                                                    const hasChords = Array.isArray(sec.state.chordExtensions) && sec.state.chordExtensions.length;
+                                                    if (!hasChords) sec.state.chordExtensions = cloneJson(topChords);
+                                                });
+                                            }
+                                        } catch (_) { }
                                         // Force loop markers to full range for every section on load
                                         window._sections.forEach(sec => {
                                             if (!sec || typeof sec !== 'object') return;
@@ -32109,17 +32136,59 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     this.lockedChords = new Map();
                                     this.savedLockedChords = sessionData.lockedChords;
 
-                                    // Convert locked chords to chord extensions that will appear as locked
-                                    this.chordExtensions = [...(this.chordExtensions || []), ...sessionData.lockedChords.map(locked => ({
-                                        name: locked.chordName,
-                                        intervals: locked.intervals,
-                                        extensions: locked.extensions || [],
-                                        quality: locked.quality || 'custom',
-                                        isCustom: true,
-                                        isLocked: true,
-                                        lockedData: locked,
-                                        position: locked.originalPosition || 0
-                                    }))];
+                                    const list = Array.isArray(this.chordExtensions) ? this.chordExtensions : [];
+                                    const hasLockedInList = list.some(ext => ext && (ext.isLocked || ext.lockedData));
+                                    const sameIntervals = (a, b) => {
+                                        try {
+                                            if (!Array.isArray(a) || !Array.isArray(b)) return false;
+                                            if (a.length !== b.length) return false;
+                                            for (let i = 0; i < a.length; i++) {
+                                                if (Number(a[i]) !== Number(b[i])) return false;
+                                            }
+                                            return true;
+                                        } catch (_) { return false; }
+                                    };
+                                    const findExisting = (locked) => {
+                                        try {
+                                            const name = (locked && locked.chordName) ? String(locked.chordName).trim() : '';
+                                            const lockId = locked && (locked.lockId || locked.id) ? String(locked.lockId || locked.id) : '';
+                                            let found = null;
+                                            if (lockId) found = list.find(ext => ext && ext.id != null && String(ext.id) === lockId) || null;
+                                            if (!found && name) found = list.find(ext => ext && String(ext.name || '').trim() === name) || null;
+                                            if (!found && locked && Array.isArray(locked.intervals)) {
+                                                found = list.find(ext => ext && sameIntervals(ext.intervals, locked.intervals)) || null;
+                                            }
+                                            return found;
+                                        } catch (_) { return null; }
+                                    };
+
+                                    if (hasLockedInList) {
+                                        list.forEach(ext => {
+                                            if (ext && ext.lockedData) ext.isLocked = true;
+                                        });
+                                    } else {
+                                        sessionData.lockedChords.forEach(locked => {
+                                            const existing = findExisting(locked);
+                                            if (existing) {
+                                                existing.isLocked = true;
+                                                existing.lockedData = locked;
+                                                return;
+                                            }
+                                            const len16 = parseInt(locked.len16, 10);
+                                            list.push({
+                                                name: locked.chordName,
+                                                intervals: locked.intervals,
+                                                extensions: locked.extensions || [],
+                                                quality: locked.quality || 'custom',
+                                                isCustom: true,
+                                                isLocked: true,
+                                                lockedData: locked,
+                                                position: list.length,
+                                                len16: (Number.isFinite(len16) && len16 > 0) ? Math.max(1, Math.min(1024, len16 | 0)) : 16
+                                            });
+                                        });
+                                    }
+                                    this.chordExtensions = _ensureChordBasics(list);
                                 }
 
                                 // ==== PIANO LOCK DATA RESTORATION ====
@@ -32968,6 +33037,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 setTimeout(reapplyInstances, 120);
                                             }
                                         } catch (_) { }
+                                    } catch (_) { }
+
+                                    // If chords exist but none render, clear hiddenColumns and force rebuild
+                                    try {
+                                        const container = document.getElementById('extensionColumns');
+                                        const visible = container ? container.querySelectorAll('.extension-column').length : 0;
+                                        if (Array.isArray(this.chordExtensions) && this.chordExtensions.length && visible === 0) {
+                                            if (Array.isArray(this.hiddenColumns) && this.hiddenColumns.length) this.hiddenColumns = [];
+                                            if (typeof this.generateExtensionColumns === 'function') this.generateExtensionColumns({ force: true });
+                                        }
                                     } catch (_) { }
                                 } catch (_) { }
 
