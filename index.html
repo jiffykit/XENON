@@ -4460,8 +4460,8 @@
                     </div>
                     <div class="slider-container">
                         <label style="font-size:9px;">Octave</label>
-                        <input type="range" class="synth-slider" id="chordboxOctave" min="-4" max="4" value="0"
-                            step="1" style="height:20px;">
+                        <input type="range" class="synth-slider" id="chordboxOctave" min="-4" max="4" value="0" step="1"
+                            style="height:20px;">
                         <div class="slider-value" id="chordboxOctaveValue" style="font-size:9px;">0 (0 steps)</div>
                     </div>
                 </div>
@@ -11817,6 +11817,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const els = Array.from(container.querySelectorAll('.repeat-marker-column, .extension-separator, .extension-column'));
                         if (!els.length) return Array.isArray(omni?.chordExtensions) ? cloneJson(omni.chordExtensions) : [];
 
+                        const midiOutNameById = (() => {
+                            try {
+                                const m = window.midi;
+                                if (!m || !m.outputs) return new Map();
+                                const mp = new Map();
+                                Array.from(m.outputs.values()).forEach(o => {
+                                    if (o && o.id) mp.set(o.id, o.name || o.id);
+                                });
+                                return mp;
+                            } catch (_) { return new Map(); }
+                        })();
+                        const stampChordboxMidiName = (obj) => {
+                            try {
+                                const midi = obj?.synth?.midi;
+                                if (!midi) return;
+                                const id = String(midi.deviceId || '');
+                                if (!id) return;
+                                const name = midiOutNameById.get(id);
+                                if (name) midi.deviceName = name;
+                            } catch (_) { }
+                        };
+
                         const src = Array.isArray(omni.chordExtensions) ? omni.chordExtensions : [];
                         const out = [];
                         const present = new Set();
@@ -11895,6 +11917,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         const chordId = el?.dataset?.chordId ? String(el.dataset.chordId) : '';
                                         base.id = chordId || `ch_${idx}_${Date.now()}`;
                                     }
+                                    stampChordboxMidiName(base);
                                     base.position = out.length;
                                     out.push(base);
                                     present.add(String(base.id));
@@ -11917,6 +11940,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (present.has(key)) return;
                                 const extra = cloneJson(c);
                                 if (!extra.id) extra.id = key;
+                                stampChordboxMidiName(extra);
                                 extra.position = out.length;
                                 out.push(extra);
                                 present.add(String(extra.id));
@@ -18184,7 +18208,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const model = getTarget();
                             if (!model) return;
                             const synth = this._ensureChordboxSynthConfig(model);
-                            synth.midi.deviceId = String(e.target.value || '');
+                            const selId = String(e.target.value || '');
+                            synth.midi.deviceId = selId;
+                            let name = '';
+                            try {
+                                const opt = e.target && e.target.selectedOptions ? e.target.selectedOptions[0] : null;
+                                name = opt ? String(opt.textContent || '').trim() : '';
+                            } catch (_) { }
+                            if (!name && selId && window.midi && window.midi.outputs && window.midi.outputs.has(selId)) {
+                                try { name = String(window.midi.outputs.get(selId)?.name || selId); } catch (_) { }
+                            }
+                            if (name) synth.midi.deviceName = name; else if (!selId) synth.midi.deviceName = '';
                         });
                     }
                     const midiChannel = document.getElementById('chordboxMidiChannel');
@@ -31221,7 +31255,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                  *   reverb, panning,
                  *   textChordInput,
                  *   drums: { active, patterns: { index: number[][] }, laneControls:[{vol,fx,midi,pPitch,pAtk,pDec}...], bass:[{npc,len,on}...] },
-                 *   midi: { outputPortMap, inputChannelMap, perSourceOctave, perSourceVelocity, defaultVelocity, octaveOffset, channelMap },
+                 *   midi: { outputPortMap, outputPortNameMap, inputChannelMap, perSourceOctave, perSourceVelocity, defaultVelocity, octaveOffset, channelMap, enabled },
                  *   sequencePresets, instrumentPresets, effectsPresets,
                  *   currentActiveColumnEl: { chordName, index } | null,
                  *   visualChordSequence: [ { name, intervals, position:{ index } } ],
@@ -31343,6 +31377,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const out = [];
                             const present = new Set();
 
+                            const midiOutNameById = (() => {
+                                try {
+                                    const m = window.midi;
+                                    if (!m || !m.outputs) return new Map();
+                                    const mp = new Map();
+                                    Array.from(m.outputs.values()).forEach(o => {
+                                        if (o && o.id) mp.set(o.id, o.name || o.id);
+                                    });
+                                    return mp;
+                                } catch (_) { return new Map(); }
+                            })();
+                            const stampChordboxMidiName = (obj) => {
+                                try {
+                                    const midi = obj?.synth?.midi;
+                                    if (!midi) return;
+                                    const id = String(midi.deviceId || '');
+                                    if (!id) return;
+                                    const name = midiOutNameById.get(id);
+                                    if (name) midi.deviceName = name;
+                                } catch (_) { }
+                            };
+
                             const findChordByEl = (el) => {
                                 try {
                                     const chordId = el?.dataset?.chordId ? String(el.dataset.chordId) : null;
@@ -31427,6 +31483,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             const chordId = el?.dataset?.chordId ? String(el.dataset.chordId) : '';
                                             base.id = chordId || `ch_${idx}_${Date.now()}`;
                                         }
+                                        stampChordboxMidiName(base);
                                         base.position = out.length;
                                         out.push(base);
                                         present.add(String(base.id));
@@ -31450,6 +31507,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     if (present.has(key)) return;
                                     const extra = cloneJson(c);
                                     if (!extra.id) extra.id = key;
+                                    stampChordboxMidiName(extra);
                                     extra.position = out.length;
                                     out.push(extra);
                                     present.add(String(extra.id));
@@ -31811,14 +31869,31 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try {
                                 const m = (window && window.midi) ? window.midi : null;
                                 if (!m) return {};
+                                const outputPortNameMap = {};
+                                try {
+                                    const outs = m.outputs ? Array.from(m.outputs.values()) : [];
+                                    const idToName = new Map();
+                                    outs.forEach(o => {
+                                        if (o && o.id) idToName.set(o.id, o.name || o.id);
+                                    });
+                                    const map = m.outputPortMap || {};
+                                    Object.keys(map).forEach(key => {
+                                        const id = map[key];
+                                        if (!id) return;
+                                        const nm = idToName.get(id);
+                                        if (nm) outputPortNameMap[key] = nm;
+                                    });
+                                } catch (_) { }
                                 return {
                                     outputPortMap: { ...(m.outputPortMap || {}) },
+                                    outputPortNameMap,
                                     inputChannelMap: { ...(m.inputChannelMap || {}) },
                                     perSourceOctave: { ...(m.perSourceOctave || {}) },
                                     perSourceVelocity: { ...(m.perSourceVelocity || {}) },
                                     defaultVelocity: m.defaultVelocity || 100,
                                     octaveOffset: m.octaveOffset || 0,
-                                    channelMap: { ...(m.channelMap || {}) }
+                                    channelMap: { ...(m.channelMap || {}) },
+                                    enabled: !!m.enabled
                                 };
                             } catch (_) { return {}; }
                         })(),
@@ -32005,7 +32080,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         savedDate: new Date().toISOString(),
                         fileType: 'Xenmicord Session',
                         appVersion: 'Xenmicord v2.0',
-                        schemaVersion: '2.4',
+                        schemaVersion: '2.5',
                         legacy: { version: '2.0' }
                     };
 
@@ -32041,7 +32116,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             return;
                         }
                         const reader = new FileReader();
-                        reader.onload = (e) => {
+                        reader.onload = async (e) => {
                             try {
                                 const sessionData = JSON.parse(e.target.result);
                                 const isNewFormat = sessionData.fileType === 'Xenmicord Session';
@@ -32593,29 +32668,95 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     }
                                 } catch (_) { }
 
-                                // ==== MIDI ROUTING RESTORATION (per-section OUT selections etc.) ====
-                                try {
-                                    const m = sessionData.midi || {};
-                                    if (m && window.midi) {
-                                        if (m.outputPortMap) window.midi.outputPortMap = { ...(window.midi.outputPortMap || {}), ...m.outputPortMap };
-                                        if (m.inputChannelMap) window.midi.inputChannelMap = { ...(window.midi.inputChannelMap || {}), ...m.inputChannelMap };
-                                        if (m.perSourceOctave) window.midi.perSourceOctave = { ...(window.midi.perSourceOctave || {}), ...m.perSourceOctave };
-                                        if (m.perSourceVelocity) window.midi.perSourceVelocity = { ...(window.midi.perSourceVelocity || {}), ...m.perSourceVelocity };
-                                        if (Number.isFinite(m.defaultVelocity)) window.midi.defaultVelocity = m.defaultVelocity | 0;
-                                        if (Number.isFinite(m.octaveOffset)) window.midi.octaveOffset = m.octaveOffset | 0;
-                                        if (m.channelMap) window.midi.channelMap = { ...(window.midi.channelMap || {}), ...m.channelMap };
-                                        // Try to reflect OUT selects in UI immediately
+                                const applyMidiRestore = async (opts = {}) => {
+                                    try {
+                                        const m = sessionData.midi || {};
+                                        const midi = window.midi;
+                                        if (!midi || !m || typeof m !== 'object') return;
+
+                                        const wantsEnabled = m.enabled === true;
+                                        const ensureEnabled = async () => {
+                                            if (!wantsEnabled) return false;
+                                            if (midi.enabled) return true;
+                                            for (let i = 0; i < 8 && midi._initializing; i++) {
+                                                await new Promise(r => setTimeout(r, 50));
+                                            }
+                                            if (midi.enabled) return true;
+                                            if (midi._initializing) return false;
+                                            midi._initializing = true;
+                                            const ok = await midi.init();
+                                            midi._initializing = false;
+                                            if (!ok) return false;
+                                            try {
+                                                const midiToggle = document.getElementById('midiToggle');
+                                                if (midiToggle) midiToggle.classList.add('active');
+                                                const midiBtn = document.getElementById('midiBtn');
+                                                if (midiBtn) midiBtn.classList.add('active');
+                                                const led = document.getElementById('midiStatusLed');
+                                                if (led) { led.classList.add('on'); led.title = 'MIDI Enabled'; }
+                                            } catch (_) { }
+                                            try {
+                                                const oc = window.autoharp;
+                                                if (oc) {
+                                                    if (oc._preMidiMasterVolume === undefined) oc._preMidiMasterVolume = oc.masterVolume;
+                                                    oc.masterVolume = 0.0001;
+                                                    if (oc.gainNode) oc.gainNode.gain.value = oc.volume * oc.masterVolume;
+                                                    if (oc.dryGainNode) oc.dryGainNode.gain.value = oc.masterVolume;
+                                                    if (oc.reverbOutGain) oc.reverbOutGain.gain.value = oc.masterVolume;
+                                                    oc.midiBypassOscillators = true;
+                                                }
+                                            } catch (_) { }
+                                            return true;
+                                        };
+
+                                        if (opts.ensureEnabled) await ensureEnabled();
+
+                                        if (m.outputPortMap) midi.outputPortMap = { ...(midi.outputPortMap || {}), ...m.outputPortMap };
+                                        if (m.inputChannelMap) midi.inputChannelMap = { ...(midi.inputChannelMap || {}), ...m.inputChannelMap };
+                                        if (m.perSourceOctave) midi.perSourceOctave = { ...(midi.perSourceOctave || {}), ...m.perSourceOctave };
+                                        if (m.perSourceVelocity) midi.perSourceVelocity = { ...(midi.perSourceVelocity || {}), ...m.perSourceVelocity };
+                                        if (Number.isFinite(m.defaultVelocity)) midi.defaultVelocity = m.defaultVelocity | 0;
+                                        if (Number.isFinite(m.octaveOffset)) midi.octaveOffset = m.octaveOffset | 0;
+                                        if (m.channelMap) midi.channelMap = { ...(midi.channelMap || {}), ...m.channelMap };
+
+                                        if (m.outputPortNameMap && midi.outputs && midi.outputs.size) {
+                                            const outs = Array.from(midi.outputs.values());
+                                            const norm = (s) => String(s || '').trim().toLowerCase();
+                                            const findIdByName = (name) => {
+                                                const target = norm(name);
+                                                if (!target) return null;
+                                                const exact = outs.find(o => norm(o.name || o.id) === target);
+                                                if (exact) return exact.id;
+                                                const partial = outs.find(o => {
+                                                    const nm = norm(o.name || o.id);
+                                                    return nm && (nm.includes(target) || target.includes(nm));
+                                                });
+                                                return partial ? partial.id : null;
+                                            };
+                                            Object.keys(m.outputPortNameMap || {}).forEach(sec => {
+                                                const name = m.outputPortNameMap[sec];
+                                                if (!name) return;
+                                                const cur = midi.outputPortMap?.[sec];
+                                                const hasCur = cur && midi.outputs.has(cur);
+                                                if (!hasCur) {
+                                                    const id = findIdByName(name);
+                                                    if (id) midi.outputPortMap[sec] = id;
+                                                }
+                                            });
+                                        }
+
+                                        try { midi.applySettingsToUI && midi.applySettingsToUI(); } catch (_) { }
                                         try {
                                             ['strum1', 'strum2', 'chord', 'arp', 'bass', 'bells', 'drum'].forEach(sec => {
                                                 const el = document.getElementById(`midiOut-${sec}`);
                                                 if (el && el.tagName === 'SELECT') {
-                                                    const id = window.midi.outputPortMap?.[sec] || '';
-                                                    el.value = id || '';
+                                                    const id = midi.outputPortMap?.[sec] || '';
+                                                    if (id && Array.from(el.options).some(op => op.value === id)) el.value = id;
                                                 }
                                             });
                                         } catch (_) { }
-                                    }
-                                } catch (_) { }
+                                    } catch (_) { }
+                                };
 
                                 // ==== REGENERATE UI ====
                                 this.regenerateChordGrid();
@@ -33037,6 +33178,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 setTimeout(reapplyInstances, 120);
                                             }
                                         } catch (_) { }
+
+                                        // Re-apply MIDI routing after UI snapshot so select restores cannot wipe maps.
+                                        try { await applyMidiRestore({ ensureEnabled: true }); } catch (_) { }
                                     } catch (_) { }
 
                                     // If chords exist but none render, clear hiddenColumns and force rebuild
@@ -48051,6 +48195,40 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch (_) { }
                             // Also refresh any cloned or popup MIDI OUT selects
                             try { this.populateAllOutputSelects(); } catch (_) { }
+                            // Re-attach chordbox MIDI deviceIds by name if port IDs changed
+                            try {
+                                const omni = window.autoharp;
+                                if (omni && Array.isArray(omni.chordExtensions) && this.outputs && this.outputs.size) {
+                                    const outs = Array.from(this.outputs.values());
+                                    const norm = (s) => String(s || '').trim().toLowerCase();
+                                    const findIdByName = (name) => {
+                                        const target = norm(name);
+                                        if (!target) return null;
+                                        const exact = outs.find(o => norm(o.name || o.id) === target);
+                                        if (exact) return exact.id;
+                                        const partial = outs.find(o => {
+                                            const nm = norm(o.name || o.id);
+                                            return nm && (nm.includes(target) || target.includes(nm));
+                                        });
+                                        return partial ? partial.id : null;
+                                    };
+                                    omni.chordExtensions.forEach(ch => {
+                                        const midi = ch?.synth?.midi;
+                                        if (!midi) return;
+                                        const curId = String(midi.deviceId || '');
+                                        if (curId && this.outputs.has(curId)) {
+                                            if (!midi.deviceName) {
+                                                try { midi.deviceName = String(this.outputs.get(curId)?.name || curId); } catch (_) { }
+                                            }
+                                            return;
+                                        }
+                                        const name = String(midi.deviceName || '').trim();
+                                        if (!name) return;
+                                        const id = findIdByName(name);
+                                        if (id) midi.deviceId = id;
+                                    });
+                                }
+                            } catch (_) { }
                         }
                         onInput(cb) { this.inputHandler = cb; }
                         // If outputTarget provided (string id or WebMIDIOutput), send only to that port; otherwise broadcast to all outputs
