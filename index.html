@@ -923,6 +923,10 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
+        .extension-column {
+            min-width: 0;
+        }
+
         /* Enhanced touch feedback for improved responsiveness */
         .touch-active {
             background: rgba(255, 255, 255, 0.1) !important;
@@ -1119,6 +1123,8 @@
             background: var(--chordbox-footer-bg, rgba(0, 0, 0, 0.6));
             border-top: 1px solid rgba(255, 255, 255, 0.12);
             pointer-events: auto;
+            position: relative;
+            overflow: visible;
         }
 
         .chordbox-footer-controls {
@@ -1126,6 +1132,39 @@
             align-items: center;
             gap: 6px;
             margin-left: auto;
+            min-width: 0;
+        }
+
+        .chordbox-controls-hidden .chordbox-footer-controls {
+            visibility: hidden;
+            pointer-events: none;
+            width: 0;
+            max-width: 0;
+            min-width: 0;
+            gap: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .chordbox-controls-hidden .chordbox-footer-controls.chordbox-controls-floating {
+            visibility: visible;
+            pointer-events: auto;
+            width: auto;
+            gap: 6px;
+            padding: 4px;
+            margin: 0;
+        }
+
+        .chordbox-footer-controls.chordbox-controls-floating {
+            position: absolute;
+            right: 6px;
+            bottom: 6px;
+            background: rgba(0, 0, 0, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+            z-index: 220;
         }
 
         .chordbox-footer .chord-action-button,
@@ -2359,6 +2398,49 @@
             color: #cfe6ff;
         }
 
+        .custom-midi-cc-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin: 6px 0 4px 0;
+        }
+
+        .custom-midi-cc-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 6px 0 8px 0;
+        }
+
+        .custom-midi-cc-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .custom-midi-cc-row label {
+            font-size: 10px;
+            color: #9db6c8;
+            min-width: 90px;
+        }
+
+        .custom-midi-cc-row input[type="range"] {
+            flex: 1 1 auto;
+            min-width: 140px;
+        }
+
+        .custom-midi-cc-row .custom-midi-cc-value {
+            font-size: 10px;
+            color: #cfe6ff;
+            min-width: 28px;
+            text-align: right;
+        }
+
+        .custom-midi-cc-hidden {
+            display: none !important;
+        }
+
         .drum-grid {
             display: grid;
             grid-template-rows: repeat(var(--npc-rows, 3), 1fr);
@@ -2494,11 +2576,54 @@
             background: rgba(155, 89, 182, 0.08);
         }
 
+        .drum-fx-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .drum-fx-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .drum-fx-gear {
+            width: 26px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #214051;
+            color: #e8f5ff;
+            border: 1px solid #4a6870;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .drum-fx-gear[aria-expanded="true"] {
+            outline: 2px solid #ffd046;
+            outline-offset: 1px;
+        }
+
         .drum-fx-panel h5 {
-            margin: 0 0 8px 0;
+            margin: 0;
             font-size: 12px;
             color: #d7b8ff;
             letter-spacing: 0.3px;
+        }
+
+        .drum-fx-drawer {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .drum-fx-panel.open .drum-fx-drawer {
+            display: block;
         }
 
         .drum-fx-grid {
@@ -2528,6 +2653,10 @@
         .drum-fx-mini {
             font-size: 10px;
             opacity: .75;
+        }
+
+        .drum-fx-drawer .custom-midi-cc-panel {
+            margin-top: 10px;
         }
 
         @media (max-width: 980px) {
@@ -4523,6 +4652,12 @@
                         <option value="16">Ch 16</option>
                     </select>
                 </div>
+                <div class="custom-midi-cc-toolbar">
+                    <button id="addCustomMidiSlider-chordbox" class="osc-btn" title="Add MIDI CC slider"
+                        style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;">Add
+                        Slider</button>
+                </div>
+                <div id="customMidiSliders-chordbox" class="custom-midi-cc-panel custom-midi-cc-hidden"></div>
                 <div style="display:flex; justify-content:center; margin-top:10px;">
                     <button id="chordboxCopyUnlockedBtn" class="osc-btn"
                         title="Copy current chordbox settings to all unlocked chordboxes"
@@ -4910,6 +5045,12 @@
                                 style="background:#0d2938;color:#e8f5ff;border:1px solid #2b5567;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
                         </div>
                     </div>
+                    <div class="custom-midi-cc-toolbar">
+                        <button id="addCustomMidiSlider-chords" class="osc-btn" title="Add MIDI CC slider"
+                            style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;">Add
+                            Slider</button>
+                    </div>
+                    <div id="customMidiSliders-chords" class="custom-midi-cc-panel custom-midi-cc-hidden"></div>
                     <div class="oscillator-controls" style="margin-bottom:8px;">
                         <div class="osc-btn active" data-wave="sine" data-inst="chord"
                             style="font-size:11px; padding:6px 8px;">Sin</div>
@@ -5160,6 +5301,9 @@
                                     style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;">DUP</button>
                                 <button id="drumClearBtn" title="Clear all drum lanes (keeps bass lane)"
                                     style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;">CLEAR</button>
+                                <button id="addCustomMidiSlider-drum" class="osc-btn" title="Add MIDI CC slider"
+                                    style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:2px 6px;font-size:10px;cursor:pointer;">Add
+                                    Slider</button>
                                 <!-- Drum cycle length (in 16ths) -->
                                 <div style="display:inline-flex;align-items:center;gap:4px;margin-left:6px;">
                                     <button id="drumLenDec" style="padding:2px 6px;">-</button>
@@ -5205,12 +5349,17 @@
 
                         <!-- DRUM FX (global bus; always visible) -->
                         <div id="drumFxPanel" class="drum-fx-panel">
-                            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                                <h5>DRUM FX</h5>
+                            <div class="drum-fx-header">
+                                <div class="drum-fx-title">
+                                    <h5>DRUM FX</h5>
+                                    <button id="drumFxToggleBtn" class="drum-fx-gear" title="Drum FX controls"
+                                        aria-expanded="false">⚙</button>
+                                </div>
                                 <button id="drumFxReset" title="Reset Drum FX"
                                     style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;">RESET</button>
                             </div>
-                            <div class="drum-fx-grid">
+                            <div id="drumFxDrawer" class="drum-fx-drawer">
+                                <div class="drum-fx-grid">
                                 <div class="drum-fx-cell">
                                     <label>SAT MIX <span class="drum-fx-mini" id="drumFxSatMixValue"></span></label>
                                     <input id="drumFxSatMix" type="range" min="0" max="100" value="0" />
@@ -5278,6 +5427,8 @@
                                     <label>COMP OUT <span class="drum-fx-mini" id="drumFxCompOutValue"></span></label>
                                     <input id="drumFxCompOut" type="range" min="-24" max="24" value="0" />
                                 </div>
+                                </div>
+                                <div id="customMidiSliders-drum" class="custom-midi-cc-panel custom-midi-cc-hidden"></div>
                             </div>
                         </div>
                     </div>
@@ -5290,6 +5441,9 @@
                         <span>Pattern Editor</span>
                         <button id="patternSpeakerBtn" title="Pattern on/off"
                             style="margin-left:auto;margin-right:6px;pointer-events:auto;width:28px;height:26px;display:inline-flex;align-items:center;justify-content:center;background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;font-size:14px;cursor:pointer;line-height:1;">🔇</button>
+                        <button id="addCustomMidiSlider-pattern" class="osc-btn" title="Add MIDI CC slider"
+                            style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;">Add
+                            Slider</button>
                         <button class="modal-close" onclick="closePatternModalOnly()">×</button>
                     </div>
                     <div class="modal-body"
@@ -5335,6 +5489,8 @@
                                 <input id="universalNpc" type="number" min="1" max="64" value="16"
                                     title="Notes Per Cycle (NPC)"
                                     style="width:60px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:2px 4px;font-size:11px;" />
+                            </div>
+                            <div id="customMidiSliders-pattern" class="custom-midi-cc-panel custom-midi-cc-hidden">
                             </div>
 
                             <!-- ARP Synth (drawer; toggled by gear) -->
@@ -6234,6 +6390,83 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 return { downBtn, upBtn };
             }
 
+            function getChordboxControlsMinWidth(controls) {
+                if (!controls) return 0;
+                const stored = parseInt(controls.dataset.controlsMinWidth || '0', 10);
+                if (stored > 0) return stored;
+                let width = 0;
+                try {
+                    width = Math.ceil(controls.scrollWidth || controls.getBoundingClientRect().width || 0);
+                } catch (_) { }
+                if (!width || !Number.isFinite(width)) width = 150;
+                controls.dataset.controlsMinWidth = String(width);
+                return width;
+            }
+
+            function showChordboxFooterControls(column, controls) {
+                if (!column || !controls) return;
+                if (!column.classList.contains('chordbox-controls-hidden')) return;
+                column.classList.add('chordbox-controls-open');
+                controls.classList.add('chordbox-controls-floating');
+            }
+
+            function hideChordboxFooterControls(column, controls) {
+                if (!column || !controls) return;
+                controls.classList.remove('chordbox-controls-floating');
+                column.classList.remove('chordbox-controls-open');
+            }
+
+            function queueChordboxFooterHide(column, controls, reason) {
+                if (!column || !controls) return;
+                if (!column.classList.contains('chordbox-controls-hidden')) return;
+                if (!controls.classList.contains('chordbox-controls-floating')) return;
+                const delays = { transpose: 700, lock: 200, gear: 200 };
+                const delay = delays[reason] || 350;
+                if (column.__chordboxControlsHideTimer) clearTimeout(column.__chordboxControlsHideTimer);
+                column.__chordboxControlsHideTimer = setTimeout(() => {
+                    hideChordboxFooterControls(column, controls);
+                }, delay);
+            }
+
+            function wireChordboxFooterAutoHide(column, footer, controls) {
+                if (!column || !footer || !controls || controls.__autoHideWired) return;
+                controls.__autoHideWired = true;
+
+                const update = () => {
+                    const minWidth = getChordboxControlsMinWidth(controls);
+                    const colWidth = Math.ceil(column.getBoundingClientRect().width || column.clientWidth || 0);
+                    const shouldHide = colWidth > 0 && colWidth < minWidth;
+                    column.classList.toggle('chordbox-controls-hidden', shouldHide);
+                    if (!shouldHide) hideChordboxFooterControls(column, controls);
+                };
+
+                const ensure = () => {
+                    if (!column.isConnected) {
+                        requestAnimationFrame(ensure);
+                        return;
+                    }
+                    getChordboxControlsMinWidth(controls);
+                    update();
+                };
+
+                requestAnimationFrame(ensure);
+
+                if (typeof ResizeObserver === 'function') {
+                    const ro = new ResizeObserver(() => update());
+                    ro.observe(column);
+                    controls.__autoHideObserver = ro;
+                } else {
+                    window.addEventListener('resize', update, { passive: true });
+                }
+
+                footer.addEventListener('pointerdown', (e) => {
+                    if (!column.classList.contains('chordbox-controls-hidden')) return;
+                    if (e.target && e.target.closest && e.target.closest('.chordbox-footer-controls')) return;
+                    try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
+                    showChordboxFooterControls(column, controls);
+                }, { passive: false });
+            }
+
             function handleChordNameTabAdvance(ctx, column, cols, idx, shiftKey) {
                 if (shiftKey && idx > 0) {
                     focusChordNameInput(cols[idx - 1]);
@@ -6542,6 +6775,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         modal._draggableSet = true;
                     }
 
+                    try { window.autoharp && window.autoharp._refreshCustomMidiCcUi && window.autoharp._refreshCustomMidiCcUi('drum'); } catch (_) { }
+
                     // Wire Drum LEN +/- controls on open (ensure single attach)
                     try {
                         const grid = document.getElementById('drumGrid');
@@ -6736,6 +6971,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         makeDraggable(modal);
                         modal._draggableSet = true;
                     }
+                    try { window.autoharp && window.autoharp._refreshCustomMidiCcUi && window.autoharp._refreshCustomMidiCcUi('pattern'); } catch (_) { }
                 }
             };
 
@@ -16125,6 +16361,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     if (!panel || panel._wired) return;
                                     panel._wired = true;
 
+                                    const gearBtn = document.getElementById('drumFxToggleBtn');
+                                    const drawer = document.getElementById('drumFxDrawer');
+                                    const setOpen = (open) => {
+                                        try { panel.classList.toggle('open', !!open); } catch (_) { }
+                                        try { if (gearBtn) gearBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); } catch (_) { }
+                                    };
+                                    if (gearBtn && drawer && !gearBtn._wired) {
+                                        gearBtn._wired = true;
+                                        setOpen(panel.classList.contains('open'));
+                                        gearBtn.addEventListener('click', (ev) => {
+                                            try { ev.preventDefault(); ev.stopPropagation(); } catch (_) { }
+                                            const isOpen = panel.classList.contains('open');
+                                            setOpen(!isOpen);
+                                        });
+                                    }
+
                                     this.drumFx = mergeDefaults(this.drumFx, defaults);
 
                                     const read = () => {
@@ -18025,6 +18277,368 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     } catch (_) { }
                 }
 
+                _isMidiControlsActive() {
+                    try {
+                        const midi = window.midi;
+                        if (!midi || !midi.enabled) return false;
+                        const btn = document.getElementById('midiToggle') || document.getElementById('midiBtn');
+                        if (btn && !btn.classList.contains('active')) return false;
+                        return true;
+                    } catch (_) { return false; }
+                }
+
+                _getMidiCcOverrides() {
+                    if (this._midiCcOverrides) return this._midiCcOverrides;
+                    try {
+                        const raw = localStorage.getItem('xen_midi_cc_overrides_v1');
+                        const parsed = raw ? JSON.parse(raw) : {};
+                        this._midiCcOverrides = (parsed && typeof parsed === 'object') ? parsed : {};
+                    } catch (_) { this._midiCcOverrides = {}; }
+                    return this._midiCcOverrides;
+                }
+
+                _saveMidiCcOverrides() {
+                    try {
+                        localStorage.setItem('xen_midi_cc_overrides_v1', JSON.stringify(this._midiCcOverrides || {}));
+                    } catch (_) { }
+                }
+
+                _getMidiCcKey(id, source) {
+                    const safeId = String(id || '').trim() || 'unknown';
+                    const safeSrc = String(source || 'global').trim() || 'global';
+                    return `${safeSrc}:${safeId}`;
+                }
+
+                _getMidiCcOverride(key) {
+                    try {
+                        const map = this._getMidiCcOverrides();
+                        const raw = map[key];
+                        const n = parseInt(raw, 10);
+                        return Number.isFinite(n) ? n : null;
+                    } catch (_) { return null; }
+                }
+
+                _setMidiCcOverride(key, cc) {
+                    try {
+                        const map = this._getMidiCcOverrides();
+                        if (cc == null) delete map[key];
+                        else map[key] = cc;
+                        this._saveMidiCcOverrides();
+                    } catch (_) { }
+                }
+
+                _applyMidiCcTitle(el, cc) {
+                    if (!el) return;
+                    if (!el.dataset.baseTitle) el.dataset.baseTitle = el.title || '';
+                    const base = el.dataset.baseTitle || '';
+                    const ccText = Number.isFinite(cc) ? `MIDI CC ${cc}` : '';
+                    el.title = base ? (ccText ? `${base} • ${ccText}` : base) : (ccText || '');
+                    if (Number.isFinite(cc)) el.dataset.midiCc = String(cc); else delete el.dataset.midiCc;
+                }
+
+                _promptMidiCcOverride(el, key, fallbackCc) {
+                    if (!el || !key) return;
+                    const current = this._getMidiCcOverride(key);
+                    const pref = Number.isFinite(current) ? current : (Number.isFinite(fallbackCc) ? fallbackCc : '');
+                    const label = (el.id || el.getAttribute('name') || 'control');
+                    const raw = prompt(`MIDI CC for ${label} (0-127, blank to clear)`, pref === '' ? '' : String(pref));
+                    if (raw == null) return;
+                    const trimmed = String(raw).trim();
+                    if (!trimmed) {
+                        this._setMidiCcOverride(key, null);
+                        this._applyMidiCcTitle(el, fallbackCc);
+                        return;
+                    }
+                    const n = parseInt(trimmed, 10);
+                    if (!Number.isFinite(n) || n < 0 || n > 127) {
+                        alert('Invalid CC number. Use 0-127.');
+                        return;
+                    }
+                    this._setMidiCcOverride(key, n);
+                    this._applyMidiCcTitle(el, n);
+                }
+
+                _wireMidiCcOverrideUI(el, key, fallbackCc) {
+                    if (!el || el._midiCcOverrideWired) return;
+                    el._midiCcOverrideWired = true;
+                    this._applyMidiCcTitle(el, this._getMidiCcOverride(key) ?? fallbackCc);
+                    el.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        this._promptMidiCcOverride(el, key, fallbackCc);
+                    });
+                    let holdTimer = null;
+                    let holdPointerId = null;
+                    let holdStartX = 0;
+                    let holdStartY = 0;
+                    let moved = false;
+                    const moveThreshold = 4;
+                    const clearHold = () => {
+                        if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+                        moved = false;
+                        holdPointerId = null;
+                        try { window.removeEventListener('pointermove', onMove, true); } catch (_) { }
+                    };
+                    const onMove = (ev) => {
+                        if (holdPointerId == null || ev.pointerId !== holdPointerId) return;
+                        const dx = Math.abs((ev.clientX || 0) - holdStartX);
+                        const dy = Math.abs((ev.clientY || 0) - holdStartY);
+                        if ((dx + dy) > moveThreshold) {
+                            moved = true;
+                            clearHold();
+                        }
+                    };
+                    el.addEventListener('pointerdown', (ev) => {
+                        clearHold();
+                        holdPointerId = ev.pointerId;
+                        holdStartX = ev.clientX || 0;
+                        holdStartY = ev.clientY || 0;
+                        moved = false;
+                        try { window.addEventListener('pointermove', onMove, true); } catch (_) { }
+                        holdTimer = setTimeout(() => {
+                            holdTimer = null;
+                            if (moved) return;
+                            this._promptMidiCcOverride(el, key, fallbackCc);
+                        }, 1000);
+                    });
+                    el.addEventListener('pointerup', clearHold);
+                    el.addEventListener('pointerleave', clearHold);
+                    el.addEventListener('pointercancel', clearHold);
+                }
+
+                _getMidiCcDefaultForControl(id) {
+                    const lower = String(id || '').toLowerCase();
+                    if (!lower) return null;
+                    if (lower.includes('attack')) return { type: 'cc', cc: 73 };
+                    if (lower.includes('decay')) return { type: 'cc', cc: 72 };
+                    if (lower.includes('release')) return { type: 'cc', cc: 75 };
+                    if (lower.includes('sustain')) return { type: 'cc', cc: 11 };
+                    if (lower.includes('level')) return { type: 'velocity', cc: 7 };
+                    if (lower.includes('detune') || lower.includes('coarse') || lower.includes('transpose')) return { type: 'pitchbend', cc: null };
+                    if (lower.includes('pulsewidth')) return { type: 'cc', cc: 70 };
+                    if (lower.includes('shapewidth')) return { type: 'cc', cc: 71 };
+                    if (lower.includes('octave')) return { type: 'octave', cc: null };
+                    if (lower.includes('pitch')) return { type: 'pitchbend', cc: null };
+                    return null;
+                }
+
+                _inferMidiSourceFromId(id) {
+                    const lower = String(id || '').toLowerCase();
+                    if (lower.startsWith('osc1')) return 'strum1';
+                    if (lower.startsWith('osc2')) return 'strum2';
+                    if (lower.startsWith('chordbox')) return 'chord';
+                    if (lower.startsWith('chord')) return 'chord';
+                    if (lower.startsWith('arp')) return 'arp';
+                    if (lower.startsWith('bass')) return 'bass';
+                    if (lower.startsWith('drum')) return 'drum';
+                    return null;
+                }
+
+                _getMidiTargetForSource(source, chordboxMidi) {
+                    const midi = window.midi;
+                    if (!midi) return null;
+                    const src = source || 'default';
+                    let channel = (midi.channelMap && (midi.channelMap[src] ?? midi.channelMap.default)) || 1;
+                    let outputTarget = (typeof midi.outputForSource === 'function') ? midi.outputForSource(src) : null;
+                    if (chordboxMidi) {
+                        if (chordboxMidi.deviceId) outputTarget = chordboxMidi.deviceId;
+                        if (Number.isFinite(parseInt(chordboxMidi.channel, 10))) channel = Math.max(1, Math.min(16, parseInt(chordboxMidi.channel, 10)));
+                    }
+                    return { channel, outputTarget };
+                }
+
+                _sendMidiForControl(id, el, opts = {}) {
+                    if (!el || !this._isMidiControlsActive()) return;
+                    const meta = this._getMidiCcDefaultForControl(id);
+                    if (!meta) return;
+                    const source = opts.source || this._inferMidiSourceFromId(id) || 'default';
+                    const key = this._getMidiCcKey(id, source);
+                    const overrideCc = this._getMidiCcOverride(key);
+                    this._wireMidiCcOverrideUI(el, key, meta.cc);
+
+                    const min = Number.isFinite(parseFloat(el.min)) ? parseFloat(el.min) : 0;
+                    const max = Number.isFinite(parseFloat(el.max)) ? parseFloat(el.max) : 127;
+                    const rawVal = Number(el.value);
+                    const span = (max - min) || 1;
+                    const pct = Math.max(0, Math.min(1, (rawVal - min) / span));
+                    const ccVal = Math.round(pct * 127);
+
+                    const midi = window.midi;
+                    const tgt = this._getMidiTargetForSource(source, opts.chordboxMidi);
+                    const channel = tgt ? tgt.channel : 1;
+                    const outputTarget = tgt ? tgt.outputTarget : null;
+                    const ccToSend = Number.isFinite(overrideCc) ? overrideCc : meta.cc;
+                    if (Number.isFinite(ccToSend)) {
+                        try { midi.sendCC(ccToSend, ccVal, channel, outputTarget); } catch (_) { }
+                        this._applyMidiCcTitle(el, ccToSend);
+                    }
+
+                    if (meta.type === 'velocity') {
+                        const v = Math.max(1, Math.min(127, Math.round(ccVal || 0)));
+                        if (midi.perSourceVelocity && source && source !== 'default') {
+                            midi.perSourceVelocity[source] = v;
+                            const velEl = document.getElementById(`midiVel-${source}`);
+                            if (velEl) velEl.value = String(v);
+                            try { midi.saveMIDISettings && midi.saveMIDISettings(); } catch (_) { }
+                        }
+                    }
+
+                    if (meta.type === 'octave') {
+                        const oct = Math.max(-4, Math.min(4, parseInt(rawVal, 10) || 0));
+                        if (midi.perSourceOctave && source && source !== 'default') {
+                            midi.perSourceOctave[source] = oct;
+                            const octEl = document.getElementById(`midiOct-${source}`);
+                            if (octEl) octEl.value = String(oct);
+                            try { midi.saveMIDISettings && midi.saveMIDISettings(); } catch (_) { }
+                        }
+                    }
+
+                    if (meta.type === 'pitchbend') {
+                        let norm = 0;
+                        if (min < 0 && max > 0) {
+                            const spanAbs = Math.max(Math.abs(min), Math.abs(max)) || 1;
+                            norm = Math.max(-1, Math.min(1, rawVal / spanAbs));
+                        } else {
+                            norm = (pct * 2) - 1;
+                        }
+                        try { midi.sendPitchBend(norm, channel, outputTarget); } catch (_) { }
+                    }
+                }
+
+                _getCustomMidiCcStore() {
+                    if (!this._customMidiCcSliders) {
+                        this._customMidiCcSliders = {
+                            pattern: [],
+                            drum: [],
+                            chordbox: [],
+                            chords: []
+                        };
+                    }
+                    const store = this._customMidiCcSliders;
+                    if (!Array.isArray(store.pattern)) store.pattern = [];
+                    if (!Array.isArray(store.drum)) store.drum = [];
+                    if (!Array.isArray(store.chordbox)) store.chordbox = [];
+                    if (!Array.isArray(store.chords)) store.chords = [];
+                    return store;
+                }
+
+                _getCustomMidiSource(context) {
+                    const key = String(context || '').toLowerCase();
+                    if (key === 'pattern') return 'arp';
+                    if (key === 'drum') return 'drum';
+                    if (key === 'chordbox') return 'chord';
+                    if (key === 'chords') return 'chord';
+                    return 'default';
+                }
+
+                _sendCustomMidiCcValue(context, entry, rawValue) {
+                    if (!this._isMidiControlsActive()) return;
+                    const midi = window.midi;
+                    if (!midi || !entry) return;
+                    const cc = parseInt(entry.cc, 10);
+                    if (!Number.isFinite(cc) || cc < 0 || cc > 127) return;
+                    const v = Math.max(0, Math.min(127, parseInt(rawValue, 10) || 0));
+                    const source = this._getCustomMidiSource(context);
+                    let chordboxMidi = null;
+                    if (String(context || '') === 'chordbox') {
+                        try {
+                            const model = this._activeChordboxSynthTarget;
+                            const synth = model ? this._ensureChordboxSynthConfig(model) : null;
+                            chordboxMidi = synth ? synth.midi : null;
+                        } catch (_) { chordboxMidi = null; }
+                    }
+                    const tgt = this._getMidiTargetForSource(source, chordboxMidi);
+                    const channel = tgt ? tgt.channel : 1;
+                    const outputTarget = tgt ? tgt.outputTarget : null;
+                    try { midi.sendCC(cc, v, channel, outputTarget); } catch (_) { }
+                }
+
+                _renderCustomMidiCcList(context, container) {
+                    if (!container) return;
+                    const store = this._getCustomMidiCcStore();
+                    const list = store[String(context || '')] || [];
+                    container.innerHTML = '';
+                    list.forEach(entry => {
+                        if (!entry || !Number.isFinite(parseInt(entry.cc, 10))) return;
+                        const row = document.createElement('div');
+                        row.className = 'custom-midi-cc-row';
+                        const label = document.createElement('label');
+                        const ccText = `CC ${parseInt(entry.cc, 10)}`;
+                        label.textContent = `${entry.label || 'Custom'} (${ccText})`;
+                        const input = document.createElement('input');
+                        input.type = 'range';
+                        input.min = Number.isFinite(entry.min) ? String(entry.min) : '0';
+                        input.max = Number.isFinite(entry.max) ? String(entry.max) : '127';
+                        input.value = Number.isFinite(entry.value) ? String(entry.value) : '0';
+                        input.title = ccText;
+                        const value = document.createElement('span');
+                        value.className = 'custom-midi-cc-value';
+                        value.textContent = String(input.value);
+                        input.addEventListener('input', () => {
+                            const v = Math.max(0, Math.min(127, parseInt(input.value, 10) || 0));
+                            entry.value = v;
+                            value.textContent = String(v);
+                            this._sendCustomMidiCcValue(context, entry, v);
+                        });
+                        row.appendChild(label);
+                        row.appendChild(input);
+                        row.appendChild(value);
+                        container.appendChild(row);
+                    });
+                }
+
+                _refreshCustomMidiCcUi(context) {
+                    const key = String(context || '');
+                    const btn = document.getElementById(`addCustomMidiSlider-${key}`);
+                    const container = document.getElementById(`customMidiSliders-${key}`);
+                    if (!btn || !container) return;
+                    if (!btn._wiredCustomMidiCc) {
+                        btn._wiredCustomMidiCc = true;
+                        btn.addEventListener('click', () => {
+                            if (!this._isMidiControlsActive()) return;
+                            const labelRaw = prompt('Slider label', 'Custom CC');
+                            if (labelRaw == null) return;
+                            const label = String(labelRaw || '').trim();
+                            if (!label) return;
+                            const ccRaw = prompt(`MIDI CC for "${label}" (0-127)`, '');
+                            if (ccRaw == null) return;
+                            const ccNum = parseInt(String(ccRaw).trim(), 10);
+                            if (!Number.isFinite(ccNum) || ccNum < 0 || ccNum > 127) {
+                                alert('Invalid CC number. Use 0-127.');
+                                return;
+                            }
+                            const store = this._getCustomMidiCcStore();
+                            const list = store[key] || (store[key] = []);
+                            list.push({
+                                id: `cc_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+                                label,
+                                cc: ccNum,
+                                min: 0,
+                                max: 127,
+                                value: 0
+                            });
+                            this._renderCustomMidiCcList(key, container);
+                            this._syncCustomMidiCcVisibility(key, btn, container);
+                        });
+                    }
+                    this._renderCustomMidiCcList(key, container);
+                    this._syncCustomMidiCcVisibility(key, btn, container);
+                }
+
+                _syncCustomMidiCcVisibility(context, btn, container) {
+                    const isMidi = this._isMidiControlsActive();
+                    if (btn) btn.classList.toggle('custom-midi-cc-hidden', !isMidi);
+                    if (container) {
+                        const hasRows = container.querySelectorAll('.custom-midi-cc-row').length > 0;
+                        container.classList.toggle('custom-midi-cc-hidden', !isMidi || !hasRows);
+                    }
+                }
+
+                _refreshAllCustomMidiCcUi() {
+                    ['pattern', 'drum', 'chordbox', 'chords'].forEach(key => {
+                        try { this._refreshCustomMidiCcUi(key); } catch (_) { }
+                    });
+                }
+
                 _wireChordboxSynthEditor() {
                     if (this._chordboxSynthEditorWired) return;
                     this._chordboxSynthEditorWired = true;
@@ -18061,6 +18675,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             synth.pulseWidth = pct / 100;
                             const v = document.getElementById('chordboxPulseWidthValue');
                             if (v) v.textContent = `${pct}%`;
+                            try { this._sendMidiForControl && this._sendMidiForControl('chordboxPulseWidth', e.target, { source: 'chord', chordboxMidi: synth?.midi }); } catch (_) { }
                         });
                     }
                     const swEl = document.getElementById('chordboxShapeWidth');
@@ -18074,6 +18689,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             synth.shapeWidth = pct / 100;
                             const v = document.getElementById('chordboxShapeWidthValue');
                             if (v) v.textContent = `${pct}%`;
+                            try { this._sendMidiForControl && this._sendMidiForControl('chordboxShapeWidth', e.target, { source: 'chord', chordboxMidi: synth?.midi }); } catch (_) { }
                         });
                     }
 
@@ -18088,6 +18704,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             synth.level = pct / 100;
                             const v = document.getElementById('chordboxLevelValue');
                             if (v) v.textContent = `${pct}%`;
+                            try { this._sendMidiForControl && this._sendMidiForControl('chordboxLevel', e.target, { source: 'chord', chordboxMidi: synth?.midi }); } catch (_) { }
                         });
                     }
                     const detuneEl = document.getElementById('chordboxDetune');
@@ -18101,6 +18718,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             synth.pitch.detune = val;
                             const v = document.getElementById('chordboxDetuneValue');
                             if (v) v.textContent = `${val}¢`;
+                            try { this._sendMidiForControl && this._sendMidiForControl('chordboxDetune', e.target, { source: 'chord', chordboxMidi: synth?.midi }); } catch (_) { }
                         });
                     }
                     const transEl = document.getElementById('chordboxTranspose');
@@ -18114,6 +18732,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             synth.pitch.transpose = val;
                             const v = document.getElementById('chordboxTransposeValue');
                             if (v) v.textContent = `${val} steps`;
+                            try { this._sendMidiForControl && this._sendMidiForControl('chordboxTranspose', e.target, { source: 'chord', chordboxMidi: synth?.midi }); } catch (_) { }
                         });
                     }
                     const octEl = document.getElementById('chordboxOctave');
@@ -18132,6 +18751,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const sign = val > 0 ? '+' : '';
                                 v.textContent = `${sign}${val} (${steps} steps)`;
                             }
+                            try { this._sendMidiForControl && this._sendMidiForControl('chordboxOctave', e.target, { source: 'chord', chordboxMidi: synth?.midi }); } catch (_) { }
                         });
                     }
                     const atkEl = document.getElementById('chordboxAttack');
@@ -18145,6 +18765,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             synth.env.attack = ms / 1000;
                             const v = document.getElementById('chordboxAttackValue');
                             if (v) v.textContent = `${ms}ms`;
+                            try { this._sendMidiForControl && this._sendMidiForControl('chordboxAttack', e.target, { source: 'chord', chordboxMidi: synth?.midi }); } catch (_) { }
                         });
                     }
                     const decEl = document.getElementById('chordboxDecay');
@@ -18158,6 +18779,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             synth.env.decay = ms / 1000;
                             const v = document.getElementById('chordboxDecayValue');
                             if (v) v.textContent = `${ms}ms`;
+                            try { this._sendMidiForControl && this._sendMidiForControl('chordboxDecay', e.target, { source: 'chord', chordboxMidi: synth?.midi }); } catch (_) { }
                         });
                     }
                     const susEl = document.getElementById('chordboxSustain');
@@ -18171,6 +18793,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             synth.env.sustain = pct / 100;
                             const v = document.getElementById('chordboxSustainValue');
                             if (v) v.textContent = `${pct}%`;
+                            try { this._sendMidiForControl && this._sendMidiForControl('chordboxSustain', e.target, { source: 'chord', chordboxMidi: synth?.midi }); } catch (_) { }
                         });
                     }
                     const relEl = document.getElementById('chordboxRelease');
@@ -18184,6 +18807,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             synth.env.release = ms / 1000;
                             const v = document.getElementById('chordboxReleaseValue');
                             if (v) v.textContent = `${ms}ms`;
+                            try { this._sendMidiForControl && this._sendMidiForControl('chordboxRelease', e.target, { source: 'chord', chordboxMidi: synth?.midi }); } catch (_) { }
                         });
                     }
 
@@ -18265,6 +18889,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         makeDraggable(modal);
                         modal._draggableSet = true;
                     }
+                    try { this._refreshCustomMidiCcUi && this._refreshCustomMidiCcUi('chordbox'); } catch (_) { }
                 }
 
                 _openChordsSettingsModal() {
@@ -18301,6 +18926,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     setTimeout(() => {
                         try { tabChord && tabChord.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) { }
                     }, 0);
+                    try { this._refreshCustomMidiCcUi && this._refreshCustomMidiCcUi('chords'); } catch (_) { }
                 }
 
                 _createChordboxGearButton(column) {
@@ -18312,6 +18938,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const open = (e) => {
                         try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
                         this._openChordboxSynthModal(column);
+                        try {
+                            const controls = column?.querySelector?.('.chordbox-footer-controls');
+                            if (controls) queueChordboxFooterHide(column, controls, 'gear');
+                        } catch (_) { }
                     };
                     btn.addEventListener('pointerdown', (e) => {
                         btn.__skipClick = true;
@@ -18335,6 +18965,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (this._projectLocked) return;
                     const options = (opts && typeof opts === 'object') ? opts : {};
                     const insertAfterId = (options.insertAfterId != null) ? String(options.insertAfterId) : null;
+                    const insertBeforeId = (options.insertBeforeId != null) ? String(options.insertBeforeId) : null;
+                    const len16Opt = options.len16;
+                    const clampLen16 = (v) => {
+                        const n = parseInt(v, 10);
+                        if (!Number.isFinite(n) || n <= 0) return 16;
+                        return Math.max(1, Math.min(1024, n | 0));
+                    };
+                    const len16 = clampLen16(len16Opt);
                     const focusName = options.focusName !== false;
                     // Ensure chord extensions array exists
                     if (!Array.isArray(this.chordExtensions)) this.chordExtensions = [];
@@ -18362,7 +19000,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     // TAB behavior: insert immediately after the chord being edited.
                     let insertPosition = insertPositionBeforeClosing;
-                    if (insertAfterId) {
+                    if (insertBeforeId) {
+                        const idx = (this.chordExtensions || []).findIndex(e => e && e.id === insertBeforeId);
+                        if (idx >= 0) insertPosition = idx;
+                    } else if (insertAfterId) {
                         const idx = (this.chordExtensions || []).findIndex(e => e && e.id === insertAfterId);
                         if (idx >= 0) insertPosition = idx + 1;
                     }
@@ -18376,7 +19017,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         intervals: [], // start blank; user taps to add
                         isCustom: true,
                         quality: 'custom',
-                        len16: 16,
+                        len16,
                         position: insertPosition
                     };
                     this._assignChordboxSynthConfig(newChord);
@@ -20187,6 +20828,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Update keyboard highlighting
                             try { this.highlightKeyboardForColumn(column); } catch { }
                             try { this._queueXenUndoSnapshot?.('local-transpose'); } catch (_) { }
+                            try { queueChordboxFooterHide(column, footerControls, 'transpose'); } catch (_) { }
                             // release guard on next microtask to collapse duplicate events
                             Promise.resolve().then(() => { _pressGuard = false; });
                         };
@@ -20211,6 +20853,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
                             const next = !this._isChordboxSynthLocked(column, chordExt);
                             this._setChordboxSynthLockState(column, chordExt, next);
+                            try { queueChordboxFooterHide(column, footerControls, 'lock'); } catch (_) { }
                         };
                         lockBtn.addEventListener('pointerdown', (e) => {
                             lockBtn.__skipClick = true;
@@ -20226,6 +20869,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         });
                         footerControls.appendChild(lockBtn);
                         footer.appendChild(footerControls);
+                        try { wireChordboxFooterAutoHide(column, footer, footerControls); } catch (_) { }
 
                         // Initialize per-column local transpose from model (default 0)
                         const initLocalTranspose = (typeof chordExt.localTranspose === 'number') ? chordExt.localTranspose : 0;
@@ -26407,6 +27051,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (el && !el._wired) {
                             el._wired = true;
 
+                            try {
+                                const meta = this._getMidiCcDefaultForControl ? this._getMidiCcDefaultForControl(id) : null;
+                                if (meta && this._wireMidiCcOverrideUI) {
+                                    const src = this._inferMidiSourceFromId ? this._inferMidiSourceFromId(id) : null;
+                                    const key = this._getMidiCcKey ? this._getMidiCcKey(id, src || 'default') : null;
+                                    if (key) this._wireMidiCcOverrideUI(el, key, meta.cc);
+                                }
+                            } catch (_) { }
+
                             // Double-tap detection for sliders (not checkboxes)
                             if (el.type !== 'checkbox') {
                                 let lastTapTime = 0;
@@ -26432,9 +27085,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     return;
                                 }
                                 cb(e);
+                                try { this._sendMidiForControl && this._sendMidiForControl(id, el); } catch (_) { }
                             });
                         }
                     };
+
+                    if (!document._wiredDrumMidiParams) {
+                        document._wiredDrumMidiParams = true;
+                        document.addEventListener('input', (e) => {
+                            const el = e.target;
+                            if (!el || el.tagName !== 'INPUT' || el.type !== 'range') return;
+                            const holder = el.closest && el.closest('.drum-params');
+                            if (!holder) return;
+                            const title = String(el.getAttribute('title') || '').toLowerCase();
+                            let id = null;
+                            if (title.includes('pitch')) id = 'drumPitch';
+                            else if (title.includes('attack')) id = 'drumAttack';
+                            else if (title.includes('decay')) id = 'drumDecay';
+                            if (!id) return;
+                            try { this._sendMidiForControl && this._sendMidiForControl(id, el, { source: 'drum' }); } catch (_) { }
+                        }, true);
+                    }
                     const queueChordRevoice = () => {
                         try {
                             if (this.chordsEnabled && this._isSequencing && this._arpTransport && this._arpTransport.running) {
@@ -31898,6 +32569,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch (_) { return {}; }
                         })(),
 
+                        customMidiCcSliders: cloneJson(this._customMidiCcSliders || null),
+
                         // ==== PRESET DATA ====
                         sequencePresets: this.getSequencePresets ? this.getSequencePresets() : [],
                         instrumentPresets: this.getInstrumentPresets ? this.getInstrumentPresets() : [],
@@ -33181,6 +33854,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                         // Re-apply MIDI routing after UI snapshot so select restores cannot wipe maps.
                                         try { await applyMidiRestore({ ensureEnabled: true }); } catch (_) { }
+
+                                        // Restore custom MIDI CC sliders after MIDI/UI settle.
+                                        try {
+                                            if (sessionData.customMidiCcSliders && typeof sessionData.customMidiCcSliders === 'object') {
+                                                this._customMidiCcSliders = cloneJson(sessionData.customMidiCcSliders);
+                                            } else {
+                                                this._customMidiCcSliders = null;
+                                            }
+                                            if (typeof this._getCustomMidiCcStore === 'function') this._getCustomMidiCcStore();
+                                            if (typeof this._refreshAllCustomMidiCcUi === 'function') this._refreshAllCustomMidiCcUi();
+                                        } catch (_) { }
                                     } catch (_) { }
 
                                     // If chords exist but none render, clear hiddenColumns and force rebuild
@@ -35133,6 +35817,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // to avoid wiping strings due to empty extension-derived intervals
                         this.generateStringsForColumn(column, chordExt.intervals, chordExt.isCustom || false);
                         try { this._queueXenUndoSnapshot?.('local-transpose'); } catch (_) { }
+                        try { queueChordboxFooterHide(column, footerControls, 'transpose'); } catch (_) { }
                         Promise.resolve().then(() => { _pressGuard = false; });
                     };
                     const onPointer = (delta) => (e) => { e.preventDefault(); e.stopPropagation(); applyLocalTranspose(delta); };
@@ -35155,6 +35840,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
                         const next = !this._isChordboxSynthLocked(column, chordExt);
                         this._setChordboxSynthLockState(column, chordExt, next);
+                        try { queueChordboxFooterHide(column, footerControls, 'lock'); } catch (_) { }
                     };
                     lockBtn.addEventListener('pointerdown', (e) => {
                         lockBtn.__skipClick = true;
@@ -35171,6 +35857,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     footerControls.appendChild(lockBtn);
 
                     footer.appendChild(footerControls);
+                    try { wireChordboxFooterAutoHide(column, footer, footerControls); } catch (_) { }
 
                     header.appendChild(chordName);
 
@@ -35611,6 +36298,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                             try { this.currentActiveColumnEl = column; this.highlightKeyboardForColumn(column); } catch { }
                             try { this._queueXenUndoSnapshot?.('local-transpose'); } catch (_) { }
+                            try { queueChordboxFooterHide(column, footerControls, 'transpose'); } catch (_) { }
                             Promise.resolve().then(() => { _pressGuard = false; });
                         };
                         const onPointer = (delta) => (e) => { e.preventDefault(); e.stopPropagation(); applyLocalTranspose(delta); };
@@ -35640,6 +36328,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
                             const next = !this._isChordboxSynthLocked(column, chordExt);
                             this._setChordboxSynthLockState(column, chordExt, next);
+                            try { queueChordboxFooterHide(column, footerControls, 'lock'); } catch (_) { }
                         };
                         lockBtn.addEventListener('pointerdown', (e) => {
                             lockBtn.__skipClick = true;
@@ -35656,6 +36345,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         footerControls.appendChild(lockBtn);
 
                         footer.appendChild(footerControls);
+                        try { wireChordboxFooterAutoHide(column, footer, footerControls); } catch (_) { }
 
                         header.appendChild(chordName);
 
@@ -44656,24 +45346,34 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                     }
 
-                    if (!slider._wired) {
-                        slider._wired = true;
-                        slider.addEventListener('input', () => {
-                            const v = Math.max(1, Math.min(16, parseInt(slider.value, 10) || 2));
-                            st.count = v;
-                            sliderVal.textContent = String(v);
-                            this._renderBellsBars(win);
+                    const wireBellsSlider = (id, el, handler) => {
+                        if (!el || el._wired) return;
+                        el._wired = true;
+                        try {
+                            const meta = this._getMidiCcDefaultForControl ? this._getMidiCcDefaultForControl(id) : null;
+                            if (meta && this._wireMidiCcOverrideUI) {
+                                const key = this._getMidiCcKey ? this._getMidiCcKey(id, 'bells') : null;
+                                if (key) this._wireMidiCcOverrideUI(el, key, meta.cc);
+                            }
+                        } catch (_) { }
+                        el.addEventListener('input', () => {
+                            handler();
+                            try { this._sendMidiForControl && this._sendMidiForControl(id, el, { source: 'bells' }); } catch (_) { }
                         });
-                    }
-                    if (!octSlider._wired) {
-                        octSlider._wired = true;
-                        octSlider.addEventListener('input', () => {
-                            const v = Math.max(2, Math.min(6, parseInt(octSlider.value, 10) || 4));
-                            st.baseOct = v;
-                            octVal.textContent = String(v);
-                            this._renderBellsBars(win);
-                        });
-                    }
+                    };
+
+                    wireBellsSlider('bellsCount', slider, () => {
+                        const v = Math.max(1, Math.min(16, parseInt(slider.value, 10) || 2));
+                        st.count = v;
+                        sliderVal.textContent = String(v);
+                        this._renderBellsBars(win);
+                    });
+                    wireBellsSlider('bellsOctave', octSlider, () => {
+                        const v = Math.max(2, Math.min(6, parseInt(octSlider.value, 10) || 4));
+                        st.baseOct = v;
+                        octVal.textContent = String(v);
+                        this._renderBellsBars(win);
+                    });
                     const midiOnForBells = !!(window.midi && window.midi.enabled);
                     if (midiOnForBells) {
                         st.glide = false;
@@ -44730,89 +45430,59 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             });
                         }
 
-                        if (levelEl && !levelEl._wired) {
-                            levelEl._wired = true;
-                            levelEl.addEventListener('input', () => {
-                                const v = Math.max(0, Math.min(10, parseInt(levelEl.value, 10) || 0));
-                                inst.osc.level = (v * 0.125) / 10;
-                                if (levelVal) levelVal.textContent = `${Math.round((v / 10) * 100)}%`;
-                            });
-                        }
-                        if (detuneEl && !detuneEl._wired) {
-                            detuneEl._wired = true;
-                            detuneEl.addEventListener('input', () => {
-                                const v = Math.max(-50, Math.min(50, parseInt(detuneEl.value, 10) || 0));
-                                inst.osc.detune = v;
-                                if (detuneVal) detuneVal.textContent = `${v}¢`;
-                            });
-                        }
-                        if (octEl && !octEl._wired) {
-                            octEl._wired = true;
-                            octEl.addEventListener('input', () => {
-                                const v = Math.max(-3, Math.min(3, parseInt(octEl.value, 10) || 0));
-                                inst.osc.octave = v;
-                                if (octVal2) octVal2.textContent = String(v);
-                            });
-                        }
-                        if (coarseEl && !coarseEl._wired) {
-                            coarseEl._wired = true;
-                            coarseEl.addEventListener('input', () => {
-                                const v = Math.max(-24, Math.min(24, parseInt(coarseEl.value, 10) || 0));
-                                inst.osc.coarse = v;
-                                if (coarseVal) coarseVal.textContent = `${v} steps`;
-                            });
-                        }
-                        if (atkEl && !atkEl._wired) {
-                            atkEl._wired = true;
-                            atkEl.addEventListener('input', () => {
-                                const v = Math.max(0, Math.min(1000, parseInt(atkEl.value, 10) || 0));
-                                inst.env.attack = v / 1000;
-                                if (atkVal) atkVal.textContent = `${v}ms`;
-                            });
-                        }
-                        if (decEl && !decEl._wired) {
-                            decEl._wired = true;
-                            decEl.addEventListener('input', () => {
-                                const v = Math.max(0, Math.min(1000, parseInt(decEl.value, 10) || 0));
-                                inst.env.decay = v / 1000;
-                                if (decVal) decVal.textContent = `${v}ms`;
-                            });
-                        }
-                        if (susEl && !susEl._wired) {
-                            susEl._wired = true;
-                            susEl.addEventListener('input', () => {
-                                const v = Math.max(0, Math.min(100, parseInt(susEl.value, 10) || 0));
-                                inst.env.sustain = v / 100;
-                                if (susVal) susVal.textContent = `${v}%`;
-                            });
-                        }
-                        if (relEl && !relEl._wired) {
-                            relEl._wired = true;
-                            relEl.addEventListener('input', () => {
-                                const v = Math.max(0, Math.min(2000, parseInt(relEl.value, 10) || 0));
-                                inst.env.release = v / 1000;
-                                if (relVal) relVal.textContent = `${v}ms`;
-                            });
-                        }
-                        if (glideMsEl && !glideMsEl._wired) {
-                            glideMsEl._wired = true;
-                            glideMsEl.addEventListener('input', () => {
-                                const v = Math.max(0, Math.min(800, parseInt(glideMsEl.value, 10) || 0));
-                                this._bellsGlideMs = v > 0 ? v : null;
-                                if (glideMsVal) glideMsVal.textContent = v > 0 ? `${v}ms` : 'AUTO';
-                            });
-                        }
-                        if (fuzzEl && !fuzzEl._wired) {
-                            fuzzEl._wired = true;
-                            fuzzEl.addEventListener('input', () => {
-                                const v = Math.max(0, Math.min(100, parseInt(fuzzEl.value, 10) || 0));
-                                if (this._bellsFuzz) {
-                                    this._bellsFuzz.amount = v;
-                                    if (typeof this.updateBellsFuzz === 'function') this.updateBellsFuzz();
-                                }
-                                if (fuzzVal) fuzzVal.textContent = `${v}%`;
-                            });
-                        }
+                        wireBellsSlider('bellsOscLevel', levelEl, () => {
+                            const v = Math.max(0, Math.min(10, parseInt(levelEl.value, 10) || 0));
+                            inst.osc.level = (v * 0.125) / 10;
+                            if (levelVal) levelVal.textContent = `${Math.round((v / 10) * 100)}%`;
+                        });
+                        wireBellsSlider('bellsOscDetune', detuneEl, () => {
+                            const v = Math.max(-50, Math.min(50, parseInt(detuneEl.value, 10) || 0));
+                            inst.osc.detune = v;
+                            if (detuneVal) detuneVal.textContent = `${v}¢`;
+                        });
+                        wireBellsSlider('bellsOscOctave', octEl, () => {
+                            const v = Math.max(-3, Math.min(3, parseInt(octEl.value, 10) || 0));
+                            inst.osc.octave = v;
+                            if (octVal2) octVal2.textContent = String(v);
+                        });
+                        wireBellsSlider('bellsOscCoarse', coarseEl, () => {
+                            const v = Math.max(-24, Math.min(24, parseInt(coarseEl.value, 10) || 0));
+                            inst.osc.coarse = v;
+                            if (coarseVal) coarseVal.textContent = `${v} steps`;
+                        });
+                        wireBellsSlider('bellsEnvAttack', atkEl, () => {
+                            const v = Math.max(0, Math.min(1000, parseInt(atkEl.value, 10) || 0));
+                            inst.env.attack = v / 1000;
+                            if (atkVal) atkVal.textContent = `${v}ms`;
+                        });
+                        wireBellsSlider('bellsEnvDecay', decEl, () => {
+                            const v = Math.max(0, Math.min(1000, parseInt(decEl.value, 10) || 0));
+                            inst.env.decay = v / 1000;
+                            if (decVal) decVal.textContent = `${v}ms`;
+                        });
+                        wireBellsSlider('bellsEnvSustain', susEl, () => {
+                            const v = Math.max(0, Math.min(100, parseInt(susEl.value, 10) || 0));
+                            inst.env.sustain = v / 100;
+                            if (susVal) susVal.textContent = `${v}%`;
+                        });
+                        wireBellsSlider('bellsEnvRelease', relEl, () => {
+                            const v = Math.max(0, Math.min(2000, parseInt(relEl.value, 10) || 0));
+                            inst.env.release = v / 1000;
+                            if (relVal) relVal.textContent = `${v}ms`;
+                        });
+                        wireBellsSlider('bellsGlideMs', glideMsEl, () => {
+                            const v = Math.max(0, Math.min(800, parseInt(glideMsEl.value, 10) || 0));
+                            this._bellsGlideMs = v > 0 ? v : null;
+                            if (glideMsVal) glideMsVal.textContent = v > 0 ? `${v}ms` : 'AUTO';
+                        });
+                        wireBellsSlider('bellsFuzz', fuzzEl, () => {
+                            const v = Math.max(0, Math.min(100, parseInt(fuzzEl.value, 10) || 0));
+                            if (this._bellsFuzz) {
+                                this._bellsFuzz.amount = v;
+                                if (typeof this.updateBellsFuzz === 'function') this.updateBellsFuzz();
+                            }
+                            if (fuzzVal) fuzzVal.textContent = `${v}%`;
+                        });
 
                         // BELLS MIDI IN/OUT controls
                         try {
@@ -45716,7 +46386,90 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const el = document.elementFromPoint(x, y);
                         if (!el) return;
                         if (el.closest && el.closest('#jamArea')) return;
-                        const column = (el.closest && el.closest('.extension-column')) ? el.closest('.extension-column') : null;
+                        if (this._projectLocked) return;
+                        const handle = (el.closest && el.closest('.chordbox-resize-handle')) ? el.closest('.chordbox-resize-handle') : null;
+                        let column = (el.closest && el.closest('.extension-column')) ? el.closest('.extension-column') : null;
+                        let edgeSide = null;
+                        if (!handle) {
+                            const edgePx = 30;
+                            const list = (document.elementsFromPoint ? document.elementsFromPoint(x, y) : [el]).filter(Boolean);
+                            const seen = new Set();
+                            let best = null;
+                            list.forEach(node => {
+                                if (!node || !node.closest) return;
+                                const col = node.closest('.extension-column');
+                                if (!col || seen.has(col)) return;
+                                seen.add(col);
+                                const rect = col.getBoundingClientRect();
+                                const distLeft = Math.abs(x - rect.left);
+                                const distRight = Math.abs(rect.right - x);
+                                let side = null;
+                                let dist = Infinity;
+                                if (distRight <= edgePx) { side = 'right'; dist = distRight; }
+                                if (distLeft <= edgePx && distLeft < dist) { side = 'left'; dist = distLeft; }
+                                if (side) {
+                                    if (!best || dist < best.dist) best = { col, side, dist };
+                                }
+                            });
+                            if (best) {
+                                column = best.col;
+                                edgeSide = best.side;
+                            } else if (column) {
+                                const rect = column.getBoundingClientRect();
+                                if (x >= rect.right - edgePx) edgeSide = 'right';
+                                else if (x <= rect.left + edgePx) edgeSide = 'left';
+                            } else {
+                                try {
+                                    const cols = Array.from(document.querySelectorAll('#extensionColumns .extension-column'))
+                                        .filter(c => c && !c.classList.contains('repeat-marker-column') && c.dataset.isSpacer !== 'true');
+                                    let nearest = null;
+                                    cols.forEach(col => {
+                                        const r = col.getBoundingClientRect();
+                                        if (y < r.top || y > r.bottom) return;
+                                        const dLeft = Math.abs(x - r.left);
+                                        const dRight = Math.abs(r.right - x);
+                                        let side = null;
+                                        let dist = Infinity;
+                                        if (dRight <= edgePx) { side = 'right'; dist = dRight; }
+                                        if (dLeft <= edgePx && dLeft < dist) { side = 'left'; dist = dLeft; }
+                                        if (side) {
+                                            if (!nearest || dist < nearest.dist) nearest = { col, side, dist };
+                                        }
+                                    });
+                                    if (nearest) {
+                                        column = nearest.col;
+                                        edgeSide = nearest.side;
+                                    }
+                                } catch (_) { }
+                            }
+                        }
+                        if (handle || (column && edgeSide)) {
+                            const targetColumn = handle ? handle.closest('.extension-column') : column;
+                            if (!targetColumn) return;
+                            const side = handle
+                                ? (handle.classList.contains('left') ? 'left' : 'right')
+                                : edgeSide;
+                            if (!side) return;
+                            const raw = prompt('Chord length (16th steps):', '16');
+                            if (raw == null) return;
+                            const parsed = parseInt(raw, 10);
+                            const len16 = Number.isFinite(parsed) && parsed > 0 ? Math.max(1, Math.min(1024, parsed | 0)) : 16;
+                            const edo = (note && Number.isFinite(note.tuning)) ? note.tuning : (this.currentTuning || 12);
+                            const step = (note && Number.isFinite(note.step)) ? note.step : null;
+                            const oct = (note && Number.isFinite(note.octave)) ? note.octave : 4;
+                            if (step != null) {
+                                const absStep = (oct * edo) + step;
+                                const chordId = targetColumn.dataset && targetColumn.dataset.chordId ? String(targetColumn.dataset.chordId) : null;
+                                if (side === 'left') {
+                                    this._createChordFromRootAbsStep(absStep, edo, { len16, insertBeforeId: chordId, focusName: false });
+                                } else {
+                                    this._createChordFromRootAbsStep(absStep, edo, { len16, insertAfterId: chordId, focusName: false });
+                                }
+                                try { window.renderChordRuler && window.renderChordRuler(); } catch (_) { }
+                                try { window.requestSequencerRebuild && window.requestSequencerRebuild('len'); } catch (_) { }
+                            }
+                            return;
+                        }
                         if (column) {
                             this._applyJamNoteToColumn(column, note);
                             return;
@@ -47221,6 +47974,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const model = window.autoharp._getChordModelFromColumn ? window.autoharp._getChordModelFromColumn(column) : null;
                         const next = !window.autoharp._isChordboxSynthLocked(column, model);
                         window.autoharp._setChordboxSynthLockState(column, model, next);
+                        try {
+                            const controls = column?.querySelector?.('.chordbox-footer-controls');
+                            if (controls) queueChordboxFooterHide(column, controls, 'lock');
+                        } catch (_) { }
                     };
                     document.addEventListener('pointerdown', handleChordboxLock, { passive: false, capture: true });
                     document.addEventListener('pointerup', handleChordboxLock, { passive: false, capture: true });
@@ -48371,9 +49128,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const p = Math.max(0, Math.min(127, Math.round(program)));
                             this.sendRaw([0xC0, p & 0x7F, 0], 0, channel);
                         }
-                        sendCC(cc, value, channel = 1) {
+                        sendCC(cc, value, channel = 1, outputTarget = null) {
                             const v = Math.max(0, Math.min(127, Math.round(value)));
-                            this.sendRaw([0xB0, cc & 0x7F, v], 0, channel);
+                            this.sendRaw([0xB0, cc & 0x7F, v], 0, channel, outputTarget);
                         }
                         sendPitchBend(value = 0, channel = 1, outputTarget = null) {
                             // value in range -1..1
@@ -48683,7 +49440,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const chBase = isChordbox ? chordboxMidiChannel : channelForSource(tgt);
                                     const perOct = (!isChordbox && midi.perSourceOctave && Number.isFinite(midi.perSourceOctave[tgt])) ? (midi.perSourceOctave[tgt] | 0) : 0;
                                     const stepsPerOct = (window?.autoharp?.currentTuning | 0) || 12;
-                                    const effNote = note + (perOct * stepsPerOct) + (isChordbox ? chordboxTranspose : 0);
+                                    const readOct = (id, fallback) => {
+                                        const el = document.getElementById(id);
+                                        return el ? (parseInt(el.value || '0', 10) || 0) : (fallback | 0);
+                                    };
+                                    const extraOctSteps = (() => {
+                                        if (isChordbox) {
+                                            const oct = Math.max(-4, Math.min(4, parseInt(chordboxSynth?.pitch?.octave || 0, 10) || 0));
+                                            return oct * stepsPerOct;
+                                        }
+                                        if (tgtType === 'arp') {
+                                            const oct = Math.max(-3, Math.min(3, readOct('arpOctave', autoharp?.instruments?.arp?.osc?.octave || 0)));
+                                            return oct * stepsPerOct;
+                                        }
+                                        if (tgtType === 'bells') {
+                                            const oct = Math.max(-3, Math.min(3, readOct('bellsOscOctave', autoharp?.instruments?.bells?.osc?.octave || 0)));
+                                            return oct * stepsPerOct;
+                                        }
+                                        return 0;
+                                    })();
+                                    const effNote = note + (perOct * stepsPerOct) + (isChordbox ? chordboxTranspose : 0) + extraOctSteps;
                                     const norm = midi.normalizeNoteChannel(effNote, chBase);
                                     const nNote = norm.note; const nCh = norm.channel;
                                     let outSel = isChordbox ? (chordboxMidiDevice || null) : midi.outputForSource(tgt);
@@ -48850,7 +49626,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const chBase = isChordbox ? chordboxMidiChannel : channelForSource(tgt);
                                     const perOct = (!isChordbox && midi.perSourceOctave && Number.isFinite(midi.perSourceOctave[tgt])) ? (midi.perSourceOctave[tgt] | 0) : 0;
                                     const stepsPerOct = (window?.autoharp?.currentTuning | 0) || 12;
-                                    const effNote = note + (perOct * stepsPerOct) + (isChordbox ? chordboxTranspose : 0);
+                                    const readOct = (id, fallback) => {
+                                        const el = document.getElementById(id);
+                                        return el ? (parseInt(el.value || '0', 10) || 0) : (fallback | 0);
+                                    };
+                                    const extraOctSteps = (() => {
+                                        if (isChordbox) {
+                                            const oct = Math.max(-4, Math.min(4, parseInt(chordboxSynth?.pitch?.octave || 0, 10) || 0));
+                                            return oct * stepsPerOct;
+                                        }
+                                        if (tgtType === 'arp') {
+                                            const oct = Math.max(-3, Math.min(3, readOct('arpOctave', autoharp?.instruments?.arp?.osc?.octave || 0)));
+                                            return oct * stepsPerOct;
+                                        }
+                                        if (tgtType === 'bells') {
+                                            const oct = Math.max(-3, Math.min(3, readOct('bellsOscOctave', autoharp?.instruments?.bells?.osc?.octave || 0)));
+                                            return oct * stepsPerOct;
+                                        }
+                                        return 0;
+                                    })();
+                                    const effNote = note + (perOct * stepsPerOct) + (isChordbox ? chordboxTranspose : 0) + extraOctSteps;
                                     const norm = midi.normalizeNoteChannel(effNote, chBase);
                                     const nNote = norm.note; const nCh = norm.channel;
                                     const outSel = isChordbox ? (chordboxMidiDevice || null) : midi.outputForSource(tgt);
