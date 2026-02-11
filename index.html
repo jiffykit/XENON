@@ -759,11 +759,14 @@
 
         #chordRuler .chord-ruler-seg.chord {
             --len16: 16;
+            --bar16: 16;
+            --beat16: 4;
             background-image:
                 linear-gradient(to right, rgba(255, 255, 255, 0.65) 0px, rgba(255, 255, 255, 0.65) 2px, transparent 2px, transparent 100%),
                 linear-gradient(to right, rgba(255, 255, 255, 0.35) 0px, rgba(255, 255, 255, 0.35) 1px, transparent 1px, transparent 100%),
                 linear-gradient(to right, rgba(255, 255, 255, 0.20) 0px, rgba(255, 255, 255, 0.20) 1px, transparent 1px, transparent 100%);
-            background-size: calc(100% / (var(--len16) / 16)) 100%, calc(100% / (var(--len16) / 4)) 100%, calc(100% / var(--len16)) 100%;
+            /* TS-aware: bar ticks + beat ticks + 16th ticks (len16 is still 16th units). */
+            background-size: calc(100% / (var(--len16) / var(--bar16))) 100%, calc(100% / (var(--len16) / var(--beat16))) 100%, calc(100% / var(--len16)) 100%;
             background-repeat: repeat;
             opacity: 1;
         }
@@ -2527,7 +2530,8 @@
 
         #drumGrid.drum-grid .drum-row-main .drum-lane {
             flex: 1 1 auto;
-            min-width: calc(var(--bar-steps, 16) * var(--step-size, 22px));
+            /* Never allow dots to overlap: lane width must scale with dot size + gap, not an unrelated step-size. */
+            min-width: calc(var(--bar-steps, 16) * (var(--dot-size, 16px) + (var(--dot-gap, 4px) * 2)));
         }
 
         #drumGrid.drum-grid .drum-row-main .drum-midi {
@@ -2692,7 +2696,17 @@
             align-items: center;
             justify-items: start;
             width: 100%;
-            min-width: calc(var(--bar-steps, 16) * var(--step-size, 22px));
+            /* Ensure dots can never overlap even when dot-size changes per modal. */
+            min-width: calc(var(--bar-steps, 16) * (var(--dot-size, 16px) + (var(--dot-gap, 4px) * 2)));
+        }
+
+        /* Drum grid: fixed step spacing so dots never stretch or compress when bars change. */
+        #drumGrid.drum-grid .drum-row-main .drum-lane {
+            --step-size: calc(var(--dot-size, 16px) + (var(--dot-gap, 4px) * 2));
+            grid-template-columns: repeat(var(--steps-per-bar, 16), var(--step-size));
+            width: max-content;
+            min-width: calc(var(--bar-steps, 16) * var(--step-size));
+            flex: 0 0 auto;
         }
 
         .drum-step {
@@ -3013,6 +3027,14 @@
             height: var(--dot-size, 14px);
             margin: 0;
             justify-self: start;
+        }
+
+        /* Pattern rows are ultra-tight; avoid beat-accent scaling overlap. */
+        #patternGrid .drum-row.pattern-row .drum-step.beat-accent,
+        .pattern-grid .drum-row.pattern-row .drum-step.beat-accent,
+        #patternGrid .drum-row.pattern-row .drum-step.beat-accent.active,
+        .pattern-grid .drum-row.pattern-row .drum-step.beat-accent.active {
+            transform: none;
         }
 
         /* PATTERN per-row controls (e.g. Q) must be visible */
@@ -5318,15 +5340,15 @@
                                     <option value="">(All Outputs)</option>
                                 </select>
 
-                                <!-- Compact TIME controls -->
-                                <input id="drumBpmMini" type="number" min="20" max="300" placeholder="BPM"
-                                    title="Tempo (mirrors TIME modal)"
+                                <!-- Compact TIME controls (mirrors master transport; read-only here) -->
+                                <input id="drumBpmMini" type="number" min="20" max="300" placeholder="BPM" disabled
+                                    title="Tempo (master transport)"
+                                    style="display:none;width:58px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:2px 6px;font-size:11px;" />
+                                <input id="drumTSMini" list="tsOptions" type="text" placeholder="TS" disabled
+                                    title="Time Signature (master transport)"
                                     style="width:58px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:2px 6px;font-size:11px;" />
-                                <input id="drumTSMini" list="tsOptions" type="text" placeholder="TS"
-                                    title="Time Signature (e.g., 4/4, 7/8)"
-                                    style="width:58px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:2px 6px;font-size:11px;" />
-                                <input id="drumQuantMini" list="quantOptions" type="text" placeholder="QNT"
-                                    title="Quantization (e.g., 1/16, 1/8T, tuplet:5/4)"
+                                <input id="drumQuantMini" list="quantOptions" type="text" placeholder="QNT" disabled
+                                    title="Quantization (master transport)"
                                     style="width:64px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:2px 6px;font-size:11px;" />
 
                                 <!-- Universal controls -->
@@ -5360,75 +5382,82 @@
                             </div>
                             <div id="drumFxDrawer" class="drum-fx-drawer">
                                 <div class="drum-fx-grid">
-                                <div class="drum-fx-cell">
-                                    <label>SAT MIX <span class="drum-fx-mini" id="drumFxSatMixValue"></span></label>
-                                    <input id="drumFxSatMix" type="range" min="0" max="100" value="0" />
-                                </div>
-                                <div class="drum-fx-cell">
-                                    <label>COMP THR <span class="drum-fx-mini" id="drumFxCompThrValue"></span></label>
-                                    <input id="drumFxCompThr" type="range" min="-60" max="0" value="-18" />
-                                </div>
-                                <div class="drum-fx-cell">
-                                    <label>DELAY TIME <span class="drum-fx-mini"
-                                            id="drumFxDelayTimeValue"></span></label>
-                                    <input id="drumFxDelayTime" type="range" min="10" max="1200" value="180" />
-                                </div>
-                                <div class="drum-fx-cell">
-                                    <label>REVERB WET <span class="drum-fx-mini"
-                                            id="drumFxReverbWetValue"></span></label>
-                                    <input id="drumFxReverbWet" type="range" min="0" max="100" value="15" />
-                                </div>
-                                <div class="drum-fx-cell">
-                                    <label>DRUM OUT <span class="drum-fx-mini" id="drumFxOutValue"></span></label>
-                                    <input id="drumFxOut" type="range" min="0" max="200" value="100" />
-                                </div>
+                                    <div class="drum-fx-cell">
+                                        <label>SAT MIX <span class="drum-fx-mini" id="drumFxSatMixValue"></span></label>
+                                        <input id="drumFxSatMix" type="range" min="0" max="100" value="0" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>COMP THR <span class="drum-fx-mini"
+                                                id="drumFxCompThrValue"></span></label>
+                                        <input id="drumFxCompThr" type="range" min="-60" max="0" value="-18" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>DELAY TIME <span class="drum-fx-mini"
+                                                id="drumFxDelayTimeValue"></span></label>
+                                        <input id="drumFxDelayTime" type="range" min="10" max="1200" value="180" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>REVERB WET <span class="drum-fx-mini"
+                                                id="drumFxReverbWetValue"></span></label>
+                                        <input id="drumFxReverbWet" type="range" min="0" max="100" value="15" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>DRUM OUT <span class="drum-fx-mini" id="drumFxOutValue"></span></label>
+                                        <input id="drumFxOut" type="range" min="0" max="200" value="100" />
+                                    </div>
 
-                                <div class="drum-fx-cell">
-                                    <label>SAT HP <span class="drum-fx-mini" id="drumFxSatHpValue"></span></label>
-                                    <input id="drumFxSatHp" type="range" min="20" max="2000" value="140" />
-                                </div>
-                                <div class="drum-fx-cell">
-                                    <label>COMP RATIO <span class="drum-fx-mini"
-                                            id="drumFxCompRatioValue"></span></label>
-                                    <input id="drumFxCompRatio" type="range" min="1" max="20" value="4" />
-                                </div>
-                                <div class="drum-fx-cell">
-                                    <label>DELAY FB <span class="drum-fx-mini" id="drumFxDelayFbValue"></span></label>
-                                    <input id="drumFxDelayFb" type="range" min="0" max="95" value="25" />
-                                </div>
-                                <div class="drum-fx-cell">
-                                    <label>REVERB DECAY <span class="drum-fx-mini"
-                                            id="drumFxReverbDecayValue"></span></label>
-                                    <input id="drumFxReverbDecay" type="range" min="10" max="600" value="120" />
-                                </div>
-                                <div class="drum-fx-cell">
-                                    <label>REVERB ROOM <span class="drum-fx-mini"
-                                            id="drumFxReverbRoomValue"></span></label>
-                                    <input id="drumFxReverbRoom" type="range" min="0" max="100" value="55" />
-                                </div>
+                                    <div class="drum-fx-cell">
+                                        <label>SAT HP <span class="drum-fx-mini" id="drumFxSatHpValue"></span></label>
+                                        <input id="drumFxSatHp" type="range" min="20" max="2000" value="140" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>COMP RATIO <span class="drum-fx-mini"
+                                                id="drumFxCompRatioValue"></span></label>
+                                        <input id="drumFxCompRatio" type="range" min="1" max="20" value="4" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>DELAY FB <span class="drum-fx-mini"
+                                                id="drumFxDelayFbValue"></span></label>
+                                        <input id="drumFxDelayFb" type="range" min="0" max="95" value="25" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>REVERB DECAY <span class="drum-fx-mini"
+                                                id="drumFxReverbDecayValue"></span></label>
+                                        <input id="drumFxReverbDecay" type="range" min="10" max="600" value="120" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>REVERB ROOM <span class="drum-fx-mini"
+                                                id="drumFxReverbRoomValue"></span></label>
+                                        <input id="drumFxReverbRoom" type="range" min="0" max="100" value="55" />
+                                    </div>
 
-                                <div class="drum-fx-cell">
-                                    <label>SAT LP <span class="drum-fx-mini" id="drumFxSatLpValue"></span></label>
-                                    <input id="drumFxSatLp" type="range" min="200" max="20000" value="12000" />
+                                    <div class="drum-fx-cell">
+                                        <label>SAT LP <span class="drum-fx-mini" id="drumFxSatLpValue"></span></label>
+                                        <input id="drumFxSatLp" type="range" min="200" max="20000" value="12000" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>COMP ATK <span class="drum-fx-mini"
+                                                id="drumFxCompAtkValue"></span></label>
+                                        <input id="drumFxCompAtk" type="range" min="1" max="100" value="3" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>COMP REL <span class="drum-fx-mini"
+                                                id="drumFxCompRelValue"></span></label>
+                                        <input id="drumFxCompRel" type="range" min="10" max="1000" value="250" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>DELAY MIX <span class="drum-fx-mini"
+                                                id="drumFxDelayMixValue"></span></label>
+                                        <input id="drumFxDelayMix" type="range" min="0" max="100" value="18" />
+                                    </div>
+                                    <div class="drum-fx-cell">
+                                        <label>COMP OUT <span class="drum-fx-mini"
+                                                id="drumFxCompOutValue"></span></label>
+                                        <input id="drumFxCompOut" type="range" min="-24" max="24" value="0" />
+                                    </div>
                                 </div>
-                                <div class="drum-fx-cell">
-                                    <label>COMP ATK <span class="drum-fx-mini" id="drumFxCompAtkValue"></span></label>
-                                    <input id="drumFxCompAtk" type="range" min="1" max="100" value="3" />
+                                <div id="customMidiSliders-drum" class="custom-midi-cc-panel custom-midi-cc-hidden">
                                 </div>
-                                <div class="drum-fx-cell">
-                                    <label>COMP REL <span class="drum-fx-mini" id="drumFxCompRelValue"></span></label>
-                                    <input id="drumFxCompRel" type="range" min="10" max="1000" value="250" />
-                                </div>
-                                <div class="drum-fx-cell">
-                                    <label>DELAY MIX <span class="drum-fx-mini" id="drumFxDelayMixValue"></span></label>
-                                    <input id="drumFxDelayMix" type="range" min="0" max="100" value="18" />
-                                </div>
-                                <div class="drum-fx-cell">
-                                    <label>COMP OUT <span class="drum-fx-mini" id="drumFxCompOutValue"></span></label>
-                                    <input id="drumFxCompOut" type="range" min="-24" max="24" value="0" />
-                                </div>
-                                </div>
-                                <div id="customMidiSliders-drum" class="custom-midi-cc-panel custom-midi-cc-hidden"></div>
                             </div>
                         </div>
                     </div>
@@ -5479,13 +5508,7 @@
                                 <input id="universalPatternText" type="text" placeholder="Pattern"
                                     title="Pattern tokens (auto-sync)"
                                     style="display:none;width:100%;max-width:280px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:2px 4px;font-size:11px;" />
-                                <select id="patternQuant" title="Pattern Quant"
-                                    style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:2px 4px;font-size:11px;">
-                                    <option value="1/4">1/4</option>
-                                    <option value="1/8">1/8</option>
-                                    <option value="1/16" selected>1/16</option>
-                                    <option value="1/32">1/32</option>
-                                </select>
+
                                 <input id="universalNpc" type="number" min="1" max="64" value="16"
                                     title="Notes Per Cycle (NPC)"
                                     style="width:60px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:2px 4px;font-size:11px;" />
@@ -5641,7 +5664,15 @@
                                 style="position:absolute;top:32px;right:-4px;width:8px;height:calc(100% - 40px);cursor:ew-resize;background:linear-gradient(to right, rgba(255,255,255,0.15), rgba(255,255,255,0));">
                             </div>
                             <div id="patternSynthToggleBar" class="pattern-synth-toggle-bar"
-                                style="height:32px;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;">
+                                style="height:32px;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;gap:6px;">
+                                <span style="font-size:11px;opacity:.85;">Q:</span>
+                                <select id="patternQuant" title="Quant"
+                                    style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:2px 4px;font-size:11px;">
+                                    <option value="1/4">1/4</option>
+                                    <option value="1/8">1/8</option>
+                                    <option value="1/16" selected>1/16</option>
+                                    <option value="1/32">1/32</option>
+                                </select>
                                 <button id="patternSynthToggleBtn" title="Synth controls"
                                     style="pointer-events:auto;width:28px;height:26px;display:inline-flex;align-items:center;justify-content:center;background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;font-size:14px;cursor:pointer;line-height:1;">⚙</button>
                             </div>
@@ -6817,6 +6848,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 }
 
                                 grid.dataset.length = String(newLen);
+                                try { grid._prevLen16ForResize = oldLen; } catch (_) { }
                                 if (lenVal) lenVal.textContent = String(newLen);
                                 if (lenHint) lenHint.textContent = `Cycle: ${newLen} steps`;
                                 try { delete lenVal.dataset.pending; } catch (_) { }
@@ -6838,6 +6870,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     }
                                     if (isDefault) {
                                         lane.dataset.quant = String(newLen);
+                                        // Keep the visible Q input in sync when auto-updating defaults
+                                        try {
+                                            if (!lane.dataset.pendingQuant) {
+                                                const qEl = lane.closest('.drum-row')?.querySelector('.drum-drawer .drum-params input[type="text"]');
+                                                if (qEl) qEl.value = String(newLen);
+                                            }
+                                        } catch (_) { }
                                     }
                                 });
 
@@ -7026,6 +7065,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const safeNpc = Math.max(1, Math.min(64, parseInt(String(npc || '16'), 10) || 16));
                     const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 4096;
                     const safeLen = Math.max(1, Math.min(maxLen, parseInt(String(len || '16'), 10) || 16));
+                    const masterSteps = Math.max(1, Math.min(maxLen, (window._getMasterStepsPerBar ? window._getMasterStepsPerBar() : safeLen) | 0));
                     try { gridEl.innerHTML = ''; } catch (_) { }
                     try { gridEl.dataset.length = String(safeLen); } catch (_) { }
                     try { gridEl.dataset.built = '1'; } catch (_) { }
@@ -7033,8 +7073,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     try { gridEl.style.gridTemplateRows = `repeat(${safeNpc}, auto)`; } catch (_) { }
                     try {
                         const container = gridEl.closest('.drum-grid-container') || gridEl.parentElement;
-                        if (container && container.style) container.style.setProperty('--bar-steps', String(safeLen));
-                        gridEl.style.setProperty('--bar-steps', String(safeLen));
+                        if (container && container.style) container.style.setProperty('--bar-steps', String(masterSteps));
+                        gridEl.style.setProperty('--bar-steps', String(masterSteps));
                     } catch (_) { }
 
                     for (let rowIdx = 0; rowIdx < safeNpc; rowIdx++) {
@@ -7059,14 +7099,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const qInput = document.createElement('input');
                             qInput.type = 'text';
                             qInput.placeholder = 'Q';
-                            qInput.value = String(safeLen);
+                            qInput.value = String(masterSteps);
                             qInput.size = 6;
                             qInput.style.width = '56px';
                             qInput.title = 'Row subdivisions (Q per bar). Example: 7 = septuplets. “7/16” is treated as 7.';
                             qInput.addEventListener('focus', (e) => e.target && e.target.select && e.target.select());
                             qInput.addEventListener('change', () => {
                                 const raw = String(qInput.value || '').trim();
-                                let D = safeLen;
+                                let D = masterSteps;
                                 const mf = raw.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
                                 if (mf) {
                                     const n = parseInt(mf[1], 10);
@@ -7104,19 +7144,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 }
                                 // Update CSS vars immediately to keep hit-testing aligned
                                 try {
-                                    const d = (lane._pendingQuant ? lane._pendingQuant.D : (lane._quant && lane._quant.D)) || safeLen;
+                                    const d = (lane._pendingQuant ? lane._pendingQuant.D : (lane._quant && lane._quant.D)) || masterSteps;
                                     lane.style.setProperty('--steps-per-bar', String(d));
                                     const container = lane.closest('.drum-grid-container');
                                     if (container) {
                                         const lanes = Array.from(container.querySelectorAll('.pattern-lane'));
                                         const maxD = lanes.reduce((mx, ln) => {
                                             const qs = ln.dataset.quant || '';
-                                            let dd = safeLen;
+                                            let dd = masterSteps;
                                             const mm = qs.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
                                             if (mm) { const d2 = parseInt(mm[2], 10); if (Number.isFinite(d2) && d2 > 0) dd = d2; }
                                             else { const mn = qs.match(/^\s*(\d+)\s*$/); if (mn) { const d2 = parseInt(mn[1], 10); if (Number.isFinite(d2) && d2 > 0) dd = d2; } }
                                             return Math.max(mx, dd);
-                                        }, safeLen);
+                                        }, masterSteps);
                                         container.style.setProperty('--bar-steps', String(maxD));
                                     }
                                 } catch (_) { }
@@ -7130,17 +7170,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const lane = document.createElement('div');
                         lane.className = 'drum-lane pattern-lane';
                         lane.dataset.row = String(rowIdx);
-                        lane.dataset.quant = String(safeLen);
-                        lane._quant = { str: String(safeLen), N: safeLen, D: safeLen };
-                        try { lane.style.setProperty('--steps-per-bar', String(safeLen)); } catch (_) { }
+                        lane.dataset.quant = String(masterSteps);
+                        lane._quant = { str: String(masterSteps), N: masterSteps, D: masterSteps };
+                        try { lane.style.setProperty('--steps-per-bar', String(masterSteps)); } catch (_) { }
 
                         const tieLayer = document.createElement('div');
                         tieLayer.className = 'pattern-tie-layer';
                         lane.appendChild(tieLayer);
 
-                        for (let sIdx = 0; sIdx < safeLen; sIdx++) {
+                        const tsi = (window._getTsInfo ? window._getTsInfo() : null) || { tsNum: 4 };
+                        const beatSet = (window._beatBoundarySetForBarSubdivisions ? window._beatBoundarySetForBarSubdivisions(masterSteps, tsi.tsNum) : null);
+                        for (let sIdx = 0; sIdx < masterSteps; sIdx++) {
                             const st = document.createElement('div');
-                            st.className = 'drum-step pattern-step' + ((sIdx % 4 === 0) ? ' beat-accent' : '');
+                            const isAccent = beatSet ? beatSet.has(sIdx) : ((sIdx % 4) === 0);
+                            st.className = 'drum-step pattern-step' + (isAccent ? ' beat-accent' : '');
                             st.dataset.step = String(sIdx);
                             st.dataset.vel = '100';
                             try { if (window.updateStepVelocityClass) window.updateStepVelocityClass(st); } catch (_) { }
@@ -7388,13 +7431,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     function refreshTiming() {
                         try {
-                            const bpmEl = document.getElementById('universalBpm');
                             const transportBpmEl = document.getElementById('transportBpm');
-                            const quantEl = document.getElementById('universalQuant');
+                            const quantEl = document.getElementById('patternQuant');
                             const patternQuantEl = modalEl ? (modalEl.querySelector('[data-role="patternQuant"]') || modalEl.querySelector('#patternQuant')) : null;
                             const swingEl = document.getElementById('universalSwing');
-                            const bpm = Math.max(20, window.__MASTER_BPM || parseFloat(transportBpmEl?.value || '0') || parseFloat(bpmEl?.value || '120') || 120);
-                            const quant = (patternQuantEl?.value || quantEl?.value || '1/16').trim();
+                            const st = (window.TransportStore && window.TransportStore.get) ? window.TransportStore.get() : null;
+                            const bpm = Math.max(20, (st && Number.isFinite(st.bpm) ? st.bpm : NaN) || parseFloat(transportBpmEl?.value || '0') || 120);
+                            const quant = String((patternQuantEl?.value || quantEl?.value || st?.quant || '1/16')).trim();
                             let baseDiv = 16; let isTrip = false; let tupletRatio = 1;
                             if (/tuplet:\s*(\d+)\/(\d+)/i.test(quant)) { const m = quant.match(/tuplet:\s*(\d+)\/(\d+)/i); const n = +m[1], d = +m[2]; if (n > 0 && d > 0) { tupletRatio = n / d; baseDiv = 4; } }
                             else if (/^1\/(\d+)(t)?$/i.test(quant)) { const m = quant.match(/^1\/(\d+)(t)?$/i); baseDiv = parseInt(m[1], 10) || 16; if (m[2]) isTrip = true; }
@@ -7404,7 +7447,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         } catch (_) { }
                     }
                     refreshTiming();
-                    ['universalBpm', 'universalQuant', 'universalSwing', 'transportBpm'].forEach(id => { const el = document.getElementById(id); if (el) { el.addEventListener('input', refreshTiming); el.addEventListener('change', refreshTiming); } });
+                    ['patternQuant', 'universalSwing', 'transportBpm'].forEach(id => { const el = document.getElementById(id); if (el) { el.addEventListener('input', refreshTiming); el.addEventListener('change', refreshTiming); } });
                     try {
                         const pq = modalEl ? (modalEl.querySelector('[data-role="patternQuant"]') || modalEl.querySelector('#patternQuant')) : null;
                         if (pq && !pq._wiredPatternInstTiming) {
@@ -7483,6 +7526,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         } catch (_) { }
                         const tickMs = (window.autoharp && window.autoharp._arpTransport && window.autoharp._arpTransport.tickMs) ? Number(window.autoharp._arpTransport.tickMs) : NaN;
+
+                        // LEN is loop length only (in 16ths). Per-row D still subdivides a bar.
+                        // Convert loop position into a bar-phase fraction used for choosing stepIdx.
+                        let frac = bt / tpb;
+                        try {
+                            const tsi = (window._getTsInfo ? window._getTsInfo() : null);
+                            const barLen16 = Math.max(1, (tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 16));
+                            const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
+                            const lenValueEl = modalEl ? (modalEl.querySelector('[data-role="patternLenValue"]') || modalEl.querySelector('#patternLenValue')) : null;
+                            const lenUi = parseInt((lenValueEl && lenValueEl.textContent) ? String(lenValueEl.textContent).trim() : '', 10);
+                            const lenPg = parseInt(gridEl.dataset.length || '', 10);
+                            const cycleLen16 = Math.max(1, Math.min(maxLen,
+                                (Number.isFinite(lenUi) && lenUi > 0) ? lenUi : ((Number.isFinite(lenPg) && lenPg > 0) ? lenPg : barLen16)
+                            ));
+                            const cycleTicks = Math.max(1, Math.round(tpb * (cycleLen16 / barLen16)));
+                            const cycleTick = (((absTickNow | 0) % cycleTicks) + cycleTicks) % cycleTicks;
+                            const pos16 = (cycleTick / cycleTicks) * cycleLen16;
+                            const barPos16 = pos16 % barLen16;
+                            frac = barPos16 / barLen16;
+                        } catch (_) { }
                         // Stop expired voices
                         if (pt.activeVoices.size) {
                             for (const vid of Array.from(pt.activeVoices)) {
@@ -7497,14 +7560,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                         const rows = gridEl.querySelectorAll('.pattern-row');
                         const snap = gridEl ? gridEl._audioSnapshot : null;
-                        const baseFallback = Math.max(1, parseInt(gridEl.dataset.length || '16', 10) || 16);
+                        const baseFallback = Math.max(1, (window._getMasterStepsPerBar ? window._getMasterStepsPerBar() : 16) | 0);
                         rows.forEach((rowEl, rowIdx) => {
                             const lane = rowEl.querySelector('.pattern-lane');
                             if (!lane) return;
                             const laneSnap = (snap && snap.lanes && snap.lanes[rowIdx]) ? snap.lanes[rowIdx] : null;
                             const D = Math.max(1, (laneSnap && laneSnap.D) ? laneSnap.D : ((lane.querySelectorAll('.pattern-step').length | 0) || getLaneD(lane, baseFallback)));
                             // Fraction-based scheduling: works even when ticksPerBar is clamped and not divisible by D.
-                            const frac = bt / tpb;
                             const stepIdx = Math.max(0, Math.min(D - 1, Math.floor(frac * D + 1e-9)));
                             // Fire at most once per lane-step.
                             if (lane._lastPatternStepIdx === stepIdx) return;
@@ -8979,6 +9041,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 if (window._drumInstanceSupportWired) return;
                 window._drumInstanceSupportWired = true;
 
+                const getDefaultBarLen16 = () => {
+                    try {
+                        const st = (window.TransportStore && window.TransportStore.get) ? window.TransportStore.get() : null;
+                        const v = st && Number.isFinite(st.barLen16) ? (st.barLen16 | 0) : 0;
+                        if (v > 0) return Math.max(1, v);
+                    } catch (_) { }
+                    try {
+                        const tr = window.autoharp && window.autoharp._arpTransport;
+                        const beats = tr && Number.isFinite(tr.beatsPerBar) ? tr.beatsPerBar : 4;
+                        return Math.max(1, Math.round((beats || 4) * 4));
+                    } catch (_) { }
+                    return 16;
+                };
+
                 // Shared UI helper: pulse a dot briefly when it fires.
                 if (!window._pulseStepEl) {
                     window._pulseStepEl = function (el) {
@@ -9018,7 +9094,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 const blankState = (len) => {
                     const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
-                    const safeLen = Math.max(1, Math.min(maxLen, parseInt(len || '16', 10) || 16));
+                    const baseLen = (len == null || len === '') ? getDefaultBarLen16() : (parseInt(len || '0', 10) || 0);
+                    const safeLen = Math.max(1, Math.min(maxLen, baseLen || 16));
                     const lanes = new Array(9).fill(0).map(() => ({
                         steps: new Array(safeLen).fill(0),
                         vel: new Array(safeLen).fill(100),
@@ -9031,6 +9108,85 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         dec: 180,
                     }));
                     return { len: safeLen, lanes };
+                };
+
+                // When TS changes, update only instances that are still using the default LEN.
+                // (If the user explicitly changed LEN, we leave it alone.)
+                window._drumInstancesApplyDefaultLenFromTs = function (oldBarLen16, newBarLen16) {
+                    try {
+                        const oldLen = parseInt(oldBarLen16 || '0', 10) || 0;
+                        const newLen = parseInt(newBarLen16 || '0', 10) || 0;
+                        if (!(oldLen > 0) || !(newLen > 0) || oldLen === newLen) return;
+                        const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 4096;
+                        const clamp = (n) => Math.max(1, Math.min(maxLen, parseInt(n || '0', 10) || 0));
+                        const remapArr = (arr, toLen, isVel) => {
+                            const out = new Array(toLen).fill(isVel ? 100 : 0);
+                            const src = Array.isArray(arr) ? arr : [];
+                            const fromLen = src.length || 0;
+                            if (!fromLen) return out;
+                            if (fromLen === toLen) { for (let i = 0; i < toLen; i++) out[i] = src[i]; return out; }
+                            for (let i = 0; i < toLen; i++) {
+                                const j = Math.max(0, Math.min(fromLen - 1, Math.round((i / Math.max(1, toLen - 1)) * (fromLen - 1))));
+                                out[i] = src[j];
+                            }
+                            return out;
+                        };
+
+                        const insts = window._drumInstances || [];
+                        insts.forEach(inst => {
+                            if (!inst) return;
+                            const isDefault = (inst._lenIsDefault == null) ? (parseInt(inst.len || '0', 10) === oldLen) : !!inst._lenIsDefault;
+                            if (!isDefault) return;
+                            if (parseInt(inst.len || '0', 10) !== oldLen) return;
+
+                            const st = inst.state || blankState(oldLen);
+                            const lanes = Array.isArray(st.lanes) ? st.lanes : [];
+                            while (lanes.length < 9) lanes.push(blankState(oldLen).lanes[0]);
+                            for (let i = 0; i < 9; i++) {
+                                const lane = lanes[i] || (lanes[i] = { steps: [], vel: [], quant: String(oldLen), vol: 80, send: 0, midi: '', pitch: 0, atk: 2, dec: 180 });
+                                const q0 = String(lane.quant || '').trim();
+                                const laneIsDefault = (!q0) || (q0 === String(oldLen)) || (q0 === `${oldLen}/${oldLen}`);
+                                if (laneIsDefault) lane.quant = String(newLen);
+                                const D = clamp(String(lane.quant || newLen));
+                                lane.steps = remapArr(lane.steps, D, false);
+                                lane.vel = remapArr(lane.vel, D, true);
+                            }
+                            st.len = newLen;
+                            st.lanes = lanes.slice(0, 9);
+                            inst.state = st;
+                            inst.len = newLen;
+                            inst._lenIsDefault = true;
+                            inst.pendingLen = null;
+                        });
+
+                        // If the editor is showing the active instance, refresh it.
+                        try { window._syncDrumEditorToActiveInstance && window._syncDrumEditorToActiveInstance(); } catch (_) { }
+                    } catch (_) { }
+                };
+
+                // When TS changes, update chordboxes that are still using the default per-bar duration.
+                window._chordInstancesApplyDefaultLenFromTs = window._chordInstancesApplyDefaultLenFromTs || function (oldBarLen16, newBarLen16) {
+                    try {
+                        const oldLen = parseInt(oldBarLen16 || '0', 10) || 0;
+                        const newLen = parseInt(newBarLen16 || '0', 10) || 0;
+                        if (!(oldLen > 0) || !(newLen > 0) || oldLen === newLen) return;
+                        const omni = window.autoharp;
+                        const list = omni && Array.isArray(omni.chordExtensions) ? omni.chordExtensions : null;
+                        if (list && list.length) {
+                            list.forEach(ext => {
+                                if (!ext || ext.isRepeatMarker || ext.isSeparator || ext.name === '|') return;
+                                const cur = parseInt(ext.len16 || '0', 10) || 0;
+                                const isDefault = (ext.len16IsDefault === true) || (ext.len16IsDefault == null && cur === oldLen);
+                                if (isDefault && cur === oldLen) {
+                                    ext.len16 = newLen;
+                                    ext.len16IsDefault = true;
+                                }
+                            });
+                        }
+                        try { omni && omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch (_) { }
+                        try { omni && omni.generateExtensionColumns && omni.generateExtensionColumns(); } catch (_) { }
+                        try { window.renderChordRuler && window.renderChordRuler(); } catch (_) { }
+                    } catch (_) { }
                 };
 
                 const captureEditorState = () => {
@@ -9380,7 +9536,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const n = (++window._drumInstanceCounter);
                     const id = 'drum' + String(n);
                     const defaultLabel = `DRUM ${n}`;
-                    const len0 = 16;
+                    const len0 = getDefaultBarLen16();
                     const inst = {
                         id,
                         name: defaultLabel,
@@ -9392,6 +9548,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         startAtBarIndex: null,
                         cycleStartGlobalStep: null,
                         _lastStep: -1,
+                        _lenIsDefault: true,
                     };
                     window._drumInstances.push(inst);
 
@@ -9931,11 +10088,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             current.forEach(el => el.remove());
                             Array.from(lane.querySelectorAll('.beat-divider')).forEach(el => el.remove());
                             lane.style.setProperty('--steps-per-bar', String(D));
-                            const fullB = Math.max(0, Math.floor(D / 4));
-                            for (let b = 1; b < fullB; b++) { const div = document.createElement('div'); div.className = 'beat-divider'; div.style.left = `${(b / fullB) * 100}%`; lane.appendChild(div); }
+                            const tsi = (window._getTsInfo ? window._getTsInfo() : null) || { tsNum: 4 };
+                            const percents = window._beatDividerPercentsForBar ? window._beatDividerPercentsForBar(tsi.tsNum) : [];
+                            percents.forEach(p => { const div = document.createElement('div'); div.className = 'beat-divider'; div.style.left = `${p}%`; lane.appendChild(div); });
+                            const beatSet = (window._beatBoundarySetForBarSubdivisions ? window._beatBoundarySetForBarSubdivisions(D, tsi.tsNum) : null);
                             for (let i = 0; i < D; i++) {
                                 const st = document.createElement('div');
-                                st.className = 'drum-step pattern-step bass-step' + ((i % 4 === 0) ? ' beat-accent' : '');
+                                const isAccent = beatSet ? beatSet.has(i) : ((i % 4) === 0);
+                                st.className = 'drum-step pattern-step bass-step' + (isAccent ? ' beat-accent' : '');
                                 st.dataset.step = String(i); st.dataset.npc = '';
                                 st.title = `${labelName || 'BASS'} • Step ${i + 1}`;
                                 const prev = snapshot[i];
@@ -10506,9 +10666,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (cur.width < need) {
                             const nextW = Math.ceil(need);
                             modal.style.width = nextW + 'px';
-                            if (modal._aspectRatio) {
-                                modal.style.height = Math.ceil(nextW / modal._aspectRatio) + 'px';
-                            }
+                            // Do not auto-change height; keep dots same size and avoid vertical growth.
                         }
                         // Ensure container spans full width; avoid clipping
                         container.style.maxWidth = 'none';
@@ -11189,7 +11347,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const op = parseInt(origPos, 10);
                                 if (Number.isFinite(op) && op >= 0 && op < list.length) idx = op;
                             }
-                            if (idx >= 0 && list[idx]) list[idx].len16 = v;
+                            if (idx >= 0 && list[idx]) {
+                                list[idx].len16 = v;
+                                list[idx].len16IsDefault = false;
+                            }
                         }
                     } catch (_) { }
                 };
@@ -11570,6 +11731,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             seg.classList.add('chord');
                                             seg.style.flex = `${len16} 1 0px`;
                                             seg.style.setProperty('--len16', String(len16));
+                                            // TS-aware bar/beat tick spacing within each chord segment.
+                                            try {
+                                                const tsi = (window._getTsInfo ? window._getTsInfo() : null) || { tsNum: 4, barLen16: 16 };
+                                                const bar16 = Math.max(1, (tsi.barLen16 | 0) || 16);
+                                                const tsNum = Math.max(1, (tsi.tsNum | 0) || 4);
+                                                const beat16 = Math.max(1, Math.round(bar16 / tsNum));
+                                                seg.style.setProperty('--bar16', String(bar16));
+                                                seg.style.setProperty('--beat16', String(beat16));
+                                            } catch (_) { }
                                         } else {
                                             seg.classList.add('marker');
                                             let w = 30;
@@ -15423,38 +15593,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const miniIds = ['drumBpmMini', 'drumTSMini', 'drumQuantMini'];
                         const exists = miniIds.some(id => document.getElementById(id));
                         if (exists) {
-                            const link = (miniId, uniId, eventName = 'change') => {
-                                const m = document.getElementById(miniId);
-                                const u = document.getElementById(uniId);
-                                if (!m) return;
-                                // Mini → Universal
-                                if (!m._wiredMini) {
-                                    m._wiredMini = true;
-                                    m.addEventListener('change', () => {
-                                        try { if (u) { u.value = String(m.value); u.dispatchEvent(new Event(eventName, { bubbles: true })); } } catch (_) { }
-                                        // Persist mini as default too
-                                        try { localStorage.setItem(miniId, String(m.value)); } catch (_) { }
-                                    });
-                                    m.addEventListener('input', () => { try { localStorage.setItem(miniId, String(m.value)); } catch (_) { } });
-                                }
-                                // Universal → Mini
-                                if (u && !u._wiredUniToMini) {
-                                    u._wiredUniToMini = true;
-                                    u.addEventListener('change', () => { try { m.value = String(u.value); } catch (_) { } });
-                                    u.addEventListener('input', () => { try { m.value = String(u.value); } catch (_) { } });
-                                }
-                                // Seed from universal on first wire, else from localStorage
+                            // Minis are read-only mirrors now (drum editor must not own tempo/TS/quant)
+                            const applyMirror = () => {
                                 try {
-                                    const ls = localStorage.getItem(miniId);
-                                    if (u) { m.value = String(u.value); }
-                                    else if (ls != null) { m.value = String(ls); }
+                                    const st = window.TransportStore && window.TransportStore.get ? window.TransportStore.get() : null;
+                                    const mTS = document.getElementById('drumTSMini');
+                                    const mQ = document.getElementById('drumQuantMini');
+                                    if (st && mTS) mTS.value = String(st.timeSignature || '');
+                                    if (st && mQ) mQ.value = String(st.quant || '');
                                 } catch (_) { }
                             };
-                            // Map: mini → universal ids
-                            link('drumBpmMini', 'universalBpm', 'input');
-                            link('drumTSMini', 'universalTimeSignature', 'change');
-                            link('drumQuantMini', 'universalQuant', 'change');
-                            // Removed drumNpcMini & drumSwingMini (single NPC & Swing now elsewhere)
+                            applyMirror();
+                            try {
+                                if (window.TransportStore && window.TransportStore.on && !window.__drumMiniMirrorUnsub) {
+                                    window.__drumMiniMirrorUnsub = window.TransportStore.on(() => applyMirror());
+                                }
+                            } catch (_) { }
                         }
                     } catch (_) { }
 
@@ -15592,18 +15746,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try { lane.style.setProperty('--steps-per-bar', String(stepsPerBar)); } catch (_) { }
 
                             // Beat dividers across the full cycle length
-                            const totalBeats = Math.max(0, (currentLen16 / 4));
-                            const fullBeats = Math.max(0, Math.floor(totalBeats));
-                            for (let b = 1; b < fullBeats; b++) {
+                            const tsi = (window._getTsInfo ? window._getTsInfo() : null) || { tsNum: 4, barLen16: 16 };
+                            const percents = window._beatDividerPercentsForLen16 ? window._beatDividerPercentsForLen16(currentLen16, tsi.tsNum, tsi.barLen16) : [];
+                            percents.forEach(p => {
                                 const div = document.createElement('div');
                                 div.className = 'beat-divider';
-                                div.style.left = `${(b / Math.max(1, totalBeats)) * 100}%`;
+                                div.style.left = `${p}%`;
                                 lane.appendChild(div);
-                            }
+                            });
                             // Steps
+                            const beatSet = window._beatBoundarySetForLen16 ? window._beatBoundarySetForLen16(currentLen16, tsi.tsNum, tsi.barLen16) : null;
                             for (let i = 0; i < currentLen16; i++) {
                                 const s = document.createElement('div');
-                                s.className = 'drum-step' + ((i % 4 === 0) ? ' beat-accent' : '');
+                                const isAccent = beatSet ? beatSet.has(i) : ((i % 4) === 0);
+                                s.className = 'drum-step' + (isAccent ? ' beat-accent' : '');
                                 s.dataset.step = String(i);
                                 s.title = `${name} • Step ${i + 1}`;
                                 if (name === 'BASS') {
@@ -16467,22 +16623,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch (_) { }
                             return 4096;
                         };
-                        let tsNum = 4, tsDen = 4; try {
-                            const tsRaw = String(document.getElementById('universalTimeSignature')?.value || '4/4');
-                            const parts = tsRaw.split('/');
-                            const a = parseInt(parts[0], 10); const b = parseInt(parts[1], 10);
-                            if (Number.isFinite(a) && a > 0) tsNum = a; if (Number.isFinite(b) && b > 0) tsDen = b;
-                        } catch (_) { }
-                        const beatsPerBar = (tsNum * 4) / tsDen; // for visual beat dividers
-                        const barLen16 = Math.max(1, Math.round(beatsPerBar * 4));
+                        // Global transport is authoritative (do not read TS directly from UI here)
+                        const stInit = (window.TransportStore && window.TransportStore.get) ? window.TransportStore.get() : null;
+                        const tsiInit = (window._getTsInfo ? window._getTsInfo() : null);
+                        const barLen16 = Math.max(1, (stInit && Number.isFinite(stInit.barLen16) ? (stInit.barLen16 | 0)
+                            : (tsiInit && Number.isFinite(tsiInit.barLen16) ? (tsiInit.barLen16 | 0) : 16)));
                         const maxLen = getMaxLen();
                         const prevDefault = parseInt(patternGrid.dataset.defaultLen || '0', 10) || 0;
-                        let stepsPerBar = Math.max(1, Math.min(maxLen, parseInt(patternGrid.dataset.length || '0', 10) || 0));
-                        if (!stepsPerBar || stepsPerBar === prevDefault) {
-                            stepsPerBar = Math.max(1, Math.min(maxLen, barLen16));
-                            patternGrid.dataset.length = String(stepsPerBar);
+                        // LEN is loop length only (in 16ths). Default tracks TS (barLen16) unless user customized.
+                        let currentLen16 = Math.max(0, Math.min(maxLen, parseInt(patternGrid.dataset.length || '0', 10) || 0));
+                        if (!currentLen16 || currentLen16 === prevDefault) {
+                            currentLen16 = Math.max(1, Math.min(maxLen, barLen16));
+                            patternGrid.dataset.length = String(currentLen16);
                         }
                         patternGrid.dataset.defaultLen = String(Math.max(1, Math.min(maxLen, barLen16)));
+                        // Default dot subdivision comes from MASTER QUANT (subdivides the bar), not LEN.
+                        let stepsPerBar = Math.max(1, Math.min(maxLen, (window._getMasterStepsPerBar ? window._getMasterStepsPerBar() : 16) | 0));
+                        try { patternGrid.style.setProperty('--bar-steps', String(stepsPerBar)); } catch (_) { }
                         // Dynamic NPC: get from universalNpc input, default 3
                         const getNpc = () => {
                             const npcEl = document.getElementById('universalNpc');
@@ -16546,7 +16703,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         }
 
                                         const startIdx = parseInt(head.dataset.step || '0', 10) || 0;
-                                        const laneLen = Math.max(1, Math.min(getMaxLen(), parseInt((document.getElementById('patternLenValue')?.textContent) || patternGrid.dataset.length || '16', 10) || 16));
+                                        // LEN is loop-only. Editing and dot geometry are governed by row subdivision (D).
+                                        const laneLen = Math.max(1, stepsLocal.length || 1);
 
                                         let isDragging = false;
                                         let dragStarted = false;
@@ -16966,18 +17124,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             lane.dataset.quant = lane.dataset.quant || String(stepsPerBar);
                             lane._quant = { str: lane.dataset.quant, N: stepsPerBar, D: stepsPerBar };
                             // Beat dividers
-                            const totalBeats = Math.max(0, (stepsPerBar / 4));
-                            const fullBeats = Math.max(0, Math.floor(totalBeats));
-                            for (let b = 1; b < fullBeats; b++) {
+                            const tsi = (window._getTsInfo ? window._getTsInfo() : null) || { tsNum: 4 };
+                            const percents = window._beatDividerPercentsForBar ? window._beatDividerPercentsForBar(tsi.tsNum) : [];
+                            percents.forEach(p => {
                                 const div = document.createElement('div');
                                 div.className = 'beat-divider';
-                                div.style.left = `${(b / Math.max(1, totalBeats)) * 100}%`;
+                                div.style.left = `${p}%`;
                                 lane.appendChild(div);
-                            }
+                            });
                             // Steps creation
+                            const beatSet = (window._beatBoundarySetForBarSubdivisions ? window._beatBoundarySetForBarSubdivisions(stepsPerBar, tsi.tsNum) : null);
                             for (let sIdx = 0; sIdx < stepsPerBar; sIdx++) {
                                 const st = document.createElement('div');
-                                st.className = 'drum-step pattern-step' + ((sIdx % 4 === 0) ? ' beat-accent' : '');
+                                const isAccent = beatSet ? beatSet.has(sIdx) : ((sIdx % 4) === 0);
+                                st.className = 'drum-step pattern-step' + (isAccent ? ' beat-accent' : '');
                                 st.dataset.step = String(sIdx);
                                 st.title = `${labelName} • Step ${sIdx + 1}`;
                                 if (labelName === 'BASS') {
@@ -17096,60 +17256,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             row.appendChild(lane);
                             patternGrid.appendChild(row);
                         });
-                        // Expose update function (without new global section) to rebuild steps when length changes
+                        // Expose update function: LEN is loop length only; do not rebuild dot geometry.
                         patternGrid._rebuildLength = (newLen) => {
                             const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
                             newLen = Math.max(1, Math.min(maxLen, newLen | 0));
                             if (parseInt(patternGrid.dataset.length || '0', 10) === newLen) return;
                             patternGrid.dataset.length = String(newLen);
-                            // Capture existing active state per (row, step)
-                            const state = {};
-                            Array.from(patternGrid.querySelectorAll('.pattern-lane')).forEach((lane, rIdx) => {
-                                Array.from(lane.querySelectorAll('.pattern-step')).forEach(st => {
-                                    const si = parseInt(st.dataset.step || '0', 10);
-                                    if (!state[rIdx]) state[rIdx] = {};
-                                    if (st.classList.contains('active')) state[rIdx][si] = st.dataset.npc ? { npc: st.dataset.npc, len: st.dataset.len, tie: st.dataset.tie } : { active: 1 };
-                                });
-                            });
-                            // Clear rows (keep labels)
-                            Array.from(patternGrid.querySelectorAll('.pattern-lane')).forEach(l => {
-                                // remove old steps & any playheads & beat dividers but keep tie layer if bass
-                                Array.from(l.querySelectorAll('.pattern-step,.beat-divider,.drum-playhead,.pattern-playhead')).forEach(n => n.remove());
-                            });
-                            // Rebuild with new length
-                            stepsPerBar = newLen;
-                            Array.from(patternGrid.querySelectorAll('.pattern-lane')).forEach((lane) => {
-                                const rowIdx = parseInt(lane.dataset.row || '0', 10);
-                                const isBass = rowIdx === 9;
-                                const fullBeats = Math.max(0, Math.floor(newLen / 4));
-                                for (let b = 1; b < fullBeats; b++) {
-                                    const div = document.createElement('div');
-                                    div.className = 'beat-divider';
-                                    div.style.left = `${(b / fullBeats) * 100}%`;
-                                    lane.appendChild(div);
-                                }
-                                for (let i = 0; i < newLen; i++) {
-                                    const st = document.createElement('div');
-                                    st.className = 'drum-step pattern-step' + ((i % 4 === 0) ? ' beat-accent' : '');
-                                    st.dataset.step = String(i);
-                                    if (isBass) { st.dataset.npc = ''; }
-                                    // Restore state
-                                    const saved = state[rowIdx] && state[rowIdx][i];
-                                    if (saved) {
-                                        st.classList.add('active');
-                                        if (saved.npc) { st.dataset.npc = saved.npc; if (saved.len) st.dataset.len = saved.len; if (saved.tie) st.dataset.tie = '1'; }
-                                    }
-                                    // Reattach event handlers (simplified: reuse click logic via delegation below)
-                                    lane.appendChild(st);
-                                }
-                                // No pattern playhead on rebuild
-                            });
-                            // Reattach handlers and restore any shadow state for visible region
-                            try { attachHandlers(); } catch (_) { }
-                            try { restoreVisibleFromShadow(); } catch (_) { }
-                            try { if (patternGrid._recomputePatternText) patternGrid._recomputePatternText(); } catch (_) { }
                             try { const valSpan = document.getElementById('patternLenValue'); if (valSpan) valSpan.textContent = String(newLen); } catch (_) { }
                             try { if (typeof window.refreshPatternTransportTiming === 'function') window.refreshPatternTransportTiming(); } catch (_) { }
+                            // Rebuild tie overlays so pills reflect new visible LEN window.
+                            try {
+                                const lanes = Array.from(patternGrid.querySelectorAll('.pattern-lane'));
+                                lanes.forEach(lane => {
+                                    try { window.rebuildPatternTieOverlays && window.rebuildPatternTieOverlays(lane); } catch (_) { }
+                                });
+                            } catch (_) { }
+                            try { if (patternGrid._recomputePatternText) patternGrid._recomputePatternText(); } catch (_) { }
                         };
                         // Rebuild pattern grid rows when NPC changes (dynamic number of NOTE rows)
                         patternGrid._rebuildNpc = (newNpc) => {
@@ -17157,14 +17279,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const currentNpc = patternGrid.querySelectorAll('.drum-row.pattern-row').length;
                             if (currentNpc === newNpc) return;
 
-                            // Save current state before clearing
+                            // Save current state + per-row quant before clearing
                             const state = {};
+                            const rowMeta = [];
                             Array.from(patternGrid.querySelectorAll('.pattern-lane')).forEach((lane, rIdx) => {
+                                rowMeta[rIdx] = { quant: String(lane.dataset.quant || '').trim(), D: parseInt(lane.style.getPropertyValue('--steps-per-bar') || '', 10) || (lane.querySelectorAll('.pattern-step').length | 0) || 0 };
                                 Array.from(lane.querySelectorAll('.pattern-step')).forEach(st => {
                                     const si = parseInt(st.dataset.step || '0', 10);
                                     if (!state[rIdx]) state[rIdx] = {};
-                                    if (st.classList.contains('active')) {
-                                        state[rIdx][si] = { active: 1, len: st.dataset.len, tie: st.dataset.tie, vel: st.dataset.vel };
+                                    const isTie = (st.dataset && st.dataset.tie === '1');
+                                    const isHead = st.classList && st.classList.contains('active');
+                                    if (isHead || isTie) {
+                                        state[rIdx][si] = { active: isHead ? 1 : 0, len: st.dataset.len, tie: st.dataset.tie, vel: st.dataset.vel };
                                     }
                                 });
                             });
@@ -17175,34 +17301,111 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Generate new row labels (NOTE N at top, NOTE 1 at bottom)
                             rowLabels = generateRowLabels(newNpc);
                             const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
-                            const currentLen = Math.max(1, Math.min(maxLen, parseInt(patternGrid.dataset.length || '16', 10) || 16));
+                            const defaultD = Math.max(1, Math.min(maxLen, (window._getMasterStepsPerBar ? window._getMasterStepsPerBar() : stepsPerBar) | 0));
 
                             // Update grid template rows CSS (keep rows tight; do not stretch to fill height)
                             patternGrid.style.gridTemplateRows = `repeat(${newNpc}, auto)`;
+
+                            const parseRowD = (qStr, fallback) => {
+                                let D = fallback | 0;
+                                try {
+                                    const raw = String(qStr || '').trim();
+                                    const mn = raw.match(/^\s*(\d+)\s*$/);
+                                    if (mn) {
+                                        const n = parseInt(mn[1], 10);
+                                        if (Number.isFinite(n) && n > 0) D = n;
+                                    }
+                                } catch (_) { }
+                                return Math.max(1, Math.min(maxLen, D | 0));
+                            };
 
                             // Create new rows
                             rowLabels.forEach((labelName, rowIdx) => {
                                 const row = document.createElement('div');
                                 row.className = 'drum-row pattern-row';
+                                const label = document.createElement('div');
+                                label.className = 'drum-label';
+                                label.textContent = labelName;
+                                row.appendChild(label);
+
                                 const lane = document.createElement('div');
                                 lane.className = 'drum-lane pattern-lane';
                                 lane.dataset.row = String(rowIdx);
-                                lane.dataset.quant = String(currentLen);
-                                lane._quant = { str: String(currentLen), N: currentLen, D: currentLen };
+                                // Keep NOTE 1 anchored at the bottom: map rows from the bottom when NPC changes
+                                const savedRowIdx = (currentNpc - newNpc) + rowIdx;
+                                const savedMeta = (savedRowIdx >= 0 && rowMeta[savedRowIdx]) ? rowMeta[savedRowIdx] : null;
+                                const qStr = savedMeta && savedMeta.quant ? savedMeta.quant : String(defaultD);
+                                const D = parseRowD(qStr, defaultD);
+                                lane.dataset.quant = String(D);
+                                lane._quant = { str: String(D), N: D, D: D };
+                                try { lane.style.setProperty('--steps-per-bar', String(D)); } catch (_) { }
 
-                                // Steps creation (no beat dividers for tight pixel grid)
-                                for (let sIdx = 0; sIdx < currentLen; sIdx++) {
+                                // Per-row QUANT controls (Q per bar)
+                                const params = document.createElement('div');
+                                params.className = 'drum-params';
+                                const qWrap = document.createElement('div');
+                                qWrap.className = 'drum-quant';
+                                const qLbl = document.createElement('label'); qLbl.textContent = 'Q:'; qLbl.style.marginRight = '4px'; qLbl.style.fontSize = '10px'; qLbl.style.opacity = '0.8';
+                                const qInput = document.createElement('input');
+                                qInput.type = 'text';
+                                qInput.placeholder = 'Q';
+                                qInput.value = String(D);
+                                qInput.size = 6; qInput.style.width = '56px';
+                                qInput.title = 'Row subdivisions (Q per bar). Example: 7 = septuplets. “7/16” is treated as 7.';
+                                qInput.addEventListener('focus', (e) => e.target && e.target.select && e.target.select());
+                                qInput.addEventListener('change', () => {
+                                    const raw = String(qInput.value || '').trim();
+                                    let nextD = D;
+                                    const mf = raw.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+                                    if (mf) {
+                                        const n = parseInt(mf[1], 10);
+                                        if (Number.isFinite(n) && n > 0) nextD = n;
+                                    } else {
+                                        const mn = raw.match(/^\s*(\d+)\s*$/);
+                                        if (mn) {
+                                            const n = parseInt(mn[1], 10);
+                                            if (Number.isFinite(n) && n > 0) nextD = n;
+                                        }
+                                    }
+                                    nextD = Math.max(1, Math.min(maxLen, nextD | 0));
+                                    try { qInput.value = String(nextD); } catch (_) { }
+                                    const str = String(nextD);
+                                    const isPlaying = !!(window.autoharp && window.autoharp._isSequencing);
+                                    if (isPlaying) {
+                                        lane.dataset.pendingQuant = str;
+                                        lane._pendingQuant = { str, N: nextD, D: nextD };
+                                    } else {
+                                        lane.dataset.quant = str;
+                                        lane._quant = { str, N: nextD, D: nextD };
+                                        try { delete lane.dataset.pendingQuant; } catch (_) { }
+                                        try { delete lane._pendingQuant; } catch (_) { }
+                                        try { window.rebuildPatternLaneForQuant && window.rebuildPatternLaneForQuant(lane, patternGrid); } catch (_) { }
+                                        try { if (typeof patternGrid._attachHandlers === 'function') patternGrid._attachHandlers(); } catch (_) { }
+                                        try { if (patternGrid._recomputePatternText) patternGrid._recomputePatternText(); } catch (_) { }
+                                    }
+                                    try {
+                                        const dNow = (lane._pendingQuant ? lane._pendingQuant.D : (lane._quant && lane._quant.D)) || defaultD;
+                                        lane.style.setProperty('--steps-per-bar', String(dNow));
+                                    } catch (_) { }
+                                    try { if (isPlaying) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ pattern: { laneQuant: true } }); } } catch (_) { }
+                                });
+                                qWrap.appendChild(qLbl); qWrap.appendChild(qInput); params.appendChild(qWrap);
+                                row.appendChild(params);
+
+                                // Steps creation
+                                const tsi = (window._getTsInfo ? window._getTsInfo() : null) || { tsNum: 4 };
+                                const beatSet = (window._beatBoundarySetForBarSubdivisions ? window._beatBoundarySetForBarSubdivisions(D, tsi.tsNum) : null);
+                                for (let sIdx = 0; sIdx < D; sIdx++) {
                                     const st = document.createElement('div');
-                                    st.className = 'drum-step pattern-step' + ((sIdx % 4 === 0) ? ' beat-accent' : '');
+                                    const isAccent = beatSet ? beatSet.has(sIdx) : ((sIdx % 4) === 0);
+                                    st.className = 'drum-step pattern-step' + (isAccent ? ' beat-accent' : '');
                                     st.dataset.step = String(sIdx);
                                     st.title = `${labelName} • Step ${sIdx + 1}`;
 
                                     // Restore state if available
-                                    // Keep NOTE 1 anchored at the bottom: map rows from the bottom when NPC changes
-                                    const savedRowIdx = (currentNpc - newNpc) + rowIdx;
                                     const saved = (savedRowIdx >= 0 && state[savedRowIdx]) ? state[savedRowIdx][sIdx] : null;
-                                    if (saved && saved.active) {
-                                        st.classList.add('active');
+                                    if (saved) {
+                                        if (saved.active) st.classList.add('active');
                                         if (saved.len) st.dataset.len = saved.len;
                                         if (saved.tie) st.dataset.tie = '1';
                                     }
@@ -17387,8 +17590,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const val = String(patternQuantSelect.value || '1/16').trim();
                                 patternQuantSelect.dataset.pending = '1';
                                 try { patternQuantSelect.classList.add('pending-change'); } catch (_) { }
-                                try { const pg = document.getElementById('patternGrid'); if (pg) pg.dataset.quant = val; } catch (_) { }
-                                try { window.queuePatternTransportResync && window.queuePatternTransportResync({ quant: val }); } catch (_) { }
+                                try {
+                                    const omni = window.autoharp;
+                                    if (omni && typeof omni._queueTransportChange === 'function') {
+                                        omni._queueTransportChange({ quant: val }, { patternGrid: true });
+                                    } else {
+                                        const scheduleDeferred = window.scheduleDeferred;
+                                        if (typeof scheduleDeferred === 'function') scheduleDeferred({ transport: true, patternGrid: true });
+                                    }
+                                } catch (_) { }
                             });
                         }
 
@@ -17512,14 +17722,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 Array.from(lane.querySelectorAll('.pattern-step,.beat-divider,.drum-playhead')).forEach(n => { try { n.remove(); } catch (_) { } });
                                 try { lane.style.setProperty('--steps-per-bar', String(toD)); } catch (_) { }
 
-                                // Beat dividers baseline: quarters of toD
-                                const fullBeats = Math.max(0, Math.floor(toD / 4));
-                                for (let b = 1; b < fullBeats; b++) {
-                                    const div = document.createElement('div');
-                                    div.className = 'beat-divider';
-                                    div.style.left = `${(b / fullBeats) * 100}%`;
-                                    lane.appendChild(div);
-                                }
+                                // Beat dividers baseline: TS-aware (tsNum beats across bar)
+                                const tsi = (window._getTsInfo ? window._getTsInfo() : null) || { tsNum: 4 };
+                                const percents = window._beatDividerPercentsForBar ? window._beatDividerPercentsForBar(tsi.tsNum) : [];
+                                percents.forEach(p => { const div = document.createElement('div'); div.className = 'beat-divider'; div.style.left = `${p}%`; lane.appendChild(div); });
 
                                 // Remap state
                                 const dest = new Array(toD).fill(null).map(() => ({}));
@@ -17559,9 +17765,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 }
 
                                 const created = [];
+                                const beatSet = (window._beatBoundarySetForBarSubdivisions ? window._beatBoundarySetForBarSubdivisions(toD, tsi.tsNum) : null);
                                 for (let i = 0; i < toD; i++) {
                                     const st = document.createElement('div');
-                                    st.className = 'drum-step pattern-step' + ((i % 4 === 0) ? ' beat-accent' : '');
+                                    const isAccent = beatSet ? beatSet.has(i) : ((i % 4) === 0);
+                                    st.className = 'drum-step pattern-step' + (isAccent ? ' beat-accent' : '');
                                     st.dataset.step = String(i);
                                     const prev = dest[i] || null;
                                     if (isBassRow) st.dataset.npc = '';
@@ -18967,12 +19175,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const insertAfterId = (options.insertAfterId != null) ? String(options.insertAfterId) : null;
                     const insertBeforeId = (options.insertBeforeId != null) ? String(options.insertBeforeId) : null;
                     const len16Opt = options.len16;
+                    const barLen16 = (() => {
+                        try {
+                            const tsi = (window._getTsInfo ? window._getTsInfo() : null);
+                            const v = (tsi && Number.isFinite(tsi.barLen16)) ? (tsi.barLen16 | 0) : 16;
+                            return Math.max(1, v);
+                        } catch (_) { return 16; }
+                    })();
                     const clampLen16 = (v) => {
                         const n = parseInt(v, 10);
-                        if (!Number.isFinite(n) || n <= 0) return 16;
+                        if (!Number.isFinite(n) || n <= 0) return barLen16;
                         return Math.max(1, Math.min(1024, n | 0));
                     };
                     const len16 = clampLen16(len16Opt);
+                    const len16IsDefault = (!Number.isFinite(parseInt(len16Opt, 10)) || (parseInt(len16Opt, 10) <= 0));
                     const focusName = options.focusName !== false;
                     // Ensure chord extensions array exists
                     if (!Array.isArray(this.chordExtensions)) this.chordExtensions = [];
@@ -19018,6 +19234,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         isCustom: true,
                         quality: 'custom',
                         len16,
+                        len16IsDefault,
                         position: insertPosition
                     };
                     this._assignChordboxSynthConfig(newChord);
@@ -20675,10 +20892,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                         // Duration: each CHORDBOX represents N sixteenth-notes (default 16)
                         try {
-                            let len16 = parseInt((chordExt && chordExt.len16 != null) ? chordExt.len16 : 16, 10);
-                            if (!Number.isFinite(len16) || len16 <= 0) len16 = 16;
+                            const tsi = (window._getTsInfo ? window._getTsInfo() : null) || { barLen16: 16 };
+                            const barDefault = Math.max(1, (tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 16));
+                            const hadExplicit = !!(chordExt && chordExt.len16 != null);
+                            let len16 = parseInt(hadExplicit ? chordExt.len16 : barDefault, 10);
+                            if (!Number.isFinite(len16) || len16 <= 0) len16 = barDefault;
                             len16 = Math.max(1, Math.min(1024, len16 | 0));
                             chordExt.len16 = len16;
+                            if (chordExt && !hadExplicit && chordExt.len16IsDefault == null) chordExt.len16IsDefault = true;
                             column.dataset.len16 = String(len16);
                             column.style.setProperty('--len16', String(len16));
                             column.style.flexGrow = String(len16);
@@ -23133,6 +23354,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                     } catch (_) { }
                     const preferredAccidental = this._getAccidentalPreference(preferredRootName);
+                    let barLen16 = 16;
+                    try {
+                        const tsi = (window._getTsInfo ? window._getTsInfo() : null);
+                        if (tsi && Number.isFinite(tsi.barLen16)) barLen16 = (tsi.barLen16 | 0);
+                    } catch (_) { }
+                    barLen16 = Math.max(1, barLen16 | 0);
                     const newChord = {
                         name: norm,
                         intervals,
@@ -23141,7 +23368,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         createdAt: Date.now(),
                         position: this.chordExtensions.length,
                         // New timeline duration model (default 16 16ths)
-                        len16: 16,
+                        len16: barLen16,
+                        len16IsDefault: true,
                         // Preserve the chord's original root step so we don't force a C root
                         originalRoot: (rootStep != null ? rootStep : this.currentRoot),
                         originalTuning: this.currentTuning,
@@ -25615,51 +25843,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try { this._setProjectLockState(!!this._projectLocked); } catch (_) { }
                         }
 
-                        // Master BPM setter - single source of truth
-                        const setMasterBpm = (raw) => {
-                            const bpm = Math.max(20, Math.min(300, parseInt(raw, 10) || 120));
-                            if (this._arpTransport) this._arpTransport.bpm = bpm;
-                            if (window._patternTransport) {
-                                window._patternTransport.bpm = bpm;
-                                // Directly recalculate stepMs for pattern transport
-                                try {
-                                    const quantEl = document.getElementById('patternQuant') || document.getElementById('universalQuant');
-                                    const quant = (quantEl?.value || '1/16').trim();
-                                    let baseDiv = 16; let isTrip = false; let tupletRatio = 1;
-                                    if (/tuplet:\s*(\d+)\/(\d+)/i.test(quant)) {
-                                        const m = quant.match(/tuplet:\s*(\d+)\/(\d+)/i); const n = +m[1], d = +m[2]; if (n > 0 && d > 0) { tupletRatio = n / d; baseDiv = 4; }
-                                    } else if (/^1\/(\d+)(t)?$/i.test(quant)) {
-                                        const m = quant.match(/^1\/(\d+)(t)?$/i); baseDiv = parseInt(m[1], 10) || 16; if (m[2]) isTrip = true;
-                                    }
-                                    const beatMs = 60000 / bpm;
-                                    let stepMs = beatMs * 4 / baseDiv;
-                                    if (isTrip) stepMs *= (2 / 3);
-                                    if (tupletRatio !== 1) stepMs *= (1 / tupletRatio);
-                                    window._patternTransport.stepMs = stepMs;
-                                } catch (_) { }
-                            }
-                            if (bpmInput && bpmInput.value != bpm) bpmInput.value = bpm;
-                            const drumBpm = document.getElementById('drumBpmMini');
-                            if (drumBpm && drumBpm.value != bpm) drumBpm.value = bpm;
-                            const patternBpm = document.getElementById('patternBpm');
-                            if (patternBpm && patternBpm.value != bpm) patternBpm.value = bpm;
-                            // Also update universalBpm so pattern transport reads correct value
-                            const universalBpm = document.getElementById('universalBpm');
-                            if (universalBpm && universalBpm.value != bpm) universalBpm.value = bpm;
-                            window.__MASTER_BPM = bpm;
-                            // Refresh pattern transport timing to recalculate stepMs (backup call)
-                            try { if (typeof window.refreshPatternTransportTiming === 'function') window.refreshPatternTransportTiming(); } catch (_) { }
-                            try { this._refreshArpTransportTiming && this._refreshArpTransportTiming(); } catch (_) { }
-                            return bpm;
-                        };
-
-                        // Initialize master BPM
-                        if (typeof window.__MASTER_BPM === 'undefined') {
-                            const seed = (bpmInput && bpmInput.value) || 120;
-                            setMasterBpm(seed);
-                        } else {
-                            setMasterBpm(window.__MASTER_BPM);
-                        }
+                        // Initialize transport store from UI and refresh timing once
+                        try { window.TransportStore && window.TransportStore.readFromUi && window.TransportStore.readFromUi(); } catch (_) { }
+                        try { this._refreshArpTransportTiming && this._refreshArpTransportTiming(); } catch (_) { }
+                        try { if (typeof window.refreshPatternTransportTiming === 'function') window.refreshPatternTransportTiming(); } catch (_) { }
 
                         // Wire transport play button
                         if (playBtn && !playBtn._xenPlayWired) {
@@ -25684,7 +25871,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Wire transport BPM
                         if (bpmInput && !bpmInput._wired) {
                             bpmInput._wired = true;
-                            bpmInput.addEventListener('input', () => { setMasterBpm(bpmInput.value); });
+                            bpmInput.addEventListener('input', () => {
+                                try {
+                                    const bpm = Math.max(20, Math.min(300, parseInt(bpmInput.value, 10) || 120));
+                                    if (typeof this._queueTransportChange === 'function') {
+                                        this._queueTransportChange({ bpm }, { grid: false });
+                                    } else {
+                                        window.TransportStore && window.TransportStore.set && window.TransportStore.set({ bpm });
+                                        try { this._refreshArpTransportTiming && this._refreshArpTransportTiming(); } catch (_) { }
+                                    }
+                                } catch (_) { }
+                            });
                         }
 
                         // Wire transport volume
@@ -25998,8 +26195,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     // Apply universal settings to all individual controls
                     this.applyUniversalSettings = () => {
-                        const universalBpm = document.getElementById('universalBpm');
-                        const universalQuant = document.getElementById('universalQuant');
+                        const transportBpm = document.getElementById('transportBpm');
+                        const patternQuant = document.getElementById('patternQuant');
                         const universalNpc = document.getElementById('universalNpc');
                         const universalHold = document.getElementById('universalHold');
                         const universalPattern = document.getElementById('universalPattern');
@@ -26007,8 +26204,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Apply to engine from universal controls
                         const chordHold = document.getElementById('chordHold');
 
-                        if (universalBpm) { this.bpm = parseInt(universalBpm.value) || 120; }
-                        // quant pattern is read at use sites from universal controls
+                        if (transportBpm) { this.bpm = parseInt(transportBpm.value) || 120; }
+                        // quant is read at use sites from #patternQuant
+                        if (patternQuant) {
+                            try { if (this._arp) this._arp.quant = String(patternQuant.value || '1/16'); } catch (_) { }
+                        }
                         if (universalNpc) {
                             const npcValue = parseInt(universalNpc.value) || 3;
                             this.arpNotesPerCycle = npcValue;
@@ -26039,6 +26239,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const grid = document.getElementById('drumGrid');
                             const patternGrid = document.getElementById('patternGrid');
                             if (!grid && !patternGrid) return;
+                            let oldDrumLen16 = grid ? (parseInt(grid.dataset.length || '0', 10) || 0) : 0;
+                            const oldDrumDefaultLen16 = grid ? (parseInt(grid.dataset.defaultLen || '0', 10) || 0) : 0;
+                            let usedPrevLen = false;
+                            try {
+                                const prevLen = grid && grid._prevLen16ForResize ? parseInt(grid._prevLen16ForResize || '0', 10) : 0;
+                                if (prevLen > 0) { oldDrumLen16 = prevLen; usedPrevLen = true; }
+                                if (grid && grid._prevLen16ForResize) delete grid._prevLen16ForResize;
+                            } catch (_) { }
                             // Compute new steps per bar
                             let tsNum = 4, tsDen = 4; try {
                                 const tsRaw = String(document.getElementById('universalTimeSignature')?.value || '4/4');
@@ -26052,7 +26260,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (!el) return defaultLen;
                                 const prevDefault = parseInt(el.dataset.defaultLen || '0', 10) || 0;
                                 let cur = parseInt(el.dataset.length || '0', 10) || 0;
-                                if (!cur || cur === prevDefault) {
+                                if (!cur || cur === prevDefault || (prevDefault === 0 && cur === 16 && defaultLen !== 16)) {
                                     cur = defaultLen;
                                     el.dataset.length = String(cur);
                                 }
@@ -26061,6 +26269,47 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             };
                             const drumBaseLen16 = grid ? resolveDefaultLen16(grid, stepsPerBar) : stepsPerBar;
                             const patternBaseLen16 = patternGrid ? resolveDefaultLen16(patternGrid, stepsPerBar) : stepsPerBar;
+                            const tsi = (window._getTsInfo ? window._getTsInfo() : null) || { tsNum: tsNum || 4, barLen16: drumBaseLen16 || 16 };
+
+                            const isDefaultQuantStr = (qStrRaw, basisLen, allowLegacy16) => {
+                                const qs = String(qStrRaw || '').trim();
+                                if (!qs) return true;
+                                const m = qs.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+                                if (m) {
+                                    const N = parseInt(m[1], 10), D = parseInt(m[2], 10);
+                                    if (Number.isFinite(N) && Number.isFinite(D) && N === basisLen && D === basisLen) return true;
+                                    if (allowLegacy16 && Number.isFinite(N) && Number.isFinite(D) && N === 16 && D === 16) return true;
+                                    return false;
+                                }
+                                const mn = qs.match(/^\s*(\d+)\s*$/);
+                                if (mn) {
+                                    const D = parseInt(mn[1], 10);
+                                    if (Number.isFinite(D) && D === basisLen) return true;
+                                    if (allowLegacy16 && Number.isFinite(D) && D === 16) return true;
+                                }
+                                return false;
+                            };
+
+                            // If the bar/cycle length changed due to TS, update per-lane Q *only when it was still default-derived*.
+                            // (Preserves explicit polyrhythm lane quant edits.)
+                            if (grid) {
+                                const defaultBasis = usedPrevLen
+                                    ? oldDrumLen16
+                                    : (oldDrumDefaultLen16 > 0 ? oldDrumDefaultLen16 : (oldDrumLen16 > 0 ? oldDrumLen16 : 16));
+                                const shouldTreatLegacy16AsDefault = (!usedPrevLen && oldDrumDefaultLen16 === 0 && defaultBasis === 16 && drumBaseLen16 !== 16);
+                                const lanes = Array.from(grid.querySelectorAll('.drum-lane'));
+                                lanes.forEach(lane => {
+                                    try {
+                                        if (lane.dataset && lane.dataset.pendingQuant) return;
+                                        const isDefault = isDefaultQuantStr(lane.dataset.quant, defaultBasis, shouldTreatLegacy16AsDefault);
+                                        if (!isDefault) return;
+                                        lane.dataset.quant = String(drumBaseLen16);
+                                        lane._quant = { N: drumBaseLen16, D: drumBaseLen16, str: String(drumBaseLen16) };
+                                        const qEl = lane.closest('.drum-row')?.querySelector('.drum-drawer .drum-params input[type="text"]');
+                                        if (qEl) qEl.value = String(drumBaseLen16);
+                                    } catch (_) { }
+                                });
+                            }
                             // Helper: remap a drum lane to cycle length using snapshot
                             const rebuildDrumLane = (lane) => {
                                 const isBass = lane.closest('.drum-row')?.classList?.contains('bass-row');
@@ -26079,18 +26328,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // Set CSS var
                                 try { lane.style.setProperty('--steps-per-bar', String(drumBaseLen16)); } catch (_) { }
                                 // Beat dividers across the full cycle length
-                                const totalBeats = Math.max(0, (drumBaseLen16 / 4));
-                                const fullBeats = Math.max(0, Math.floor(totalBeats));
-                                for (let b = 1; b < fullBeats; b++) {
+                                const percents = window._beatDividerPercentsForLen16 ? window._beatDividerPercentsForLen16(drumBaseLen16, tsi.tsNum, tsi.barLen16) : [];
+                                percents.forEach(p => {
                                     const div = document.createElement('div');
                                     div.className = 'beat-divider';
-                                    div.style.left = `${(b / Math.max(1, totalBeats)) * 100}%`;
+                                    div.style.left = `${p}%`;
                                     lane.appendChild(div);
-                                }
+                                });
                                 // Steps
+                                const beatSet = window._beatBoundarySetForLen16 ? window._beatBoundarySetForLen16(drumBaseLen16, tsi.tsNum, tsi.barLen16) : null;
                                 for (let i = 0; i < drumBaseLen16; i++) {
                                     const s = document.createElement('div');
-                                    s.className = 'drum-step' + ((i % 4 === 0) ? ' beat-accent' : '');
+                                    const isAccent = beatSet ? beatSet.has(i) : ((i % 4) === 0);
+                                    s.className = 'drum-step' + (isAccent ? ' beat-accent' : '');
                                     s.dataset.step = String(i);
                                     s.title = `${(isBass ? 'BASS' : (lane._controls?.name || 'DRUM'))} • Step ${i + 1}`;
                                     if (isBass) s.dataset.npc = '';
@@ -26283,6 +26533,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const m = qStr.match(/^(\d+)\/(\d+)$/);
                                     if (m) { const n = parseInt(m[1], 10), d = parseInt(m[2], 10); if (Number.isFinite(d) && d > 0) toD = d; if (Number.isFinite(n) && n > 0) toN = Math.min(n, toD); }
                                     else { const mn = qStr.match(/^(\d+)$/); if (mn) { const d = parseInt(mn[1], 10); if (Number.isFinite(d) && d > 0) { toD = d; toN = d; } } }
+                                    const defaultBasis = usedPrevLen
+                                        ? oldDrumLen16
+                                        : (oldDrumDefaultLen16 > 0 ? oldDrumDefaultLen16 : (oldDrumLen16 > 0 ? oldDrumLen16 : 16));
+                                    const shouldTreatLegacy16AsDefault = (!usedPrevLen && oldDrumDefaultLen16 === 0 && defaultBasis === 16 && drumBaseLen16 !== 16);
+                                    const isDefaultLaneQuant = isDefaultQuantStr(qStr, defaultBasis, shouldTreatLegacy16AsDefault);
+                                    const preferLeftMap = isDefaultLaneQuant && toD > fromD && fromD === oldDrumLen16;
                                     // Clear content
                                     oldSteps.forEach(n => n.remove());
                                     Array.from(lane.querySelectorAll('.beat-divider,.drum-playhead')).forEach(n => n.remove());
@@ -26290,30 +26546,42 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     // Update lane quant cache
                                     try { lane._quant = { N: toN, D: toD, str: (qStr || `${toN}/${toD}`) }; } catch (_) { }
                                     // Beat dividers aligned to full cycle beats
-                                    const totalBeats = Math.max(0, (drumBaseLen16 / 4));
-                                    const fullBeats = Math.max(0, Math.floor(totalBeats));
-                                    for (let b = 1; b < fullBeats; b++) {
-                                        const div = document.createElement('div');
-                                        div.className = 'beat-divider';
-                                        div.style.left = `${(b / Math.max(1, totalBeats)) * 100}%`;
-                                        lane.appendChild(div);
-                                    }
+                                    const percents = window._beatDividerPercentsForLen16 ? window._beatDividerPercentsForLen16(drumBaseLen16, tsi.tsNum, tsi.barLen16) : [];
+                                    percents.forEach(p => { const div = document.createElement('div'); div.className = 'beat-divider'; div.style.left = `${p}%`; lane.appendChild(div); });
                                     // Remap
                                     const dest = new Array(toD).fill(null).map(() => ({}));
                                     if (!isBass) {
-                                        snap.forEach(o => { if (o.active) { const j = Math.max(0, Math.min(toD - 1, Math.round((o.i / Math.max(1, fromD - 1)) * (toD - 1)))); dest[j].active = 1; dest[j].vel = o.vel; } });
+                                        if (preferLeftMap) {
+                                            snap.forEach(o => {
+                                                if (!o.active) return;
+                                                const j = Math.max(0, Math.min(toD - 1, o.i | 0));
+                                                dest[j].active = 1;
+                                                dest[j].vel = o.vel;
+                                            });
+                                        } else {
+                                            snap.forEach(o => { if (o.active) { const j = Math.max(0, Math.min(toD - 1, Math.round((o.i / Math.max(1, fromD - 1)) * (toD - 1)))); dest[j].active = 1; dest[j].vel = o.vel; } });
+                                        }
                                     } else {
                                         // Bass inside drum grid: keep npc/len/ties if present
                                         // Detect heads (not tied)
-                                        snap.forEach((o, idx) => {
-                                            const npc = (o.npc || '').toLowerCase();
-                                            const prev = snap[idx - 1];
-                                            const isHead = npc && npc !== 'x' && !(prev && prev.tie === '1');
-                                            if (isHead) {
-                                                const j = Math.max(0, Math.min(toD - 1, Math.round((o.i / Math.max(1, fromD - 1)) * (toD - 1))));
-                                                dest[j].npc = o.npc; dest[j].len = o.len || '1'; dest[j].head = 1;
-                                            }
-                                        });
+                                        if (preferLeftMap) {
+                                            snap.forEach((o, idx) => {
+                                                const j = Math.max(0, Math.min(toD - 1, o.i | 0));
+                                                if (o.npc != null) dest[j].npc = o.npc;
+                                                if (o.len) dest[j].len = o.len;
+                                                if (o.tie) dest[j].tie = o.tie;
+                                            });
+                                        } else {
+                                            snap.forEach((o, idx) => {
+                                                const npc = (o.npc || '').toLowerCase();
+                                                const prev = snap[idx - 1];
+                                                const isHead = npc && npc !== 'x' && !(prev && prev.tie === '1');
+                                                if (isHead) {
+                                                    const j = Math.max(0, Math.min(toD - 1, Math.round((o.i / Math.max(1, fromD - 1)) * (toD - 1))));
+                                                    dest[j].npc = o.npc; dest[j].len = o.len || '1'; dest[j].head = 1;
+                                                }
+                                            });
+                                        }
                                     }
                                     // Precompute allowed indices for N notes across D divisions (evenly distributed)
                                     const allowed = new Set();
@@ -26321,10 +26589,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     else {
                                         for (let k = 0; k < toN; k++) { const idx = Math.max(0, Math.min(toD - 1, Math.floor((k * toD) / toN))); allowed.add(idx); }
                                     }
+                                    const beatSet = window._beatBoundarySetForLen16 ? window._beatBoundarySetForLen16(toD, tsi.tsNum, tsi.barLen16) : null;
                                     // Build
                                     for (let i = 0; i < toD; i++) {
                                         const s = document.createElement('div');
-                                        s.className = 'drum-step' + ((i % 4 === 0) ? ' beat-accent' : '');
+                                        const isAccent = beatSet ? beatSet.has(i) : ((i % 4) === 0);
+                                        s.className = 'drum-step' + (isAccent ? ' beat-accent' : '');
                                         s.dataset.step = String(i);
                                         s.title = `${(isBass ? 'BASS' : (lane._controls?.name || 'DRUM'))} • Step ${i + 1}`;
                                         if (isBass) s.dataset.npc = '';
@@ -26500,9 +26770,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     Array.from(pl.querySelectorAll('.pattern-step,.beat-divider,.drum-playhead')).forEach(n => n.remove());
                                     try { pl.style.setProperty('--steps-per-bar', String(toD)); } catch (_) { }
                                     // Beat dividers across the full cycle length
-                                    const totalBeats = Math.max(0, (patternBaseLen16 / 4));
-                                    const fullBeats = Math.max(0, Math.floor(totalBeats));
-                                    for (let b = 1; b < fullBeats; b++) { const div = document.createElement('div'); div.className = 'beat-divider'; div.style.left = `${(b / Math.max(1, totalBeats)) * 100}%`; pl.appendChild(div); }
+                                    const pPercents = window._beatDividerPercentsForLen16 ? window._beatDividerPercentsForLen16(patternBaseLen16, tsi.tsNum, tsi.barLen16) : [];
+                                    pPercents.forEach(p => { const div = document.createElement('div'); div.className = 'beat-divider'; div.style.left = `${p}%`; pl.appendChild(div); });
                                     // Build new steps and remap
                                     const rowIdx = parseInt(pl.dataset.row || '0', 10) || 0;
                                     // Compute N for pattern lanes from dataset.quant
@@ -26535,9 +26804,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     else {
                                         for (let k = 0; k < toN; k++) { const idx = Math.max(0, Math.min(toD - 1, Math.floor((k * toD) / toN))); allowed.add(idx); }
                                     }
+                                    const beatSet = window._beatBoundarySetForBarSubdivisions ? window._beatBoundarySetForBarSubdivisions(toD, tsi.tsNum) : null;
                                     for (let i = 0; i < toD; i++) {
                                         const st = document.createElement('div');
-                                        st.className = 'drum-step pattern-step' + ((i % 4 === 0) ? ' beat-accent' : '');
+                                        const isAccent = beatSet ? beatSet.has(i) : ((i % 4) === 0);
+                                        st.className = 'drum-step pattern-step' + (isAccent ? ' beat-accent' : '');
                                         st.dataset.step = String(i);
                                         if (isBassRow) st.dataset.npc = '';
                                         const prev = dest[i];
@@ -38018,7 +38289,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (!playBtn) return;
 
                     // Get BPM and calculate beat interval
-                    const bpmEl = document.getElementById('universalBpm');
+                    const bpmEl = document.getElementById('transportBpm');
                     const bpm = bpmEl ? parseInt(bpmEl.value) : 120;
                     const beatMs = 60000 / Math.max(20, bpm);
 
@@ -38060,21 +38331,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this._ensureArpDefaults();
                     this._ensureArpTransport();
 
-                    // Read current values from UI controls (universal only)
-                    const bpmEl = document.getElementById('universalBpm');
+                    // Read current values from the master transport controls (single source of truth)
                     const transportBpmEl = document.getElementById('transportBpm');
+                    const patternQuantEl = document.getElementById('patternQuant');
                     const quantEl = document.getElementById('universalQuant');
                     const swingEl = document.getElementById('universalSwing');
 
                     const bpm = Math.max(20,
-                        (typeof window.__MASTER_BPM !== 'undefined' ? Number(window.__MASTER_BPM) : NaN) ||
                         Number(transportBpmEl?.value) ||
-                        Number(bpmEl?.value) ||
                         this._arp?.bpm ||
                         this._arpTransport.bpm ||
                         120
                     );
-                    const quant = quantEl?.value || this._arp?.quant || this._arpTransport.quant || '1/16';
+                    const quant = String((patternQuantEl?.value || quantEl?.value || this._arp?.quant || this._arpTransport.quant || '1/16')).trim();
                     let swingPct = this._arpTransport.swingPct || 0;
                     if (swingEl && swingEl.value != null) {
                         const sv = parseFloat(swingEl.value);
@@ -38180,7 +38449,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (pGrid) {
                             const pLanes = pGrid.querySelectorAll('.pattern-lane');
                             pLanes.forEach(pl => {
-                                let D = parseInt(pGrid.dataset.length || '16', 10) || 16;
+                                let D = baseSteps;
                                 const qStr = pl.dataset?.quant || '';
                                 if (qStr) { const m = qStr.match(/^(\d+)\/(\d+)$/); if (m) { const d = parseInt(m[2], 10); if (Number.isFinite(d) && d > 0) D = d; } else { const mn = qStr.match(/^(\d+)$/); if (mn) { const d = parseInt(mn[1], 10); if (Number.isFinite(d) && d > 0) D = d; } } }
                                 Ds.add(Math.max(1, D | 0));
@@ -38845,13 +39114,83 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const nowAbs = this._arpTransport.absTickCounter | 0;
                                 if (nowAbs >= dfAt) {
                                     const flags = this._arpTransport.deferFlags || {};
+                                    let oldStepsPerBar = null;
+                                    let oldBarLen16 = null;
+                                    try {
+                                        const st0 = window.TransportStore && window.TransportStore.get ? window.TransportStore.get() : null;
+                                        if (st0 && window._getMasterStepsPerBar) oldStepsPerBar = window._getMasterStepsPerBar({ beatsPerBar: st0.beatsPerBar, quant: st0.quant });
+                                        if (st0 && Number.isFinite(st0.barLen16)) oldBarLen16 = (st0.barLen16 | 0);
+                                    } catch (_) { }
                                     // Transport/time updates (bpm/quant/swing/tuplet/time signature)
                                     if (flags.transport || flags.swing || flags.grid) {
+                                        // Commit any queued transport changes at the bar boundary (UI renders; store is truth)
+                                        try {
+                                            const pend = this._arpTransport.pendingTransport;
+                                            if (pend && typeof pend === 'object') {
+                                                const commit = { ...pend };
+                                                try { delete this._arpTransport.pendingTransport; } catch (_) { this._arpTransport.pendingTransport = null; }
+                                                try {
+                                                    if (window.TransportStore && window.TransportStore.set) {
+                                                        window.TransportStore.set(commit, { silent: true });
+                                                    }
+                                                } catch (_) { }
+                                                try { window.TransportStore && window.TransportStore.writeToUi && window.TransportStore.writeToUi(commit); } catch (_) { }
+
+                                                // If TS changed, update spawned drum instances that are still using the default LEN.
+                                                try {
+                                                    if (commit && commit.timeSignature != null && typeof window._drumInstancesApplyDefaultLenFromTs === 'function') {
+                                                        const stAfter = window.TransportStore && window.TransportStore.get ? window.TransportStore.get() : null;
+                                                        const newBarLen16 = (stAfter && Number.isFinite(stAfter.barLen16)) ? (stAfter.barLen16 | 0) : null;
+                                                        if (oldBarLen16 != null && newBarLen16 != null && oldBarLen16 !== newBarLen16) {
+                                                            window._drumInstancesApplyDefaultLenFromTs(oldBarLen16, newBarLen16);
+                                                            try { window._chordInstancesApplyDefaultLenFromTs && window._chordInstancesApplyDefaultLenFromTs(oldBarLen16, newBarLen16); } catch (_) { }
+                                                        }
+                                                    }
+                                                } catch (_) { }
+                                                // Clear pending master quant UI marker if we just committed it.
+                                                try {
+                                                    if (commit && commit.quant != null) {
+                                                        const qEl = document.getElementById('patternQuant');
+                                                        if (qEl) { try { delete qEl.dataset.pending; } catch (_) { } try { qEl.classList.remove('pending-change'); } catch (_) { } }
+                                                    }
+                                                } catch (_) { }
+                                                // Mirror to read-only minis
+                                                try {
+                                                    const st = window.TransportStore && window.TransportStore.get ? window.TransportStore.get() : null;
+                                                    const drumTSMini = document.getElementById('drumTSMini');
+                                                    const drumQuantMini = document.getElementById('drumQuantMini');
+                                                    if (st && drumTSMini) drumTSMini.value = String(st.timeSignature || '');
+                                                    if (st && drumQuantMini) drumQuantMini.value = String(st.quant || '');
+                                                } catch (_) { }
+                                            }
+                                        } catch (_) { }
                                         if (flags.swing && this._arpTransport.pendingSwingPct != null) {
                                             this._arpTransport.swingPct = Math.max(0, Math.min(75, this._arpTransport.pendingSwingPct | 0));
                                             this._arpTransport.pendingSwingPct = null;
                                         }
                                         try { this._refreshArpTransportTiming(); } catch (_) { }
+                                        // Keep pattern transports in sync with the committed master timing
+                                        try { if (typeof window.refreshPatternTransportTiming === 'function') window.refreshPatternTransportTiming(); } catch (_) { }
+                                    }
+
+                                    // Pattern grid default quant rebuilds (master quant and/or TS changes)
+                                    if (flags.patternGrid) {
+                                        try {
+                                            if (!this._arpTransport._patternGridRebuildQueued) {
+                                                this._arpTransport._patternGridRebuildQueued = true;
+                                                const self = this;
+                                                setTimeout(() => {
+                                                    try {
+                                                        const st1 = window.TransportStore && window.TransportStore.get ? window.TransportStore.get() : null;
+                                                        const newStepsPerBar = (st1 && window._getMasterStepsPerBar) ? window._getMasterStepsPerBar({ beatsPerBar: st1.beatsPerBar, quant: st1.quant }) : null;
+                                                        if (oldStepsPerBar != null && newStepsPerBar != null) {
+                                                            window._applyMasterQuantToPatternGrids && window._applyMasterQuantToPatternGrids(oldStepsPerBar, newStepsPerBar);
+                                                        }
+                                                    } catch (_) { }
+                                                    try { self._arpTransport._patternGridRebuildQueued = false; } catch (_) { }
+                                                }, 0);
+                                            }
+                                        } catch (_) { }
                                     }
 
                                     // DRUMS-only updates (per-lane Q + DRUM LEN) apply on the bar boundary without rebuilding grids/transport.
@@ -38881,6 +39220,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 const oldLen = Math.max(1, Math.min(maxLen, parseInt(grid.dataset.length || '16', 10) || 16));
                                                 if (newLen > 0 && newLen !== oldLen) {
                                                     grid.dataset.length = String(newLen);
+                                                    try { grid._prevLen16ForResize = oldLen; } catch (_) { }
 
                                                     try {
                                                         const lenVal = document.getElementById('drumLenValue');
@@ -38899,6 +39239,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                             }
                                                         });
                                                     } catch (_) { }
+
+                                                    try { if (typeof this._updateDrumGridForTimeSignature === 'function') this._updateDrumGridForTimeSignature(); } catch (_) { }
                                                 }
                                                 try { delete grid.dataset.pendingLength; } catch (_) { }
                                             }
@@ -39093,7 +39435,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                             const m = qs.match(/^(\d+)\/(\d+)$/);
                                                             if (m) { N = parseInt(m[1], 10) || 0; D = parseInt(m[2], 10) || 0; }
                                                             else { const mn = qs.match(/^(\d+)$/); if (mn) { D = parseInt(mn[1], 10) || 0; N = D; } }
-                                                            if (!D) { D = parseInt(patternGrid.dataset.length || '16', 10) || 16; N = D; }
+                                                            if (!D) {
+                                                                const baseSteps = Math.max(4, Math.round(((this._arpTransport && this._arpTransport.beatsPerBar) || 4) * 4));
+                                                                D = baseSteps;
+                                                                N = D;
+                                                            }
                                                             lane._quant = { N: Math.max(1, Math.min(N || D, D)), D: Math.max(1, D), str: qs || String(D) };
                                                             lane.style.setProperty('--steps-per-bar', String(lane._quant.D));
                                                         } catch (_) { }
@@ -41151,7 +41497,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         for (let b = 1; b < beats; b++) { const div = document.createElement('div'); div.className = 'beat-divider'; div.style.left = `${(b / beats) * 100}%`; lane.appendChild(div); }
                                         // steps
                                         for (let i = 0; i < newLen; i++) {
-                                            const s = document.createElement('div'); s.className = 'drum-step' + ((i % 4 === 0) ? ' beat-accent' : ''); s.dataset.step = String(i);
+                                            const tsi = (window._getTsInfo ? window._getTsInfo() : null) || { tsNum: 4, barLen16: newLen || 16 };
+                                            const beatSet = (window._beatBoundarySetForLen16 ? window._beatBoundarySetForLen16(newLen, tsi.tsNum, tsi.barLen16) : null);
+                                            const isAccent = beatSet ? beatSet.has(i) : ((i % 4) === 0);
+                                            const s = document.createElement('div'); s.className = 'drum-step' + (isAccent ? ' beat-accent' : ''); s.dataset.step = String(i);
                                             if (snapshot[i]?.active) s.classList.add('active');
                                             lane.appendChild(s);
                                         }
@@ -46450,10 +46799,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 ? (handle.classList.contains('left') ? 'left' : 'right')
                                 : edgeSide;
                             if (!side) return;
-                            const raw = prompt('Chord length (16th steps):', '16');
-                            if (raw == null) return;
-                            const parsed = parseInt(raw, 10);
-                            const len16 = Number.isFinite(parsed) && parsed > 0 ? Math.max(1, Math.min(1024, parsed | 0)) : 16;
+                            let len16 = 16;
+                            try {
+                                const tsi = (window._getTsInfo ? window._getTsInfo() : null);
+                                const tsBar = tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 0;
+                                if (tsBar > 0) len16 = tsBar;
+                            } catch (_) { }
                             const edo = (note && Number.isFinite(note.tuning)) ? note.tuning : (this.currentTuning || 12);
                             const step = (note && Number.isFinite(note.step)) ? note.step : null;
                             const oct = (note && Number.isFinite(note.octave)) ? note.octave : 4;
@@ -47703,6 +48054,302 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
             // Initialize the instrument when the page loads
             let autoharp;
+            // Single global transport store (audio timing is the source of truth; UI renders it)
+            window.TransportStore = window.TransportStore || (function () {
+                const listeners = new Set();
+                let state = {
+                    bpm: 120,
+                    timeSignature: '4/4',
+                    quant: '1/16',
+                    edo: 24
+                };
+
+                const clampInt = (v, lo, hi, fallback) => {
+                    const n = parseInt(String(v ?? ''), 10);
+                    if (!Number.isFinite(n)) return fallback;
+                    return Math.max(lo, Math.min(hi, n));
+                };
+
+                const normalizeTs = (raw) => {
+                    try {
+                        const s = String(raw || '').trim();
+                        const m = s.match(/^(\d+)\s*\/\s*(\d+)$/);
+                        if (m) {
+                            const n = clampInt(m[1], 1, 32, 4);
+                            const d = clampInt(m[2], 1, 32, 4);
+                            return `${n}/${d}`;
+                        }
+                    } catch (_) { }
+                    return '4/4';
+                };
+
+                const derive = (s) => {
+                    const ts = normalizeTs(s.timeSignature);
+                    const parts = ts.split('/');
+                    const tsNum = clampInt(parts[0], 1, 32, 4);
+                    const tsDen = clampInt(parts[1], 1, 32, 4);
+                    const beatsPerBar = (tsNum * 4) / tsDen;
+                    const barLen16 = Math.max(1, Math.round(beatsPerBar * 4));
+                    return { tsNum, tsDen, beatsPerBar, barLen16 };
+                };
+
+                const emit = () => {
+                    const snapshot = get();
+                    listeners.forEach(fn => {
+                        try { fn(snapshot); } catch (_) { }
+                    });
+                };
+
+                function get() {
+                    const d = derive(state);
+                    return { ...state, ...d };
+                }
+
+                function set(partial, opts) {
+                    const silent = !!(opts && opts.silent);
+                    const next = { ...state };
+                    if (partial && typeof partial === 'object') {
+                        if (partial.bpm != null) next.bpm = clampInt(partial.bpm, 20, 300, next.bpm);
+                        if (partial.edo != null) next.edo = clampInt(partial.edo, 5, 53, next.edo);
+                        if (partial.quant != null) next.quant = String(partial.quant || '').trim() || next.quant;
+                        if (partial.timeSignature != null) next.timeSignature = normalizeTs(partial.timeSignature);
+                    }
+                    state = next;
+                    if (!silent) emit();
+                    return get();
+                }
+
+                function on(fn) {
+                    if (typeof fn !== 'function') return () => { };
+                    listeners.add(fn);
+                    try { fn(get()); } catch (_) { }
+                    return () => { try { listeners.delete(fn); } catch (_) { } };
+                }
+
+                function readFromUi() {
+                    try {
+                        const bpm = document.getElementById('transportBpm')?.value;
+                        const ts = document.getElementById('universalTimeSignature')?.value;
+                        const quant = document.getElementById('patternQuant')?.value;
+                        const edo = document.getElementById('edoQuickInputTransport')?.value;
+                        return set({ bpm, timeSignature: ts, quant, edo });
+                    } catch (_) {
+                        return get();
+                    }
+                }
+
+                function writeToUi(partial) {
+                    try {
+                        if (!partial || typeof partial !== 'object') return;
+                        const bpmEl = document.getElementById('transportBpm');
+                        const tsEl = document.getElementById('universalTimeSignature');
+                        const qEl = document.getElementById('patternQuant');
+                        const edoEl = document.getElementById('edoQuickInputTransport');
+                        if (partial.bpm != null && bpmEl) bpmEl.value = String(clampInt(partial.bpm, 20, 300, bpmEl.value || 120));
+                        if (partial.timeSignature != null && tsEl) tsEl.value = normalizeTs(partial.timeSignature);
+                        if (partial.quant != null && qEl) qEl.value = String(partial.quant);
+                        if (partial.edo != null && edoEl) edoEl.value = String(clampInt(partial.edo, 5, 53, edoEl.value || 24));
+                    } catch (_) { }
+                }
+
+                return { get, set, on, readFromUi, writeToUi };
+            })();
+
+            // Master quant grid helpers (TS-aware; default Q16 => barLen16).
+            // - barLen16: derived from time signature only (16ths per bar)
+            // - stepsPerBar: derived from time signature + master quant (subdivisions per bar)
+            window._parseMasterQuantToken = window._parseMasterQuantToken || function (quantRaw) {
+                const q = String(quantRaw || '').trim();
+                let baseDiv = 16;
+                let isTrip = false;
+                let tupletRatio = 1;
+                try {
+                    if (/tuplet:\s*(\d+)\/(\d+)/i.test(q)) {
+                        const m = q.match(/tuplet:\s*(\d+)\/(\d+)/i);
+                        const n = parseInt(m[1], 10);
+                        const d = parseInt(m[2], 10);
+                        if (Number.isFinite(n) && Number.isFinite(d) && n > 0 && d > 0) {
+                            // Model: n notes in the time of d quarter-notes.
+                            baseDiv = 4;
+                            tupletRatio = n / d;
+                        }
+                    } else {
+                        const m = q.match(/^1\/(\d+)(t)?$/i);
+                        if (m) {
+                            baseDiv = Math.max(1, parseInt(m[1], 10) || 16);
+                            isTrip = !!m[2];
+                        }
+                    }
+                } catch (_) { }
+                if (!Number.isFinite(baseDiv) || baseDiv <= 0) baseDiv = 16;
+                if (!Number.isFinite(tupletRatio) || tupletRatio <= 0) tupletRatio = 1;
+                return { baseDiv, isTrip, tupletRatio };
+            };
+
+            window._getMasterStepsPerBar = window._getMasterStepsPerBar || function (override) {
+                // override may provide { beatsPerBar, quant }
+                try {
+                    const st = (window.TransportStore && window.TransportStore.get) ? window.TransportStore.get() : null;
+                    const beatsPerBar = (override && override.beatsPerBar != null) ? Number(override.beatsPerBar) : (st && Number.isFinite(st.beatsPerBar) ? st.beatsPerBar : 4);
+                    const quant = (override && override.quant != null) ? String(override.quant) : (st ? String(st.quant || '1/16') : '1/16');
+                    const tok = window._parseMasterQuantToken ? window._parseMasterQuantToken(quant) : { baseDiv: 16, isTrip: false, tupletRatio: 1 };
+                    let steps = (beatsPerBar * (tok.baseDiv / 4));
+                    if (tok.isTrip) steps *= (3 / 2);
+                    if (tok.tupletRatio !== 1) steps *= tok.tupletRatio;
+                    if (!Number.isFinite(steps) || steps <= 0) steps = beatsPerBar * 4;
+                    return Math.max(1, Math.round(steps));
+                } catch (_) {
+                    return 16;
+                }
+            };
+
+            window._applyMasterQuantToPatternGrids = window._applyMasterQuantToPatternGrids || function (fromSteps, toSteps) {
+                try {
+                    const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 4096;
+                    const oldSteps = Math.max(1, Math.min(maxLen, (fromSteps | 0) || 1));
+                    const newSteps = Math.max(1, Math.min(maxLen, (toSteps | 0) || 1));
+                    if (!oldSteps || !newSteps || oldSteps === newSteps) return;
+
+                    const isDefaultQuant = (qs) => {
+                        const s = String(qs || '').trim();
+                        if (!s) return true;
+                        const m = s.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+                        if (m) {
+                            const N = parseInt(m[1], 10), D = parseInt(m[2], 10);
+                            return (Number.isFinite(N) && Number.isFinite(D) && N === oldSteps && D === oldSteps);
+                        }
+                        const mn = s.match(/^\s*(\d+)\s*$/);
+                        if (mn) {
+                            const D = parseInt(mn[1], 10);
+                            return Number.isFinite(D) && D === oldSteps;
+                        }
+                        return false;
+                    };
+
+                    const grids = [];
+                    try {
+                        const base = document.getElementById('patternGrid');
+                        if (base) grids.push(base);
+                    } catch (_) { }
+                    try {
+                        document.querySelectorAll('[data-role="patternGrid"], .pattern-grid').forEach(g => {
+                            if (!g) return;
+                            if (g.id === 'bassGrid') return;
+                            if (g.id === 'patternGrid') return;
+                            try { if (g.querySelector && g.querySelector('.pattern-lane')) grids.push(g); } catch (_) { }
+                        });
+                    } catch (_) { }
+
+                    grids.forEach(gridEl => {
+                        try {
+                            const lanes = Array.from(gridEl.querySelectorAll('.pattern-lane'));
+                            if (!lanes.length) return;
+                            lanes.forEach(lane => {
+                                if (!lane) return;
+                                if (lane.dataset && lane.dataset.pendingQuant) return;
+                                if (!isDefaultQuant(lane.dataset ? lane.dataset.quant : '')) return;
+                                try { lane.dataset.quant = String(newSteps); } catch (_) { }
+                                try { lane._quant = { str: String(newSteps), N: newSteps, D: newSteps }; } catch (_) { }
+                                try { lane.style && lane.style.setProperty('--steps-per-bar', String(newSteps)); } catch (_) { }
+                                try {
+                                    const qInput = lane.closest('.pattern-row')?.querySelector('.drum-quant input');
+                                    if (qInput && !qInput.dataset.pending) qInput.value = String(newSteps);
+                                } catch (_) { }
+                                try { window.rebuildPatternLaneForQuant && window.rebuildPatternLaneForQuant(lane, gridEl); } catch (_) { }
+                            });
+
+                            try {
+                                const container = gridEl.closest('.drum-grid-container') || gridEl.parentElement;
+                                if (container && container.style) {
+                                    const maxD = lanes.reduce((mx, ln) => {
+                                        const qs = String(ln?.dataset?.quant || '').trim();
+                                        let d = 0;
+                                        const m = qs.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+                                        if (m) d = parseInt(m[2], 10) || 0;
+                                        else {
+                                            const mn = qs.match(/^\s*(\d+)\s*$/);
+                                            if (mn) d = parseInt(mn[1], 10) || 0;
+                                        }
+                                        return Math.max(mx, d || 0);
+                                    }, 0);
+                                    if (maxD > 0) container.style.setProperty('--bar-steps', String(maxD));
+                                }
+                                try { window._autoSizePatternModals && window._autoSizePatternModals(); } catch (_) { }
+                            } catch (_) { }
+                        } catch (_) { }
+                    });
+                } catch (_) { }
+            };
+
+            // TS-aware ruler tick helpers.
+            // - For per-bar subdivision lanes (pattern/bass): beats are tsNum equal slices across the bar.
+            // - For 16th-based lanes (drum cycle LEN in 16ths): beats are spaced by (barLen16/tsNum) 16th-steps.
+            window._getTsInfo = window._getTsInfo || function () {
+                try {
+                    const st = (window.TransportStore && window.TransportStore.get) ? window.TransportStore.get() : null;
+                    const tsNum = (st && Number.isFinite(st.tsNum) ? st.tsNum : 4) | 0;
+                    const tsDen = (st && Number.isFinite(st.tsDen) ? st.tsDen : 4) | 0;
+                    const barLen16 = (st && Number.isFinite(st.barLen16) ? st.barLen16 : 16) | 0;
+                    const beatsPerBar = (st && Number.isFinite(st.beatsPerBar) ? st.beatsPerBar : ((Math.max(1, tsNum) * 4) / Math.max(1, tsDen)));
+                    return { tsNum: Math.max(1, tsNum), tsDen: Math.max(1, tsDen), barLen16: Math.max(1, barLen16), beatsPerBar };
+                } catch (_) {
+                    return { tsNum: 4, tsDen: 4, barLen16: 16, beatsPerBar: 4 };
+                }
+            };
+
+            window._beatBoundarySetForBarSubdivisions = window._beatBoundarySetForBarSubdivisions || function (stepsPerBar, tsNum) {
+                const D = Math.max(1, stepsPerBar | 0);
+                const n = Math.max(1, tsNum | 0);
+                const set = new Set();
+                for (let b = 0; b < n; b++) {
+                    const idx = Math.max(0, Math.min(D - 1, Math.round((b * D) / n)));
+                    set.add(idx);
+                }
+                set.add(0);
+                return set;
+            };
+
+            window._beatDividerPercentsForBar = window._beatDividerPercentsForBar || function (tsNum) {
+                const n = Math.max(1, tsNum | 0);
+                const out = [];
+                for (let b = 1; b < n; b++) out.push((b / n) * 100);
+                return out;
+            };
+
+            window._beatBoundarySetForLen16 = window._beatBoundarySetForLen16 || function (cycleLen16, tsNum, barLen16) {
+                const L = Math.max(1, cycleLen16 | 0);
+                const n = Math.max(1, tsNum | 0);
+                const bar16 = Math.max(1, barLen16 | 0);
+                const beatLen = bar16 / n;
+                const set = new Set();
+                if (!Number.isFinite(beatLen) || beatLen <= 0) {
+                    set.add(0);
+                    return set;
+                }
+                const maxBeats = Math.ceil(L / beatLen) + 2;
+                for (let k = 0; k < maxBeats; k++) {
+                    const idx = Math.round(k * beatLen);
+                    if (idx >= 0 && idx < L) set.add(idx);
+                }
+                set.add(0);
+                return set;
+            };
+
+            window._beatDividerPercentsForLen16 = window._beatDividerPercentsForLen16 || function (cycleLen16, tsNum, barLen16) {
+                const L = Math.max(1, cycleLen16 | 0);
+                const n = Math.max(1, tsNum | 0);
+                const bar16 = Math.max(1, barLen16 | 0);
+                const beatLen = bar16 / n;
+                const out = [];
+                if (!Number.isFinite(beatLen) || beatLen <= 0) return out;
+                const maxBeats = Math.ceil(L / beatLen) + 2;
+                for (let k = 1; k < maxBeats; k++) {
+                    const idx = Math.round(k * beatLen);
+                    if (idx > 0 && idx < L) out.push((idx / L) * 100);
+                }
+                // Dedup nearly-equal percents after rounding
+                return Array.from(new Set(out.map(p => Math.round(p * 1000) / 1000))).sort((a, b) => a - b);
+            };
             window.addEventListener('load', () => {
                 // === BPM-quantized time controls & editable ms labels ===
                 window.TimeGrid = {
@@ -47715,12 +48362,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const beatMs = 60000 / Math.max(1, bpm || 120);
                         let barMs;
                         try {
-                            const tsEl = document.getElementById('universalTimeSignature');
-                            const raw = tsEl ? String(tsEl.value || '4/4') : '4/4';
-                            const [n, d] = raw.split('/').map(v => parseInt(v, 10));
-                            const tsNum = (Number.isFinite(n) && n > 0) ? n : 4;
-                            const tsDen = (Number.isFinite(d) && d > 0) ? d : 4;
-                            const beatsPerBar = (tsNum * 4) / tsDen;
+                            const st = window.TransportStore && window.TransportStore.get ? window.TransportStore.get() : null;
+                            const beatsPerBar = (st && Number.isFinite(st.beatsPerBar)) ? st.beatsPerBar : 4;
                             barMs = beatMs * beatsPerBar;
                         } catch (_) { barMs = beatMs * 4; }
                         switch (div) {
@@ -47751,10 +48394,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                 };
                 function getBpm() {
-                    const main = document.getElementById('universalBpm');
-                    if (main) return Number(main.value) || 120;
-                    const mini = document.getElementById('drumBpmMini');
-                    return mini ? (Number(mini.value) || 120) : 120;
+                    try {
+                        const st = window.TransportStore && window.TransportStore.get ? window.TransportStore.get() : null;
+                        if (st && Number.isFinite(st.bpm)) return st.bpm;
+                    } catch (_) { }
+                    const el = document.getElementById('transportBpm');
+                    return el ? (Number(el.value) || 120) : 120;
                 }
                 function formatMs(ms) {
                     if (ms >= 1000) return `${(ms / 1000).toFixed(ms % 1000 ? 2 : 1)}s`;
@@ -47885,7 +48530,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     slider.addEventListener('pointerup', () => { shifting = false; });
                     slider.addEventListener('pointercancel', () => { shifting = false; });
                     // respond to BPM changes to resnap value to the grid
-                    const bpmEl = document.getElementById('universalBpm');
+                    const bpmEl = document.getElementById('transportBpm');
                     if (bpmEl) {
                         bpmEl.addEventListener('input', () => {
                             // When BPM changes, keep ms if user is in manualMs or holding Shift; otherwise re-quantize
@@ -47957,6 +48602,82 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } catch (_) { }
                 autoharp = new MicrotonalOmnichord();
                 window.autoharp = autoharp; // Make it globally accessible
+                // Seed transport store from UI once autoharp exists
+                try { window.TransportStore && window.TransportStore.readFromUi && window.TransportStore.readFromUi(); } catch (_) { }
+                // Provide a single transport change queue (commits at bar boundary when playing)
+                try {
+                    if (!autoharp._queueTransportChange) {
+                        autoharp._queueTransportChange = function (partial, opts) {
+                            opts = opts || {};
+                            try { this._ensureArpTransport && this._ensureArpTransport(); } catch (_) { }
+                            const t = this._arpTransport;
+                            const running = !!(t && t.running);
+                            const store = window.TransportStore;
+                            let oldStepsPerBar = null;
+                            let oldBarLen16 = null;
+                            try {
+                                const st0 = store && store.get ? store.get() : null;
+                                if (st0 && window._getMasterStepsPerBar) oldStepsPerBar = window._getMasterStepsPerBar({ beatsPerBar: st0.beatsPerBar, quant: st0.quant });
+                                if (st0 && Number.isFinite(st0.barLen16)) oldBarLen16 = (st0.barLen16 | 0);
+                            } catch (_) { }
+                            // If stopped, apply immediately.
+                            if (!running) {
+                                try { store && store.set && store.set(partial); } catch (_) { }
+                                try { store && store.writeToUi && store.writeToUi(partial); } catch (_) { }
+                                // If TS changed, update default-length drum instances and chordboxes.
+                                try {
+                                    if (partial && partial.timeSignature != null) {
+                                        const stAfter = store && store.get ? store.get() : null;
+                                        const newBarLen16 = (stAfter && Number.isFinite(stAfter.barLen16)) ? (stAfter.barLen16 | 0) : null;
+                                        if (oldBarLen16 != null && newBarLen16 != null && oldBarLen16 !== newBarLen16) {
+                                            try { window._drumInstancesApplyDefaultLenFromTs && window._drumInstancesApplyDefaultLenFromTs(oldBarLen16, newBarLen16); } catch (_) { }
+                                            try { window._chordInstancesApplyDefaultLenFromTs && window._chordInstancesApplyDefaultLenFromTs(oldBarLen16, newBarLen16); } catch (_) { }
+                                        }
+                                    }
+                                } catch (_) { }
+                                try { this._refreshArpTransportTiming && this._refreshArpTransportTiming(); } catch (_) { }
+                                try { if (opts.grid && typeof this._updateDrumGridForTimeSignature === 'function') this._updateDrumGridForTimeSignature(); } catch (_) { }
+                                try {
+                                    if (opts.edo != null && typeof this.updateTuningSystem === 'function') this.updateTuningSystem(opts.edo);
+                                } catch (_) { }
+                                try { if (typeof window.refreshPatternTransportTiming === 'function') window.refreshPatternTransportTiming(); } catch (_) { }
+                                try {
+                                    if (opts.patternGrid && window._applyMasterQuantToPatternGrids && store && store.get && window._getMasterStepsPerBar) {
+                                        const st1 = store.get();
+                                        const newStepsPerBar = window._getMasterStepsPerBar({ beatsPerBar: st1.beatsPerBar, quant: st1.quant });
+                                        if (oldStepsPerBar != null && newStepsPerBar != null) window._applyMasterQuantToPatternGrids(oldStepsPerBar, newStepsPerBar);
+                                    }
+                                } catch (_) { }
+                                // Mirror to read-only minis
+                                try {
+                                    const st = store && store.get ? store.get() : null;
+                                    const drumTSMini = document.getElementById('drumTSMini');
+                                    const drumQuantMini = document.getElementById('drumQuantMini');
+                                    if (st && drumTSMini) drumTSMini.value = String(st.timeSignature || '');
+                                    if (st && drumQuantMini) drumQuantMini.value = String(st.quant || '');
+                                } catch (_) { }
+                                return;
+                            }
+
+                            // If playing, commit on next bar boundary.
+                            try {
+                                if (t) {
+                                    t.pendingTransport = Object.assign(t.pendingTransport || {}, partial || {});
+                                }
+                            } catch (_) { }
+                            try {
+                                const sched = window.scheduleDeferred;
+                                if (typeof sched === 'function') {
+                                    const flags = { transport: true };
+                                    if (opts.grid) flags.grid = true;
+                                    if (opts.patternGrid) flags.patternGrid = true;
+                                    if (opts.edo != null) flags.edo = opts.edo;
+                                    sched(flags);
+                                }
+                            } catch (_) { }
+                        };
+                    }
+                } catch (_) { }
                 try { autoharp.setDebug?.(true); console.log('[DEBUG] window.load: autoharp ready; debug=', !!autoharp._debug); } catch (_) { }
                 try { autoharp._wireGlueGestures?.(); } catch (_) { }
                 try { autoharp._wireGlobalUndoTracking?.(); } catch (_) { }
@@ -48450,6 +49171,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const bt = Math.max(0, barTick | 0);
                                 const tickMs = (window.autoharp && window.autoharp._arpTransport && window.autoharp._arpTransport.tickMs) ? Number(window.autoharp._arpTransport.tickMs) : NaN;
 
+                                // LEN is loop length only (in 16ths). Per-row D still subdivides a bar.
+                                // Convert loop position into a bar-phase fraction used for choosing stepIdx.
+                                let frac = bt / tpb;
+                                try {
+                                    const tsi = (window._getTsInfo ? window._getTsInfo() : null);
+                                    const barLen16 = Math.max(1, (tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 16));
+                                    const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
+                                    const lenValueEl = document.getElementById('patternLenValue');
+                                    const lenUi = parseInt((lenValueEl && lenValueEl.textContent) ? String(lenValueEl.textContent).trim() : '', 10);
+                                    const lenPg = parseInt(pg.dataset.length || '', 10);
+                                    const cycleLen16 = Math.max(1, Math.min(maxLen,
+                                        (Number.isFinite(lenUi) && lenUi > 0) ? lenUi : ((Number.isFinite(lenPg) && lenPg > 0) ? lenPg : barLen16)
+                                    ));
+                                    const cycleTicks = Math.max(1, Math.round(tpb * (cycleLen16 / barLen16)));
+                                    const cycleTick = (((absTickNow | 0) % cycleTicks) + cycleTicks) % cycleTicks;
+                                    const pos16 = (cycleTick / cycleTicks) * cycleLen16;
+                                    const barPos16 = pos16 % barLen16;
+                                    frac = barPos16 / barLen16;
+                                } catch (_) { }
+
                                 // Stop expired voices
                                 if (pt.activeVoices.size) {
                                     for (const vid of Array.from(pt.activeVoices)) {
@@ -48463,13 +49204,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 }
 
                                 const rows = pg.querySelectorAll('.pattern-row');
-                                const baseFallback = Math.max(1, parseInt(pg.dataset.length || '16', 10) || 16);
+                                const baseFallback = Math.max(1, (window._getMasterStepsPerBar ? window._getMasterStepsPerBar() : 16) | 0);
                                 rows.forEach((rowEl, rowIdx) => {
                                     const lane = rowEl.querySelector('.pattern-lane');
                                     if (!lane) return;
                                     const D = Math.max(1, (lane.querySelectorAll('.pattern-step').length | 0) || getLaneD(lane, baseFallback));
                                     // Fraction-based scheduling: works even when ticksPerBar is clamped and not divisible by D.
-                                    const frac = bt / tpb;
                                     const stepIdx = Math.max(0, Math.min(D - 1, Math.floor(frac * D + 1e-9)));
                                     // Fire at most once per lane-step.
                                     if (lane._lastPatternStepIdx === stepIdx) return;
@@ -51744,9 +52484,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     } catch (_) { /* ignore */ }
                 }
 
-                // Make scheduleDeferred globally accessible for drum controls\n                 window.scheduleDeferred = scheduleDeferred;\n                 // Universal control event handlers
-                const universalBpm = document.getElementById('universalBpm');
-                const universalQuant = document.getElementById('universalQuant');
+                // Make scheduleDeferred globally accessible
+                window.scheduleDeferred = scheduleDeferred;
+
+                // Master transport controls
+                const transportBpm = document.getElementById('transportBpm');
+                const patternQuant = document.getElementById('patternQuant');
                 const universalNpc = document.getElementById('universalNpc');
                 const universalHold = document.getElementById('universalHold');
                 const universalPattern = document.getElementById('universalPattern');
@@ -51760,25 +52503,33 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const drumNpcMini = null; // removed
                 const drumSwingMini = null; // removed
 
-                if (universalBpm) {
-                    universalBpm.addEventListener('input', () => {
+                // BPM: single source is #transportBpm. Drum modal never writes tempo.
+                if (transportBpm && !transportBpm._wiredMasterBpm) {
+                    transportBpm._wiredMasterBpm = true;
+                    transportBpm.addEventListener('input', () => {
                         if (window.autoharp && window.autoharp.applyUniversalSettings) {
                             autoharp.applyUniversalSettings();
                         }
-                        // Defer transport timing change by 2 beats
-                        scheduleDeferred({ transport: true });
-                        if (drumBpmMini) drumBpmMini.value = String(universalBpm.value || '');
+                        try {
+                            const bpm = Math.max(20, Math.min(300, parseFloat(transportBpm.value || '120') || 120));
+                            if (window.autoharp && typeof window.autoharp._queueTransportChange === 'function') window.autoharp._queueTransportChange({ bpm }, { grid: false });
+                            else scheduleDeferred({ transport: true });
+                        } catch (_) { scheduleDeferred({ transport: true }); }
+                        try { if (drumBpmMini) drumBpmMini.value = String(transportBpm.value || ''); } catch (_) { }
+                    });
+                    transportBpm.addEventListener('change', () => {
+                        if (window.autoharp && window.autoharp.applyUniversalSettings) {
+                            autoharp.applyUniversalSettings();
+                        }
+                        try {
+                            const bpm = Math.max(20, Math.min(300, parseFloat(transportBpm.value || '120') || 120));
+                            if (window.autoharp && typeof window.autoharp._queueTransportChange === 'function') window.autoharp._queueTransportChange({ bpm }, { grid: false });
+                            else scheduleDeferred({ transport: true });
+                        } catch (_) { scheduleDeferred({ transport: true }); }
+                        try { if (drumBpmMini) drumBpmMini.value = String(transportBpm.value || ''); } catch (_) { }
                     });
                 }
-                if (drumBpmMini && !drumBpmMini._wired) {
-                    drumBpmMini._wired = true;
-                    // Initial sync from universal
-                    try { drumBpmMini.value = String(document.getElementById('universalBpm')?.value || ''); } catch (_) { }
-                    drumBpmMini.addEventListener('input', () => {
-                        const main = document.getElementById('universalBpm');
-                        if (main) { main.value = String(drumBpmMini.value || ''); main.dispatchEvent(new Event('input')); }
-                    });
-                }
+                try { if (drumBpmMini) drumBpmMini.value = String(transportBpm?.value || ''); } catch (_) { }
                 // Wire MIDI settings controls if present
                 try {
                     const midiOctSel = document.getElementById('midiOctaveOffset');
@@ -51808,57 +52559,40 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (window.autoharp && window.autoharp.applyUniversalSettings) {
                             autoharp.applyUniversalSettings();
                         }
-                        // Defer grid/transport updates to bar-safe boundary
-                        scheduleDeferred({ transport: true, grid: true });
+                        // Defer transport/grid updates to bar-safe boundary (and update pattern default Q grid)
+                        try {
+                            const ts = String(universalTimeSignature.value || '4/4');
+                            if (window.autoharp && typeof window.autoharp._queueTransportChange === 'function') window.autoharp._queueTransportChange({ timeSignature: ts }, { grid: true, patternGrid: true });
+                            else scheduleDeferred({ transport: true, grid: true, patternGrid: true });
+                        } catch (_) { scheduleDeferred({ transport: true, grid: true, patternGrid: true }); }
                         if (drumTSMini) drumTSMini.value = String(universalTimeSignature.value || '');
                     });
                 }
-                if (drumTSMini && !drumTSMini._wired) {
-                    drumTSMini._wired = true;
-                    try { drumTSMini.value = String(document.getElementById('universalTimeSignature')?.value || ''); } catch (_) { }
-                    drumTSMini.addEventListener('change', () => {
-                        const main = document.getElementById('universalTimeSignature');
-                        if (main) { main.value = String(drumTSMini.value || ''); main.dispatchEvent(new Event('change')); }
-                    });
+                // Drum TS/Quant minis are display-only mirrors.
+                if (drumTSMini && !drumTSMini._wiredMirrorOnly) {
+                    drumTSMini._wiredMirrorOnly = true;
+                    try { drumTSMini.value = String(universalTimeSignature?.value || ''); } catch (_) { }
                 }
 
-                if (universalQuant) {
-                    universalQuant.addEventListener('change', () => {
+                // Quant: single source is #patternQuant (shown left of gear). Drum modal never writes quant.
+                if (patternQuant && !patternQuant._wiredMasterQuant) {
+                    patternQuant._wiredMasterQuant = true;
+                    patternQuant.addEventListener('change', () => {
                         if (window.autoharp && window.autoharp.applyUniversalSettings) {
                             autoharp.applyUniversalSettings();
                         }
-                        scheduleDeferred({ transport: true });
-                        if (drumQuantMini) drumQuantMini.value = String(universalQuant.value || '');
-                    });
-                }
-                if (drumQuantMini && !drumQuantMini._wired) {
-                    drumQuantMini._wired = true;
-                    try { drumQuantMini.value = String(document.getElementById('universalQuant')?.value || ''); } catch (_) { }
-                    drumQuantMini.addEventListener('change', () => {
-                        const main = document.getElementById('universalQuant');
-                        if (main) { main.value = String(drumQuantMini.value || ''); main.dispatchEvent(new Event('change')); }
-                    });
-                    // Arrow up/down to increment/decrement denominator when single-number or N/D is present
-                    drumQuantMini.addEventListener('keydown', (e) => {
-                        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+                        // Master quant affects transport + default pattern grid; commit at next bar boundary.
                         try {
-                            const s = String(drumQuantMini.value || '').trim();
-                            let N = null, D = null, isFrac = false;
-                            const mf = s.match(/^(\d+)\s*\/\s*(\d+)$/);
-                            if (mf) { isFrac = true; N = parseInt(mf[1], 10) || 0; D = parseInt(mf[2], 10) || 0; }
-                            else { const mn = s.match(/^(\d+)$/); if (mn) { D = parseInt(mn[1], 10) || 0; N = D; } }
-                            if (!D) { D = 16; N = 16; }
-                            const delta = (e.key === 'ArrowUp') ? 1 : -1;
-                            const newD = Math.max(1, Math.min(64, D + delta));
-                            const out = isFrac ? `${N}/${newD}` : String(newD);
-                            drumQuantMini.value = out;
-                            // Immediately propagate to universal quant
-                            const main = document.getElementById('universalQuant');
-                            if (main) { main.value = out; main.dispatchEvent(new Event('change')); }
-                            e.preventDefault();
-                        } catch (_) { }
+                            const q = String(patternQuant.value || '1/16').trim();
+                            // mark pending for bar-safe commit visibility
+                            try { patternQuant.dataset.pending = '1'; patternQuant.classList.add('pending-change'); } catch (_) { }
+                            if (window.autoharp && typeof window.autoharp._queueTransportChange === 'function') window.autoharp._queueTransportChange({ quant: q }, { patternGrid: true });
+                            else scheduleDeferred({ transport: true, patternGrid: true });
+                        } catch (_) { scheduleDeferred({ transport: true, patternGrid: true }); }
+                        try { if (drumQuantMini) drumQuantMini.value = String(patternQuant.value || ''); } catch (_) { }
                     });
                 }
+                try { if (drumQuantMini) drumQuantMini.value = String(patternQuant?.value || ''); } catch (_) { }
 
                 if (universalNpc) {
                     universalNpc.addEventListener('input', () => {
@@ -51873,6 +52607,85 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (window.autoharp && window.autoharp.applyUniversalSettings) {
                             autoharp.applyUniversalSettings();
                         }
+                        // When HOLD is set to bar:N, mirror it to drum cycle length (N bars).
+                        try {
+                            const holdVal = String(universalHold.value || '').trim();
+                            const m = holdVal.match(/^bar\s*:\s*(\d+)$/i);
+                            if (!m) return;
+                            const barCount = Math.max(1, parseInt(m[1], 10) || 1);
+                            const getBarLen16 = () => {
+                                try {
+                                    const st = (window.TransportStore && window.TransportStore.get) ? window.TransportStore.get() : null;
+                                    const v = st && Number.isFinite(st.barLen16) ? (st.barLen16 | 0) : 0;
+                                    if (v > 0) return v;
+                                } catch (_) { }
+                                try {
+                                    const tsi = window._getTsInfo ? window._getTsInfo() : null;
+                                    const v = tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 0;
+                                    if (v > 0) return v;
+                                } catch (_) { }
+                                try {
+                                    const tsRaw = String(document.getElementById('universalTimeSignature')?.value || '4/4');
+                                    const parts = tsRaw.split('/');
+                                    const a = parseInt(parts[0], 10); const b = parseInt(parts[1], 10);
+                                    const tsNum = (Number.isFinite(a) && a > 0) ? a : 4;
+                                    const tsDen = (Number.isFinite(b) && b > 0) ? b : 4;
+                                    const beatsPerBar = (tsNum * 4) / tsDen;
+                                    return Math.max(1, Math.round(beatsPerBar * 4));
+                                } catch (_) { }
+                                return 16;
+                            };
+                            const barLen16 = getBarLen16();
+                            const targetLen = barLen16 * barCount;
+                            const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function')
+                                ? window.autoharp._getMaxCycleSteps()
+                                : 4096;
+                            const nextLen = Math.max(1, Math.min(maxLen, targetLen | 0));
+
+                            const grid = document.getElementById('drumGrid');
+                            if (!grid) return;
+                            const lenVal = document.getElementById('drumLenValue');
+                            const lenHint = document.getElementById('drumLenHint');
+                            const curLen = Math.max(1, Math.min(maxLen, parseInt(grid.dataset.length || String(barLen16), 10) || barLen16));
+                            if (nextLen === curLen) return;
+
+                            let isPlaying = false;
+                            try { isPlaying = !!(window.autoharp && window.autoharp._isSequencing); } catch (_) { isPlaying = false; }
+                            if (isPlaying) {
+                                try { grid.dataset.pendingLength = String(nextLen); } catch (_) { }
+                                if (lenVal) { lenVal.textContent = String(nextLen); try { lenVal.dataset.pending = '1'; } catch (_) { } }
+                                if (lenHint) lenHint.textContent = `Queued: ${nextLen} steps (next cycle)`;
+                                try { const scheduleDeferred = window.scheduleDeferred; if (typeof scheduleDeferred === 'function') scheduleDeferred({ transport: true, grid: true, drums: true }); } catch (_) { }
+                                return;
+                            }
+
+                            grid.dataset.length = String(nextLen);
+                            try { grid._prevLen16ForResize = curLen; } catch (_) { }
+                            if (lenVal) lenVal.textContent = String(nextLen);
+                            if (lenHint) lenHint.textContent = `Cycle: ${nextLen} steps`;
+                            try { delete lenVal.dataset.pending; } catch (_) { }
+                            try { delete grid.dataset.pendingLength; } catch (_) { }
+
+                            try { if (typeof window.autoharp?._updateDrumGridForTimeSignature === 'function') { window.autoharp._updateDrumGridForTimeSignature(); } } catch (_) { }
+                            try { if (typeof window.autoharp?._refreshArpTransportTiming === 'function') window.autoharp._refreshArpTransportTiming(); } catch (_) { }
+
+                            try {
+                                const container = grid.closest('.drum-grid-container');
+                                if (container) {
+                                    const lanes2 = Array.from(grid.querySelectorAll('.drum-lane'));
+                                    const maxD = lanes2.reduce((mx, ln) => {
+                                        const qs = String(ln.dataset.quant || '');
+                                        let d = parseInt(ln.style.getPropertyValue('--steps-per-bar') || String(nextLen), 10) || nextLen;
+                                        const mm = qs.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+                                        if (mm) { const dd = parseInt(mm[2], 10); if (Number.isFinite(dd) && dd > 0) d = dd; }
+                                        else { const mn = qs.match(/^\s*(\d+)\s*$/); if (mn) { const dd = parseInt(mn[1], 10); if (Number.isFinite(dd) && dd > 0) d = dd; } }
+                                        return Math.max(mx, d);
+                                    }, nextLen);
+                                    container.style.setProperty('--bar-steps', String(maxD));
+                                    try { window._autoSizePatternModals && window._autoSizePatternModals(maxD); } catch (_) { }
+                                }
+                            } catch (_) { }
+                        } catch (_) { }
                     });
                 }
                 // Swing control (ARP)
