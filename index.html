@@ -8263,8 +8263,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const npcEl = (clone.querySelector('[data-role="universalNpc"]') || clone.querySelector('#universalNpc'));
                         const lenValueEl = (clone.querySelector('[data-role="patternLenValue"]') || clone.querySelector('#patternLenValue'));
                         const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
+                        const getDefaultBarLen16 = () => {
+                            try {
+                                const st = (window.TransportStore && window.TransportStore.get) ? window.TransportStore.get() : null;
+                                const v = st && Number.isFinite(st.barLen16) ? (st.barLen16 | 0) : 0;
+                                if (v > 0) return Math.max(1, v);
+                            } catch (_) { }
+                            try {
+                                const tsi = (window._getTsInfo ? window._getTsInfo() : null);
+                                const v = tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 0;
+                                if (v > 0) return Math.max(1, v);
+                            } catch (_) { }
+                            return 16;
+                        };
                         const npc = Math.max(1, Math.min(64, parseInt(npcEl?.value || '16', 10) || 16));
-                        const len = Math.max(1, Math.min(maxLen, parseInt((lenValueEl?.textContent || gridEl?.dataset?.length || '16'), 10) || 16));
+                        const len = Math.max(1, Math.min(maxLen, getDefaultBarLen16()));
+                        if (lenValueEl) lenValueEl.textContent = String(len);
                         if (gridEl) buildBlankPatternGrid(clone, gridEl, npc, len);
                     } catch (_) { }
 
@@ -13124,9 +13138,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     case 'pattern':
                         btn.classList.toggle('active');
                         if (btn.classList.contains('active')) {
-                            // Default PATTERN to NPC16/LEN16 (16x16) on first enable
+                            // Default PATTERN to NPC16 and LEN from current time signature on first enable
                             try {
                                 if (!window._patternDefault16Applied) {
+                                    const getDefaultBarLen16 = () => {
+                                        try {
+                                            const st = (window.TransportStore && window.TransportStore.get) ? window.TransportStore.get() : null;
+                                            const v = st && Number.isFinite(st.barLen16) ? (st.barLen16 | 0) : 0;
+                                            if (v > 0) return Math.max(1, v);
+                                        } catch (_) { }
+                                        try {
+                                            const tsi = (window._getTsInfo ? window._getTsInfo() : null);
+                                            const v = tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 0;
+                                            if (v > 0) return Math.max(1, v);
+                                        } catch (_) { }
+                                        return 16;
+                                    };
+                                    const defaultLen16 = getDefaultBarLen16();
                                     const npcInput = document.getElementById('universalNpc');
                                     if (npcInput) {
                                         npcInput.value = '16';
@@ -13136,12 +13164,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const pg0 = document.getElementById('patternGrid');
                                     if (pg0) {
                                         try { if (typeof pg0._rebuildNpc === 'function') pg0._rebuildNpc(16); } catch (_) { }
-                                        try { if (typeof pg0._rebuildLength === 'function') pg0._rebuildLength(16); } catch (_) { }
-                                        try { pg0.dataset.length = '16'; } catch (_) { }
+                                        try { if (typeof pg0._rebuildLength === 'function') pg0._rebuildLength(defaultLen16); } catch (_) { }
+                                        try { pg0.dataset.length = String(defaultLen16); } catch (_) { }
                                     }
                                     try {
                                         const lenValueEl = document.getElementById('patternLenValue');
-                                        if (lenValueEl) lenValueEl.textContent = '16';
+                                        if (lenValueEl) lenValueEl.textContent = String(defaultLen16);
                                     } catch (_) { }
                                     window._patternDefault16Applied = true;
                                 }
