@@ -2519,6 +2519,7 @@
             align-items: center;
             gap: 6px;
             width: 100%;
+            min-width: 0;
         }
 
         #drumGrid.drum-grid .drum-gear {
@@ -2547,21 +2548,17 @@
             outline-offset: 1px;
         }
 
-        /* Collapsed: hide label (dots dominate); MIDI stays visible per spec */
-        #drumGrid.drum-grid .drum-row:not(.expanded) .drum-label {
-            display: none;
-        }
-
         #drumGrid.drum-grid .drum-row-main .drum-label {
             text-align: left;
             padding: 0;
             min-width: 70px;
+            cursor: default;
+            user-select: none;
         }
 
         #drumGrid.drum-grid .drum-row-main .drum-lane {
             flex: 1 1 auto;
-            /* Never allow dots to overlap: lane width must scale with dot size + gap, not an unrelated step-size. */
-            min-width: calc(var(--bar-steps, 16) * (var(--dot-size, 16px) + (var(--dot-gap, 4px) * 2)));
+            min-width: 0;
         }
 
         #drumGrid.drum-grid .drum-row-main .drum-midi {
@@ -2571,6 +2568,27 @@
 
         #drumGrid.drum-grid .drum-row-main .drum-midi input {
             width: 72px;
+        }
+
+        #drumGrid.drum-grid .drum-row-main .drum-quant {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 2px;
+            margin-right: 2px;
+            flex: 0 0 auto;
+            color: #cfe6ff;
+            font-size: 10px;
+        }
+
+        #drumGrid.drum-grid .drum-row-main .drum-quant input {
+            width: 56px;
+            background: #0d2938;
+            color: #e8f5ff;
+            border: 1px solid #2b5567;
+            border-radius: 6px;
+            padding: 2px 4px;
+            font-size: 11px;
         }
 
         #drumGrid.drum-grid .drum-drawer {
@@ -2608,6 +2626,23 @@
             border: 1px solid rgba(155, 89, 182, 0.45);
             border-radius: 10px;
             background: rgba(155, 89, 182, 0.08);
+        }
+
+        /* Drum modal should hug content: no forced empty canvas to right/bottom. */
+        #drumModal {
+            height: auto !important;
+            max-height: calc(100vh - 80px);
+        }
+
+        #drumModal .modal-body {
+            height: auto !important;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        #drumModal .drum-grid-container {
+            flex: 0 0 auto !important;
+            overflow-y: hidden !important;
         }
 
         .drum-fx-header {
@@ -2726,22 +2761,22 @@
             align-items: center;
             justify-items: start;
             width: 100%;
-            /* Ensure dots can never overlap even when dot-size changes per modal. */
-            min-width: calc(var(--bar-steps, 16) * (var(--dot-size, 16px) + (var(--dot-gap, 4px) * 2)));
+            min-width: 0;
         }
 
-        /* Drum grid: fixed step spacing so dots never stretch or compress when bars change. */
+        /* Drum grid: lane width stays fixed; more steps get smaller so Q32 fits same width as Q16. */
         #drumGrid.drum-grid .drum-row-main .drum-lane {
-            --step-size: calc(var(--dot-size, 16px) + (var(--dot-gap, 4px) * 2));
-            grid-template-columns: repeat(var(--steps-per-bar, 16), var(--step-size));
-            width: max-content;
-            min-width: calc(var(--bar-steps, 16) * var(--step-size));
-            flex: 0 0 auto;
+            grid-template-columns: repeat(var(--steps-per-bar, 16), minmax(0, 1fr));
+            width: 100%;
+            min-width: 0;
+            flex: 1 1 auto;
+            justify-items: center;
         }
 
         .drum-step {
-            width: var(--dot-size, 16px);
-            height: var(--dot-size, 16px);
+            width: min(var(--dot-size, 16px), 100%);
+            height: auto;
+            aspect-ratio: 1 / 1;
             border-radius: 50%;
             background: radial-gradient(circle at 30% 30%, #6886ff, #2b50ea 60%, #1c2b74);
             opacity: .33;
@@ -3773,6 +3808,14 @@
             -ms-user-select: none;
         }
 
+        .modal-header input,
+        .modal-header label,
+        .modal-header button,
+        .modal-header select {
+            pointer-events: auto;
+            touch-action: manipulation;
+        }
+
         .modal-close {
             background: #e74c3c;
             border: none;
@@ -4260,37 +4303,6 @@
 </head>
 
 <body>
-    <!-- Floating Transport Modal -->
-    <div id="transportModal"
-        style="position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.95);border:2px solid #333333;border-radius:12px;padding:20px;display:flex;align-items:center;gap:15px;z-index:12000;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.8);">
-        <button id="playStopTransportBtn"
-            style="width:60px;height:48px;background:#27ae60;border:2px solid #2ecc71;border-radius:8px;color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▶</button>
-        <button id="projectLockBtn"
-            style="width:72px;height:48px;background:#1f2937;border:2px solid #4a6870;border-radius:8px;color:#e8f5ff;font-size:12px;font-weight:800;letter-spacing:0.6px;cursor:pointer;display:flex;align-items:center;justify-content:center;">LOCK</button>
-        <div id="countInDisplay"
-            style="min-width:42px;height:48px;display:none;align-items:center;justify-content:center;background:#111827;border:2px solid #334155;border-radius:10px;color:#e8f5ff;font-weight:900;font-size:20px;letter-spacing:1px;">
-            1</div>
-        <label style="display:flex;align-items:center;gap:8px;color:#e8f5ff;font-size:14px;font-weight:bold;">
-            <input id="loopToggle" type="checkbox" style="transform:scale(1.2);" checked> LOOP
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;color:#e8f5ff;font-size:14px;font-weight:bold;">
-            BPM <input id="transportBpm" type="number" min="20" max="300" value="120"
-                style="width:60px;height:32px;background:#1a1a2e;color:#fff;border:2px solid #4a6870;border-radius:6px;font-size:14px;padding:4px 8px;text-align:center;">
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;color:#e8f5ff;font-size:14px;font-weight:bold;">
-            TS <input id="universalTimeSignature" list="tsOptions" type="text" value="4/4"
-                title="Time Signature (e.g., 4/4, 7/8)"
-                style="width:60px;height:32px;background:#1a1a2e;color:#fff;border:2px solid #4a6870;border-radius:6px;font-size:14px;padding:4px 8px;text-align:center;">
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;color:#e8f5ff;font-size:14px;font-weight:bold;">
-            EDO <input id="edoQuickInputTransport" type="number" min="5" max="53" value="24" title="Steps per octave"
-                style="width:50px;height:32px;background:#1a1a2e;color:#fff;border:2px solid #4a6870;border-radius:6px;font-size:14px;padding:4px 6px;text-align:center;">
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;color:#e8f5ff;font-size:14px;font-weight:bold;">
-            VOL <input id="transportMasterVolume" type="range" min="0" max="10" value="10"
-                style="width:80px;height:32px;" title="Master Volume">
-        </label>
-    </div>
     <datalist id="tsOptions">
         <option value="4/4"></option>
         <option value="3/4"></option>
@@ -5311,10 +5323,6 @@
                         <input id="bellsZoom" type="range" min="1" max="4" step="1" value="1" />
                         <div id="bellsZoomValue" class="sidebar-zoom-value">1 key</div>
                     </div>
-                    <button id="undoBtnSidebar" class="sidebar-btn" title="Undo (Ctrl+Z)"
-                        style="background:#334155;border-color:#475569;">UNDO</button>
-                    <button id="redoBtnSidebar" class="sidebar-btn" title="Redo (Ctrl+Shift+Z)"
-                        style="background:#1f2937;border-color:#334155;">REDO</button>
                 </div>
 
                 <!-- Main Content Area -->
@@ -5977,6 +5985,42 @@
             <div id="chordRuler" aria-hidden="true"></div>
             <div class="chord-collapse-handle" id="chordCollapseHandle">
                 <div class="resize-grip"></div>
+                <div id="transportDockHandle"
+                    style="position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:6px;padding:4px 8px;min-height:30px;background:rgba(0,0,0,0.95);border:2px solid #333333;border-radius:10px;backdrop-filter:blur(8px);pointer-events:auto;touch-action:auto;">
+                    <button id="playStopTransportBtn" title="Play / Stop"
+                        style="width:30px;height:24px;background:#27ae60;border:2px solid #2ecc71;border-radius:6px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">▶</button>
+                    <button id="projectLockBtn" title="Project Lock"
+                        style="width:28px;height:24px;background:#1f2937;border:2px solid #4a6870;border-radius:6px;color:#e8f5ff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">🔒</button>
+                    <div id="countInDisplay"
+                        style="min-width:20px;height:24px;display:none;align-items:center;justify-content:center;background:#111827;border:2px solid #334155;border-radius:6px;color:#e8f5ff;font-weight:900;font-size:12px;letter-spacing:0.2px;">
+                        1</div>
+                    <label
+                        style="display:flex;align-items:center;gap:4px;color:#e8f5ff;font-size:11px;font-weight:700;">
+                        <input id="loopToggle" type="checkbox" style="transform:scale(1.0);" checked> LOOP
+                    </label>
+                    <label
+                        style="display:flex;align-items:center;gap:4px;color:#e8f5ff;font-size:11px;font-weight:700;">
+                        BPM <input id="transportBpm" type="number" min="20" max="300" value="120"
+                            style="width:44px;height:22px;background:#1a1a2e;color:#fff;border:2px solid #4a6870;border-radius:5px;font-size:11px;padding:1px 4px;text-align:center;">
+                    </label>
+                    <label
+                        style="display:flex;align-items:center;gap:4px;color:#e8f5ff;font-size:11px;font-weight:700;">
+                        TS <input id="universalTimeSignature" list="tsOptions" type="text" value="4/4"
+                            title="Time Signature (e.g., 4/4, 7/8)"
+                            style="width:42px;height:22px;background:#1a1a2e;color:#fff;border:2px solid #4a6870;border-radius:5px;font-size:11px;padding:1px 4px;text-align:center;">
+                    </label>
+                    <label
+                        style="display:flex;align-items:center;gap:4px;color:#e8f5ff;font-size:11px;font-weight:700;">
+                        EDO <input id="edoQuickInputTransport" type="number" min="5" max="53" value="24"
+                            title="Steps per octave"
+                            style="width:38px;height:22px;background:#1a1a2e;color:#fff;border:2px solid #4a6870;border-radius:5px;font-size:11px;padding:1px 4px;text-align:center;">
+                    </label>
+                    <label
+                        style="display:flex;align-items:center;gap:4px;color:#e8f5ff;font-size:11px;font-weight:700;">
+                        VOL <input id="transportMasterVolume" type="range" min="0" max="10" value="10"
+                            style="width:64px;height:22px;" title="Master Volume">
+                    </label>
+                </div>
             </div>
             <div class="chord-resize-handle" id="chordResizeHandle">
                 <div class="resize-grip"></div>
@@ -10684,6 +10728,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     return;
                 }
 
+                const isInteractiveTarget = (target) => {
+                    try {
+                        if (!target || !target.closest) return false;
+                        return !!target.closest('input, label, button, select, textarea, a, [role="button"], .modal-close, .osc-btn, .panel-btn');
+                    } catch (_) {
+                        return false;
+                    }
+                };
+
                 header.style.cursor = 'move';
                 header.style.touchAction = 'none'; // Prevent default touch behaviors
                 header.onmousedown = dragMouseDown;
@@ -10693,6 +10746,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 function dragMouseDown(e) {
                     e = e || window.event;
+                    if (isInteractiveTarget(e.target)) return;
                     e.preventDefault();
                     pos3 = e.clientX;
                     pos4 = e.clientY;
@@ -10703,6 +10757,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
 
                 function dragTouchStart(e) {
+                    if (isInteractiveTarget(e.target)) return;
                     e.preventDefault();
                     const touch = e.touches[0];
                     pos3 = touch.clientX;
@@ -10828,119 +10883,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     apply('bassModal');
                 } catch (_) { }
             };
-
-            // Make transport modal draggable by any non-interactive area
-            function makeTransportDraggable() {
-                const el = document.getElementById('transportModal');
-                if (!el || el._dragWired) return;
-                el._dragWired = true;
-                el.style.touchAction = 'none';
-
-                let dragging = false;
-                let startX = 0, startY = 0;
-                let origLeft = 0, origTop = 0;
-
-                const isInteractive = (target) => {
-                    return !!(target.closest('button, input, select, textarea, label, a, [role="button"], .mix-btn, .osc-btn, .mode-btn, .panel-btn, .sidebar-btn, .modal-close'));
-                };
-
-                const onMouseDown = (e) => {
-                    if (isInteractive(e.target)) return;
-                    e.preventDefault();
-                    const rect = el.getBoundingClientRect();
-                    // Convert from right-anchored to left on first drag
-                    if (!el._convertedToLeft) {
-                        el.style.left = rect.left + 'px';
-                        el.style.top = rect.top + 'px';
-                        el.style.right = 'auto';
-                        el._convertedToLeft = true;
-                    }
-                    dragging = true;
-                    startX = e.clientX;
-                    startY = e.clientY;
-                    origLeft = parseInt(el.style.left || rect.left + 'px');
-                    origTop = parseInt(el.style.top || rect.top + 'px');
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
-                    document.body.style.cursor = 'grabbing';
-                };
-
-                const onMouseMove = (e) => {
-                    if (!dragging) return;
-                    e.preventDefault();
-                    const dx = e.clientX - startX;
-                    const dy = e.clientY - startY;
-                    let nextLeft = origLeft + dx;
-                    let nextTop = origTop + dy;
-                    // Clamp to viewport
-                    const rect = el.getBoundingClientRect();
-                    const w = rect.width, h = rect.height;
-                    const vv = window.visualViewport;
-                    const safeTop = Math.max(8, (vv ? vv.offsetTop : 0) + 8);
-                    nextLeft = Math.max(0, Math.min(window.innerWidth - w, nextLeft));
-                    nextTop = Math.max(safeTop, Math.min((vv ? vv.height : window.innerHeight) - h, nextTop));
-                    el.style.left = nextLeft + 'px';
-                    el.style.top = nextTop + 'px';
-                };
-
-                const onMouseUp = () => {
-                    dragging = false;
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                    document.body.style.cursor = 'default';
-                };
-
-                const onTouchStart = (e) => {
-                    if (isInteractive(e.target)) return;
-                    const t = e.touches && e.touches[0];
-                    if (!t) return;
-                    e.preventDefault();
-                    const rect = el.getBoundingClientRect();
-                    if (!el._convertedToLeft) {
-                        el.style.left = rect.left + 'px';
-                        el.style.top = rect.top + 'px';
-                        el.style.right = 'auto';
-                        el._convertedToLeft = true;
-                    }
-                    dragging = true;
-                    startX = t.clientX;
-                    startY = t.clientY;
-                    origLeft = parseInt(el.style.left || rect.left + 'px');
-                    origTop = parseInt(el.style.top || rect.top + 'px');
-                    document.addEventListener('touchmove', onTouchMove, { passive: false });
-                    document.addEventListener('touchend', onTouchEnd, { passive: false });
-                    document.body.style.cursor = 'grabbing';
-                };
-
-                const onTouchMove = (e) => {
-                    if (!dragging) return;
-                    const t = e.touches && e.touches[0];
-                    if (!t) return;
-                    e.preventDefault();
-                    const dx = t.clientX - startX;
-                    const dy = t.clientY - startY;
-                    let nextLeft = origLeft + dx;
-                    let nextTop = origTop + dy;
-                    const rect = el.getBoundingClientRect();
-                    const w = rect.width, h = rect.height;
-                    const vv = window.visualViewport;
-                    const safeTop = Math.max(8, (vv ? vv.offsetTop : 0) + 8);
-                    nextLeft = Math.max(0, Math.min(window.innerWidth - w, nextLeft));
-                    nextTop = Math.max(safeTop, Math.min((vv ? vv.height : window.innerHeight) - h, nextTop));
-                    el.style.left = nextLeft + 'px';
-                    el.style.top = nextTop + 'px';
-                };
-
-                const onTouchEnd = () => {
-                    dragging = false;
-                    document.removeEventListener('touchmove', onTouchMove);
-                    document.removeEventListener('touchend', onTouchEnd);
-                    document.body.style.cursor = 'default';
-                };
-
-                el.addEventListener('mousedown', onMouseDown);
-                el.addEventListener('touchstart', onTouchStart, { passive: false });
-            }
 
             // Make bracket markers and chord columns draggable for section rearrangement
             function makeBracketDraggable(marker) {
@@ -11275,6 +11217,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             function initChordResize() {
                 const handle = document.getElementById('chordResizeHandle');
                 const topHandle = document.getElementById('chordCollapseHandle');
+                const transportDockHandle = document.getElementById('transportDockHandle');
                 const strumArea = document.getElementById('strumArea');
                 const jamArea = document.getElementById('jamArea');
                 const ruler = document.getElementById('chordRuler');
@@ -11385,6 +11328,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 handle.style.touchAction = 'none';
                 if (topHandle) topHandle.style.touchAction = 'none';
+                if (transportDockHandle && !transportDockHandle._stopResizePropagationWired) {
+                    transportDockHandle._stopResizePropagationWired = true;
+                    transportDockHandle.addEventListener('pointerdown', (e) => {
+                        try { e.stopPropagation(); } catch (_) { }
+                    });
+                }
 
                 const startResize = (type, y) => {
                     if (type === 'mid') {
@@ -11405,6 +11354,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 });
                 if (topHandle) {
                     topHandle.addEventListener('pointerdown', (e) => {
+                        if (e.target && e.target.closest && e.target.closest('#transportDockHandle')) return;
                         try { topHandle.setPointerCapture(e.pointerId); } catch (_) { }
                         startResize('top', e.clientY);
                     });
@@ -15932,6 +15882,55 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const label = document.createElement('div');
                             label.className = 'drum-label';
                             label.textContent = name;
+                            label.title = 'Hold to rename lane';
+
+                            let renameHoldTimer = null;
+                            let renameTriggered = false;
+                            const clearRenameHold = () => {
+                                if (renameHoldTimer) {
+                                    clearTimeout(renameHoldTimer);
+                                    renameHoldTimer = null;
+                                }
+                            };
+                            const runRename = () => {
+                                renameTriggered = true;
+                                const currentName = String(label.textContent || name).trim() || name;
+                                const nextNameRaw = window.prompt('Rename drum lane', currentName);
+                                if (nextNameRaw == null) return;
+                                const nextName = String(nextNameRaw).trim();
+                                if (!nextName) return;
+                                label.textContent = nextName;
+                                try { label.dataset.laneName = nextName; } catch (_) { }
+                                try { lane.dataset.laneName = nextName; } catch (_) { }
+                                try {
+                                    if (lane._controls) lane._controls.name = nextName;
+                                } catch (_) { }
+                                try {
+                                    lane.querySelectorAll('.drum-step').forEach((stepEl, idx) => {
+                                        stepEl.title = `${nextName} • Step ${idx + 1}`;
+                                    });
+                                } catch (_) { }
+                                try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
+                            };
+                            label.addEventListener('pointerdown', (ev) => {
+                                if (ev.button != null && ev.button !== 0) return;
+                                renameTriggered = false;
+                                clearRenameHold();
+                                renameHoldTimer = setTimeout(() => {
+                                    renameHoldTimer = null;
+                                    runRename();
+                                }, 550);
+                            });
+                            label.addEventListener('pointerup', clearRenameHold);
+                            label.addEventListener('pointerleave', clearRenameHold);
+                            label.addEventListener('pointercancel', clearRenameHold);
+                            label.addEventListener('click', (ev) => {
+                                if (!renameTriggered) return;
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                try { ev.stopImmediatePropagation(); } catch (_) { }
+                                renameTriggered = false;
+                            }, true);
                             rowMain.appendChild(label);
 
                             const lane = document.createElement('div');
@@ -16490,6 +16489,42 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             midiWrap.appendChild(midiInput);
 
                             rowMain.appendChild(midiWrap);
+                            // Per-lane QUANT (N/D), always visible in row header
+                            const qWrap = document.createElement('label');
+                            qWrap.className = 'drum-quant';
+                            qWrap.style.cssText = 'display:inline-flex;align-items:center;gap:4px;margin-left:6px;';
+                            const qSpan = document.createElement('span'); qSpan.textContent = 'Q:'; qSpan.title = `${name} Quant (N/D per-bar)`; qWrap.appendChild(qSpan);
+                            const qInput = document.createElement('input');
+                            qInput.type = 'text'; qInput.placeholder = 'N/D'; qInput.style.cssText = 'width:60px;';
+                            qInput.addEventListener('focus', (e) => e.target && e.target.select && e.target.select());
+                            // default quant = cycle length (in 16ths)
+                            try { lane.dataset.quant = String(currentLen16); } catch (_) { }
+                            qInput.value = lane.dataset.quant;
+                            qInput.addEventListener('change', () => {
+                                const oldD = Array.from(lane.querySelectorAll('.drum-step')).length || currentLen16;
+                                const q = parseRowQuant(qInput.value, currentLen16);
+                                const newStr = q.str;
+                                // If PLAY is running, defer quant changes to the next bar to avoid glitches
+                                let isPlaying = false;
+                                try { isPlaying = !!(window.autoharp && window.autoharp._isSequencing); } catch (_) { isPlaying = false; }
+                                if (isPlaying) {
+                                    lane.dataset.pendingQuant = newStr;
+                                    lane._pendingQuant = { N: q.N, D: q.D, str: newStr };
+                                } else {
+                                    // Apply immediately when stopped
+                                    lane.dataset.quant = newStr;
+                                    lane._quant = { N: q.N, D: q.D, str: newStr };
+                                    try { delete lane.dataset.pendingQuant; } catch (_) { }
+                                    try { delete lane._pendingQuant; } catch (_) { }
+                                    try { this._updateDrumGridForTimeSignature && this._updateDrumGridForTimeSignature(); } catch (_) { }
+                                    try { this._refreshArpTransportTiming && this._refreshArpTransportTiming(); } catch (_) { }
+                                }
+                                try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
+                                try { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: { laneQuant: true } }); } catch (_) { }
+                            });
+                            qWrap.appendChild(qInput);
+
+                            rowMain.appendChild(qWrap);
                             rowMain.appendChild(lane);
                             row.appendChild(rowMain);
 
@@ -16532,39 +16567,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const pDec = document.createElement('input'); pDec.type = 'range'; pDec.min = '5'; pDec.max = '1000'; pDec.value = '180'; pDec.className = 'mini'; pDec.title = `${name} Decay`; params.appendChild(pDec);
                             pDec.addEventListener('input', () => { try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { } try { if (window.autoharp && autoharp._arpTransport && autoharp._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch (_) { } });
 
-                            // Per-lane QUANT (N/D) inside params for layout stability
-                            const qWrap = document.createElement('label');
-                            qWrap.style.cssText = 'display:inline-flex;align-items:center;gap:4px;margin-left:6px;';
-                            const qSpan = document.createElement('span'); qSpan.textContent = 'Q:'; qSpan.title = `${name} Quant (N/D per-bar)`; qWrap.appendChild(qSpan);
-                            const qInput = document.createElement('input');
-                            qInput.type = 'text'; qInput.placeholder = 'N/D'; qInput.style.cssText = 'width:60px;';
-                            // default quant = cycle length (in 16ths)
-                            try { lane.dataset.quant = String(currentLen16); } catch (_) { }
-                            qInput.value = lane.dataset.quant;
-                            qInput.addEventListener('change', () => {
-                                const oldD = Array.from(lane.querySelectorAll('.drum-step')).length || currentLen16;
-                                const q = parseRowQuant(qInput.value, currentLen16);
-                                const newStr = q.str;
-                                // If PLAY is running, defer quant changes to the next bar to avoid glitches
-                                let isPlaying = false;
-                                try { isPlaying = !!(window.autoharp && window.autoharp._isSequencing); } catch (_) { isPlaying = false; }
-                                if (isPlaying) {
-                                    lane.dataset.pendingQuant = newStr;
-                                    lane._pendingQuant = { N: q.N, D: q.D, str: newStr };
-                                } else {
-                                    // Apply immediately when stopped
-                                    lane.dataset.quant = newStr;
-                                    lane._quant = { N: q.N, D: q.D, str: newStr };
-                                    try { delete lane.dataset.pendingQuant; } catch (_) { }
-                                    try { delete lane._pendingQuant; } catch (_) { }
-                                    try { this._updateDrumGridForTimeSignature && this._updateDrumGridForTimeSignature(); } catch (_) { }
-                                    try { this._refreshArpTransportTiming && this._refreshArpTransportTiming(); } catch (_) { }
-                                }
-                                try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
-                                try { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: { laneQuant: true } }); } catch (_) { }
-                            });
-                            qWrap.appendChild(qInput);
-                            params.appendChild(qWrap);
                             drawer.appendChild(params);
 
                             row.appendChild(drawer);
@@ -26188,8 +26190,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
 
                         // Initialize keyboard modal with keys visible
-                        // Make transport draggable by non-interactive background
-                        try { if (typeof makeTransportDraggable === 'function') makeTransportDraggable(); } catch (_) { }
                         if (typeof bringModalToFront === 'function') {
                             bringModalToFront('keyboardModal');
                         }
@@ -26520,7 +26520,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         if (!isDefault) return;
                                         lane.dataset.quant = String(drumBaseLen16);
                                         lane._quant = { N: drumBaseLen16, D: drumBaseLen16, str: String(drumBaseLen16) };
-                                        const qEl = lane.closest('.drum-row')?.querySelector('.drum-drawer .drum-params input[type="text"]');
+                                        const qEl = lane.closest('.drum-row')?.querySelector('.drum-quant input');
                                         if (qEl) qEl.value = String(drumBaseLen16);
                                     } catch (_) { }
                                 });
