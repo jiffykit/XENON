@@ -745,6 +745,20 @@
             box-shadow: 0 0 10px rgba(243, 156, 18, 0.7);
         }
 
+        #chordRuler .chord-ruler-time-marker {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 10px;
+            background: rgba(255, 255, 210, 0.92);
+            border: 1px solid rgba(255, 245, 170, 0.96);
+            border-radius: 3px;
+            box-shadow: 0 0 12px rgba(255, 240, 150, 0.78);
+            pointer-events: none;
+            z-index: 16;
+            display: none;
+        }
+
         #chordRuler .chord-ruler-row {
             height: 100%;
             display: flex;
@@ -786,6 +800,17 @@
 
         .extension-column.now-playing {
             box-shadow: 0 0 14px rgba(80, 200, 255, 0.2), 0 0 24px rgba(80, 200, 255, 0.12);
+        }
+
+        #extensionColumns.loop-focus-active .extension-column {
+            filter: saturate(0.52) brightness(0.78);
+            opacity: 0.72;
+            transition: filter 120ms ease, opacity 120ms ease;
+        }
+
+        #extensionColumns.loop-focus-active .extension-column.now-playing {
+            filter: saturate(1.2) brightness(1.05);
+            opacity: 1;
         }
 
         @keyframes xenChordPulse {
@@ -1797,7 +1822,7 @@
             }
 
             45% {
-                transform: scale(1.18);
+                transform: scale(1.125);
             }
 
             100% {
@@ -2637,12 +2662,14 @@
         #drumModal .modal-body {
             height: auto !important;
             min-height: 0;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         #drumModal .drum-grid-container {
             flex: 0 0 auto !important;
-            overflow-y: hidden !important;
+            min-height: 0 !important;
+            overflow-y: visible !important;
         }
 
         .drum-fx-header {
@@ -2755,26 +2782,26 @@
         .drum-lane {
             position: relative;
             display: grid;
-            grid-template-columns: repeat(var(--steps-per-bar, 16), minmax(0, 1fr));
+            grid-template-columns: repeat(var(--steps-per-bar, 16), var(--dot-size, 16px));
             gap: var(--dot-gap, 4px);
             height: max(20px, calc(var(--dot-size, 16px) + 4px));
             align-items: center;
-            justify-items: start;
-            width: 100%;
-            min-width: 0;
+            justify-items: center;
+            width: max-content;
+            min-width: max-content;
         }
 
         /* Drum grid: lane width stays fixed; more steps get smaller so Q32 fits same width as Q16. */
         #drumGrid.drum-grid .drum-row-main .drum-lane {
-            grid-template-columns: repeat(var(--steps-per-bar, 16), minmax(0, 1fr));
-            width: 100%;
-            min-width: 0;
-            flex: 1 1 auto;
+            grid-template-columns: repeat(var(--steps-per-bar, 16), var(--dot-size, 16px));
+            width: max-content;
+            min-width: max-content;
+            flex: 0 0 auto;
             justify-items: center;
         }
 
         .drum-step {
-            width: min(var(--dot-size, 16px), 100%);
+            width: var(--dot-size, 16px);
             height: auto;
             aspect-ratio: 1 / 1;
             border-radius: 50%;
@@ -2865,14 +2892,28 @@
 
         .drum-playhead {
             position: absolute;
-            top: -7px;
-            bottom: -7px;
+            top: -3px;
+            bottom: -3px;
             width: 2px;
             background: #ffd046;
             opacity: .75;
             pointer-events: none;
             box-shadow: 0 0 10px 2px rgba(255, 208, 70, 0.6);
             transform: translateX(0);
+            z-index: 6;
+        }
+
+        .pattern-playhead {
+            position: absolute;
+            top: -4px;
+            bottom: -4px;
+            width: 2px;
+            background: #ffd046;
+            opacity: .72;
+            pointer-events: none;
+            box-shadow: 0 0 8px 1px rgba(255, 208, 70, 0.5);
+            transform: translateX(0);
+            z-index: 2;
         }
 
         .drum-midi {
@@ -3747,12 +3788,17 @@
 
         /* Pattern/Drum/Bass modals: fixed aspect ratio + custom resize handle */
         #patternModal,
-        #drumModal,
         #bassModal,
         .pattern-modal {
             resize: none;
             aspect-ratio: var(--modal-aspect, 4 / 3);
             overflow: hidden;
+        }
+
+        #drumModal {
+            resize: none;
+            aspect-ratio: auto;
+            overflow: visible;
         }
 
         .modal-resize-handle {
@@ -5343,8 +5389,7 @@
                 </div>
 
                 <!-- Floating Drum Modal -->
-                <div id="drumModal" class="floating-modal"
-                    style="top: 100px; left: 200px; width: 870px; height: 560px;">
+                <div id="drumModal" class="floating-modal" style="top: 100px; left: 200px; width: 870px;">
                     <div class="modal-header">
                         <span>Drum Sequencer</span>
                         <label for="drumOneShotToggle"
@@ -5354,10 +5399,9 @@
                         </label>
                         <button class="modal-close" onclick="closeDrumModalOnly()">×</button>
                     </div>
-                    <div class="modal-body"
-                        style="padding: 12px; height: calc(100% - 60px); overflow: hidden; display:flex; flex-direction:column;">
+                    <div class="modal-body" style="padding: 12px; display:flex; flex-direction:column;">
                         <div class="drum-grid-container"
-                            style="flex: 1 1 auto; min-height:0; overflow-x: auto; overflow-y: auto;">
+                            style="flex: 0 0 auto; min-height:0; overflow-x: auto; overflow-y: visible;">
                             <div class="drum-grid-header">
                                 <span style="opacity:.8;">Pattern</span>
                                 <input id="drumPatternNumber" type="number" min="1" max="128" value="1"
@@ -7106,7 +7150,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     try {
                                         modal._patternOneShot = !!oneShotEl.checked;
                                         const pt = modal._patternTransport;
-                                        if (!modal._patternOneShot && pt) pt._oneShotStopBarIndex = null;
+                                        if (modal._patternOneShot) {
+                                            modal._patternPendingEnabled = null;
+                                            modal._patternEnabled = false;
+                                            try {
+                                                const speakerBtn = (modal.querySelector('[data-role="patternSpeakerBtn"]') || modal.querySelector('#patternSpeakerBtn'));
+                                                if (speakerBtn) speakerBtn.textContent = '🔇';
+                                            } catch (_) { }
+                                            if (pt) {
+                                                try { pt.stopVoices && pt.stopVoices(); } catch (_) { }
+                                                try { pt._startAtBarIndex = null; } catch (_) { }
+                                                try { pt._oneShotStopBarIndex = null; } catch (_) { }
+                                            }
+                                        } else if (pt) {
+                                            pt._oneShotStopBarIndex = null;
+                                        }
                                         try { window._updatePatternInstanceButtonVisual && window._updatePatternInstanceButtonVisual(modal); } catch (_) { }
                                         try { window._storeCurrentSectionState && window._storeCurrentSectionState(); } catch (_) { }
                                     } catch (_) { }
@@ -8929,48 +8987,36 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const omni = window.autoharp;
                                 const isPlaying = !!(omni && omni._arpTransport && omni._arpTransport.running);
 
-                                const base = (clone._patternPendingEnabled != null) ? !!clone._patternPendingEnabled : !!clone._patternEnabled;
-                                const desired = !base;
+                                const desired = !clone._patternEnabled;
+                                clone._patternPendingEnabled = null;
+                                clone._patternEnabled = desired;
 
-                                if (isPlaying) {
-                                    if (clone._patternOneShot && desired) {
-                                        clone._patternPendingEnabled = null;
-                                        clone._patternEnabled = true;
-                                        try {
-                                            const speakerBtn = (clone.querySelector('[data-role="patternSpeakerBtn"]') || clone.querySelector('#patternSpeakerBtn'));
-                                            if (speakerBtn) speakerBtn.textContent = '🔊';
-                                        } catch (_) { }
-                                        try {
-                                            const tr = omni && omni._arpTransport;
-                                            const tpBar = Math.max(1, (tr && tr.ticksPerBar) || 16);
-                                            const absTick = (tr && tr.absTickCounter | 0) || 0;
-                                            const nowBar = Math.floor(absTick / tpBar);
-                                            if (pt) pt._oneShotStopBarIndex = nowBar + 1;
-                                            const gridEl = (clone.querySelector('[data-role="patternGrid"]') || clone.querySelector('#patternGrid') || clone.querySelector('.pattern-grid'));
-                                            const lanes = gridEl ? gridEl.querySelectorAll('.pattern-lane') : [];
-                                            lanes.forEach(lane => { try { lane._lastPatternStepIdx = -1; } catch (_) { } });
-                                        } catch (_) { }
-                                    } else {
-                                        // Queue for next cycle (traffic light shows intent)
-                                        clone._patternPendingEnabled = desired;
-                                        try { if (pt) pt._pendingApply = () => { try { window._applyPatternInstancePending && window._applyPatternInstancePending(clone); } catch (_) { } }; } catch (_) { }
-                                    }
-                                } else {
-                                    // Apply immediately when stopped
-                                    clone._patternPendingEnabled = null;
-                                    clone._patternEnabled = desired;
-                                    try {
-                                        const speakerBtn = (clone.querySelector('[data-role="patternSpeakerBtn"]') || clone.querySelector('#patternSpeakerBtn'));
-                                        if (speakerBtn) speakerBtn.textContent = clone._patternEnabled ? '🔊' : '🔇';
-                                    } catch (_) { }
-                                    if (pt) {
-                                        if (clone._patternEnabled) {
-                                            try { pt.stopVoices && pt.stopVoices(); } catch (_) { }
+                                try {
+                                    const speakerBtn = (clone.querySelector('[data-role="patternSpeakerBtn"]') || clone.querySelector('#patternSpeakerBtn'));
+                                    if (speakerBtn) speakerBtn.textContent = clone._patternEnabled ? '🔊' : '🔇';
+                                } catch (_) { }
+
+                                if (pt) {
+                                    if (clone._patternEnabled) {
+                                        try { pt.stopVoices && pt.stopVoices(); } catch (_) { }
+                                        if (isPlaying && clone._patternOneShot) {
+                                            try {
+                                                const tr = omni && omni._arpTransport;
+                                                const tpBar = Math.max(1, (tr && tr.ticksPerBar) || 16);
+                                                const absTick = (tr && tr.absTickCounter | 0) || 0;
+                                                const nowBar = Math.floor(absTick / tpBar);
+                                                pt._oneShotStopBarIndex = nowBar + 1;
+                                                const gridEl = (clone.querySelector('[data-role="patternGrid"]') || clone.querySelector('#patternGrid') || clone.querySelector('.pattern-grid'));
+                                                const lanes = gridEl ? gridEl.querySelectorAll('.pattern-lane') : [];
+                                                lanes.forEach(lane => { try { lane._lastPatternStepIdx = -1; } catch (_) { } });
+                                            } catch (_) { }
                                         } else {
-                                            try { pt.stopVoices && pt.stopVoices(); } catch (_) { }
-                                            try { pt._startAtBarIndex = null; } catch (_) { }
                                             try { pt._oneShotStopBarIndex = null; } catch (_) { }
                                         }
+                                    } else {
+                                        try { pt.stopVoices && pt.stopVoices(); } catch (_) { }
+                                        try { pt._startAtBarIndex = null; } catch (_) { }
+                                        try { pt._oneShotStopBarIndex = null; } catch (_) { }
                                     }
                                 }
                                 setStripState();
@@ -9059,7 +9105,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             b.addEventListener('pointercancel', endHold, { passive: true });
                             b.addEventListener('pointerleave', endHold, { passive: true });
 
-                            // Single tap: mute/unmute (queued if playing). Double-tap/dblclick: rename.
+                            // Single tap: mute/unmute immediately. Double-tap/dblclick: rename.
                             b.addEventListener('click', (e) => {
                                 try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
                                 const now = (performance && performance.now ? performance.now() : Date.now());
@@ -9078,14 +9124,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     return;
                                 }
                                 b._lastTapTs = now;
-                                // Delay to allow double-tap/dblclick to cancel
                                 try { if (b._singleTapTimer) clearTimeout(b._singleTapTimer); } catch (_) { }
                                 b._suppressSingleTap = false;
-                                b._singleTapTimer = setTimeout(() => {
-                                    b._singleTapTimer = null;
-                                    if (b._suppressSingleTap) return;
-                                    toggleMute();
-                                }, doubleWindow);
+                                if (b._suppressSingleTap) return;
+                                toggleMute();
                             });
 
                             // Double tap/click: rename pattern (no mute/unmute, no editor)
@@ -9233,6 +9275,38 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         try { el.classList.remove('step-pulse'); } catch (_) { }
                                         try { el._pulseTimer = null; } catch (_) { }
                                     }, 170);
+                                } catch (_) { }
+                            });
+                        } catch (_) { }
+                    };
+                }
+
+                if (!window._updatePatternPlaybackVisual) {
+                    window._updatePatternPlaybackVisual = function (gridEl, absTick, ticksPerBar) {
+                        try {
+                            if (!gridEl) return;
+                            const len = Math.max(1, parseInt(gridEl.dataset.length || '16', 10) || 16);
+                            const stepIdx = ((absTick | 0) % len + len) % len;
+                            const lanes = gridEl.querySelectorAll('.pattern-lane');
+                            if (!lanes || !lanes.length) return;
+
+                            lanes.forEach(lane => {
+                                try {
+                                    let ph = lane.querySelector('.pattern-playhead');
+                                    if (!ph) {
+                                        ph = document.createElement('div');
+                                        ph.className = 'pattern-playhead';
+                                        ph.style.left = '0%';
+                                        lane.appendChild(ph);
+                                    }
+                                    ph.style.left = ((stepIdx / len) * 100) + '%';
+                                } catch (_) { }
+
+                                try {
+                                    const st = lane.querySelector(`.pattern-step[data-step="${stepIdx}"]`);
+                                    if (st && st.classList && st.classList.contains('active')) {
+                                        window._pulseStepEl && window._pulseStepEl(st);
+                                    }
                                 } catch (_) { }
                             });
                         } catch (_) { }
@@ -9514,8 +9588,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     try { if (enabledNow) b.classList.add('active'); else b.classList.remove('active'); } catch (_) { }
                     try { if (inst.oneShot) b.classList.add('oneshot-armed'); else b.classList.remove('oneshot-armed'); } catch (_) { }
                     try {
-                        if (pendAny) { b.classList.add('pending-change'); b.title = 'Click: queue mute/unmute • Double-click: rename • Hold: edit'; }
-                        else { b.classList.remove('pending-change'); b.title = 'Click: queue mute/unmute • Double-click: rename • Hold: edit'; }
+                        if (pendAny) { b.classList.add('pending-change'); b.title = 'Click: mute/unmute • Double-click: rename • Hold: edit'; }
+                        else { b.classList.remove('pending-change'); b.title = 'Click: mute/unmute • Double-click: rename • Hold: edit'; }
                     } catch (_) { }
                 };
 
@@ -9616,26 +9690,25 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     const queueToggle = () => {
                         const isPlaying = !!(window.autoharp && window.autoharp._arpTransport && window.autoharp._arpTransport.running);
-                        const base = (inst.pendingEnabled != null) ? !!inst.pendingEnabled : !!inst.enabled;
-                        const desired = !base;
-                        if (isPlaying && inst.oneShot && desired) {
-                            inst.enabled = true;
-                            inst.pendingEnabled = null;
-                            try {
-                                const tr = window.autoharp && window.autoharp._arpTransport;
-                                const tpBar = Math.max(1, (tr && tr.ticksPerBar) || 16);
-                                const absTick = (tr && tr.absTickCounter | 0) || 0;
-                                const nowBar = Math.floor(absTick / tpBar);
-                                inst._oneShotStopBarIndex = nowBar + 1;
-                            } catch (_) { }
+                        const desired = !inst.enabled;
+                        inst.pendingEnabled = null;
+                        inst.enabled = desired;
+                        if (inst.enabled) {
+                            if (isPlaying && inst.oneShot) {
+                                try {
+                                    const tr = window.autoharp && window.autoharp._arpTransport;
+                                    const tpBar = Math.max(1, (tr && tr.ticksPerBar) || 16);
+                                    const absTick = (tr && tr.absTickCounter | 0) || 0;
+                                    const nowBar = Math.floor(absTick / tpBar);
+                                    inst._oneShotStopBarIndex = nowBar + 1;
+                                } catch (_) { }
+                            } else {
+                                inst._oneShotStopBarIndex = null;
+                            }
                             inst._lastStep = -1;
                             inst._lastLaneSteps = new Array(9).fill(-1);
-                        } else if (isPlaying) {
-                            inst.pendingEnabled = desired;
                         } else {
-                            inst.enabled = desired;
-                            inst.pendingEnabled = null;
-                            if (!inst.enabled) inst._oneShotStopBarIndex = null;
+                            inst._oneShotStopBarIndex = null;
                         }
                         updateButtonVisual(inst);
                         try { window._storeCurrentSectionState && window._storeCurrentSectionState(); } catch (_) { }
@@ -9660,7 +9733,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     b.addEventListener('pointercancel', endHold, { passive: true });
                     b.addEventListener('pointerleave', endHold, { passive: true });
 
-                    // Single tap queues mute/unmute (next cycle); double-tap/dblclick renames.
+                    // Single tap mutes/unmutes immediately; double-tap/dblclick renames.
                     b.addEventListener('click', (e) => {
                         try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
                         const now = (performance && performance.now ? performance.now() : Date.now());
@@ -9679,11 +9752,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         b._lastTapTs = now;
                         try { if (b._singleTapTimer) clearTimeout(b._singleTapTimer); } catch (_) { }
                         b._suppressSingleTap = false;
-                        b._singleTapTimer = setTimeout(() => {
-                            b._singleTapTimer = null;
-                            if (b._suppressSingleTap) return;
-                            queueToggle();
-                        }, doubleWindow);
+                        if (b._suppressSingleTap) return;
+                        queueToggle();
                     });
                     b.addEventListener('dblclick', (e) => {
                         try { e.preventDefault(); e.stopPropagation(); } catch (_) { }
@@ -9808,7 +9878,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const inst = getActiveInstance();
                                 if (!inst) return;
                                 inst.oneShot = !!input.checked;
-                                if (!inst.oneShot) inst._oneShotStopBarIndex = null;
+                                if (inst.oneShot) {
+                                    inst.pendingEnabled = null;
+                                    inst.enabled = false;
+                                    inst._oneShotStopBarIndex = null;
+                                } else {
+                                    inst._oneShotStopBarIndex = null;
+                                }
                                 updateButtonVisual(inst);
                                 window._storeCurrentSectionState && window._storeCurrentSectionState();
                             } catch (_) { }
@@ -10658,6 +10734,285 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 step._startVelDrag = startVelDrag;
                 step._updateVelocity = updateVelocity;
                 step._endVelDrag = endVelDrag;
+            };
+
+            window.bindDrumStepPointerInteraction = function (step, lane, ctx) {
+                if (!step || !lane || !ctx) return;
+
+                const getSmartState = () => {
+                    if (!window.__drumSmartPaintState) {
+                        window.__drumSmartPaintState = { anchor: null };
+                    }
+                    return window.__drumSmartPaintState;
+                };
+
+                const clearAnchors = () => {
+                    try { getSmartState().anchor = null; } catch (_) { }
+                };
+
+                const getStepIndexFromClientX = (clientX) => {
+                    try {
+                        const steps = Array.from(lane.querySelectorAll('.drum-step'));
+                        if (!steps.length) return 0;
+                        const rect = lane.getBoundingClientRect();
+                        const relX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+                        return Math.max(0, Math.min(steps.length - 1, Math.floor((relX / Math.max(1, rect.width)) * steps.length)));
+                    } catch (_) {
+                        return parseInt(step.dataset.step || '0', 10) || 0;
+                    }
+                };
+
+                const activateStep = (targetRow, targetStep) => {
+                    try {
+                        const grid = lane.closest('#drumGrid') || document.getElementById('drumGrid');
+                        if (!grid) return;
+                        const targetLane = grid.querySelector(`.drum-lane[data-row="${targetRow | 0}"]`);
+                        if (!targetLane) return;
+                        const st = targetLane.querySelector(`.drum-step[data-step="${targetStep | 0}"]`);
+                        if (!st || st.classList.contains('disabled')) return;
+                        st.classList.add('active');
+                        if (!st.dataset.vel) st.dataset.vel = '100';
+                        try { if (window.updateStepVelocityClass) window.updateStepVelocityClass(st); } catch (_) { }
+                    } catch (_) { }
+                };
+
+                const autoScrollContainer = (clientX) => {
+                    try {
+                        const container = lane.closest('.drum-grid-container');
+                        if (!container) return;
+                        const r = container.getBoundingClientRect();
+                        const edge = 36;
+                        if (clientX > r.right - edge) container.scrollLeft += 18;
+                        else if (clientX < r.left + edge) container.scrollLeft -= 18;
+                    } catch (_) { }
+                };
+
+                const previewDrumStep = () => {
+                    try {
+                        const row = step.closest('.drum-row');
+                        const rowIdx = lane ? parseInt(lane.dataset.row || '0', 10) : 0;
+                        const volEl = row ? row.querySelector('.drum-volume') : null;
+                        const sendEl = row ? row.querySelector('.drum-send') : null;
+                        const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
+                        const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value || '80', 10) / 100)) : 0.8;
+                        const sendPct = sendEl ? (parseInt(sendEl.value || '0', 10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
+                        const send = Math.max(0, Math.min(1, sendPct / 100));
+                        if (ctx._isDrumPreviewAllowed && ctx._isDrumPreviewAllowed()) {
+                            ctx._triggerDrumSound && ctx._triggerDrumSound(rowIdx | 0, vol, send);
+                            try { window._pulseStepEl && window._pulseStepEl(step); } catch (_) { }
+                        }
+                    } catch (_) { }
+                };
+
+                step.addEventListener('mousedown', (e) => {
+                    if (ctx._projectLocked) return;
+                    if (e.button !== 0) return;
+                    if (step.classList.contains('disabled')) return;
+                    e.preventDefault();
+
+                    const rowIdx = parseInt(lane.dataset.row || '0', 10) || 0;
+                    const startStep = parseInt(step.dataset.step || '0', 10) || 0;
+                    const wasActive = step.classList.contains('active');
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const startVel = parseInt(step.dataset.vel || '100', 10);
+                    const ctrlHeld = !!(e.ctrlKey || e.metaKey);
+                    const smartState = getSmartState();
+                    const ctrlAnchor = ctrlHeld ? smartState.anchor : null;
+                    const ctrlInterval = (ctrlHeld && ctrlAnchor && ctrlAnchor.row === rowIdx && ctrlAnchor.step !== startStep)
+                        ? Math.abs(startStep - ctrlAnchor.step)
+                        : 0;
+
+                    let mode = 'tap';
+                    let lastPaintStep = startStep;
+
+                    const applyVel = (clientY) => {
+                        const deltaY = startY - clientY;
+                        const deltaVel = Math.round(deltaY / 1.5);
+                        const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
+                        step.dataset.vel = String(newVel);
+                        try { window.updateStepVelocityClass(step); } catch (_) { }
+                        try { if (ctx._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
+                    };
+
+                    const applyPaintAtStep = (idx) => {
+                        if (ctrlHeld && ctrlInterval > 0) {
+                            const off = (idx | 0) - startStep;
+                            if (off >= 0 && (off % ctrlInterval) === 0) {
+                                activateStep(rowIdx, idx | 0);
+                            }
+                            return;
+                        }
+                        activateStep(rowIdx, idx | 0);
+                    };
+
+                    const paintRange = (fromIdx, toIdx) => {
+                        const a = Math.min(fromIdx, toIdx);
+                        const b = Math.max(fromIdx, toIdx);
+                        for (let k = a; k <= b; k++) applyPaintAtStep(k);
+                    };
+
+                    const onMove = (ev) => {
+                        const dx = ev.clientX - startX;
+                        const dy = ev.clientY - startY;
+                        const absX = Math.abs(dx);
+                        const absY = Math.abs(dy);
+
+                        if (mode === 'tap') {
+                            if (absY > 7 && absY > absX * 1.2) {
+                                mode = 'velocity';
+                                if (!wasActive) step.classList.add('active');
+                                step.classList.add('vel-dragging');
+                            } else if (absX > 3) {
+                                mode = 'paint';
+                                applyPaintAtStep(startStep);
+                            }
+                        }
+
+                        if (mode === 'velocity') {
+                            applyVel(ev.clientY);
+                        } else if (mode === 'paint') {
+                            autoScrollContainer(ev.clientX);
+                            const idx = getStepIndexFromClientX(ev.clientX);
+                            if (idx !== lastPaintStep) {
+                                paintRange(lastPaintStep, idx);
+                                lastPaintStep = idx;
+                            }
+                            try { if (ctx._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
+                        }
+                    };
+
+                    const onUp = () => {
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                        step.classList.remove('vel-dragging');
+
+                        if (ctrlHeld && ctrlInterval > 0) {
+                            clearAnchors();
+                        }
+
+                        if (mode === 'tap') {
+                            if (ctrlHeld) {
+                                step.classList.add('active');
+                                if (ctrlInterval > 0) {
+                                    clearAnchors();
+                                } else {
+                                    smartState.anchor = { row: rowIdx, step: startStep };
+                                }
+                            } else {
+                                clearAnchors();
+                                const nowActive = !wasActive;
+                                if (nowActive) step.classList.add('active'); else step.classList.remove('active');
+                                if (nowActive && !ctx._isSequencing) previewDrumStep();
+                            }
+                        }
+
+                        try { if (ctx._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
+                        try { if (typeof ctx._saveDrumPattern === 'function') ctx._saveDrumPattern(); } catch (_) { }
+                    };
+
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                });
+
+                step.addEventListener('touchstart', (e) => {
+                    if (ctx._projectLocked) return;
+                    if (step.classList.contains('disabled')) return;
+                    if (step._touchDragActive) return;
+                    step._touchDragActive = true;
+                    try { e.preventDefault(); } catch (_) { }
+
+                    const touch = e.touches && e.touches[0] ? e.touches[0] : null;
+                    if (!touch) { step._touchDragActive = false; return; }
+                    const activeId = touch.identifier;
+
+                    const rowIdx = parseInt(lane.dataset.row || '0', 10) || 0;
+                    const startStep = parseInt(step.dataset.step || '0', 10) || 0;
+                    const wasActive = step.classList.contains('active');
+                    const startX = touch.clientX;
+                    const startY = touch.clientY;
+                    const startVel = parseInt(step.dataset.vel || '100', 10);
+
+                    let mode = 'tap';
+                    let lastPaintStep = startStep;
+
+                    const applyVel = (clientY) => {
+                        const deltaY = startY - clientY;
+                        const deltaVel = Math.round(deltaY / 1.5);
+                        const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
+                        step.dataset.vel = String(newVel);
+                        try { window.updateStepVelocityClass(step); } catch (_) { }
+                    };
+
+                    const paintRange = (fromIdx, toIdx) => {
+                        const a = Math.min(fromIdx, toIdx);
+                        const b = Math.max(fromIdx, toIdx);
+                        for (let k = a; k <= b; k++) activateStep(rowIdx, k);
+                    };
+
+                    const onMove = (ev) => {
+                        try { ev.preventDefault(); } catch (_) { }
+                        const tlist = ev.touches || [];
+                        let t = null;
+                        for (let j = 0; j < tlist.length; j++) {
+                            if (tlist[j].identifier === activeId) { t = tlist[j]; break; }
+                        }
+                        if (!t) return;
+
+                        const dx = t.clientX - startX;
+                        const dy = t.clientY - startY;
+                        const absX = Math.abs(dx);
+                        const absY = Math.abs(dy);
+
+                        if (mode === 'tap') {
+                            if (absY > 10 && absY > absX * 1.2) {
+                                mode = 'velocity';
+                                if (!wasActive) step.classList.add('active');
+                                step.classList.add('vel-dragging');
+                            } else if (absX > 6) {
+                                mode = 'paint';
+                                activateStep(rowIdx, startStep);
+                            }
+                        }
+
+                        if (mode === 'velocity') {
+                            applyVel(t.clientY);
+                        } else if (mode === 'paint') {
+                            const idx = getStepIndexFromClientX(t.clientX);
+                            if (idx !== lastPaintStep) {
+                                paintRange(lastPaintStep, idx);
+                                lastPaintStep = idx;
+                            }
+                        }
+                    };
+
+                    const onEnd = (ev) => {
+                        const changed = ev.changedTouches || [];
+                        let ended = false;
+                        for (let j = 0; j < changed.length; j++) {
+                            if (changed[j].identifier === activeId) { ended = true; break; }
+                        }
+                        if (!ended) return;
+
+                        document.removeEventListener('touchmove', onMove, { passive: false });
+                        document.removeEventListener('touchend', onEnd);
+                        document.removeEventListener('touchcancel', onEnd);
+                        step.classList.remove('vel-dragging');
+
+                        if (mode === 'tap') {
+                            const nowActive = !wasActive;
+                            if (nowActive) step.classList.add('active'); else step.classList.remove('active');
+                            if (nowActive && !ctx._isSequencing) previewDrumStep();
+                        }
+
+                        try { if (typeof ctx._saveDrumPattern === 'function') ctx._saveDrumPattern(); } catch (_) { }
+                        step._touchDragActive = false;
+                    };
+
+                    document.addEventListener('touchmove', onMove, { passive: false });
+                    document.addEventListener('touchend', onEnd);
+                    document.addEventListener('touchcancel', onEnd);
+                }, { passive: false });
             };
 
             const stopPatternTransport = (pt, resetPhase = true) => {
@@ -11871,6 +12226,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     ruler.appendChild(rowDiv);
                                 });
                                 try { updateLoopMarkers(); wireLoopMarkers(); } catch (_) { }
+                                try { updateTimeMarker(); } catch (_) { }
                             } catch (_) { }
                         });
                     };
@@ -11906,6 +12262,62 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             ruler.appendChild(ruler._loopEndMarker);
                         }
                         return { start: ruler._loopStartMarker, end: ruler._loopEndMarker };
+                    };
+
+                    const ensureTimeMarker = () => {
+                        if (!ruler._timeMarker) {
+                            const m = document.createElement('div');
+                            m.className = 'chord-ruler-time-marker';
+                            ruler._timeMarker = m;
+                        }
+                        if (ruler._timeMarker && !ruler.contains(ruler._timeMarker)) {
+                            ruler.appendChild(ruler._timeMarker);
+                        }
+                        return ruler._timeMarker;
+                    };
+
+                    const updateTimeMarker = () => {
+                        const marker = ensureTimeMarker();
+                        if (!marker) return;
+                        try {
+                            const omni = window.autoharp;
+                            const tr = omni && omni._arpTransport;
+                            const isPlaying = !!(omni && omni._isSequencing && tr && tr.running);
+                            if (!isPlaying) {
+                                marker.style.display = 'none';
+                                return;
+                            }
+
+                            const activeCol = omni._nowPlayingColumnEl || (omni._arp && omni._arp.column) || omni.currentActiveColumnEl;
+                            if (!activeCol || !activeCol.getBoundingClientRect) {
+                                marker.style.display = 'none';
+                                return;
+                            }
+
+                            const rRect = ruler.getBoundingClientRect();
+                            const cRect = activeCol.getBoundingClientRect();
+                            if (!rRect.width || !cRect.width) {
+                                marker.style.display = 'none';
+                                return;
+                            }
+
+                            const holdTicksFromSeq = Number.isFinite(tr._seqLastHoldTicks) ? (tr._seqLastHoldTicks | 0) : 0;
+                            const holdTicksFromCol = Math.max(1, parseInt(activeCol.dataset?.len16 || '16', 10) || 16);
+                            const holdTicks = Math.max(1, holdTicksFromSeq || holdTicksFromCol);
+                            const nowAbs = tr.absTickCounter | 0;
+                            const startAbs = Number.isFinite(tr._seqLastSwitchAbsTick) ? (tr._seqLastSwitchAbsTick | 0) : nowAbs;
+                            let progress = (nowAbs - startAbs) / holdTicks;
+                            progress = Math.max(0, Math.min(0.999, Number.isFinite(progress) ? progress : 0));
+
+                            const markerW = marker.getBoundingClientRect().width || 10;
+                            const leftRaw = (cRect.left - rRect.left) + (cRect.width * progress) - (markerW * 0.5);
+                            const maxLeft = Math.max(0, rRect.width - markerW);
+                            const clamped = Math.max(0, Math.min(maxLeft, leftRaw));
+                            marker.style.left = `${clamped}px`;
+                            marker.style.display = 'block';
+                        } catch (_) {
+                            marker.style.display = 'none';
+                        }
                     };
 
                     const getVisualChordColumns = () => {
@@ -12134,6 +12546,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const range = resolveLoopRange(cols);
                             return range ? { start: range.start, end: range.end } : null;
                         } catch (_) { return null; }
+                    };
+
+                    window.updateChordRulerTimeIndicator = function () {
+                        try {
+                            if (ruler._xenTimeMarkerRAF) return;
+                            ruler._xenTimeMarkerRAF = requestAnimationFrame(() => {
+                                ruler._xenTimeMarkerRAF = null;
+                                updateTimeMarker();
+                            });
+                        } catch (_) { }
                     };
 
                     const getLen16 = (col) => {
@@ -13879,6 +14301,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 pt._masterLastAbsStep = absStep;
                                 // scheduleStep signature: (absTick, barTick, ticksPerBar)
                                 scheduleStep(absTick, curTick, tpBar);
+                                try { window._updatePatternPlaybackVisual && window._updatePatternPlaybackVisual(g, absTick, tpBar); } catch (_) { }
                             } catch (_) { }
                         };
 
@@ -13924,6 +14347,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (tpBar <= 0 || steps <= 0) return;
                         // Map current tick into [0..steps-1]
                         const curTick = this._arpTransport.tickCounter | 0;
+                        try { window.updateChordRulerTimeIndicator && window.updateChordRulerTimeIndicator(); } catch (_) { }
 
                         // ---- Multi-instance drums (NEW DRUM): if instances exist, drive them all here ----
                         try {
@@ -14042,6 +14466,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 };
 
                                 // Drive each drum instance.
+                                let activeInstFrac = null;
+                                let activeInstState = null;
                                 for (let k = 0; k < instances.length; k++) {
                                     const inst = instances[k];
                                     if (!inst) continue;
@@ -14053,6 +14479,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const instCycleTicks = Math.max(1, Math.round(tpBar * (instLen16 / barLen16)));
                                     const instCycleTick = (absTick % instCycleTicks + instCycleTicks) % instCycleTicks;
                                     const instFrac = instCycleTick / instCycleTicks;
+                                    if (inst && inst.id && window._activeDrumInstanceId === inst.id) {
+                                        activeInstFrac = instFrac;
+                                        activeInstState = inst.state || null;
+                                    }
 
                                     if (!Array.isArray(inst._lastLaneSteps) || inst._lastLaneSteps.length !== 9) {
                                         inst._lastLaneSteps = new Array(9).fill(-1);
@@ -14141,7 +14571,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         try {
                                             if (inst && inst.id && window._activeDrumInstanceId === inst.id) {
                                                 const laneEl = document.querySelector(`#drumGrid .drum-lane[data-row="${rowIdx}"]`);
-                                                const stepEl = laneEl ? laneEl.querySelector(`.drum-step[data-step="${laneStepIdx}"]`) : null;
+                                                let stepEl = laneEl ? laneEl.querySelector(`.drum-step[data-step="${laneStepIdx}"]`) : null;
+                                                if (!stepEl && laneEl) {
+                                                    const stepEls = laneEl.querySelectorAll('.drum-step');
+                                                    if (stepEls && stepEls.length) {
+                                                        const idx = Math.max(0, Math.min(stepEls.length - 1, laneStepIdx % stepEls.length));
+                                                        stepEl = stepEls[idx] || null;
+                                                    }
+                                                }
                                                 if (stepEl) window._pulseStepEl && window._pulseStepEl(stepEl);
                                             }
                                         } catch (_) { }
@@ -14153,13 +14590,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const active = instances.find(x => x && x.id === window._activeDrumInstanceId);
                                     const grid = document.getElementById('drumGrid');
                                     if (active && grid) {
+                                        const activeLen = clampLen(active.len || 16);
+                                        const activeCycleTicks = Math.max(1, Math.round(tpBar * (activeLen / barLen16)));
+                                        const activeCycleTick = (absTick % activeCycleTicks + activeCycleTicks) % activeCycleTicks;
+                                        const fracForVisual = (activeInstFrac != null) ? activeInstFrac : (activeCycleTick / activeCycleTicks);
                                         const lanesEl = grid.querySelectorAll('.drum-lane');
                                         lanesEl.forEach((laneEl, idx) => {
-                                            const ph = laneEl.querySelector('.drum-playhead');
-                                            if (!ph) return;
-                                            const q = parseLaneQuant(laneEl.dataset.quant, clampLen(active.len || 16));
+                                            let ph = laneEl.querySelector('.drum-playhead');
+                                            if (!ph) {
+                                                ph = document.createElement('div');
+                                                ph.className = 'drum-playhead';
+                                                ph.style.left = '0%';
+                                                laneEl.appendChild(ph);
+                                            }
+                                            const laneState = (activeInstState && Array.isArray(activeInstState.lanes)) ? activeInstState.lanes[idx] : null;
+                                            const q = parseLaneQuant(laneState ? laneState.quant : laneEl.dataset.quant, activeLen);
                                             const D = Math.max(1, Math.min(maxLen, q.D | 0));
-                                            const laneStepIdx = Math.max(0, Math.min(D - 1, Math.floor(instFrac * D + 1e-9)));
+                                            const laneStepIdx = Math.max(0, Math.min(D - 1, Math.floor(fracForVisual * D + 1e-9)));
                                             ph.style.left = ((laneStepIdx / D) * 100) + '%';
                                         });
                                     }
@@ -14290,7 +14737,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         lane._lastD = D;
                                     }
                                 } catch (_) { }
-                                const ph = lane.querySelector('.drum-playhead');
+                                let ph = lane.querySelector('.drum-playhead');
+                                if (!ph) {
+                                    try {
+                                        const row = lane.closest('.drum-row');
+                                        const isBassRow = !!(row && row.classList && row.classList.contains('bass-row'));
+                                        if (!isBassRow) {
+                                            ph = document.createElement('div');
+                                            ph.className = 'drum-playhead';
+                                            ph.style.left = '0%';
+                                            lane.appendChild(ph);
+                                        }
+                                    } catch (_) { }
+                                }
                                 if (ph) ph.style.left = ((localStep / D) * 100) + '%';
                             });
                         }
@@ -14328,7 +14787,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             lane._lastStep = laneStepIdx;
                             if (!__DRUMS_ACTIVE__) return;
                             if (!allow) return;
-                            const stepEl = lane.querySelector(`.drum-step[data-step="${laneStepIdx}"]`);
+                            let stepEl = lane.querySelector(`.drum-step[data-step="${laneStepIdx}"]`);
+                            if (!stepEl) {
+                                const stepEls = lane.querySelectorAll('.drum-step');
+                                if (stepEls && stepEls.length) {
+                                    const idx = Math.max(0, Math.min(stepEls.length - 1, laneStepIdx % stepEls.length));
+                                    stepEl = stepEls[idx] || null;
+                                }
+                            }
                             const rowEl = lane.closest('.drum-row');
                             const volEl = rowEl ? rowEl.querySelector('.drum-volume') : null;
                             const sendEl = rowEl ? rowEl.querySelector('.drum-send') : null;
@@ -14665,13 +15131,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             sourceNode = noise; voice.sources.push(noise); sourceNode.start(); noise.stop(endAt(0.05));
                         } else if (rowIdx === 3) {
                             // OPEN HAT: longer noise
+                            const openHatDec = Math.max(dec, 1.0);
                             const noise = makeNoise();
                             const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 6000; hp.Q.value = 0.7;
                             noise.connect(hp); hp.connect(env);
                             env.gain.setValueAtTime(0, now);
                             env.gain.linearRampToValueAtTime(1, now + att);
-                            env.gain.exponentialRampToValueAtTime(0.0008, now + att + dec);
-                            sourceNode = noise; voice.sources.push(noise); sourceNode.start(); noise.stop(endAt(0.1));
+                            env.gain.exponentialRampToValueAtTime(0.0008, now + att + openHatDec);
+                            sourceNode = noise; voice.sources.push(noise); sourceNode.start(); noise.stop(now + att + openHatDec + 0.1);
                         } else if (rowIdx === 4 || rowIdx === 5) {
                             // TOM 1/2: pitch depends slightly on row
                             const base = (rowIdx === 4 ? 220 : 160) * ratio;
@@ -14820,6 +15287,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this._editArmTimer = setTimeout(() => { this.editArmed = true; }, 500);
                 }
 
+                _queueSequencerRebuild(why = 'chord-edit') {
+                    try {
+                        if (typeof window.requestSequencerRebuild === 'function') {
+                            window.requestSequencerRebuild(why);
+                            return;
+                        }
+                    } catch (_) { }
+                    try {
+                        const t = this._arpTransport;
+                        const running = !!(t && (t.running || t.isRunning || this._isSequencing));
+                        if (running && t) {
+                            t._seqRebuildRequested = true;
+                            if (why) t._seqRebuildWhy = why;
+                        }
+                    } catch (_) { }
+                }
+
                 // After any change, debounce save by 500ms; saving here just refreshes header/strings
                 _scheduleEditSave(column) {
                     clearTimeout(this._editSaveTimer);
@@ -14827,6 +15311,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try {
                             if (column) this.highlightKeyboardForColumn(column);
                         } catch { }
+                        try { this._queueSequencerRebuild('chord-finalized'); } catch (_) { }
                     }, 500);
                 }
 
@@ -14985,7 +15470,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     // New chord creation button → WYSIWYG: spawn a blank editable column immediately
                     document.getElementById('createNewChordBtn').addEventListener('click', () => {
-                        try { this.createBlankChordColumn(); } catch (e) { console.error('Create blank chord failed:', e); }
+                        try { this.createBlankChordColumn({ focusName: true }); } catch (e) { console.error('Create blank chord failed:', e); }
                     });
                     // Insert [ and ] markers quickly
                     const leftBtn = document.getElementById('insertLeftBracketBtn');
@@ -15289,12 +15774,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 try { lane.style.setProperty('--steps-per-bar', String(lane._quant.D)); } catch (_) { }
                             };
                             const applyLaneQuants = (arr, opts = {}) => {
+                                const barDefault = (() => {
+                                    try {
+                                        const tsi = window._getTsInfo ? window._getTsInfo() : null;
+                                        const v = tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 0;
+                                        if (v > 0) return v;
+                                    } catch (_) { }
+                                    return 16;
+                                })();
                                 const lanes = Array.from(document.querySelectorAll('.drum-row:not(.bass-row) .drum-lane'));
                                 lanes.forEach((lane, i) => {
                                     const q = Array.isArray(arr) ? arr[i] : null;
                                     if (q) lane.dataset.quant = String(q);
-                                    else if (!lane.dataset.quant) lane.dataset.quant = String(lane.querySelectorAll('.drum-step').length || 16);
-                                    const stepsPerBar = lane.querySelectorAll('.drum-step').length || 16;
+                                    else if (!lane.dataset.quant) lane.dataset.quant = String(barDefault);
+                                    const stepsPerBar = barDefault;
                                     updateLaneQuantCache(lane, stepsPerBar);
                                     try {
                                         const qInput = lane.closest('.drum-row')?.querySelector('.drum-quant input');
@@ -16231,147 +16724,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
                                     });
                                 } else {
-                                    // Drum step: mousedown for toggle + velocity drag
-                                    s.addEventListener('mousedown', (e) => {
-                                        if (this._projectLocked) return;
-                                        if (e.button !== 0) return;
-                                        e.preventDefault();
-
-                                        const wasActive = s.classList.contains('active');
-                                        const startY = e.clientY;
-                                        const startVel = parseInt(s.dataset.vel || '100', 10);
-                                        let isDragging = false;
-                                        let isVelMode = false;
-
-                                        const applyVel = (clientY) => {
-                                            const deltaY = startY - clientY; // Drag up = louder
-                                            const deltaVel = Math.round(deltaY / 1.5);
-                                            const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
-                                            s.dataset.vel = String(newVel);
-                                            try { window.updateStepVelocityClass(s); } catch (_) { }
-                                            try { if (this._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
-                                        };
-
-                                        const onMove = (ev) => {
-                                            const dy = Math.abs(ev.clientY - startY);
-                                            if (dy > 5 && !isVelMode) {
-                                                isDragging = true;
-                                                isVelMode = true;
-                                                // Activate if not already
-                                                if (!wasActive) {
-                                                    s.classList.add('active');
-                                                }
-                                                s.classList.add('vel-dragging');
-                                            }
-                                            if (isVelMode) {
-                                                applyVel(ev.clientY);
-                                            }
-                                        };
-
-                                        const previewDrumStep = () => {
-                                            try {
-                                                const row = s.closest('.drum-row');
-                                                const lane = s.closest('.drum-lane');
-                                                const rowIdx = lane ? parseInt(lane.dataset.row || '0', 10) : 0;
-                                                const volEl = row ? row.querySelector('.drum-volume') : null;
-                                                const sendEl = row ? row.querySelector('.drum-send') : null;
-                                                const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
-                                                const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value || '80', 10) / 100)) : 0.8;
-                                                const sendPct = sendEl ? (parseInt(sendEl.value || '0', 10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
-                                                const send = Math.max(0, Math.min(1, sendPct / 100));
-                                                if (this._isDrumPreviewAllowed()) {
-                                                    this._triggerDrumSound(rowIdx | 0, vol, send);
-                                                    try { window._pulseStepEl && window._pulseStepEl(s); } catch (_) { }
-                                                }
-                                            } catch (_) { }
-                                        };
-
-                                        const onUp = () => {
-                                            document.removeEventListener('mousemove', onMove);
-                                            document.removeEventListener('mouseup', onUp);
-                                            s.classList.remove('vel-dragging');
-
-                                            // If not dragging (velocity mode), do normal toggle
-                                            if (!isDragging) {
-                                                const nowActive = !wasActive;
-                                                if (nowActive) s.classList.add('active'); else s.classList.remove('active');
-                                                // Click-audition: if turning on, preview the hit
-                                                if (nowActive && !this._isSequencing) previewDrumStep();
-                                            }
-                                            try { if (this._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
-                                            // Autosave drum grid after toggle
-                                            try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
-                                        };
-
-                                        document.addEventListener('mousemove', onMove);
-                                        document.addEventListener('mouseup', onUp);
-                                    });
-
-                                    // Touch: tap toggle + vertical drag velocity
-                                    s.addEventListener('touchstart', (e) => {
-                                        if (this._projectLocked) return;
-                                        if (s._touchDragActive) return; // prevent duplicate via synthetic mouse
-                                        s._touchDragActive = true;
-                                        try { e.preventDefault(); } catch (_) { }
-                                        const touch = e.touches && e.touches[0] ? e.touches[0] : null;
-                                        if (!touch) { s._touchDragActive = false; return; }
-                                        const activeId = touch.identifier;
-
-                                        const wasActive = s.classList.contains('active');
-                                        const startY = touch.clientY;
-                                        const startVel = parseInt(s.dataset.vel || '100', 10);
-                                        let isDragging = false;
-                                        let isVelMode = false;
-
-                                        const applyVel = (clientY) => {
-                                            const deltaY = startY - clientY; // Drag up = louder
-                                            const deltaVel = Math.round(deltaY / 1.5);
-                                            const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
-                                            s.dataset.vel = String(newVel);
-                                            try { window.updateStepVelocityClass(s); } catch (_) { }
-                                            try { if (this._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
-                                        };
-
-                                        const onMove = (ev) => {
-                                            try { ev.preventDefault(); } catch (_) { }
-                                            const tlist = ev.touches || [];
-                                            let t = null; for (let j = 0; j < tlist.length; j++) { if (tlist[j].identifier === activeId) { t = tlist[j]; break; } }
-                                            if (!t) return;
-                                            const dy = Math.abs(t.clientY - startY);
-                                            if (!isVelMode && dy > 10) {
-                                                isDragging = true;
-                                                isVelMode = true;
-                                                if (!wasActive) s.classList.add('active');
-                                                s.classList.add('vel-dragging');
-                                            }
-                                            if (isVelMode) applyVel(t.clientY);
-                                        };
-
-                                        const onEnd = (ev) => {
-                                            const changed = ev.changedTouches || [];
-                                            let ended = false; for (let j = 0; j < changed.length; j++) { if (changed[j].identifier === activeId) { ended = true; break; } }
-                                            if (!ended) return;
-                                            document.removeEventListener('touchmove', onMove, { passive: false });
-                                            document.removeEventListener('touchend', onEnd);
-                                            document.removeEventListener('touchcancel', onEnd);
-                                            s.classList.remove('vel-dragging');
-
-                                            if (!isDragging) {
-                                                const nowActive = !wasActive;
-                                                if (nowActive) s.classList.add('active'); else s.classList.remove('active');
-                                                // Tap-audition: if turning on, preview the hit
-                                                if (nowActive && !this._isSequencing) previewDrumStep();
-                                            }
-
-                                            try { if (this._isSequencing) { const g = document.getElementById('drumGrid'); if (g) g._pendingAudioEdits = true; } } catch (_) { }
-                                            try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
-                                            s._touchDragActive = false;
-                                        };
-
-                                        document.addEventListener('touchmove', onMove, { passive: false });
-                                        document.addEventListener('touchend', onEnd);
-                                        document.addEventListener('touchcancel', onEnd);
-                                    }, { passive: false });
+                                    try { window.bindDrumStepPointerInteraction && window.bindDrumStepPointerInteraction(s, lane, this); } catch (_) { }
                                 }
                                 // Default velocity and attach velocity drag (for drums AND bass in drum grid)
                                 s.dataset.vel = '100';
@@ -16525,12 +16878,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const qInput = document.createElement('input');
                             qInput.type = 'text'; qInput.placeholder = 'N/D'; qInput.style.cssText = 'width:60px;';
                             qInput.addEventListener('focus', (e) => e.target && e.target.select && e.target.select());
-                            // default quant = cycle length (in 16ths)
-                            try { lane.dataset.quant = String(currentLen16); } catch (_) { }
+                            // default quant = bar length (independent from cycle length)
+                            try { lane.dataset.quant = String(stepsPerBar); } catch (_) { }
                             qInput.value = lane.dataset.quant;
                             qInput.addEventListener('change', () => {
                                 const oldD = Array.from(lane.querySelectorAll('.drum-step')).length || currentLen16;
-                                const q = parseRowQuant(qInput.value, currentLen16);
+                                const q = parseRowQuant(qInput.value, stepsPerBar);
                                 const newStr = q.str;
                                 // If PLAY is running, defer quant changes to the next bar to avoid glitches
                                 let isPlaying = false;
@@ -16592,7 +16945,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             pPitch.addEventListener('input', () => { try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { } try { if (window.autoharp && autoharp._arpTransport && autoharp._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch (_) { } });
                             const pAtk = document.createElement('input'); pAtk.type = 'range'; pAtk.min = '0'; pAtk.max = '100'; pAtk.value = '2'; pAtk.className = 'mini'; pAtk.title = `${name} Attack`; params.appendChild(pAtk);
                             pAtk.addEventListener('input', () => { try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { } try { if (window.autoharp && autoharp._arpTransport && autoharp._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch (_) { } });
-                            const pDec = document.createElement('input'); pDec.type = 'range'; pDec.min = '5'; pDec.max = '1000'; pDec.value = '180'; pDec.className = 'mini'; pDec.title = `${name} Decay`; params.appendChild(pDec);
+                            const pDec = document.createElement('input'); pDec.type = 'range'; pDec.min = '5'; pDec.max = '1000'; pDec.value = (name === 'OP HAT' ? '1000' : '180'); pDec.className = 'mini'; pDec.title = `${name} Decay`; params.appendChild(pDec);
                             pDec.addEventListener('input', () => { try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { } try { if (window.autoharp && autoharp._arpTransport && autoharp._arpTransport.isRunning) { const scheduleDeferred = window.scheduleDeferred; if (scheduleDeferred) scheduleDeferred({ drums: true }); } } catch (_) { } });
 
                             drawer.appendChild(params);
@@ -16602,7 +16955,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Store handles for playback
                             lane._controls = { vol, sendEl, midiInput, pPitch, pAtk, pDec, name };
                             // Initialize lane quant cache
-                            lane._quant = getLaneQuant(lane, currentLen16);
+                            lane._quant = getLaneQuant(lane, stepsPerBar);
 
                             grid.appendChild(row);
 
@@ -19482,13 +19835,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                     // Regenerate grid and focus the new column
                     this.generateExtensionColumns();
-
-                    // If we're currently sequencing (PLAY active), defer sequence/plan rebuild until the next cycle.
-                    try {
-                        if (this._isSequencing && this._arpTransport) {
-                            this._arpTransport._seqRebuildRequested = true;
-                        }
-                    } catch (_) { }
+                    try { this._queueSequencerRebuild('chord-added'); } catch (_) { }
 
                     // Find the column by data-chord-id
                     const column = document.querySelector(`.extension-column[data-chord-id='${id}']`);
@@ -19509,20 +19856,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // Immediately focus the chord name for typing a symbol (e.g., Dm, Em7)
                         if (focusName) {
                             try {
-                                const nameEl = column.querySelector('.extension-header .chord-name');
-                                if (nameEl) {
+                                const focusNow = () => {
+                                    const ok = focusChordNameInput(column);
+                                    if (!ok) return;
+                                    const nameEl = column.querySelector('.extension-header .chord-name');
+                                    if (!nameEl) return;
                                     nameEl.setAttribute('contenteditable', 'true');
                                     nameEl.setAttribute('spellcheck', 'false');
-                                    nameEl.focus();
-                                    // Select all text for quick overwrite
-                                    const sel = window.getSelection && window.getSelection();
-                                    if (sel && document.createRange) {
-                                        const range = document.createRange();
-                                        range.selectNodeContents(nameEl);
-                                        sel.removeAllRanges();
-                                        sel.addRange(range);
-                                    }
-                                }
+                                };
+                                focusNow();
+                                setTimeout(focusNow, 0);
+                                setTimeout(focusNow, 40);
                             } catch (_) { }
                         }
                     }
@@ -19573,6 +19917,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                         try { this.saveChordConfiguration?.(); } catch (_) { }
                         try { this.updateChordDisplay?.(); } catch (_) { }
+                        try { this._queueSequencerRebuild('chord-finalized'); } catch (_) { }
                         try { this._queueXenUndoSnapshot?.('root-drop'); } catch (_) { }
                     } catch (_) { }
                 }
@@ -20897,6 +21242,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Save and regenerate without creating variants
                     this.saveChordConfiguration();
                     this.regenerateColumnsWithoutVariants();
+                    try { this._queueSequencerRebuild('chord-finalized'); } catch (_) { }
 
                     // Clear selection and exit chord creation mode
                     this.selectedIntervals = [];
@@ -21629,11 +21975,25 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (this._nowPlayingColumnEl && this._nowPlayingColumnEl.classList) {
                             this._nowPlayingColumnEl.classList.add('now-playing');
                         }
+                        try { this._updateLoopFocusVisualState && this._updateLoopFocusVisualState(); } catch (_) { }
+                        try { window.updateChordRulerTimeIndicator && window.updateChordRulerTimeIndicator(); } catch (_) { }
+                    } catch (_) { }
+                }
+
+                _updateLoopFocusVisualState() {
+                    try {
+                        const root = document.getElementById('extensionColumns');
+                        if (!root || !root.classList) return;
+                        const loopEnabled = getLoopEnabledState();
+                        const active = !!(this._isSequencing && this._arpTransport && this._arpTransport.running && loopEnabled);
+                        root.classList.toggle('loop-focus-active', active);
                     } catch (_) { }
                 }
 
                 _clearNowPlaying() {
                     try { this._setNowPlayingColumn(null); } catch (_) { }
+                    try { this._updateLoopFocusVisualState && this._updateLoopFocusVisualState(); } catch (_) { }
+                    try { window.updateChordRulerTimeIndicator && window.updateChordRulerTimeIndicator(); } catch (_) { }
                 }
 
                 generateStringsForColumnWithLockedSettings(column, intervals, lockedData) {
@@ -21984,12 +22344,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (!seqSelect) return;
                         const id = seqSelect.value || '';
                         if (!id) return;
-                        const key = 'omni_seq_presets_v5';
                         try {
-                            const list = this.getSequencePresets();
-                            const next = list.filter(x => x.id !== id);
-                            localStorage.setItem(key, JSON.stringify(next));
-                            this.populateSeqPresetDropdown(seqSelect, next);
+                            const result = this.deleteSequencePresetById(id, {
+                                requireUser: false,
+                                confirmMessage: 'Delete selected preset?'
+                            });
+                            if (result && result.ok) this.populateSeqPresetDropdown(seqSelect, result.list || this.getSequencePresets());
                         } catch (_) { }
                     });
                 }
@@ -22866,6 +23226,19 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
 
                 // Presets management in localStorage
+                _defaultSequencePresetKeys() {
+                    const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+                    const defs = this.getDefaultSequencePresets();
+                    const keys = new Set();
+                    (Array.isArray(defs) ? defs : []).forEach(s => {
+                        const nm = String(s || '');
+                        const nameMatch = nm.match(/\(([^)]+)\)\s*$/);
+                        const name = nameMatch ? nameMatch[1] : 'Preset';
+                        const text = nm.replace(/\s*\([^)]*\)\s*$/, '');
+                        keys.add(`${norm(name)}::${norm(text)}`);
+                    });
+                    return keys;
+                }
                 getSequencePresets() {
                     const keyNew = 'omni_seq_presets_v5';
                     // Load new only (ignore legacy lists)
@@ -22874,12 +23247,25 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (!Array.isArray(listObj) || !listObj.length) {
                         // Seed with defaults
                         const defs = this.getDefaultSequencePresets();
-                        listObj = defs.map(s => { const nameMatch = String(s).match(/\(([^)]+)\)\s*$/); const name = nameMatch ? nameMatch[1] : 'Preset'; const text = String(s).replace(/\s*\([^)]*\)\s*$/, ''); return { id: `S${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, name, text, edo: this.currentTuning || 24, fx: null }; });
+                        listObj = defs.map(s => {
+                            const nameMatch = String(s).match(/\(([^)]+)\)\s*$/);
+                            const name = nameMatch ? nameMatch[1] : 'Preset';
+                            const text = String(s).replace(/\s*\([^)]*\)\s*$/, '');
+                            return {
+                                id: `DEF_${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}_${text.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 20)}`,
+                                name,
+                                text,
+                                edo: this.currentTuning || 24,
+                                fx: null,
+                                _isDefault: true
+                            };
+                        });
                         try { localStorage.setItem(keyNew, JSON.stringify(listObj)); } catch (_) { }
                     }
                     // Always merge in any new defaults added by the app author without removing user presets
                     try {
                         const existing = Array.isArray(listObj) ? listObj.slice() : [];
+                        const defaultKeys = this._defaultSequencePresetKeys();
                         const defs = this.getDefaultSequencePresets();
                         const toEntry = (s) => {
                             const nm = String(s || '');
@@ -22897,13 +23283,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const nameKey = norm(d.name);
                             const textKey = norm(d.text);
                             if (!haveName.has(nameKey) && !haveText.has(textKey)) {
-                                merged.push({ id: d.id, name: d.name, text: d.text, edo: d.edo, fx: d.fx || null });
+                                merged.push({ id: d.id, name: d.name, text: d.text, edo: d.edo, fx: d.fx || null, _isDefault: true });
                                 haveName.add(nameKey); haveText.add(textKey);
                             }
                         }
+                        const normalized = merged.map(p => ({
+                            ...p,
+                            _isDefault: !!(p && (
+                                p._isDefault ||
+                                /^DEF_/i.test(String(p.id || '')) ||
+                                defaultKeys.has(`${norm(p.name)}::${norm(p.text)}`)
+                            ))
+                        }));
                         // Persist back so future loads don't lose merged defaults
-                        try { localStorage.setItem(keyNew, JSON.stringify(merged.slice(0, 200))); } catch (_) { }
-                        return merged;
+                        try { localStorage.setItem(keyNew, JSON.stringify(normalized.slice(0, 200))); } catch (_) { }
+                        return normalized;
                     } catch (_) {
                         return listObj;
                     }
@@ -22920,6 +23314,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         text: item.text,
                         edo: Math.max(5, Math.min(53, parseInt(item.edo || this.currentTuning || 24))),
                         fx: item.fx || null,
+                        _isDefault: false,
                         // Prefer explicit sequenceOrder; accept chordNames for backward compatibility
                         sequenceOrder: (item.sequenceOrder && Array.isArray(item.sequenceOrder) && item.sequenceOrder.length)
                             ? item.sequenceOrder
@@ -22927,6 +23322,98 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     };
                     list.unshift(entry);
                     try { localStorage.setItem(key, JSON.stringify(list.slice(0, 100))); } catch (_) { }
+                }
+                isBuiltInSequencePreset(preset) {
+                    if (!preset) return false;
+                    if (preset._isDefault || /^DEF_/i.test(String(preset.id || ''))) return true;
+                    try {
+                        const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+                        const key = `${norm(preset.name)}::${norm(preset.text)}`;
+                        return this._defaultSequencePresetKeys().has(key);
+                    } catch (_) {
+                        return false;
+                    }
+                }
+                deleteSequencePresetById(id, opts = {}) {
+                    const targetId = String(id || '');
+                    if (!targetId) return { ok: false, reason: 'empty-id' };
+                    const list = this.getSequencePresets();
+                    const found = list.find(p => String(p.id || '') === targetId);
+                    if (!found) return { ok: false, reason: 'not-found', list };
+                    const requireUser = !!opts.requireUser;
+                    const builtIn = this.isBuiltInSequencePreset(found);
+                    if (requireUser && builtIn) {
+                        try { alert('Built-in presets cannot be deleted.'); } catch (_) { }
+                        return { ok: false, reason: 'built-in', list };
+                    }
+                    const ask = (opts.confirmMessage == null) ? 'Delete selected preset?' : String(opts.confirmMessage);
+                    if (ask && !confirm(ask)) return { ok: false, reason: 'cancelled', list };
+                    const key = 'omni_seq_presets_v5';
+                    const next = list.filter(p => String(p.id || '') !== targetId);
+                    try { localStorage.setItem(key, JSON.stringify(next.slice(0, 200))); } catch (_) { }
+                    return { ok: true, list: next, removed: found };
+                }
+                _buildSequenceOrderFromChordExtensions(chordExtensions) {
+                    const out = [];
+                    if (!Array.isArray(chordExtensions)) return out;
+                    for (const chord of chordExtensions) {
+                        if (!chord || typeof chord !== 'object') continue;
+                        const name = String(chord.name || '').trim();
+                        if (!name) continue;
+                        if (chord.isSeparator || name === '|') continue;
+                        out.push(name);
+                        if (chord.isRepeatMarker) continue;
+                        const len16 = parseInt(chord.len16, 10);
+                        if (Number.isFinite(len16) && len16 > 0 && len16 !== 16) {
+                            out.push(`__LEN16_${Math.max(1, Math.min(1024, len16 | 0))}__`);
+                        }
+                    }
+                    return out;
+                }
+                captureCurrentSequencePresetData() {
+                    try { if (typeof window._storeCurrentSectionState === 'function') window._storeCurrentSectionState(); } catch (_) { }
+                    const sections = Array.isArray(window._sections) ? window._sections : [];
+                    const parts = [];
+                    if (sections.length) {
+                        sections.forEach(sec => {
+                            const list = this._buildSequenceOrderFromChordExtensions(sec?.state?.chordExtensions || []);
+                            if (list.length) parts.push(list);
+                        });
+                    }
+                    if (!parts.length) {
+                        const fallback = this._buildSequenceOrderFromChordExtensions(this.chordExtensions || []);
+                        if (fallback.length) parts.push(fallback);
+                    }
+                    const sequenceOrder = [];
+                    parts.forEach((part, idx) => {
+                        if (!Array.isArray(part) || !part.length) return;
+                        if (idx > 0) sequenceOrder.push('__SECTION__');
+                        sequenceOrder.push(...part);
+                    });
+                    if (!sequenceOrder.length) return null;
+                    const text = sequenceOrder
+                        .filter(tok => typeof tok === 'string')
+                        .map(tok => tok === '__SECTION__' ? '|' : tok)
+                        .join(' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    return {
+                        text,
+                        edo: this.currentTuning || 24,
+                        fx: null,
+                        sequenceOrder
+                    };
+                }
+                saveSequencePresetFromHold() {
+                    const payload = this.captureCurrentSequencePresetData();
+                    if (!payload || !Array.isArray(payload.sequenceOrder) || !payload.sequenceOrder.length) {
+                        try { alert('No chord sequence found to save.'); } catch (_) { }
+                        return false;
+                    }
+                    const name = prompt('User preset name?', 'My Preset');
+                    if (!name) return false;
+                    this.saveSequencePreset({ ...payload, name: String(name).trim() || 'My Preset' });
+                    return true;
                 }
                 populateSeqPresetDropdown(selectEl, list) {
                     if (!selectEl) return;
@@ -23044,11 +23531,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 getDefaultSequencePresets() {
                     // Defaults provided by user (old preset list removed)
                     return [
-                        'SECTION A: C A^m E^m Dm6 SECTION B: A^m x2 Ebm x2 Bbm x2 B^ x2 E^m x2 Abm6 x2 Ebm x2 Fsus4 x2 F x2 (Sunshine)',
+                        'SECTION A: C A^m E^m Fm6 SECTION B: A^m x2 Ebm x2 Bbm x2 B^ x2 E^m x2 Abm6 x2 Ebm x2 Fsus4 x2 F x2 (Sunshine)',
                         'SECTION A: A^m x2 D x2 G^m x2 E x2 SECTION B: Am E G#vm D#v Fm C#vm Evm Bv (Headcase)',
                         'C G Am F (Axis of Awesome)',
                         'C Am F G (Magic Changes)',
-                        'C G Am Em F C F G (Water Music)',
+                        'C G Am Em F C F G (Canon in C)',
                         'C Dm Em F G Am Bdim (Basic major)',
                         'Cmaj7 Dm7 Em7 Fmaj7 G7 Am7 Bdim7 (Extended major)',
                         'Am Bdim C Dm E F G♯dim (Basic minor)',
@@ -23338,6 +23825,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const m = chordStr.match(/^__LENBARS_(\d+)__$/);
                             const bars = Math.max(1, parseInt(m[1], 10) || 1);
                             const len16 = Math.max(1, Math.min(1024, (bars * 16) | 0));
+                            const last = created.length ? created[created.length - 1] : null;
+                            if (last && last.chord) {
+                                try { last.chord.len16 = len16; } catch (_) { }
+                                try {
+                                    const pos = last.position;
+                                    if (Number.isFinite(pos) && this.chordExtensions && this.chordExtensions[pos]) {
+                                        this.chordExtensions[pos].len16 = len16;
+                                    }
+                                } catch (_) { }
+                                try {
+                                    if (this._isSequencing && this._arpTransport) this._arpTransport._seqRebuildRequested = true;
+                                } catch (_) { }
+                            }
+                            continue;
+                        }
+                        if (typeof chordStr === 'string' && /^__LEN16_(\d+)__$/.test(chordStr)) {
+                            const m = chordStr.match(/^__LEN16_(\d+)__$/);
+                            const len16 = Math.max(1, Math.min(1024, parseInt(m[1], 10) || 16));
                             const last = created.length ? created[created.length - 1] : null;
                             if (last && last.chord) {
                                 try { last.chord.len16 = len16; } catch (_) { }
@@ -26274,6 +26779,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (legacyLoop && legacyLoop.checked !== loopToggle.checked) {
                                     legacyLoop.checked = loopToggle.checked;
                                 }
+                                try { this._updateLoopFocusVisualState && this._updateLoopFocusVisualState(); } catch (_) { }
                             });
                         }
                     };
@@ -26646,115 +27152,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             } else { s.dataset.npc = '1'; s.classList.add('active'); if (!s.dataset.len) s.dataset.len = '1'; }
                                         });
                                     } else {
-                                        // Restore velocity-drag editing after rebuild (mousedown/touchstart)
-                                        s.addEventListener('mousedown', (e) => {
-                                            if (e.button !== 0) return;
-                                            if (s.classList.contains('disabled')) return;
-                                            e.preventDefault();
-                                            const wasActive = s.classList.contains('active');
-                                            const startY = e.clientY;
-                                            const startVel = parseInt(s.dataset.vel || '100', 10);
-                                            let isDragging = false;
-                                            let isVelMode = false;
-                                            const finalizeToggle = () => {
-                                                const nowActive = !wasActive;
-                                                if (nowActive) s.classList.add('active'); else s.classList.remove('active');
-                                                try {
-                                                    if (nowActive) {
-                                                        const row = s.closest('.drum-row');
-                                                        const rowIdx = parseInt(lane.dataset.row || '0', 10) | 0;
-                                                        const volEl = row ? row.querySelector('.drum-volume') : null;
-                                                        const sendEl = row ? row.querySelector('.drum-send') : null;
-                                                        const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
-                                                        const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value || '80', 10) / 100)) : 0.8;
-                                                        const sendPct = sendEl ? (parseInt(sendEl.value || '0', 10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
-                                                        const send = Math.max(0, Math.min(1, sendPct / 100));
-                                                        if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, send);
-                                                    }
-                                                } catch (_) { }
-                                            };
-                                            const applyVel = (clientY) => {
-                                                const deltaY = startY - clientY;
-                                                const deltaVel = Math.round(deltaY / 1.5);
-                                                const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
-                                                s.dataset.vel = String(newVel);
-                                                try { window.updateStepVelocityClass(s); } catch (_) { }
-                                            };
-                                            const onMove = (ev) => {
-                                                const dy = Math.abs(ev.clientY - startY);
-                                                if (dy > 5 && !isVelMode) {
-                                                    isDragging = true;
-                                                    isVelMode = true;
-                                                    if (!wasActive) s.classList.add('active');
-                                                    s.classList.add('vel-dragging');
-                                                }
-                                                if (isVelMode) applyVel(ev.clientY);
-                                            };
-                                            const onUp = () => {
-                                                document.removeEventListener('mousemove', onMove);
-                                                document.removeEventListener('mouseup', onUp);
-                                                try { s.classList.remove('vel-dragging'); } catch (_) { }
-                                                if (!isDragging) {
-                                                    finalizeToggle();
-                                                }
-                                                try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
-                                            };
-                                            document.addEventListener('mousemove', onMove);
-                                            document.addEventListener('mouseup', onUp);
-                                        });
-
-                                        s.addEventListener('touchstart', (e) => {
-                                            if (s._touchDragActive) return;
-                                            if (s.classList.contains('disabled')) return;
-                                            s._touchDragActive = true;
-                                            try { e.preventDefault(); } catch (_) { }
-                                            const touch = e.touches && e.touches[0] ? e.touches[0] : null;
-                                            if (!touch) { s._touchDragActive = false; return; }
-                                            const activeId = touch.identifier;
-                                            const wasActive = s.classList.contains('active');
-                                            const startY = touch.clientY;
-                                            const startVel = parseInt(s.dataset.vel || '100', 10);
-                                            let isDragging = false;
-                                            let isVelMode = false;
-                                            const applyVel = (clientY) => {
-                                                const deltaY = startY - clientY;
-                                                const deltaVel = Math.round(deltaY / 1.5);
-                                                const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
-                                                s.dataset.vel = String(newVel);
-                                                try { window.updateStepVelocityClass(s); } catch (_) { }
-                                            };
-                                            const onMove = (ev) => {
-                                                try { ev.preventDefault(); } catch (_) { }
-                                                const tlist = ev.touches || [];
-                                                let t = null; for (let j = 0; j < tlist.length; j++) { if (tlist[j].identifier === activeId) { t = tlist[j]; break; } }
-                                                if (!t) return;
-                                                const dy = Math.abs(t.clientY - startY);
-                                                if (!isVelMode && dy > 10) {
-                                                    isDragging = true;
-                                                    isVelMode = true;
-                                                    if (!wasActive) s.classList.add('active');
-                                                    s.classList.add('vel-dragging');
-                                                }
-                                                if (isVelMode) applyVel(t.clientY);
-                                            };
-                                            const onEnd = (ev) => {
-                                                const changed = ev.changedTouches || [];
-                                                let ended = false; for (let j = 0; j < changed.length; j++) { if (changed[j].identifier === activeId) { ended = true; break; } }
-                                                if (!ended) return;
-                                                document.removeEventListener('touchmove', onMove, { passive: false });
-                                                document.removeEventListener('touchend', onEnd);
-                                                document.removeEventListener('touchcancel', onEnd);
-                                                try { s.classList.remove('vel-dragging'); } catch (_) { }
-                                                if (!isDragging) {
-                                                    finalizeToggle();
-                                                }
-                                                try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
-                                                s._touchDragActive = false;
-                                            };
-                                            document.addEventListener('touchmove', onMove, { passive: false });
-                                            document.addEventListener('touchend', onEnd);
-                                            document.addEventListener('touchcancel', onEnd);
-                                        }, { passive: false });
+                                        try { window.bindDrumStepPointerInteraction && window.bindDrumStepPointerInteraction(s, lane, this); } catch (_) { }
                                     }
                                     lane.appendChild(s);
                                 }
@@ -26869,126 +27267,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             });
                                             s.addEventListener('click', (e) => { e.preventDefault(); const prev = (s.dataset.npc || ''); if (prev === '') { s.dataset.npc = '1'; s.classList.add('active'); if (!s.dataset.len) s.dataset.len = '1'; } else if (prev && prev.toLowerCase() !== 'x') { const valIn = window.prompt('Bass NPC (1–9) or x for rest', String(prev).toLowerCase()); if (valIn == null) return; const val = String(valIn).trim(); if (val === '') { s.dataset.npc = ''; s.classList.remove('active'); delete s.dataset.len; } else if (/^x$/i.test(val)) { s.dataset.npc = 'x'; s.classList.remove('active'); delete s.dataset.len; } else if (/^[1-9]$/.test(val)) { s.dataset.npc = val; s.classList.add('active'); if (!s.dataset.len) s.dataset.len = '1'; } } else { s.dataset.npc = '1'; s.classList.add('active'); if (!s.dataset.len) s.dataset.len = '1'; } });
                                         } else {
-                                            // Restore velocity-drag editing after quant/time rebuild
-                                            s.addEventListener('mousedown', (e) => {
-                                                if (e.button !== 0) return;
-                                                if (s.classList.contains('disabled')) return;
-                                                e.preventDefault();
-                                                const wasActive = s.classList.contains('active');
-                                                const startY = e.clientY;
-                                                const startVel = parseInt(s.dataset.vel || '100', 10);
-                                                let isDragging = false;
-                                                let isVelMode = false;
-                                                const applyVel = (clientY) => {
-                                                    const deltaY = startY - clientY;
-                                                    const deltaVel = Math.round(deltaY / 1.5);
-                                                    const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
-                                                    s.dataset.vel = String(newVel);
-                                                    try { window.updateStepVelocityClass(s); } catch (_) { }
-                                                };
-                                                const onMove = (ev) => {
-                                                    const dy = Math.abs(ev.clientY - startY);
-                                                    if (dy > 5 && !isVelMode) {
-                                                        isDragging = true;
-                                                        isVelMode = true;
-                                                        if (!wasActive) s.classList.add('active');
-                                                        s.classList.add('vel-dragging');
-                                                    }
-                                                    if (isVelMode) applyVel(ev.clientY);
-                                                };
-                                                const onUp = () => {
-                                                    document.removeEventListener('mousemove', onMove);
-                                                    document.removeEventListener('mouseup', onUp);
-                                                    try { s.classList.remove('vel-dragging'); } catch (_) { }
-                                                    if (!isDragging) {
-                                                        const nowActive = !wasActive;
-                                                        if (nowActive) s.classList.add('active'); else s.classList.remove('active');
-                                                        try {
-                                                            if (nowActive) {
-                                                                const row = s.closest('.drum-row');
-                                                                const rowIdx = parseInt(lane.dataset.row || '0', 10) | 0;
-                                                                const volEl = row ? row.querySelector('.drum-volume') : null;
-                                                                const sendEl = row ? row.querySelector('.drum-send') : null;
-                                                                const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
-                                                                const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value || '80', 10) / 100)) : 0.8;
-                                                                const sendPct = sendEl ? (parseInt(sendEl.value || '0', 10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
-                                                                const send = Math.max(0, Math.min(1, sendPct / 100));
-                                                                if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, send);
-                                                            }
-                                                        } catch (_) { }
-                                                    }
-                                                    try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
-                                                };
-                                                document.addEventListener('mousemove', onMove);
-                                                document.addEventListener('mouseup', onUp);
-                                            });
-
-                                            s.addEventListener('touchstart', (e) => {
-                                                if (s._touchDragActive) return;
-                                                if (s.classList.contains('disabled')) return;
-                                                s._touchDragActive = true;
-                                                try { e.preventDefault(); } catch (_) { }
-                                                const touch = e.touches && e.touches[0] ? e.touches[0] : null;
-                                                if (!touch) { s._touchDragActive = false; return; }
-                                                const activeId = touch.identifier;
-                                                const wasActive = s.classList.contains('active');
-                                                const startY = touch.clientY;
-                                                const startVel = parseInt(s.dataset.vel || '100', 10);
-                                                let isDragging = false;
-                                                let isVelMode = false;
-                                                const applyVel = (clientY) => {
-                                                    const deltaY = startY - clientY;
-                                                    const deltaVel = Math.round(deltaY / 1.5);
-                                                    const newVel = Math.max(0, Math.min(127, startVel + deltaVel));
-                                                    s.dataset.vel = String(newVel);
-                                                    try { window.updateStepVelocityClass(s); } catch (_) { }
-                                                };
-                                                const onMove = (ev) => {
-                                                    try { ev.preventDefault(); } catch (_) { }
-                                                    const tlist = ev.touches || [];
-                                                    let t = null; for (let j = 0; j < tlist.length; j++) { if (tlist[j].identifier === activeId) { t = tlist[j]; break; } }
-                                                    if (!t) return;
-                                                    const dy = Math.abs(t.clientY - startY);
-                                                    if (!isVelMode && dy > 10) {
-                                                        isDragging = true;
-                                                        isVelMode = true;
-                                                        if (!wasActive) s.classList.add('active');
-                                                        s.classList.add('vel-dragging');
-                                                    }
-                                                    if (isVelMode) applyVel(t.clientY);
-                                                };
-                                                const onEnd = (ev) => {
-                                                    const changed = ev.changedTouches || [];
-                                                    let ended = false; for (let j = 0; j < changed.length; j++) { if (changed[j].identifier === activeId) { ended = true; break; } }
-                                                    if (!ended) return;
-                                                    document.removeEventListener('touchmove', onMove, { passive: false });
-                                                    document.removeEventListener('touchend', onEnd);
-                                                    document.removeEventListener('touchcancel', onEnd);
-                                                    try { s.classList.remove('vel-dragging'); } catch (_) { }
-                                                    if (!isDragging) {
-                                                        const nowActive = !wasActive;
-                                                        if (nowActive) s.classList.add('active'); else s.classList.remove('active');
-                                                        try {
-                                                            if (nowActive) {
-                                                                const row = s.closest('.drum-row');
-                                                                const rowIdx = parseInt(lane.dataset.row || '0', 10) | 0;
-                                                                const volEl = row ? row.querySelector('.drum-volume') : null;
-                                                                const sendEl = row ? row.querySelector('.drum-send') : null;
-                                                                const fxEl = row ? row.querySelector('.drum-fx input[type="checkbox"]') : null;
-                                                                const vol = volEl ? Math.max(0, Math.min(1, parseInt(volEl.value || '80', 10) / 100)) : 0.8;
-                                                                const sendPct = sendEl ? (parseInt(sendEl.value || '0', 10) || 0) : (fxEl && fxEl.checked ? 100 : 0);
-                                                                const send = Math.max(0, Math.min(1, sendPct / 100));
-                                                                if (this._isDrumPreviewAllowed()) this._triggerDrumSound(rowIdx, vol, send);
-                                                            }
-                                                        } catch (_) { }
-                                                    }
-                                                    try { if (typeof this._saveDrumPattern === 'function') this._saveDrumPattern(); } catch (_) { }
-                                                    s._touchDragActive = false;
-                                                };
-                                                document.addEventListener('touchmove', onMove, { passive: false });
-                                                document.addEventListener('touchend', onEnd);
-                                                document.addEventListener('touchcancel', onEnd);
-                                            }, { passive: false });
+                                            try { window.bindDrumStepPointerInteraction && window.bindDrumStepPointerInteraction(s, lane, this); } catch (_) { }
                                         }
                                         lane.appendChild(s);
                                     }
@@ -28886,7 +29165,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (!e.altKey && e.ctrlKey && isMinusKey) { e.preventDefault(); try { this.applyTransposeStep(-1); } catch (_) { } return; }
                         if (!e.altKey && !e.ctrlKey && isPlusKey) {
                             e.preventDefault();
-                            try { document.getElementById('createNewChordBtn')?.click(); } catch (_) { }
+                            try {
+                                const afterId = this.currentActiveColumnEl?.dataset?.chordId ? String(this.currentActiveColumnEl.dataset.chordId) : null;
+                                if (afterId) this.createBlankChordColumn({ insertAfterId: afterId, focusName: true });
+                                else this.createBlankChordColumn({ focusName: true });
+                            } catch (_) { }
                             return;
                         }
                         if (!e.altKey && !e.ctrlKey && isMinusKey) {
@@ -33842,12 +34125,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         try { lane.style.setProperty('--steps-per-bar', String(lane._quant.D)); } catch (_) { }
                                     };
                                     const applyLaneQuants = (arr, opts = {}) => {
+                                        const barDefault = (() => {
+                                            try {
+                                                const tsi = window._getTsInfo ? window._getTsInfo() : null;
+                                                const v = tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 0;
+                                                if (v > 0) return v;
+                                            } catch (_) { }
+                                            return 16;
+                                        })();
                                         const lanes = Array.from(document.querySelectorAll('.drum-row:not(.bass-row) .drum-lane'));
                                         lanes.forEach((lane, i) => {
                                             const q = Array.isArray(arr) ? arr[i] : null;
                                             if (q) lane.dataset.quant = String(q);
-                                            else if (!lane.dataset.quant) lane.dataset.quant = String(lane.querySelectorAll('.drum-step').length || 16);
-                                            const stepsPerBar = lane.querySelectorAll('.drum-step').length || 16;
+                                            else if (!lane.dataset.quant) lane.dataset.quant = String(barDefault);
+                                            const stepsPerBar = barDefault;
                                             updateLaneQuantCache(lane, stepsPerBar);
                                             try {
                                                 const qInput = lane.closest('.drum-row')?.querySelector('.drum-quant input');
@@ -38749,41 +39040,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Base ticksPerBar from current grid
                     let baseTicksPerBar = Math.max(1, Math.round((beatMs * effectiveBeatsPerBar) / tickMs));
                     let ticksPerBar = baseTicksPerBar;
-                    // Adjust ticksPerBar to align with per-lane denominators (LCM across D values)
+                    // Adjust ticksPerBar to align with pattern-lane denominators only.
+                    // Drum/Bass cycle length and per-row quant remain independent and must not alter chord/ruler timing.
                     try {
-                        // Collect denominators D from drum lanes and pattern lanes
+                        // Collect denominators D from pattern lanes only
                         const Ds = new Set();
                         const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
-                        const lanes = document.querySelectorAll('.drum-lane');
                         const baseSteps = Math.max(4, Math.round((effectiveBeatsPerBar || 4) * 4));
-                        if (lanes && lanes.length) {
-                            lanes.forEach(lane => {
-                                let D = baseSteps;
-                                const qStr = lane.dataset?.quant || '';
-                                if (qStr) { const m = qStr.match(/^(\d+)\/(\d+)$/); if (m) { const d = parseInt(m[2], 10); if (Number.isFinite(d) && d > 0) D = d; } else { const mn = qStr.match(/^(\d+)$/); if (mn) { const d = parseInt(mn[1], 10); if (Number.isFinite(d) && d > 0) D = d; } } }
-                                Ds.add(Math.max(1, D | 0));
-                            });
-                        }
-                        // Include denominators from NEW DRUM instances so their per-row Q stays sample-accurate.
-                        try {
-                            const insts = window._drumInstances || [];
-                            if (insts && insts.length) {
-                                insts.forEach(inst => {
-                                    const st = inst && inst.state;
-                                    const ls = st && Array.isArray(st.lanes) ? st.lanes : [];
-                                    ls.forEach(lane => {
-                                        let D = baseSteps;
-                                        const qStr = (lane && lane.quant != null) ? String(lane.quant).trim() : '';
-                                        if (qStr) {
-                                            const m = qStr.match(/^(\d+)\/(\d+)$/);
-                                            if (m) { const d = parseInt(m[2], 10); if (Number.isFinite(d) && d > 0) D = d; }
-                                            else { const mn = qStr.match(/^(\d+)$/); if (mn) { const d = parseInt(mn[1], 10); if (Number.isFinite(d) && d > 0) D = d; } }
-                                        }
-                                        Ds.add(Math.max(1, Math.min(maxLen, D | 0)));
-                                    });
-                                });
-                            }
-                        } catch (_) { }
                         const pGrid = document.getElementById('patternGrid');
                         if (pGrid) {
                             const pLanes = pGrid.querySelectorAll('.pattern-lane');
@@ -38794,22 +39057,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 Ds.add(Math.max(1, D | 0));
                             });
                         }
-                        // Include BASS lane denominators as well so transport tick grid matches bass quantization
-                        try {
-                            const bGrid = document.getElementById('bassGrid');
-                            if (bGrid) {
-                                const bLanes = bGrid.querySelectorAll('.bass-lane');
-                                bLanes.forEach(ln => {
-                                    // Prefer actual number of cells (reflects current D) and fall back to dataset.quant
-                                    let D = Array.from(ln.querySelectorAll('.bass-step')).length || 16;
-                                    const qStr = ln.dataset?.quant || '';
-                                    const m = qStr.match(/^(\d+)\/(\d+)$/);
-                                    if (m) { const d = parseInt(m[2], 10); if (Number.isFinite(d) && d > 0) D = d; }
-                                    else { const mn = qStr.match(/^(\d+)$/); if (mn) { const d = parseInt(mn[1], 10); if (Number.isFinite(d) && d > 0) D = d; } }
-                                    Ds.add(Math.max(1, Math.min(maxLen, D | 0)));
-                                });
-                            }
-                        } catch (_) { }
+                        // Bass/drum quantization remains lane-local and is not part of global TPB.
                         if (Ds.size > 0) {
                             // Compute lcm of collected denominators relative to base ticksPerBar
                             const gcd = (a, b) => b ? gcd(b, a % b) : Math.abs(a);
@@ -40220,6 +40468,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const el = document.getElementById('countInDisplay');
                         if (el) el.style.display = 'none';
                     } catch (_) { }
+                    // Always restore full chordbox saturation on STOP.
+                    try { this._updateLoopFocusVisualState && this._updateLoopFocusVisualState(); } catch (_) { }
+                    try {
+                        const root = document.getElementById('extensionColumns');
+                        if (root && root.classList) root.classList.remove('loop-focus-active');
+                    } catch (_) { }
+                    try { window.updateChordRulerTimeIndicator && window.updateChordRulerTimeIndicator(); } catch (_) { }
                     // Also stop Pattern transports (legacy + spawned Pattern instances)
                     try { window.__xenStopAllPatterns && window.__xenStopAllPatterns(true); } catch (_) { }
                 }
@@ -43409,7 +43664,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             ints = this.getChordStepsForColumn(column);
                         }
                         // Unique and sort by semitone equivalence for stable order
-                        const uniq = Array.from(new Set(ints)).map(s => ((s % EDO) + EDO) % EDO);
+                        const uniq = Array.from(new Set(ints))
+                            .map(s => Number(s))
+                            .filter(Number.isFinite)
+                            .map(s => ((s % EDO) + EDO) % EDO);
                         uniq.sort((a, b) => this.stepToSemitone(a, EDO) - this.stepToSemitone(b, EDO));
                         return uniq;
                     } catch (_) {
@@ -47262,6 +47520,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch (_) { }
                             try { this.saveChordConfiguration?.(); } catch (_) { }
                             try { this.updateChordDisplay?.(); } catch (_) { }
+                            try { this._queueSequencerRebuild('chord-finalized'); } catch (_) { }
                             try { this._pushEditUndoState('chord-note', { force: true }); } catch (_) { }
                             return;
                         }
@@ -47315,6 +47574,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try { this.highlightKeyboardForColumn(column); } catch (_) { }
                         try { this.saveChordConfiguration?.(); } catch (_) { }
                         try { this.updateChordDisplay?.(); } catch (_) { }
+                        try { this._queueSequencerRebuild('chord-finalized'); } catch (_) { }
                         try { this._pushEditUndoState('chord-note', { force: true }); } catch (_) { }
                     } catch (_) { }
                 }
@@ -49263,10 +49523,60 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (presetSelect && !presetSelect._wiredChange) {
                             presetSelect._wiredChange = true;
                             presetSelect.addEventListener('change', () => {
+                                if (presetSelect._skipNextStartupApply) {
+                                    presetSelect._skipNextStartupApply = false;
+                                    return;
+                                }
                                 const val = presetSelect.value || '';
                                 if (!val) return;
                                 applyStartupPreset(val);
                             });
+                        }
+                        if (presetSelect && !presetSelect._wiredLongPressDelete) {
+                            presetSelect._wiredLongPressDelete = true;
+                            let holdTimer = null;
+                            let holdFired = false;
+                            const clearHold = () => {
+                                if (holdTimer) {
+                                    clearTimeout(holdTimer);
+                                    holdTimer = null;
+                                }
+                            };
+                            const startHold = () => {
+                                holdFired = false;
+                                clearHold();
+                                holdTimer = setTimeout(() => {
+                                    holdFired = true;
+                                    presetSelect._skipNextStartupApply = true;
+                                    try {
+                                        const omni = window.autoharp;
+                                        const val = String(presetSelect.value || '');
+                                        if (!omni || !val || !val.startsWith('seq:')) return;
+                                        const id = val.slice(4);
+                                        const result = omni.deleteSequencePresetById && omni.deleteSequencePresetById(id, {
+                                            requireUser: true,
+                                            confirmMessage: 'Delete this user preset?'
+                                        });
+                                        if (result && result.ok) {
+                                            populateStartupPresets();
+                                            presetSelect.value = '';
+                                        }
+                                    } catch (_) { }
+                                }, 1000);
+                            };
+                            presetSelect.addEventListener('mousedown', startHold);
+                            presetSelect.addEventListener('touchstart', startHold, { passive: true });
+                            presetSelect.addEventListener('mouseup', clearHold);
+                            presetSelect.addEventListener('mouseleave', clearHold);
+                            presetSelect.addEventListener('touchend', clearHold);
+                            presetSelect.addEventListener('touchcancel', clearHold);
+                            presetSelect.addEventListener('click', (e) => {
+                                if (holdFired) {
+                                    holdFired = false;
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }
+                            }, true);
                         }
                         populateStartupPresets();
                     }
@@ -49324,14 +49634,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try {
                                 if (col && typeof this._getChordDegreesForColumn === 'function') {
                                     const d = this._getChordDegreesForColumn(col);
-                                    if (Array.isArray(d) && d.length) degs = d.map(norm);
+                                    if (Array.isArray(d) && d.length) degs = d.map(Number).filter(Number.isFinite).map(norm);
                                 }
                                 if ((!degs || !degs.length) && col) {
                                     // Fallback: derive from rendered strings
                                     const rows = Array.from(col.querySelectorAll('.strings-column .string'));
                                     const stepsAbs = rows.map(r => parseInt(r.dataset.noteIndex, 10)).filter(Number.isFinite);
                                     const rel = stepsAbs.map(st => norm(st - rootAbs));
-                                    degs = Array.from(new Set(rel));
+                                    degs = Array.from(new Set(rel)).map(Number).filter(Number.isFinite);
                                 }
                             } catch (_) { degs = []; }
 
@@ -49365,32 +49675,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const baseOct = 3 + octCycle;
                             // Compute step in current EDO. Avoid bitwise truncation so microtonal/converted roots stay accurate.
                             const absStepRaw = (Number(rootAbs) + Number(degs[degIdx] || 0));
-                            const absStep = norm(Math.round(absStepRaw));
+                            const absStepRounded = Math.round(absStepRaw);
+                            const absStep = norm(absStepRounded);
+                            const octaveCarry = Math.floor(absStepRounded / Math.max(1, tuning));
+                            const noteOct = baseOct + octaveCarry;
+                            // Strict PATTERN mapping: compute from root+degree+octave only (no CHORDS voicing fallback).
                             let f = null;
-                            // Prefer the column's rendered string frequency (already tuned for current EDO).
-                            try {
-                                if (col) {
-                                    const match = col.querySelector(`.strings-column .string[data-note-index="${absStep}"][data-octave="${baseOct}"]`)
-                                        || col.querySelector(`.strings-column .string[data-noteIndex="${absStep}"][data-octave="${baseOct}"]`);
-                                    const f0 = match ? parseFloat(match.dataset.frequency) : NaN;
-                                    if (Number.isFinite(f0) && f0 > 0) f = f0;
-                                }
-                            } catch (_) { }
-                            if (!Number.isFinite(f) || !(f > 0)) {
-                                try { f = this.getFrequency(absStep, baseOct, tuning); } catch (_) { f = null; }
-                            }
-
-                            // Ultimate fallback: old voicing-based mapping if something went wrong
-                            if (!Number.isFinite(f) || !(f > 0)) {
-                                const asc = Array.isArray(this._arp?.mapAsc) ? this._arp.mapAsc : [];
-                                const useCount2 = asc.length;
-                                const idxInAsc = Math.max(0, Math.min(useCount2 - 1, (rowIdx | 0)));
-                                const node = asc[idxInAsc];
-                                if (!node) return null;
-                                let f2 = parseFloat(node?.dataset?.frequency);
-                                if (Number.isFinite(f2) && f2 > 0) f = f2;
-                            }
-                            if (!isFinite(f) || !(f > 0)) return null;
+                            try { f = this.getFrequency(absStep, noteOct, tuning); } catch (_) { f = null; }
+                            if (!Number.isFinite(f) || !(f > 0)) return null;
                             const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
                             const stepsPerBar = Math.max(1, Math.min(maxLen, parseInt(gridEl?.dataset?.length || '16', 10) || 16));
                             const maxStepsOverride = (o && Number.isFinite(o.maxSteps)) ? (o.maxSteps | 0) : (o && typeof o.maxSteps === 'string' ? (parseInt(o.maxSteps, 10) || 0) : 0);
@@ -49752,13 +50044,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try {
                                 if (col && typeof this._getChordDegreesForColumn === 'function') {
                                     const d = this._getChordDegreesForColumn(col);
-                                    if (Array.isArray(d) && d.length) degs = d.map(norm);
+                                    if (Array.isArray(d) && d.length) degs = d.map(Number).filter(Number.isFinite).map(norm);
                                 }
                                 if ((!degs || !degs.length) && col) {
                                     const rows = Array.from(col.querySelectorAll('.strings-column .string'));
                                     const stepsAbs = rows.map(r => parseInt(r.dataset.noteIndex, 10)).filter(Number.isFinite);
                                     const rel = stepsAbs.map(st => norm(st - rootAbs));
-                                    degs = Array.from(new Set(rel));
+                                    degs = Array.from(new Set(rel)).map(Number).filter(Number.isFinite);
                                 }
                             } catch (_) { degs = []; }
                             degs = Array.from(new Set([0, ...(Array.isArray(degs) ? degs : [])])).map(norm);
@@ -49786,30 +50078,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const octCycle = Math.floor(row / degCount);
                             const baseOct = 3 + octCycle;
                             const absStepRaw = (Number(rootAbs) + Number(degs[degIdx] || 0));
-                            const absStep = norm(Math.round(absStepRaw));
+                            const absStepRounded = Math.round(absStepRaw);
+                            const absStep = norm(absStepRounded);
+                            const octaveCarry = Math.floor(absStepRounded / Math.max(1, tuning));
+                            const noteOct = baseOct + octaveCarry;
                             let f = null;
-                            try {
-                                if (col) {
-                                    const match = col.querySelector(`.strings-column .string[data-note-index="${absStep}"][data-octave="${baseOct}"]`)
-                                        || col.querySelector(`.strings-column .string[data-noteIndex="${absStep}"][data-octave="${baseOct}"]`);
-                                    const f0 = match ? parseFloat(match.dataset.frequency) : NaN;
-                                    if (Number.isFinite(f0) && f0 > 0) f = f0;
-                                }
-                            } catch (_) { }
-                            if (!Number.isFinite(f) || !(f > 0)) {
-                                try { f = this.getFrequency(absStep, baseOct, tuning); } catch (_) { f = null; }
-                            }
-
-                            // Fallback to old mapping if chord context unavailable
-                            if (!Number.isFinite(f) || !(f > 0)) {
-                                const asc = Array.isArray(this._arp?.mapAsc) ? this._arp.mapAsc : [];
-                                if (!asc.length) return null;
-                                const idxInAsc = Math.max(0, Math.min(asc.length - 1, (rowIdx | 0)));
-                                const node = asc[idxInAsc];
-                                if (!node) return null;
-                                const f2 = parseFloat(node?.dataset?.frequency);
-                                if (Number.isFinite(f2) && f2 > 0) f = f2;
-                            }
+                            try { f = this.getFrequency(absStep, noteOct, tuning); } catch (_) { f = null; }
                             if (!Number.isFinite(f) || !(f > 0)) return null;
                             const pg = document.getElementById('patternGrid');
                             const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
@@ -51116,7 +51390,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             clearHold();
                             holdTimer = setTimeout(() => {
                                 holdFired = true;
-                                try { autoharp.saveChordPresetFromHold && autoharp.saveChordPresetFromHold(); } catch (e) { console.error('Preset save failed', e); }
+                                try { autoharp.saveSequencePresetFromHold && autoharp.saveSequencePresetFromHold(); } catch (e) { console.error('Preset save failed', e); }
                             }, 1000);
                         };
                         bottomExport.addEventListener('mousedown', startHold);
@@ -51561,42 +51835,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 if (fc >= 0) plan.push(fc);
                                             }
 
-                                            const resolveRangeFromState = (lr) => {
-                                                if (!lr || !allCols.length) return null;
-                                                const maxIdx = Math.max(0, allCols.length - 1);
-                                                let startIdx = Number.isFinite(lr.start) ? (lr.start | 0) : 0;
-                                                let endIdx = Number.isFinite(lr.end) ? (lr.end | 0) : maxIdx;
-                                                try {
-                                                    if (lr.startId) {
-                                                        const idx = allCols.findIndex(c => (c?.dataset?.chordId || '') === String(lr.startId));
-                                                        if (idx >= 0) startIdx = idx;
-                                                    }
-                                                    if (lr.endId) {
-                                                        const idx = allCols.findIndex(c => (c?.dataset?.chordId || '') === String(lr.endId));
-                                                        if (idx >= 0) endIdx = idx;
-                                                    }
-                                                } catch (_) { }
-                                                if (lr.edgeLeft === true) startIdx = 0;
-                                                if (lr.edgeRight === true) endIdx = maxIdx;
-                                                startIdx = Math.max(0, Math.min(maxIdx, startIdx | 0));
-                                                endIdx = Math.max(0, Math.min(maxIdx, endIdx | 0));
-                                                if (startIdx > endIdx) { const t = startIdx; startIdx = endIdx; endIdx = t; }
-                                                return { start: startIdx, end: endIdx };
-                                            };
-
-                                            const sectionLoopRange = (() => {
-                                                try {
-                                                    const sections = Array.isArray(window._sections) ? window._sections : null;
-                                                    const activeId = window._activeSectionId;
-                                                    const sec = sections && activeId ? sections.find(s => s && s.id === activeId) : null;
-                                                    return resolveRangeFromState(sec?.state?.loopRange || null);
-                                                } catch (_) { return null; }
-                                            })();
-
-                                            const fallbackRange = { start: loopStartIdx | 0, end: loopEndIdx | 0 };
-                                            const useRange = sectionLoopRange || resolveRangeFromState(fallbackRange) || fallbackRange;
-                                            const minLoop = Math.max(0, Math.min(useRange.start, useRange.end, allCols.length - 1));
-                                            const maxLoop = Math.max(0, Math.min(Math.max(useRange.start, useRange.end), allCols.length - 1));
+                                            // Use full ruler span for cycle boundaries: leftmost chord -> rightmost chord.
+                                            const chordIdxs = allCols
+                                                .map((col, idx) => ({ col, idx }))
+                                                .filter(({ col }) => col && col.classList && col.classList.contains('extension-column') && col.dataset?.isSpacer !== 'true')
+                                                .map(({ idx }) => idx);
+                                            const minLoop = chordIdxs.length ? Math.min(...chordIdxs) : 0;
+                                            const maxLoop = chordIdxs.length ? Math.max(...chordIdxs) : Math.max(0, allCols.length - 1);
                                             const ranged = plan.filter(idx => idx >= minLoop && idx <= maxLoop);
                                             if (ranged.length) plan = ranged;
                                             else if (allCols.length) plan = [minLoop];
@@ -51923,6 +52168,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                     try { autoharp._clearNowPlaying && autoharp._clearNowPlaying(); } catch (_) { }
                                                 } catch (_) { }
                                                 autoharp._isSequencing = false;
+                                                try { autoharp._updateLoopFocusVisualState && autoharp._updateLoopFocusVisualState(); } catch (_) { }
+                                                try { window.updateChordRulerTimeIndicator && window.updateChordRulerTimeIndicator(); } catch (_) { }
                                                 autoharp._stopPlayButtonFlashing();
                                                 try { autoharp._seqWaitForFirstChord = false; autoharp._seqWaitStartFromChord = null; } catch (_) { }
                                                 try { if (autoharp._arpTransport) autoharp._arpTransport._seqWaitForFirstChord = false; } catch (_) { }
@@ -52994,7 +53241,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 try { grid.dataset.pendingLength = String(nextLen); } catch (_) { }
                                 if (lenVal) { lenVal.textContent = String(nextLen); try { lenVal.dataset.pending = '1'; } catch (_) { } }
                                 if (lenHint) lenHint.textContent = `Queued: ${nextLen} steps (next cycle)`;
-                                try { const scheduleDeferred = window.scheduleDeferred; if (typeof scheduleDeferred === 'function') scheduleDeferred({ transport: true, grid: true, drums: true }); } catch (_) { }
+                                try { const scheduleDeferred = window.scheduleDeferred; if (typeof scheduleDeferred === 'function') scheduleDeferred({ grid: true, drums: true }); } catch (_) { }
                                 return;
                             }
 
@@ -53006,7 +53253,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try { delete grid.dataset.pendingLength; } catch (_) { }
 
                             try { if (typeof window.autoharp?._updateDrumGridForTimeSignature === 'function') { window.autoharp._updateDrumGridForTimeSignature(); } } catch (_) { }
-                            try { if (typeof window.autoharp?._refreshArpTransportTiming === 'function') window.autoharp._refreshArpTransportTiming(); } catch (_) { }
 
                             try {
                                 const container = grid.closest('.drum-grid-container');
@@ -53237,7 +53483,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         let stopFn = null;
                                         try {
                                             if (window.autoharp && typeof window.autoharp._playPatternNote === 'function') {
-                                                stopFn = window.autoharp._playPatternNote(n.row, n.len, fireIdx, n.vel);
+                                                stopFn = window.autoharp._playPatternNote(n.row, n.len, fireIdx, n.vel, {
+                                                    gridEl: pg,
+                                                    instrumentKey: 'arp',
+                                                    transport: pt,
+                                                    gateMs: Math.max(10, Math.floor((pt.stepMs || 120) * Math.max(1, n.len) - 8)),
+                                                    maxSteps: len,
+                                                });
                                             }
                                         } catch (_) { }
                                         pt.activeVoices.add(vid);
@@ -53617,7 +53869,40 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     const saveXenBtn = document.getElementById('saveXenBtn');
                     if (saveXenBtn) {
-                        saveXenBtn.addEventListener('click', () => {
+                        let holdTimer = null;
+                        let holdFired = false;
+                        const clearHold = () => {
+                            if (holdTimer) {
+                                clearTimeout(holdTimer);
+                                holdTimer = null;
+                            }
+                        };
+                        const startHold = () => {
+                            holdFired = false;
+                            clearHold();
+                            holdTimer = setTimeout(() => {
+                                holdFired = true;
+                                try {
+                                    const omni = window.autoharp;
+                                    if (omni && typeof omni.saveSequencePresetFromHold === 'function') {
+                                        omni.saveSequencePresetFromHold();
+                                    }
+                                } catch (_) { }
+                            }, 1000);
+                        };
+                        saveXenBtn.addEventListener('mousedown', startHold);
+                        saveXenBtn.addEventListener('touchstart', startHold, { passive: true });
+                        saveXenBtn.addEventListener('mouseup', clearHold);
+                        saveXenBtn.addEventListener('mouseleave', clearHold);
+                        saveXenBtn.addEventListener('touchend', clearHold);
+                        saveXenBtn.addEventListener('touchcancel', clearHold);
+                        saveXenBtn.addEventListener('click', (e) => {
+                            if (holdFired) {
+                                holdFired = false;
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                return;
+                            }
                             const originalBtn = document.getElementById('bottomExportOMGBtn');
                             if (originalBtn) originalBtn.click();
                         });
