@@ -40335,7 +40335,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                     } catch (_) { }
                                                 } else {
                                                     const pt = window._patternTransport;
-                                                    if (pt.waitingForDeferred) {
+                                                    if (pt && pt.running) {
+                                                        // Already armed/running from sequencer start; keep phase.
+                                                    } else if (pt.waitingForDeferred) {
                                                         pt.resumeAfterDeferred = true;
                                                     } else if (typeof pt.start === 'function') {
                                                         pt.start({ alignToTransport: true, preBufferMs: 80 });
@@ -40355,6 +40357,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                 const m = info && info.modal;
                                                 const pt = m && m._patternTransport;
                                                 if (!pt) return;
+                                                if (pt.running) return;
                                                 if (pt.waitingForDeferred) {
                                                     pt.resumeAfterDeferred = true;
                                                 } else if (typeof pt.start === 'function') {
@@ -41297,7 +41300,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             if (glide > 0) p.exponentialRampToValueAtTime(Math.max(1e-6, fCh), t0 + glide);
                                             else p.setValueAtTime(Math.max(1e-6, fCh), t0);
                                         }
-                                        if (v.osc2?.frequency?.cancelScheduledValues) {
+                                        if (v.hasSecondOsc && v.osc2?.frequency?.cancelScheduledValues) {
                                             const p = v.osc2.frequency;
                                             p.cancelScheduledValues(t0);
                                             p.setValueAtTime(Math.max(1e-6, Number(p.value) || fCh), t0);
@@ -41345,7 +41348,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (glide > 0) p.exponentialRampToValueAtTime(Math.max(1e-6, fCh), ctxNow + glide);
                                 else p.setValueAtTime(Math.max(1e-6, fCh), ctxNow);
                             }
-                            if (v.osc2?.frequency?.cancelScheduledValues) {
+                            if (v.hasSecondOsc && v.osc2?.frequency?.cancelScheduledValues) {
                                 const p = v.osc2.frequency;
                                 p.cancelScheduledValues(ctxNow);
                                 const cur = Math.max(1e-6, Number(p.value) || fCh);
@@ -44666,7 +44669,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     // Set oscillator levels with volume + velocity multipliers applied
                     osc1Gain.gain.value = (inst?.a?.osc?.level ?? this.oscillators.osc1.level) * volumeMultiplier * velocityMultiplier;
-                    osc2Gain.gain.value = (inst?.b?.osc?.level ?? this.oscillators.osc2.level) * volumeMultiplier * velocityMultiplier;
+                    if (useSecond) {
+                        osc2Gain.gain.value = (inst?.b?.osc?.level ?? this.oscillators.osc2.level) * volumeMultiplier * velocityMultiplier;
+                    } else {
+                        osc2Gain.gain.value = 0;
+                    }
 
                     // Connect oscillators through their individual envelopes
                     if (o1.type === 'noise') {
@@ -45004,6 +45011,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         peak1,
                         peak2,
                         releaseTimeout,
+                        hasSecondOsc: !!useSecond,
                         isGlobalBass: (baseType === 'bass'),
                         element: safeElement,
                         startTime: currentTime,
@@ -45241,7 +45249,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         for (const voice of this.activeChordOscillators.values()) {
                             if (!voice) continue;
                             const g1 = voice.osc1Gain?.gain;
-                            const g2 = voice.osc2Gain?.gain;
+                            const g2 = voice.hasSecondOsc ? voice.osc2Gain?.gain : null;
                             try {
                                 if (g1 && typeof g1.setTargetAtTime === 'function') g1.setTargetAtTime(target, now, timeConst);
                                 else if (g1) g1.value = target;
