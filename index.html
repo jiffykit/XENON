@@ -84,8 +84,8 @@
             /* Don't interfere with interactions */
         }
 
-        /* Startup overlay: show only the modal on a blank page */
-        body.startup-blank>*:not(#startupPromptOverlay) {
+        /* Startup overlays: show only splash/menu on a blank page */
+        body.startup-blank>*:not(#startupPromptOverlay):not(#startupSplashOverlay) {
             display: none !important;
         }
 
@@ -4384,7 +4384,7 @@
     </style>
 </head>
 
-<body>
+<body class="startup-blank">
     <datalist id="tsOptions">
         <option value="4/4"></option>
         <option value="3/4"></option>
@@ -6437,6 +6437,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         Tutorial</button>
                 </div>
             </div>
+        </div>
+
+        <!-- Startup Splash Overlay -->
+        <div id="startupSplashOverlay"
+            style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:13001; pointer-events:none;">
+            <img src="ChromoTone Splash.jpg" alt="ChromoTone splash"
+                style="width:min(598px, 92vw); max-height:min(299px, 40vh); height:auto; object-fit:contain; background:#000;" />
         </div>
 
         <!-- Startup Prompt Overlay -->
@@ -12012,21 +12019,43 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
 
             function _getChordTopOffsetPx() {
+                let floorPx = 0;
+                try {
+                    const newDrumBtn = document.getElementById('newDrumBtn');
+                    if (newDrumBtn) {
+                        const r = newDrumBtn.getBoundingClientRect();
+                        if (Number.isFinite(r.bottom)) {
+                            // systemTop is the centerline of the 40px top handle.
+                            // To keep handle-top below NEW DRUM bottom with padding:
+                            // handleTop = systemTop - 20 >= r.bottom + 10  => systemTop >= r.bottom + 30
+                            floorPx = Math.max(floorPx, Math.ceil(r.bottom + 30));
+                        }
+                    }
+                } catch (_) { }
+                try {
+                    const stripLeft = document.getElementById('stripLeft');
+                    if (stripLeft) {
+                        const r = stripLeft.getBoundingClientRect();
+                        if (Number.isFinite(r.bottom)) {
+                            floorPx = Math.max(floorPx, Math.ceil(r.bottom + 12));
+                        }
+                    }
+                } catch (_) { }
                 try {
                     const strip = document.getElementById('patternStrip');
                     if (strip) {
                         const r = strip.getBoundingClientRect();
-                        if (Number.isFinite(r.bottom)) return Math.ceil(r.bottom + 6);
+                        if (Number.isFinite(r.bottom)) return Math.max(floorPx, Math.ceil(r.bottom + 6));
                     }
                 } catch (_) { }
                 try {
                     const rootArea = document.querySelector('.root-notes-area');
                     if (rootArea) {
                         const r = rootArea.getBoundingClientRect();
-                        if (Number.isFinite(r.bottom)) return Math.ceil(r.bottom + 6);
+                        if (Number.isFinite(r.bottom)) return Math.max(floorPx, Math.ceil(r.bottom + 6));
                     }
                 } catch (_) { }
-                return 0;
+                return floorPx;
             }
 
             function _syncXenonFooterHeightVar() {
@@ -50084,6 +50113,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // --- Startup UX: prompt every load; NEW PROJECT starts blank with keyboard closed ---
                 try {
+                    const STARTUP_SPLASH_MS = 2000;
+                    let startupSplashTimer = null;
                     const ensureKeyboardClosed = () => {
                         try { if (typeof window.closeKeyboardModal === 'function') window.closeKeyboardModal(); } catch (_) { }
                         try { const km = document.getElementById('keyboardModal'); if (km) km.style.display = 'none'; } catch (_) { }
@@ -50160,11 +50191,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     };
 
                     const overlay = document.getElementById('startupPromptOverlay');
+                    const splashOverlay = document.getElementById('startupSplashOverlay');
                     if (overlay && !overlay._wired) {
                         overlay._wired = true;
+                        const syncChordLayoutAfterStartupChoice = () => {
+                            const run = () => {
+                                try { if (typeof window.__xenApplyChordLayout === 'function') window.__xenApplyChordLayout(); } catch (_) { }
+                            };
+                            try { requestAnimationFrame(run); } catch (_) { run(); }
+                            setTimeout(run, 40);
+                            setTimeout(run, 140);
+                            setTimeout(run, 320);
+                        };
                         const hide = () => {
+                            try { if (startupSplashTimer) { clearTimeout(startupSplashTimer); startupSplashTimer = null; } } catch (_) { }
+                            try { if (splashOverlay) splashOverlay.style.display = 'none'; } catch (_) { }
                             try { overlay.style.display = 'none'; } catch (_) { }
                             try { document.body.classList.remove('startup-blank'); } catch (_) { }
+                            syncChordLayoutAfterStartupChoice();
                         };
                         const newBtn = document.getElementById('startupNewProjectBtn');
                         const loadBtn = document.getElementById('startupLoadXenBtn');
@@ -50299,17 +50343,35 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                         populateStartupPresets();
                     }
-                    // Always show startup prompt on load
+                    // Always show startup splash first, then menu prompt
                     if (overlay) {
                         try {
                             if (document.body && overlay.parentElement !== document.body) {
                                 document.body.appendChild(overlay);
                             }
+                            if (document.body && splashOverlay && splashOverlay.parentElement !== document.body) {
+                                document.body.appendChild(splashOverlay);
+                            }
                         } catch (_) { }
                         ensureKeyboardClosed();
-                        overlay.style.display = 'flex';
-                        overlay.style.pointerEvents = 'auto';
                         try { document.body.classList.add('startup-blank'); } catch (_) { }
+                        try {
+                            if (splashOverlay) {
+                                splashOverlay.style.display = 'flex';
+                                splashOverlay.style.pointerEvents = 'none';
+                            }
+                        } catch (_) { }
+                        try {
+                            overlay.style.display = 'none';
+                            overlay.style.pointerEvents = 'none';
+                        } catch (_) { }
+                        startupSplashTimer = setTimeout(() => {
+                            try { if (splashOverlay) splashOverlay.style.display = 'none'; } catch (_) { }
+                            try {
+                                overlay.style.display = 'flex';
+                                overlay.style.pointerEvents = 'auto';
+                            } catch (_) { }
+                        }, STARTUP_SPLASH_MS);
                     }
                 } catch (_) { }
 
@@ -54403,16 +54465,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (chordsBtn && window.autoharp) chordsBtn.classList.toggle('active', !!autoharp.chordsEnabled);
                     if (bassBtn && window.autoharp) bassBtn.classList.toggle('active', !!autoharp.bassEnabled);
 
-                    // Open keyboard modal by default (for half-screen layout)
+                    // Keep keyboard modal closed on boot until user makes a startup choice
                     const keyboardBtn = document.getElementById('keyboardBtn');
                     if (keyboardBtn) {
                         keyboardBtn.classList.add('active');
-                        // Show keyboard modal on startup
-                        setTimeout(() => {
-                            if (typeof showKeyboardModal === 'function') {
-                                showKeyboardModal();
-                            }
-                        }, 100);
                     }
 
                     // Ensure rootGrid exists for keyboard functionality
