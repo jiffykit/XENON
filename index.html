@@ -7017,14 +7017,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const oldLen = Math.max(1, Math.min(maxLen, parseInt(grid.dataset.length || '16', 10) || 16));
                                 if (newLen === oldLen) return;
 
-                                // If PLAY is running, defer LEN changes to the next bar boundary
+                                // If PLAY is running, do not allow LEN/bar count changes mid-play
                                 let isPlaying = false;
                                 try { isPlaying = !!(window.autoharp && window.autoharp._isSequencing); } catch (_) { isPlaying = false; }
                                 if (isPlaying) {
-                                    try { grid.dataset.pendingLength = String(newLen); } catch (_) { }
-                                    if (lenVal) { lenVal.textContent = String(newLen); try { lenVal.dataset.pending = '1'; } catch (_) { } }
-                                    if (lenHint) lenHint.textContent = `Queued: ${newLen} steps (next cycle)`;
-                                    try { const scheduleDeferred = window.scheduleDeferred; if (typeof scheduleDeferred === 'function') scheduleDeferred({ transport: true, grid: true, drums: true }); } catch (_) { }
+                                    if (lenVal) {
+                                        lenVal.textContent = String(oldLen);
+                                        try { delete lenVal.dataset.pending; } catch (_) { }
+                                    }
+                                    if (lenHint) lenHint.textContent = `Cycle: ${oldLen} steps`;
+                                    try { delete grid.dataset.pendingLength; } catch (_) { }
                                     return;
                                 }
 
@@ -8941,6 +8943,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         if (pt) pt._pendingApply = () => { try { window._applyPatternInstancePending && window._applyPatternInstancePending(clone); } catch (_) { } };
                                     } catch (_) { }
                                 };
+                                const isPlaybackActive = () => {
+                                    try {
+                                        const omni = window.autoharp;
+                                        return !!(omni && (omni._isSequencing || (omni._arpTransport && omni._arpTransport.running)));
+                                    } catch (_) { return false; }
+                                };
                                 const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
                                 const getBarLen16 = () => {
                                     try {
@@ -8973,6 +8981,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (barsSelect && !barsSelect._wiredPatternInstBars) {
                                     barsSelect._wiredPatternInstBars = true;
                                     barsSelect.addEventListener('change', () => {
+                                        if (isPlaybackActive()) {
+                                            try { syncBarsFromLen(); } catch (_) { }
+                                            return;
+                                        }
                                         const bars = Math.max(1, Math.min(8, parseInt(barsSelect.value || '1', 10) || 1));
                                         const barLen16 = getBarLen16();
                                         const nextLen = Math.max(1, Math.min(maxLen, bars * barLen16));
@@ -13182,7 +13194,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 }
             })();
 
-            // Section switching (A/B/C...) - per-section chords + patterns + drums
+            // Section switching (A/B/C...) - per-section chords + mute states only
             (function () {
                 if (window._sectionSupportWired) return;
                 window._sectionSupportWired = true;
@@ -13354,8 +13366,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const captureSectionState = () => {
                     const omni = window.autoharp;
                     if (!omni) return null;
-                    try { omni._saveArpPattern && omni._saveArpPattern(); } catch (_) { }
-                    try { omni._saveArpPatternSynth && omni._saveArpPatternSynth(); } catch (_) { }
 
                     const captureLoopRange = () => {
                         try {
@@ -13384,44 +13394,34 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const modal = info && info.modal;
                         const key = info && info.key ? String(info.key) : (modal?.dataset ? String(modal.dataset.patternInstanceKey || '') : '');
                         if (!modal || !key) return null;
-                        const patNumEl = modal.querySelector('[data-role="patternPatternNumber"]') || modal.querySelector('#patternPatternNumber');
-                        const curNum = Math.max(1, parseInt(patNumEl ? patNumEl.value : '1', 10) || 1);
                         return {
                             key,
-                            displayName: modal._patternDisplayName || null,
                             enabled: !!modal._patternEnabled,
-                            oneShot: !!modal._patternOneShot,
-                            pendingEnabled: (modal._patternPendingEnabled != null) ? !!modal._patternPendingEnabled : null,
-                            patternNumber: curNum
+                            pendingEnabled: (modal._patternPendingEnabled != null) ? !!modal._patternPendingEnabled : null
                         };
                     }).filter(Boolean);
 
+                    const drumMuteById = (() => {
+                        const out = {};
+                        try {
+                            const list = Array.isArray(window._drumInstances) ? window._drumInstances : [];
+                            list.forEach(inst => {
+                                if (!inst || !inst.id) return;
+                                out[String(inst.id)] = {
+                                    enabled: !!inst.enabled,
+                                    pendingEnabled: (inst.pendingEnabled != null) ? !!inst.pendingEnabled : null
+                                };
+                            });
+                        } catch (_) { }
+                        return out;
+                    })();
+
                     return {
                         chordExtensions: captureChordExtensionsFromDom(),
-                        basePatternNumber,
                         basePatternEnabled,
                         loopRange: captureLoopRange(),
-                        arpPatterns: mapToObj(omni._arpPatterns instanceof Map ? omni._arpPatterns : null),
-                        arpSynthPatterns: mapToObj(omni._arpSynthPatterns instanceof Map ? omni._arpSynthPatterns : null),
-                        arpPatternsByInst: (() => {
-                            const out = {};
-                            try {
-                                const src = omni._arpPatternsByInst || {};
-                                Object.keys(src).forEach(k => { out[k] = mapToObj(src[k]); });
-                            } catch (_) { }
-                            return out;
-                        })(),
-                        arpSynthPatternsByInst: (() => {
-                            const out = {};
-                            try {
-                                const src = omni._arpSynthPatternsByInst || {};
-                                Object.keys(src).forEach(k => { out[k] = mapToObj(src[k]); });
-                            } catch (_) { }
-                            return out;
-                        })(),
                         patternInstances: patternInstancesState,
-                        drumInstances: cloneJson(window._drumInstances || []),
-                        activeDrumInstanceId: window._activeDrumInstanceId || null
+                        drumMuteById
                     };
                 };
 
@@ -13440,7 +13440,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     if (Array.isArray(state.chordExtensions)) {
                         omni.chordExtensions = cloneJson(state.chordExtensions);
-                        try { omni.generateExtensionColumns && omni.generateExtensionColumns(); } catch (_) { }
+                        // FORCE synchronous column regeneration to avoid deferred DOM update
+                        // that causes section switching to read stale (old section) columns
+                        try { omni.generateExtensionColumns && omni.generateExtensionColumns({ force: true }); } catch (_) { }
                         try { omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch (_) { }
                         try {
                             const r = document.getElementById('chordRuler');
@@ -13486,27 +13488,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try { window.requestSequencerRebuild && window.requestSequencerRebuild('section'); } catch (_) { }
                     }
 
-                    if (state.arpPatterns) omni._arpPatterns = objToMap(state.arpPatterns);
-                    if (state.arpSynthPatterns) omni._arpSynthPatterns = objToMap(state.arpSynthPatterns);
-
-                    if (state.arpPatternsByInst) {
-                        omni._arpPatternsByInst = omni._arpPatternsByInst || {};
-                        Object.keys(state.arpPatternsByInst).forEach(k => {
-                            omni._arpPatternsByInst[k] = objToMap(state.arpPatternsByInst[k]);
-                        });
-                    }
-                    if (state.arpSynthPatternsByInst) {
-                        omni._arpSynthPatternsByInst = omni._arpSynthPatternsByInst || {};
-                        Object.keys(state.arpSynthPatternsByInst).forEach(k => {
-                            omni._arpSynthPatternsByInst[k] = objToMap(state.arpSynthPatternsByInst[k]);
-                        });
-                    }
-
-                    const patNumEl = document.getElementById('patternPatternNumber');
-                    if (patNumEl) {
-                        patNumEl.value = String(state.basePatternNumber || 1);
-                        try { patNumEl.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) { }
-                    }
                     const patternModal = document.getElementById('patternModal');
                     if (patternModal && typeof state.basePatternEnabled === 'boolean') {
                         patternModal._patternEnabled = !!state.basePatternEnabled;
@@ -13525,34 +13506,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const key = info && info.key ? String(info.key) : (modal?.dataset ? String(modal.dataset.patternInstanceKey || '') : '');
                             if (!modal || !key || !byKey[key]) return;
                             const st = byKey[key];
-                            if (st.displayName) {
-                                const nmd = String(st.displayName).slice(0, 16);
-                                modal._patternDisplayName = nmd;
-                                if (modal._stripBtn) modal._stripBtn.textContent = nmd;
-                                try { const hdr = modal.querySelector('.modal-header span'); if (hdr) hdr.textContent = `Pattern Sequencer — ${nmd}`; } catch (_) { }
-                            }
                             modal._patternEnabled = !!st.enabled;
-                            modal._patternOneShot = !!st.oneShot;
-                            modal._patternPendingEnabled = null;
-                            try {
-                                const os = modal.querySelector('[data-role="patternOneShotToggle"]') || modal.querySelector('#patternOneShotToggle');
-                                if (os) os.checked = !!modal._patternOneShot;
-                            } catch (_) { }
-                            const patNumEl = modal.querySelector('[data-role="patternPatternNumber"]') || modal.querySelector('#patternPatternNumber');
-                            if (patNumEl) {
-                                patNumEl.value = String(st.patternNumber || 1);
-                                try { patNumEl.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) { }
-                            }
+                            modal._patternPendingEnabled = (st.pendingEnabled != null) ? !!st.pendingEnabled : null;
                             try { window._updatePatternInstanceButtonVisual && window._updatePatternInstanceButtonVisual(modal); } catch (_) { }
                         });
                     } catch (_) { }
 
-                    if (Array.isArray(state.drumInstances)) {
-                        window._drumInstances = cloneJson(state.drumInstances);
-                        try { window._rebuildDrumInstanceButtons && window._rebuildDrumInstanceButtons(); } catch (_) { }
-                    }
-                    if (state.activeDrumInstanceId) window._activeDrumInstanceId = state.activeDrumInstanceId;
-                    try { window._syncDrumEditorToActiveInstance && window._syncDrumEditorToActiveInstance(); } catch (_) { }
+                    try {
+                        const drumMutes = (state && state.drumMuteById && typeof state.drumMuteById === 'object') ? state.drumMuteById : null;
+                        if (drumMutes) {
+                            const drums = Array.isArray(window._drumInstances) ? window._drumInstances : [];
+                            drums.forEach(inst => {
+                                if (!inst || !inst.id) return;
+                                const st = drumMutes[String(inst.id)];
+                                if (!st) return;
+                                inst.enabled = !!st.enabled;
+                                inst.pendingEnabled = (st.pendingEnabled != null) ? !!st.pendingEnabled : null;
+                                try { window._updateDrumInstanceButtonVisual && window._updateDrumInstanceButtonVisual(inst); } catch (_) { }
+                            });
+                        }
+                    } catch (_) { }
                 };
 
                 const ensureSectionUI = () => {
@@ -13720,13 +13693,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const applySectionSwitchById = (id) => {
                         const sec = (window._sections || []).find(s => s && s.id === id);
                         if (!sec) return;
+                        // Always read the live autoharp reference (omni may be stale/null
+                        // if ensureSectionUI ran before autoharp was initialised)
+                        const liveOmni = window.autoharp;
                         window._activeSectionId = id;
                         window._pendingSectionId = null;
-                        if (omni) omni._pendingSectionSwitchId = null;
+                        if (liveOmni) liveOmni._pendingSectionSwitchId = null;
                         applySectionState(sec.state);
                         try {
-                            const t = omni && omni._arpTransport;
-                            const isPlaying = !!(omni && omni._isSequencing && t && t.running);
+                            const t = liveOmni && liveOmni._arpTransport;
+                            const isPlaying = !!(liveOmni && liveOmni._isSequencing && t && t.running);
                             if (isPlaying) {
                                 if (typeof t._seqRebuildNow === 'function') {
                                     t._seqRebuildNow('section-switch');
@@ -19140,12 +19116,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     barsSelect.value = String(bars);
                                 } catch (_) { }
                             };
+                            const isPlaybackActive = () => {
+                                try {
+                                    const omni = window.autoharp;
+                                    return !!(omni && (omni._isSequencing || (omni._arpTransport && omni._arpTransport.running)));
+                                } catch (_) { return false; }
+                            };
                             if (valSpan) valSpan.textContent = patternGrid.dataset.length || '16';
                             try { syncBarsFromLen(); } catch (_) { }
                             if (barsSelect && !barsSelect._wiredPatternBars) {
                                 barsSelect._wiredPatternBars = true;
                                 barsSelect.addEventListener('change', () => {
                                     if (window.autoharp && window.autoharp._projectLocked) return;
+                                    if (isPlaybackActive()) {
+                                        try { syncBarsFromLen(); } catch (_) { }
+                                        return;
+                                    }
                                     const bars = Math.max(1, Math.min(8, parseInt(barsSelect.value || '1', 10) || 1));
                                     const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
                                     const nextLen = Math.max(1, Math.min(maxLen, bars * getBarLen16()));
@@ -52988,6 +52974,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                         : (typeof window._applySectionSwitchById === 'function' ? window._applySectionSwitchById : null);
                                                     if (applyFn) {
                                                         applyFn(autoharp._pendingSectionSwitchId);
+                                                        // Safety: ensure _pendingSectionSwitchId is cleared even if
+                                                        // applySectionSwitchById failed to clear it (stale closure).
+                                                        try { autoharp._pendingSectionSwitchId = null; } catch (_) { }
+                                                        try { window._pendingSectionId = null; } catch (_) { }
                                                         try {
                                                             const t = autoharp._arpTransport;
                                                             if (t) {
@@ -54035,10 +54025,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             let isPlaying = false;
                             try { isPlaying = !!(window.autoharp && window.autoharp._isSequencing); } catch (_) { isPlaying = false; }
                             if (isPlaying) {
-                                try { grid.dataset.pendingLength = String(nextLen); } catch (_) { }
-                                if (lenVal) { lenVal.textContent = String(nextLen); try { lenVal.dataset.pending = '1'; } catch (_) { } }
-                                if (lenHint) lenHint.textContent = `Queued: ${nextLen} steps (next cycle)`;
-                                try { const scheduleDeferred = window.scheduleDeferred; if (typeof scheduleDeferred === 'function') scheduleDeferred({ grid: true, drums: true }); } catch (_) { }
+                                if (lenVal) {
+                                    lenVal.textContent = String(curLen);
+                                    try { delete lenVal.dataset.pending; } catch (_) { }
+                                }
+                                if (lenHint) lenHint.textContent = `Cycle: ${curLen} steps`;
+                                try { delete grid.dataset.pendingLength; } catch (_) { }
                                 return;
                             }
 
