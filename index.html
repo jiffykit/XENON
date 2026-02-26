@@ -2614,6 +2614,65 @@
             border-radius: 6px;
             padding: 2px 4px;
             font-size: 11px;
+            text-align: center;
+        }
+
+        .drum-quant.q-enhanced {
+            gap: 3px !important;
+        }
+
+        .drum-quant .q-toggle-btn {
+            min-width: 20px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 6px;
+            border: 1px solid #2b5567;
+            background: #103144;
+            color: #d9eeff;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 16px;
+            cursor: pointer;
+        }
+
+        .drum-quant .q-panel {
+            display: none;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .q-controls-open .drum-quant .q-panel {
+            display: inline-flex;
+        }
+
+        .drum-quant .q-op-btn {
+            min-width: 20px;
+            height: 18px;
+            padding: 0 4px;
+            border-radius: 6px;
+            border: 1px solid #2b5567;
+            background: #103144;
+            color: #d9eeff;
+            font-size: 9px;
+            font-weight: 700;
+            cursor: pointer;
+            line-height: 16px;
+        }
+
+        .drum-quant .q-op-btn:active {
+            transform: translateY(1px);
+        }
+
+        .drum-quant .q-indicator {
+            width: 28px !important;
+            min-width: 28px;
+            height: 18px;
+            padding: 0 2px;
+            pointer-events: none;
+            user-select: none;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 0.2px;
         }
 
         #drumGrid.drum-grid .drum-drawer {
@@ -6246,6 +6305,251 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } catch (_) { }
             };
 
+            (function initQuantRowControls() {
+                const MIN_Q = 7;
+                const AUTO_HIDE_MS = 10000;
+                const parseQuantDisplay = (raw, fallback) => {
+                    const fb = Math.max(MIN_Q, (fallback | 0) || 16);
+                    try {
+                        const s = String(raw || '').trim();
+                        if (!s) return fb;
+                        const mf = s.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+                        if (mf) {
+                            const d = parseInt(mf[2], 10);
+                            if (Number.isFinite(d) && d > 0) return d;
+                        }
+                        const mn = s.match(/^\s*(\d+)\s*$/);
+                        if (mn) {
+                            const n = parseInt(mn[1], 10);
+                            if (Number.isFinite(n) && n > 0) return n;
+                        }
+                    } catch (_) { }
+                    return fb;
+                };
+                const getMaxQ = (input) => {
+                    let maxQ = parseInt(input?.max || '', 10);
+                    if (!Number.isFinite(maxQ) || maxQ <= 0) {
+                        try {
+                            maxQ = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function')
+                                ? window.autoharp._getMaxCycleSteps()
+                                : 64;
+                        } catch (_) {
+                            maxQ = 64;
+                        }
+                    }
+                    return Math.max(MIN_Q, maxQ | 0);
+                };
+                const clampQ = (q, maxQ) => Math.max(MIN_Q, Math.min(maxQ, (q | 0) || 16));
+                const getScope = (input) => input.closest('.drum-grid-container') || input.closest('.modal') || document.body;
+                const closeScope = (scope) => {
+                    try {
+                        if (!scope) return;
+                        scope.classList.remove('q-controls-open');
+                        if (scope._qControlsHideTimer) {
+                            clearTimeout(scope._qControlsHideTimer);
+                            scope._qControlsHideTimer = null;
+                        }
+                    } catch (_) { }
+                };
+                const armScopeAutoHide = (scope) => {
+                    try {
+                        if (!scope) return;
+                        if (scope._qControlsHideTimer) clearTimeout(scope._qControlsHideTimer);
+                        scope._qControlsHideTimer = setTimeout(() => closeScope(scope), AUTO_HIDE_MS);
+                    } catch (_) { }
+                };
+                const ensureScopeActivity = (scope) => {
+                    try {
+                        if (!scope || scope._qControlsActivityWired) return;
+                        scope._qControlsActivityWired = true;
+                        const bump = () => {
+                            try {
+                                if (scope.classList.contains('q-controls-open')) armScopeAutoHide(scope);
+                            } catch (_) { }
+                        };
+                        ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'].forEach(evt => {
+                            scope.addEventListener(evt, bump, { passive: true });
+                        });
+                    } catch (_) { }
+                };
+                const openScope = (scope) => {
+                    try {
+                        if (!scope) return;
+                        ensureScopeActivity(scope);
+                        scope.classList.add('q-controls-open');
+                        armScopeAutoHide(scope);
+                    } catch (_) { }
+                };
+
+                const updateIndicator = (input) => {
+                    const maxQ = getMaxQ(input);
+                    const q = clampQ(parseQuantDisplay(input.value, 16), maxQ);
+                    input.value = String(q);
+                };
+
+                const refreshPatternContainerMaxD = (lane) => {
+                    try {
+                        const container = lane && lane.closest('.drum-grid-container');
+                        if (!container) return;
+                        const grid = lane.closest('.pattern-grid, #patternGrid, .drum-grid');
+                        const lanes = Array.from(container.querySelectorAll('.pattern-lane'));
+                        if (!lanes.length) return;
+                        const maxD = lanes.reduce((mx, ln) => {
+                            const qs = String(ln.dataset.pendingQuant || ln.dataset.quant || '').trim();
+                            let d = 0;
+                            const m = qs.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+                            if (m) d = parseInt(m[2], 10) || 0;
+                            else {
+                                const mn = qs.match(/^\s*(\d+)\s*$/);
+                                if (mn) d = parseInt(mn[1], 10) || 0;
+                            }
+                            return Math.max(mx, d || 0);
+                        }, 16);
+                        const target = Math.max(16, maxD);
+                        container.style.setProperty('--bar-steps', String(target));
+                        try { if (grid && grid.style) grid.style.setProperty('--bar-steps', String(target)); } catch (_) { }
+                        try { window._autoSizePatternModals && window._autoSizePatternModals(target); } catch (_) { }
+                    } catch (_) { }
+                };
+
+                const previewPendingPatternQuant = (input) => {
+                    try {
+                        const row = input.closest('.pattern-row');
+                        if (!row) return;
+                        const lane = row.querySelector('.pattern-lane');
+                        if (!lane || !lane.dataset || !lane.dataset.pendingQuant) return;
+                        const d = clampQ(parseQuantDisplay(lane.dataset.pendingQuant, parseQuantDisplay(input.value, 16)), getMaxQ(input));
+                        lane.dataset.quant = String(d);
+                        lane._quant = { str: String(d), N: d, D: d };
+                        lane.style.setProperty('--steps-per-bar', String(d));
+                        const gridEl = lane.closest('.pattern-grid, #patternGrid, .drum-grid');
+                        if (window.rebuildPatternLaneForQuant) window.rebuildPatternLaneForQuant(lane, gridEl);
+                        refreshPatternContainerMaxD(lane);
+                    } catch (_) { }
+                };
+
+                const applyAdjust = (input, mode) => {
+                    const maxQ = getMaxQ(input);
+                    const cur = clampQ(parseQuantDisplay(input.value, 16), maxQ);
+                    let next = cur;
+                    if (mode === 'half') next = Math.floor(cur / 2);
+                    else if (mode === 'dec') next = cur - 1;
+                    else if (mode === 'inc') next = cur + 1;
+                    else if (mode === 'double') next = cur * 2;
+                    next = clampQ(next, maxQ);
+                    if (next === cur) return;
+                    input.value = String(next);
+                    const scope = getScope(input);
+                    openScope(scope);
+                    try { input.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) { }
+                    try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) { }
+                    updateIndicator(input);
+                    previewPendingPatternQuant(input);
+                };
+
+                const buildBtn = (label, mode, title, input) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'q-op-btn';
+                    btn.textContent = label;
+                    btn.title = title;
+                    btn.addEventListener('click', (ev) => {
+                        ev.preventDefault();
+                        applyAdjust(input, mode);
+                    });
+                    return btn;
+                };
+
+                const enhanceOne = (input) => {
+                    try {
+                        if (!input || input.dataset.qControls === '1') return;
+                        input.dataset.qControls = '1';
+                        input.readOnly = true;
+                        input.tabIndex = -1;
+                        input.classList.add('q-indicator');
+                        updateIndicator(input);
+
+                        const wrap = input.parentElement;
+                        if (!wrap) return;
+                        wrap.classList.add('q-enhanced');
+                        Array.from(wrap.children).forEach(node => {
+                            if (node === input) return;
+                            if (node.tagName === 'LABEL' || (node.tagName === 'SPAN' && /^\s*Q\s*:?\s*$/i.test(String(node.textContent || '')))) {
+                                node.style.display = 'none';
+                            }
+                        });
+
+                        const toggleBtn = document.createElement('button');
+                        toggleBtn.type = 'button';
+                        toggleBtn.className = 'q-toggle-btn';
+                        toggleBtn.textContent = 'Q';
+                        toggleBtn.title = 'Show/hide per-row Q controls';
+
+                        const panel = document.createElement('span');
+                        panel.className = 'q-panel';
+                        const halfBtn = buildBtn('/2', 'half', 'Halve row Q', input);
+                        const decBtn = buildBtn('-', 'dec', 'Decrease row Q by 1', input);
+                        const incBtn = buildBtn('+', 'inc', 'Increase row Q by 1', input);
+                        const doubleBtn = buildBtn('*2', 'double', 'Double row Q', input);
+
+                        panel.appendChild(halfBtn);
+                        panel.appendChild(decBtn);
+                        panel.appendChild(input);
+                        panel.appendChild(incBtn);
+                        panel.appendChild(doubleBtn);
+                        wrap.appendChild(toggleBtn);
+                        wrap.appendChild(panel);
+
+                        toggleBtn.addEventListener('click', (ev) => {
+                            ev.preventDefault();
+                            const scope = getScope(input);
+                            if (scope.classList.contains('q-controls-open')) closeScope(scope);
+                            else openScope(scope);
+                        });
+
+                        input.addEventListener('change', () => {
+                            updateIndicator(input);
+                            previewPendingPatternQuant(input);
+                            const scope = getScope(input);
+                            if (scope.classList.contains('q-controls-open')) armScopeAutoHide(scope);
+                        });
+                    } catch (_) { }
+                };
+
+                const enhanceAll = (root) => {
+                    try {
+                        const scope = root && root.querySelectorAll ? root : document;
+                        const nodes = scope.querySelectorAll('.drum-quant input');
+                        nodes.forEach(enhanceOne);
+                    } catch (_) { }
+                };
+
+                const boot = () => {
+                    try {
+                        enhanceAll(document);
+                        if (!document.body || window.__qControlsObserver) return;
+                        const observer = new MutationObserver((muts) => {
+                            muts.forEach(m => {
+                                if (!m || !m.addedNodes) return;
+                                m.addedNodes.forEach(node => {
+                                    if (!node || node.nodeType !== 1) return;
+                                    if (node.matches && node.matches('.drum-quant input')) enhanceOne(node);
+                                    enhanceAll(node);
+                                });
+                            });
+                        });
+                        observer.observe(document.body, { childList: true, subtree: true });
+                        window.__qControlsObserver = observer;
+                    } catch (_) { }
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', boot, { once: true });
+                } else {
+                    boot();
+                }
+            })();
+
             // Detect weaker systems to selectively simplify visuals while preserving audio fidelity.
             (function () {
                 try {
@@ -7322,6 +7626,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 try { qInput.value = str; } catch (_) { }
                                 const isPlaying = !!(window.autoharp && window.autoharp._arpTransport && window.autoharp._arpTransport.running);
                                 if (isPlaying) {
+                                    lane.dataset.quant = str;
+                                    lane._quant = { str, N, D };
+                                    try { lane.style.setProperty('--steps-per-bar', String(D)); } catch (_) { }
+                                    try { window.rebuildPatternLaneForQuant && window.rebuildPatternLaneForQuant(lane, gridEl); } catch (_) { }
                                     lane.dataset.pendingQuant = str;
                                     lane._pendingQuant = { str, N, D };
                                     try { qInput.dataset.pending = '1'; qInput.classList.add('pending-change'); } catch (_) { }
@@ -7590,6 +7898,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     container.style.setProperty('--bar-steps', String(Math.max(1, maxD)));
                                 }
                             } catch (_) { }
+                            try {
+                                gridEl._pendingAudioEdits = true;
+                                gridEl._audioSnapshot = null;
+                            } catch (_) { }
                             try { delete gridEl.dataset.pendingLength; } catch (_) { }
                             try { delete gridEl.dataset.pendingNpc; } catch (_) { }
                         }
@@ -7837,7 +8149,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (!lane) return;
                             const laneSnap = (snap && snap.lanes && snap.lanes[rowIdx]) ? snap.lanes[rowIdx] : null;
                             const D = Math.max(1, (laneSnap && laneSnap.D) ? laneSnap.D : ((lane.querySelectorAll('.pattern-step').length | 0) || getLaneD(lane, baseFallback)));
-                            try { lane.style.setProperty('--steps-per-bar', String(D)); } catch (_) { }
+                            const DVisual = Math.max(1,
+                                (lane && lane._pendingQuant && lane._pendingQuant.D) ? (lane._pendingQuant.D | 0)
+                                    : ((lane && lane._quant && lane._quant.D) ? (lane._quant.D | 0)
+                                        : ((lane.querySelectorAll('.pattern-step').length | 0) || D))
+                            );
+                            try { lane.style.setProperty('--steps-per-bar', String(DVisual)); } catch (_) { }
                             const localCycleTick = (((absTickNow | 0) % cycleTicksForStep) + cycleTicksForStep) % cycleTicksForStep;
                             const x0 = (localCycleTick * D) / cycleTicksForStep;
                             const x1 = ((localCycleTick + 1) * D) / cycleTicksForStep;
@@ -14296,10 +14613,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     this.initAudio();
                     // Also set up resume attempts on common gestures to satisfy autoplay policies
                     const tryResume = () => { if (this.audioContext && this.audioContext.state === 'suspended') { this.audioContext.resume().catch(() => { }); } };
-                    document.addEventListener('pointerdown', tryResume, { once: false });
-                    document.addEventListener('keydown', tryResume, { once: false });
-                    document.addEventListener('click', tryResume, { once: false });
-                    document.addEventListener('touchstart', tryResume, { once: false, passive: false });
+                    if (!window.__xen_globalAudioResumeWired) {
+                        window.__xen_globalAudioResumeWired = true;
+                        document.addEventListener('pointerdown', tryResume, { passive: true });
+                        document.addEventListener('keydown', tryResume);
+                    }
                     this.initEventListeners();
                     // Always enable global keyboard shortcuts (including +/- for transpose)
                     this.setupKeyboardInput();
@@ -17064,6 +17382,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 let isPlaying = false;
                                 try { isPlaying = !!(window.autoharp && window.autoharp._isSequencing); } catch (_) { isPlaying = false; }
                                 if (isPlaying) {
+                                    lane.dataset.quant = newStr;
+                                    lane._quant = { N: q.N, D: q.D, str: newStr };
+                                    try { lane.style.setProperty('--steps-per-bar', String(q.D)); } catch (_) { }
+                                    try { this._updateDrumGridForTimeSignature && this._updateDrumGridForTimeSignature(); } catch (_) { }
                                     lane.dataset.pendingQuant = newStr;
                                     lane._pendingQuant = { N: q.N, D: q.D, str: newStr };
                                 } else {
@@ -17844,6 +18166,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // While playing, do NOT change the active quant mid-cycle; queue for next bar.
                                 const isPlaying = !!(window.autoharp && window.autoharp._isSequencing);
                                 if (isPlaying) {
+                                    lane.dataset.quant = str;
+                                    lane._quant = { str, N, D };
+                                    try { lane.style.setProperty('--steps-per-bar', String(D)); } catch (_) { }
+                                    try { window.rebuildPatternLaneForQuant && window.rebuildPatternLaneForQuant(lane, patternGrid); } catch (_) { }
                                     lane.dataset.pendingQuant = str;
                                     lane._pendingQuant = { str, N, D };
                                 } else {
@@ -18027,6 +18353,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const oldLen = Math.max(1, Math.min(maxLen, parseInt(patternGrid.dataset.length || '16', 10) || 16));
                             if (oldLen === newLen) return;
                             patternGrid.dataset.length = String(newLen);
+                            try {
+                                patternGrid._pendingAudioEdits = true;
+                                patternGrid._audioSnapshot = null;
+                            } catch (_) { }
                             try { const valSpan = document.getElementById('patternLenValue'); if (valSpan) valSpan.textContent = String(newLen); } catch (_) { }
                             try {
                                 const isDefaultQuant = (qs) => {
@@ -18198,6 +18528,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     try { qInput.value = str; } catch (_) { }
                                     const isPlaying = !!(window.autoharp && window.autoharp._isSequencing);
                                     if (isPlaying) {
+                                        lane.dataset.quant = str;
+                                        lane._quant = { str, N: nextN, D: nextD };
+                                        try { lane.style.setProperty('--steps-per-bar', String(nextD)); } catch (_) { }
+                                        try { window.rebuildPatternLaneForQuant && window.rebuildPatternLaneForQuant(lane, patternGrid); } catch (_) { }
                                         lane.dataset.pendingQuant = str;
                                         lane._pendingQuant = { str, N: nextN, D: nextD };
                                     } else {
@@ -18712,6 +19046,41 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         const omni = window.autoharp;
                                         if (omni && typeof omni.rebuildBassTieOverlays === 'function') omni.rebuildBassTieOverlays(lane);
                                     }
+                                } catch (_) { }
+
+                                // Keep horizontal spacing at least equivalent to 16-step density.
+                                // If any row has D > 16, expand bar width for all rows so dots never overlap.
+                                try {
+                                    const container = grid.closest('.drum-grid-container') || grid.parentElement;
+                                    const lanes = Array.from(grid.querySelectorAll('.pattern-lane'));
+                                    const maxD = lanes.reduce((mx, ln) => {
+                                        let d = 0;
+                                        try {
+                                            if (ln && ln._pendingQuant && Number.isFinite(ln._pendingQuant.D) && ln._pendingQuant.D > 0) {
+                                                d = ln._pendingQuant.D | 0;
+                                            }
+                                            if (!d && ln && ln._quant && Number.isFinite(ln._quant.D) && ln._quant.D > 0) {
+                                                d = ln._quant.D | 0;
+                                            }
+                                            if (!d) {
+                                                const qs = String((ln?.dataset?.pendingQuant || ln?.dataset?.quant || '')).trim();
+                                                const mm = qs.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+                                                if (mm) d = parseInt(mm[2], 10) || 0;
+                                                else {
+                                                    const mn = qs.match(/^\s*(\d+)\s*$/);
+                                                    if (mn) d = parseInt(mn[1], 10) || 0;
+                                                }
+                                            }
+                                        } catch (_) { }
+                                        return Math.max(mx, d || 0);
+                                    }, 16);
+
+                                    const targetBarSteps = Math.max(16, maxD);
+                                    try { grid.style.setProperty('--bar-steps', String(targetBarSteps)); } catch (_) { }
+                                    if (container && container.style) {
+                                        try { container.style.setProperty('--bar-steps', String(targetBarSteps)); } catch (_) { }
+                                    }
+                                    try { window._autoSizePatternModals && window._autoSizePatternModals(targetBarSteps); } catch (_) { }
                                 } catch (_) { }
                             } catch (_) { }
                         };
@@ -28370,18 +28739,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                     }, { passive: false });
 
-                    // Allow multitouch on control elements - prevent default only on strings
-                    document.addEventListener('touchstart', (e) => {
-                        const target = e.target;
-                        if (target.classList.contains('tuning-btn') ||
-                            target.classList.contains('chord-btn') ||
-                            target.classList.contains('quality-btn') ||
-                            target.classList.contains('osc-btn')) {
-                            // Don't prevent default on control buttons to allow multitouch
-                            return;
-                        }
-                    }, { passive: false });
-
                     const handleGlobalInteraction = (source) => {
                         // Idle/HOLD transport reset: if not sequencing and idle > HOLD, reset transport so next tap starts on beat 1
                         try {
@@ -28421,12 +28778,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try { if (this._isSequencing) this._startArpTransport(); } catch (_) { }
                     };
 
-                    // Handle audio context resume on any interaction
-                    document.addEventListener('click', () => handleGlobalInteraction('click'));
-
-                    document.addEventListener('touchstart', () => handleGlobalInteraction('touch'));
-
-                    document.addEventListener('mousedown', () => handleGlobalInteraction('mousedown'));
+                    // Handle global interaction once per pointer gesture (mouse/touch/pen)
+                    if (!this._globalInteractionWired) {
+                        this._globalInteractionWired = true;
+                        document.addEventListener('pointerdown', () => handleGlobalInteraction('pointerdown'), { passive: true });
+                    }
 
                     // Modal Event Listeners
                     const closeColumnModalBtn = document.getElementById('closeColumnModal');
@@ -49027,9 +49383,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         } catch (_) { }
                     };
                     document.addEventListener('pointerdown', handleChordboxLock, { passive: false, capture: true });
-                    document.addEventListener('pointerup', handleChordboxLock, { passive: false, capture: true });
-                    document.addEventListener('touchstart', handleChordboxLock, { passive: false, capture: true });
-                    document.addEventListener('touchend', handleChordboxLock, { passive: false, capture: true });
                     document.addEventListener('click', handleChordboxLock, { passive: false, capture: true });
                 }
                 try {
