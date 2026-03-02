@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -3656,8 +3656,7 @@
                 display: none !important;
             }
 
-            /* Fix help and bells buttons - prevent stretching */
-            #tutorialButton,
+            /* Fix JAM button sizing - prevent stretching */
             #bellsButton {
                 flex-basis: calc(14.28% - 2px) !important;
                 width: auto !important;
@@ -4070,7 +4069,7 @@
             margin-top: 20px;
         }
 
-        /* Tutorial System Styles */
+        /* Legacy tutorial styles removed */
 
         /* TIME modal compact styles */
         #timeModal .modal-content {
@@ -4080,10 +4079,6 @@
         #timeModal label {
             font-size: 11px;
             color: #9db6c8;
-        }
-
-        #tutorialOverlay {
-            backdrop-filter: blur(2px);
         }
 
         /* Mobile/touch optimizations */
@@ -4115,20 +4110,10 @@
             height: 22px;
         }
 
-        #tutorialBox {
-            max-height: 88vh;
-            overflow-y: auto;
-            position: fixed !important;
-            top: calc(var(--bar-h) + env(safe-area-inset-top) + 6px) !important;
-            left: 50% !important;
-        }
-
-        #tutorialButton,
         #bellsButton {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        #tutorialButton:hover,
         #bellsButton:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
@@ -4147,10 +4132,6 @@
             100% {
                 box-shadow: 0 0 0 0 rgba(143, 179, 211, 0);
             }
-        }
-
-        #tutorialButton {
-            animation: pulse 2s infinite;
         }
 
         @keyframes diceRoll {
@@ -4299,7 +4280,7 @@
 
             <!-- TIME submenu moved to modal -->
 
-            <!-- ROW 3: KBD, SAVE XEN, LOAD XEN, BELLS, ? (PRESET button removed in favor of full-session XEN save) -->
+            <!-- ROW 3: KBD, SAVE XEN, LOAD XEN, JAM (PRESET button removed in favor of full-session XEN save) -->
             <!-- Keyboard toggle first in row 3 -->
             <div class="mobile-row-3" style="display:flex;align-items:center;gap:6px;">
                 <label style="font-size:11px;color:#9db6c8;">KBD</label>
@@ -4312,7 +4293,6 @@
             <button id="bottomImportOMGBtn" class="panel-btn mobile-row-3" title="Import .XEN session"
                 style="background:#9b59b6;border-color:#8e44ad;">LOAD XEN</button>
             <button id="bellsButton" class="panel-btn mobile-row-3" title="Open JAM">JAM</button>
-            <button id="tutorialButton" class="panel-btn mobile-row-3" title="Start Tutorial">?</button>
 
             <!-- MASTER slider moved to main menu line -->
             <div class="mobile-row-6" style="display:flex;align-items:center;gap:6px;margin-left:auto;">
@@ -5243,7 +5223,6 @@
                     <button id="saveXenBtn" class="sidebar-btn" title="Export full session (.XEN)"
                         style="background:#10b981;border-color:#34d399;">SAVE</button>
                     <button id="bellsBtnSidebar" class="sidebar-btn" title="Open JAM">JAM</button>
-                    <button id="tutorialBtnSidebar" class="sidebar-btn" title="Start Tutorial">?</button>
 
                     <!-- Transpose controls moved to top-right of sidebar -->
                     <div id="sidebarTransposeCluster"
@@ -6230,26 +6209,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             </div>
         </div>
 
-        <!-- Tutorial Overlay -->
-        <div id="tutorialOverlay"
-            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999;">
-            <div id="tutorialBox"
-                style="position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 2px solid #4a6870; border-radius: 10px; padding: 20px; max-width: 600px; max-height: 70vh; overflow-y: auto; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-                <h3 id="tutorialTitle" style="color: #8fb3d3; margin-top: 0;">Welcome to ChromoTone</h3>
-                <p id="tutorialText" style="color: #fff; line-height: 1.5;">Click Next to start the tutorial.</p>
-                <div
-                    style="margin-top: 15px; text-align: center; font-size: 12px; color: #8fb3d3; opacity: 0.9; background: rgba(74, 104, 112, 0.2); padding: 8px; border-radius: 5px;">
-                    💡 Press ESC, click outside, or use Skip Tutorial to exit anytime
-                </div>
-                <div style="margin-top: 20px; text-align: right;">
-                    <button id="tutorialPrev" class="osc-btn" style="margin-right: 10px;">Previous</button>
-                    <button id="tutorialNext" class="osc-btn">Next</button>
-                    <button id="tutorialSkip" class="osc-btn" style="margin-left: 10px; background: #dc2626;">Skip
-                        Tutorial</button>
-                </div>
-            </div>
-        </div>
-
         <!-- Startup Splash Overlay -->
         <div id="startupSplashOverlay"
             style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:13001; pointer-events:none;">
@@ -6294,8 +6253,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 try {
                     if (!window.console) return;
                     const noop = function () { };
-                    const methods = ['log', 'info', 'debug', 'warn', 'error', 'trace', 'group', 'groupCollapsed', 'groupEnd', 'time', 'timeEnd', 'table'];
+                    const methods = ['log', 'info', 'debug', 'warn', 'error', 'trace', 'group', 'groupCollapsed', 'groupEnd', 'time', 'timeEnd', 'table', 'dir', 'dirxml', 'assert', 'count', 'countReset', 'profile', 'profileEnd', 'timeLog', 'timeStamp'];
                     methods.forEach(function (m) { if (typeof window.console[m] === 'function') window.console[m] = noop; });
+                    window.DEBUG_AUDIO = false;
+                    window.__DEV__ = false;
+                    window.onerror = function () { return true; };
+                    window.onunhandledrejection = function () { return true; };
                 } catch (_) { }
             })();
 
@@ -7730,6 +7693,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (!modalEl || !modalEl.querySelector) return;
                         const gridEl = (modalEl.querySelector('[data-role="patternGrid"]') || modalEl.querySelector('#patternGrid') || modalEl.querySelector('.pattern-grid'));
                         if (!gridEl) return;
+                        let didPatternGeometryChange = false;
 
                         // Commit any queued mute/unmute at Beat 1.
                         try {
@@ -7914,14 +7878,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } catch (_) { }
                             try { delete gridEl.dataset.pendingLength; } catch (_) { }
                             try { delete gridEl.dataset.pendingNpc; } catch (_) { }
+                            didPatternGeometryChange = true;
                         }
 
                         // Commit any pending per-lane quant changes at the cycle boundary
                         try {
                             const lanes = Array.from(gridEl.querySelectorAll('.pattern-lane'));
+                            let didLaneQuantCommit = false;
                             lanes.forEach(lane => {
                                 const pq = lane?.dataset?.pendingQuant;
                                 if (!pq) return;
+                                didLaneQuantCommit = true;
                                 lane.dataset.quant = String(pq);
                                 try { delete lane.dataset.pendingQuant; } catch (_) { }
                                 try { delete lane._pendingQuant; } catch (_) { }
@@ -7945,6 +7912,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // Rebuild row dots to match D now that quant is committed.
                                 try { window.rebuildPatternLaneForQuant && window.rebuildPatternLaneForQuant(lane, gridEl); } catch (_) { }
                             });
+                            if (didLaneQuantCommit) didPatternGeometryChange = true;
 
                             // Update container geometry to max D
                             try {
@@ -7971,6 +7939,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 try { window.rebuildPatternTieOverlays && window.rebuildPatternTieOverlays(lane); } catch (_) { }
                             });
                         } catch (_) { }
+
+                        if (didPatternGeometryChange) {
+                            try { gridEl._pendingAudioEdits = true; } catch (_) { }
+                            try { delete gridEl._audioSnapshot; } catch (_) { gridEl._audioSnapshot = null; }
+                            try {
+                                const lanes = Array.from(gridEl.querySelectorAll('.pattern-lane'));
+                                lanes.forEach(lane => { try { delete lane._lastPatternAbsQStep; } catch (_) { lane._lastPatternAbsQStep = null; } });
+                            } catch (_) { }
+                        }
                     } catch (_) { }
                 };
 
@@ -8131,10 +8108,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const barLen16 = Math.max(1, (tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 16));
                             const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
                             const lenValueEl = modalEl ? (modalEl.querySelector('[data-role="patternLenValue"]') || modalEl.querySelector('#patternLenValue')) : null;
+                            const lenUiPending = !!(lenValueEl && lenValueEl.dataset && lenValueEl.dataset.pending === '1');
                             const lenUi = parseInt((lenValueEl && lenValueEl.textContent) ? String(lenValueEl.textContent).trim() : '', 10);
                             const lenPg = parseInt(gridEl.dataset.length || '', 10);
                             const cycleLen16 = Math.max(1, Math.min(maxLen,
-                                (Number.isFinite(lenUi) && lenUi > 0) ? lenUi : ((Number.isFinite(lenPg) && lenPg > 0) ? lenPg : barLen16)
+                                (Number.isFinite(lenPg) && lenPg > 0) ? lenPg : (((!lenUiPending && Number.isFinite(lenUi) && lenUi > 0) ? lenUi : barLen16))
                             ));
                             const cycleTicks = Math.max(1, Math.round(tpb * (cycleLen16 / barLen16)));
                             const cycleTick = (((absTickNow | 0) % cycleTicks) + cycleTicks) % cycleTicks;
@@ -8373,7 +8351,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (i > headStep && i <= headStep + len - 1) steps[i].dataset.tie = '1';
                             else if (i > headStep) delete steps[i].dataset.tie;
                         }
-                        try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { }
+                        try {
+                            const doRebuild = () => { try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { } };
+                            if (typeof window.runAudioPriorityUiTask === 'function') {
+                                window.runAudioPriorityUiTask(doRebuild, { label: 'pattern-tie-drag', allowDuringPlayback: false });
+                            } else {
+                                doRebuild();
+                            }
+                        } catch (_) { }
                     };
 
                     // Delegated interactions per lane
@@ -8568,7 +8553,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 st.classList.add('active');
                                 st.dataset.len = st.dataset.len || '1';
                             }
-                            try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { }
+                            try {
+                                const doRebuild = () => { try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { } };
+                                if (typeof window.runAudioPriorityUiTask === 'function') {
+                                    window.runAudioPriorityUiTask(doRebuild, { label: 'pattern-tie-click', allowDuringPlayback: false });
+                                } else {
+                                    doRebuild();
+                                }
+                            } catch (_) { }
                             markPending();
 
                             // Click-audition (only when turning on). Mute gating is enforced inside _playPatternNote.
@@ -8616,7 +8608,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     delete st.dataset.len; st.classList.remove('active');
                                 }
                             } catch (_) { }
-                            try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { }
+                            try {
+                                const doRebuild = () => { try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { } };
+                                if (typeof window.runAudioPriorityUiTask === 'function') {
+                                    window.runAudioPriorityUiTask(doRebuild, { label: 'pattern-tie-context', allowDuringPlayback: false });
+                                } else {
+                                    doRebuild();
+                                }
+                            } catch (_) { }
                             markPending();
                         });
                     });
@@ -9684,6 +9683,40 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     try { modalEl.remove(); } catch (_) { try { modalEl.style.display = 'none'; } catch (__) { } }
                 };
 
+                window.preloadPlaybackUi = function () {
+                    if (window._playbackUiPreloaded) return;
+                    window._playbackUiPreloaded = true;
+                    try {
+                        const baseModal = document.getElementById('patternModal');
+                        if (baseModal) {
+                            const gridEl = (baseModal.querySelector('[data-role="patternGrid"]') || baseModal.querySelector('#patternGrid') || baseModal.querySelector('.pattern-grid'));
+                            const npcEl = (baseModal.querySelector('[data-role="universalNpc"]') || baseModal.querySelector('#universalNpc'));
+                            const lenValueEl = (baseModal.querySelector('[data-role="patternLenValue"]') || baseModal.querySelector('#patternLenValue'));
+                            const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
+                            const npc = Math.max(1, Math.min((window._getPatternNpcMax ? window._getPatternNpcMax() : 512), parseInt(npcEl?.value || '16', 10) || 16));
+                            const len = Math.max(1, Math.min(maxLen, parseInt(lenValueEl?.textContent || gridEl?.dataset?.length || '16', 10) || 16));
+                            if (gridEl) {
+                                if (!gridEl.dataset.built && typeof buildBlankPatternGrid === 'function') {
+                                    buildBlankPatternGrid(baseModal, gridEl, npc, len);
+                                }
+                                try { if (typeof wirePatternGridInteractions === 'function') wirePatternGridInteractions(baseModal); } catch (_) { }
+                                try {
+                                    Array.from(gridEl.querySelectorAll('.pattern-lane')).forEach(lane => {
+                                        try { window.rebuildPatternTieOverlays && window.rebuildPatternTieOverlays(lane); } catch (_) { }
+                                    });
+                                } catch (_) { }
+                            }
+                        }
+
+                        ['oscModal', 'midiModal', 'patternModal', 'drumModal'].forEach(id => {
+                            try {
+                                const el = document.getElementById(id);
+                                if (el) el.getBoundingClientRect();
+                            } catch (_) { }
+                        });
+                    } catch (_) { }
+                };
+
                 // Wire sidebar click/tap: always spawn a NEW pattern instance and open it maximized
                 try {
                     const btn = document.getElementById('newPatternBtn') || document.getElementById('patternBtn');
@@ -9699,10 +9732,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 btn._lastPatternSpawnTs = now;
                             } catch (_) { }
                             try {
-                                const modal = window.spawnPatternInstance && window.spawnPatternInstance();
-                                if (modal) {
-                                    try { modal.style.display = 'flex'; } catch (_) { }
-                                    try { window.showPatternModal && window.showPatternModal(modal); } catch (_) { }
+                                const spawnUi = () => {
+                                    const modal = window.spawnPatternInstance && window.spawnPatternInstance();
+                                    if (modal) {
+                                        try { modal.style.display = 'flex'; } catch (_) { }
+                                        try { window.showPatternModal && window.showPatternModal(modal); } catch (_) { }
+                                    }
+                                };
+                                if (typeof window.runAudioPriorityUiTask === 'function') {
+                                    window.runAudioPriorityUiTask(spawnUi, { label: 'spawn-pattern-instance', allowDuringPlayback: true });
+                                } else {
+                                    spawnUi();
                                 }
                             } catch (_) { }
                         };
@@ -12005,6 +12045,81 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             })();
 
             (function () {
+                if (window.runAudioPriorityUiTask) return;
+
+                const q = [];
+                let idleHandle = null;
+
+                const nowMs = () => (performance && performance.now ? performance.now() : Date.now());
+                const isTransportRunning = () => {
+                    try {
+                        const omni = window.autoharp;
+                        return !!(omni && (omni._isSequencing || (omni._arpTransport && omni._arpTransport.running)));
+                    } catch (_) { return false; }
+                };
+
+                const runOne = (entry) => {
+                    if (!entry || typeof entry.fn !== 'function') return false;
+                    try { entry.fn(); } catch (_) { }
+                    return true;
+                };
+
+                const flushNow = (opts = {}) => {
+                    const max = Math.max(1, Math.min(64, parseInt(opts.max || 4, 10) || 4));
+                    const budgetMs = Math.max(1, Math.min(20, parseFloat(opts.budgetMs || 6) || 6));
+                    const force = !!opts.force;
+                    const active = isTransportRunning();
+                    const started = nowMs();
+                    let ran = 0;
+                    while (q.length && ran < max) {
+                        if (active && !force) {
+                            const next = q[0];
+                            if (!next || next.allowDuringPlayback !== true) break;
+                        }
+                        const entry = q.shift();
+                        if (runOne(entry)) ran++;
+                        if (!force && (nowMs() - started) >= budgetMs) break;
+                    }
+                    return ran;
+                };
+
+                const scheduleIdleFlush = () => {
+                    if (idleHandle != null) return;
+                    if (isTransportRunning()) return;
+                    const flushIdle = () => {
+                        idleHandle = null;
+                        flushNow({ max: 3, budgetMs: 8 });
+                        if (q.length && !isTransportRunning()) scheduleIdleFlush();
+                    };
+                    if (typeof requestIdleCallback === 'function') {
+                        idleHandle = requestIdleCallback(flushIdle, { timeout: 180 });
+                    } else {
+                        idleHandle = setTimeout(flushIdle, 24);
+                    }
+                };
+
+                window.isPlaybackTransportRunning = isTransportRunning;
+                window.runAudioPriorityUiTask = function (fn, opts = {}) {
+                    if (typeof fn !== 'function') return false;
+                    const allowDuringPlayback = (opts.allowDuringPlayback !== false);
+                    const forceImmediate = !!opts.forceImmediate;
+                    const active = isTransportRunning();
+
+                    if (!active || forceImmediate || allowDuringPlayback) {
+                        try { fn(); } catch (_) { }
+                        return true;
+                    }
+
+                    q.push({ fn, allowDuringPlayback, queuedAt: nowMs(), label: String(opts.label || '') });
+                    scheduleIdleFlush();
+                    return false;
+                };
+                window.flushAudioPriorityUiTasks = function (opts = {}) {
+                    return flushNow(opts || {});
+                };
+            })();
+
+            (function () {
                 const bind = () => {
                     const container = document.getElementById('extensionColumns');
                     if (!container) return false;
@@ -14269,23 +14384,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const midiToggle = document.getElementById('midiToggle');
                                     if (midiToggle) midiToggle.classList.add('active');
                                 }
-                            } catch (e) { console.warn('Sidebar MIDI activation error', e); }
+                            } catch (_) { }
                             try { window.midi && window.midi.markActivity(); } catch (_) { }
                         })();
                         break;
                 }
             };
 
-            console.log('Sidebar functions and handlers ready');
-
             class MicrotonalInstrument {
                 constructor() {
-                    // Debug instrumentation (console-only)
-                    this._debug = false;
-                    this._debugLogs = [];
-                    this._debugMax = 500;
-                    this._debugUI = false; // keep panel off; use console logs only
-                    try { /* debug muted by default */ } catch (_) { }
                     this.audioContext = null;
                     this.gainNode = null;
                     // Initialize separate oscillator pools for independent playback
@@ -14334,6 +14441,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Track last selected chord column (for Delete in edit mode)
                     this._lastSelectedChordColumn = null;
                     this._lastSelectedChordId = null;
+                    this._chordSelectionWindowMs = 1000;
+                    this._chordSelectionTimer = null;
+                    this._chordSelectionExpiresAt = 0;
+                    // Keyboard chord reorder staging (commit on Enter or idle timeout)
+                    this._pendingChordReorderTimer = null;
+                    this._pendingChordReorderDirty = false;
                     // Project lock (transport-level live performance safety)
                     this._projectLocked = false;
                     // Editing flow flags
@@ -14697,6 +14810,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const absTick = transport.absTickCounter | 0;
                         const barIndex = Math.floor(absTick / tpBar);
                         const frac = (curTick / tpBar);
+
+                        if (curTick === 0) {
+                            try {
+                                if (typeof window.flushAudioPriorityUiTasks === 'function') {
+                                    window.flushAudioPriorityUiTasks({ max: 2, budgetMs: 4, force: false });
+                                }
+                            } catch (_) { }
+                        }
 
                         const drive = (pt, gridEl) => {
                             try {
@@ -15960,7 +16081,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     // New chord creation button → WYSIWYG: spawn a blank editable column immediately
                     document.getElementById('createNewChordBtn').addEventListener('click', () => {
-                        try { this.createBlankChordColumn({ focusName: true }); } catch (e) { console.error('Create blank chord failed:', e); }
+                        try {
+                            const doCreate = () => { try { this.createBlankChordColumn({ focusName: true }); } catch (e) { console.error('Create blank chord failed:', e); } };
+                            if (typeof window.runAudioPriorityUiTask === 'function') {
+                                window.runAudioPriorityUiTask(doCreate, { label: 'create-chord-column', allowDuringPlayback: true });
+                            } else {
+                                doCreate();
+                            }
+                        } catch (e) { console.error('Create blank chord failed:', e); }
                     });
                     // Insert [ and ] markers quickly
                     const leftBtn = document.getElementById('insertLeftBracketBtn');
@@ -20716,6 +20844,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Track this as a pending blank chord eligible for inheritance on next external strum
                     this.pendingBlankChordId = id;
                     this.pendingBlankChordStrumEligible = true;
+                    if (focusName) {
+                        this._pendingChordNameFocusId = String(id);
+                    }
                     if (typeof this.saveChordConfiguration === 'function') {
                         try { this.saveChordConfiguration(); } catch (_) { }
                     }
@@ -20749,6 +20880,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     if (!nameEl) return;
                                     nameEl.setAttribute('contenteditable', 'true');
                                     nameEl.setAttribute('spellcheck', 'false');
+                                    try { this.currentActiveColumnEl = column; } catch (_) { }
+                                    try { this.editArmed = true; } catch (_) { }
                                 };
                                 focusNow();
                                 setTimeout(focusNow, 0);
@@ -22021,6 +22154,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // ENTER = confirm only
                                 ev.preventDefault();
                                 applyTypedName();
+                                try { this._clearPendingChordNameFocus(column?.dataset?.chordId); } catch (_) { }
                                 chordName.blur();
                                 return;
                             }
@@ -22029,6 +22163,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // TAB = confirm + move/create
                                 ev.preventDefault();
                                 applyTypedName();
+                                try { this._clearPendingChordNameFocus(column?.dataset?.chordId); } catch (_) { }
 
                                 const cols = Array.from(document.querySelectorAll('#extensionColumns .extension-column'));
                                 const idx = cols.indexOf(column);
@@ -22036,7 +22171,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 return;
                             }
 
-                            if (ev.key === 'Escape') { ev.preventDefault(); chordName.blur(); }
+                            if (ev.key === 'Escape') {
+                                ev.preventDefault();
+                                try { this._clearPendingChordNameFocus(column?.dataset?.chordId); } catch (_) { }
+                                chordName.blur();
+                            }
                         });
                         chordName.addEventListener('blur', () => {
                             try { applyTypedName(); } catch (_) { }
@@ -26828,26 +26967,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
 
                         // Wire transport BPM
+                        const BPM_MIN = 1;
+                        const BPM_MAX = 1000;
+                        const applyTransportBpm = (fallback) => {
+                            try {
+                                const fb = Number.isFinite(fallback) ? fallback : 120;
+                                const currentRaw = bpmInput ? parseInt(bpmInput.value, 10) : NaN;
+                                const bpm = Math.max(BPM_MIN, Math.min(BPM_MAX, (Number.isFinite(currentRaw) ? currentRaw : fb)));
+                                if (bpmInput) bpmInput.value = String(bpm);
+                                if (typeof this._queueTransportChange === 'function') {
+                                    this._queueTransportChange({ bpm }, { grid: false });
+                                } else {
+                                    window.TransportStore && window.TransportStore.set && window.TransportStore.set({ bpm });
+                                    try { this._refreshArpTransportTiming && this._refreshArpTransportTiming(); } catch (_) { }
+                                }
+                                return bpm;
+                            } catch (_) { }
+                            return 120;
+                        };
+
                         if (bpmInput && !bpmInput._wired) {
                             bpmInput._wired = true;
-                            const BPM_MIN = 1;
-                            const BPM_MAX = 1000;
-                            const applyTransportBpm = (fallback) => {
-                                try {
-                                    const fb = Number.isFinite(fallback) ? fallback : 120;
-                                    const bpm = Math.max(BPM_MIN, Math.min(BPM_MAX, parseInt(bpmInput.value, 10) || fb));
-                                    bpmInput.value = String(bpm);
-                                    if (typeof this._queueTransportChange === 'function') {
-                                        this._queueTransportChange({ bpm }, { grid: false });
-                                    } else {
-                                        window.TransportStore && window.TransportStore.set && window.TransportStore.set({ bpm });
-                                        try { this._refreshArpTransportTiming && this._refreshArpTransportTiming(); } catch (_) { }
-                                    }
-                                    return bpm;
-                                } catch (_) { }
-                                return 120;
-                            };
-
                             bpmInput.addEventListener('change', () => {
                                 applyTransportBpm();
                             });
@@ -26861,25 +27001,25 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     try { bpmInput.blur(); } catch (_) { }
                                 }
                             });
+                        }
 
-                            if (bpmDownBtn && !bpmDownBtn._wired) {
-                                bpmDownBtn._wired = true;
-                                bpmDownBtn.addEventListener('click', () => {
-                                    const current = parseInt(bpmInput.value, 10);
-                                    const next = Math.max(BPM_MIN, Math.min(BPM_MAX, (Number.isFinite(current) ? current : 120) - 1));
-                                    bpmInput.value = String(next);
-                                    applyTransportBpm(next);
-                                });
-                            }
-                            if (bpmUpBtn && !bpmUpBtn._wired) {
-                                bpmUpBtn._wired = true;
-                                bpmUpBtn.addEventListener('click', () => {
-                                    const current = parseInt(bpmInput.value, 10);
-                                    const next = Math.max(BPM_MIN, Math.min(BPM_MAX, (Number.isFinite(current) ? current : 120) + 1));
-                                    bpmInput.value = String(next);
-                                    applyTransportBpm(next);
-                                });
-                            }
+                        if (bpmDownBtn && !bpmDownBtn._wired) {
+                            bpmDownBtn._wired = true;
+                            bpmDownBtn.addEventListener('click', () => {
+                                const current = parseInt(bpmInput?.value || '120', 10);
+                                const next = Math.max(BPM_MIN, Math.min(BPM_MAX, (Number.isFinite(current) ? current : 120) - 1));
+                                if (bpmInput) bpmInput.value = String(next);
+                                applyTransportBpm(next);
+                            });
+                        }
+                        if (bpmUpBtn && !bpmUpBtn._wired) {
+                            bpmUpBtn._wired = true;
+                            bpmUpBtn.addEventListener('click', () => {
+                                const current = parseInt(bpmInput?.value || '120', 10);
+                                const next = Math.max(BPM_MIN, Math.min(BPM_MAX, (Number.isFinite(current) ? current : 120) + 1));
+                                if (bpmInput) bpmInput.value = String(next);
+                                applyTransportBpm(next);
+                            });
                         }
 
                         // Wire transport volume
@@ -28537,16 +28677,49 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     // Enhanced string playing with ultra responsiveness (60 FPS optimized)
                     const extensionColumns = document.getElementById('extensionColumns');
+                    const chordboxTapMoveThresholdPx = 10;
+                    const chordboxTapMaxMs = 320;
+                    const isChordboxTapSelectableTarget = (el) => {
+                        try {
+                            if (!el || !el.closest) return false;
+                            if (!el.closest('.extension-column')) return false;
+                            if (el.closest('.chordbox-resize-handle, .chord-resize-handle, .chord-collapse-handle, .resize-grip')) return false;
+                            if (el.closest('[contenteditable="true"], .chord-name, input, textarea, select, button')) return false;
+                            return true;
+                        } catch (_) { return false; }
+                    };
+                    const applyChordboxSelection = (column) => {
+                        try {
+                            if (!column) return;
+                            this._setLastSelectedChordColumn(column, column.querySelector('.extension-header'));
+                            const loopEnabled = getLoopEnabledState();
+                            if (!loopEnabled) {
+                                this.currentActiveColumnEl = column;
+                                if (this._arp) this._arp.column = column;
+                                this.highlightKeyboardForColumn && this.highlightKeyboardForColumn(column);
+                            }
+                        } catch (_) { }
+                    };
 
                     // Mouse events for strings with optimized performance
                     extensionColumns.addEventListener('mousedown', (e) => {
                         if (this._isPointerOverModal(e)) return;
-                        if (!this._isSequencing) {
-                            try {
-                                const col = e.target && e.target.closest ? e.target.closest('.extension-column') : null;
-                                if (col) this._setLastSelectedChordColumn(col, col.querySelector('.extension-header'));
-                            } catch (_) { }
+                        this._mouseChordTapCandidate = null;
+                        const tapCol = e.target && e.target.closest ? e.target.closest('.extension-column') : null;
+                        if (tapCol && isChordboxTapSelectableTarget(e.target)) {
+                            this._mouseChordTapCandidate = {
+                                x: e.clientX,
+                                y: e.clientY,
+                                t: Date.now(),
+                                column: tapCol
+                            };
+                            applyChordboxSelection(tapCol);
+                            return;
                         }
+                        try {
+                            const col = e.target && e.target.closest ? e.target.closest('.extension-column') : null;
+                            if (col) this._setLastSelectedChordColumn(col, col.querySelector('.extension-header'));
+                        } catch (_) { }
                         try { console.log('[INPUT] mousedown strings area mode=', (this.playMode || 'high-low'), 'slide=', !!this._chordSlideEnabled); } catch (_) { }
                         if (this.audioContext && this.audioContext.state === 'suspended') {
                             this.audioContext.resume();
@@ -28632,6 +28805,21 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     });
 
                     document.addEventListener('mousemove', (e) => {
+                        if (this._mouseChordTapCandidate) {
+                            const cand = this._mouseChordTapCandidate;
+                            const dx = e.clientX - cand.x;
+                            const dy = e.clientY - cand.y;
+                            if (Math.hypot(dx, dy) > chordboxTapMoveThresholdPx) {
+                                this._mouseChordTapCandidate = null;
+                                this.isPlayingStrings = true;
+                                this.triggeredStrings.clear();
+                                this._pointerLastStringKey.set('mouse', null);
+                                this.editArmed = false;
+                                clearTimeout(this._editArmTimer);
+                                this.handleStringTrigger(e);
+                            }
+                            return;
+                        }
                         // ARP mode: lateral slide across columns schedules quantized chord switches
                         // Only when PLAY is active (isSequencing)
                         if ((this.playMode || 'high-low') === 'arp' && this._arpGestureActive && this._isSequencing) {
@@ -28716,6 +28904,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     });
 
                     document.addEventListener('mouseup', (e) => {
+                        if (this._mouseChordTapCandidate) {
+                            const cand = this._mouseChordTapCandidate;
+                            this._mouseChordTapCandidate = null;
+                            const dt = Date.now() - (cand.t || Date.now());
+                            const dx = e.clientX - cand.x;
+                            const dy = e.clientY - cand.y;
+                            if (dt <= chordboxTapMaxMs && Math.hypot(dx, dy) <= chordboxTapMoveThresholdPx) {
+                                this._scheduleEditArm();
+                                return;
+                            }
+                        }
                         // Don't stop ARPs when just finishing string strumming - only stop if ARP gesture was active
                         if (this.arpEnabled && this._arpGestureActive) {
                             this._stopArp();
@@ -28769,29 +28968,62 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (this.audioContext && this.audioContext.state === 'suspended') {
                             this.audioContext.resume();
                         }
+                        if (!this._touchChordTapCandidates) this._touchChordTapCandidates = new Map();
 
                         // Enhanced touch sensitivity: immediately mark all touch targets to prevent missed taps
                         this._enhanceTouchResponsiveness(e);
-
-                        // Strings are now purely for strumming - no ARP or CHORD triggering
-                        // ARP and CHORD are triggered via dedicated footer buttons only
-                        this.isPlayingStrings = true;
-                        this.triggeredStrings.clear();
-                        this.editArmed = false;
-                        clearTimeout(this._editArmTimer);
-
+                        let startedStrum = false;
                         Array.from(e.changedTouches).forEach(touch => {
+                            const hit = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const tapCol = hit && hit.closest ? hit.closest('.extension-column') : null;
+                            if (tapCol && isChordboxTapSelectableTarget(hit)) {
+                                this._touchChordTapCandidates.set(touch.identifier, {
+                                    x: touch.clientX,
+                                    y: touch.clientY,
+                                    t: Date.now(),
+                                    column: tapCol
+                                });
+                                applyChordboxSelection(tapCol);
+                                this._pointerLastStringKey.set(`t${touch.identifier}`, null);
+                                return;
+                            }
+                            if (!this.isPlayingStrings) {
+                                this.isPlayingStrings = true;
+                                this.triggeredStrings.clear();
+                                startedStrum = true;
+                            }
                             // Clear last-hit for this touch identifier at the beginning of a gesture
                             this._pointerLastStringKey.set(`t${touch.identifier}`, null);
                             this.activeTouches.set(touch.identifier, touch);
-
-                            // Always allow strumming in strings area - this is now purely for garnish
                             this.handleStringTrigger(touch);
                         });
+                        if (startedStrum) {
+                            this.editArmed = false;
+                            clearTimeout(this._editArmTimer);
+                        }
                     }, { passive: false });
 
                     extensionColumns.addEventListener('touchmove', (e) => {
                         e.preventDefault();
+                        if (!this._touchChordTapCandidates) this._touchChordTapCandidates = new Map();
+                        Array.from(e.changedTouches).forEach(touch => {
+                            const cand = this._touchChordTapCandidates.get(touch.identifier);
+                            if (!cand) return;
+                            const dx = touch.clientX - cand.x;
+                            const dy = touch.clientY - cand.y;
+                            if (Math.hypot(dx, dy) > chordboxTapMoveThresholdPx) {
+                                this._touchChordTapCandidates.delete(touch.identifier);
+                                if (!this.isPlayingStrings) {
+                                    this.isPlayingStrings = true;
+                                    this.triggeredStrings.clear();
+                                    this.editArmed = false;
+                                    clearTimeout(this._editArmTimer);
+                                }
+                                this.activeTouches.set(touch.identifier, touch);
+                                this._pointerLastStringKey.set(`t${touch.identifier}`, null);
+                                this.handleStringTrigger(touch);
+                            }
+                        });
                         // ARP mode: lateral slide across columns with quantized chord changes (preserves transport position)
                         // Only when PLAY is active (isSequencing)
                         if (this.arpEnabled && !this.chordsEnabled && this._arpGestureActive && this._isSequencing) {
@@ -28870,18 +29102,37 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     extensionColumns.addEventListener('touchend', (e) => {
                         e.preventDefault();
+                        if (!this._touchChordTapCandidates) this._touchChordTapCandidates = new Map();
                         // Don't stop ARPs when just finishing string strumming - only stop if ARP gesture was active
                         if (this.arpEnabled && this._arpGestureActive) {
                             this._stopArp();
                             this._arpGestureActive = false;
                             this._arpLastColumn = null;
                         }
+                        let hadTapOnlyEnd = false;
                         Array.from(e.changedTouches).forEach(touch => {
+                            const cand = this._touchChordTapCandidates.get(touch.identifier);
+                            if (cand) {
+                                this._touchChordTapCandidates.delete(touch.identifier);
+                                this._pointerLastStringKey.delete(`t${touch.identifier}`);
+                                const dt = Date.now() - (cand.t || Date.now());
+                                const dx = touch.clientX - cand.x;
+                                const dy = touch.clientY - cand.y;
+                                if (dt <= chordboxTapMaxMs && Math.hypot(dx, dy) <= chordboxTapMoveThresholdPx) {
+                                    hadTapOnlyEnd = true;
+                                }
+                                return;
+                            }
                             try { this._releaseTouchMidiHold(`t${touch.identifier}`); } catch (_) { }
                             this.activeTouches.delete(touch.identifier);
                             // Clear tracking for this touch pointer
                             this._pointerLastStringKey.delete(`t${touch.identifier}`);
                         });
+
+                        if (this.activeTouches.size === 0 && !this.isPlayingStrings && hadTapOnlyEnd) {
+                            this._scheduleEditArm();
+                            return;
+                        }
 
                         if (this.activeTouches.size === 0) {
                             this.isPlayingStrings = false;
@@ -28918,7 +29169,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     extensionColumns.addEventListener('touchcancel', (e) => {
                         e.preventDefault();
+                        if (!this._touchChordTapCandidates) this._touchChordTapCandidates = new Map();
                         Array.from(e.changedTouches).forEach(touch => {
+                            this._touchChordTapCandidates.delete(touch.identifier);
                             try { this._releaseTouchMidiHold(`t${touch.identifier}`); } catch (_) { }
                             this.activeTouches.delete(touch.identifier);
                             this._pointerLastStringKey.delete(`t${touch.identifier}`);
@@ -29315,6 +29568,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 try { this.deleteLastSelectedChord(); } catch (_) { }
                             }
                             return;
+                        }
+
+                        // Move selected chord left/right by swapping with adjacent chord.
+                        // During playback, commit immediately so the next scheduled chord reflects the new order.
+                        if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                            const dir = (e.key === 'ArrowRight') ? 1 : -1;
+                            const moved = this._moveSelectedChordByKeyboard(dir);
+                            if (moved) {
+                                e.preventDefault();
+                                return;
+                            }
+                        }
+                        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key === 'Enter') {
+                            if (this._pendingChordReorderDirty) {
+                                e.preventDefault();
+                                this._commitPendingChordReorder('enter');
+                                return;
+                            }
                         }
 
                         // Ctrl+1..Ctrl+0: queue drum pattern 1..10 for next bar; Ctrl+D duplicate current
@@ -29728,7 +29999,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const column = element.closest('.extension-column');
                             const loopEnabled = getLoopEnabledState();
 
-                            if (column && !this._isSequencing) {
+                            if (column) {
                                 try { this._setLastSelectedChordColumn(column, element); } catch (_) { }
                             }
 
@@ -29752,7 +30023,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const column = element.classList.contains('extension-column') ? element : element.closest('.extension-column');
                             const loopEnabled = getLoopEnabledState();
 
-                            if (column && !this._isSequencing) {
+                            if (column) {
                                 try { this._setLastSelectedChordColumn(column, element); } catch (_) { }
                             }
                             if (column && !loopEnabled) {
@@ -30420,15 +30691,61 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     try { this._queueXenUndoSnapshot('init'); } catch (_) { }
                 }
 
-                _setLastSelectedChordColumn(column, headerEl = null) {
+                _clearLastSelectedChordColumn() {
+                    try {
+                        if (this._chordSelectionTimer) {
+                            clearTimeout(this._chordSelectionTimer);
+                            this._chordSelectionTimer = null;
+                        }
+                        this._chordSelectionExpiresAt = 0;
+                        if (this._lastSelectedChordColumn) {
+                            try { this._lastSelectedChordColumn.classList.remove('chordbox-selected'); } catch (_) { }
+                        }
+                        this._lastSelectedChordColumn = null;
+                        this._lastSelectedChordId = null;
+                    } catch (_) { }
+                }
+
+                _armChordSelectionWindow(durationMs = null) {
+                    try {
+                        const windowMs = Number.isFinite(durationMs)
+                            ? Math.max(0, durationMs | 0)
+                            : Math.max(0, this._chordSelectionWindowMs | 0);
+                        if (this._chordSelectionTimer) {
+                            clearTimeout(this._chordSelectionTimer);
+                            this._chordSelectionTimer = null;
+                        }
+                        if (windowMs <= 0) {
+                            this._clearLastSelectedChordColumn();
+                            return;
+                        }
+                        const now = (performance && performance.now) ? performance.now() : Date.now();
+                        this._chordSelectionExpiresAt = now + windowMs;
+                        this._chordSelectionTimer = setTimeout(() => {
+                            this._clearLastSelectedChordColumn();
+                        }, windowMs);
+                    } catch (_) { }
+                }
+
+                _setLastSelectedChordColumn(column, headerEl = null, options = null) {
                     try {
                         if (!column) return;
+                        const opts = options || {};
                         if (this._lastSelectedChordColumn && this._lastSelectedChordColumn !== column) {
                             try { this._lastSelectedChordColumn.classList.remove('chordbox-selected'); } catch (_) { }
                         }
                         this._lastSelectedChordColumn = column;
                         this._lastSelectedChordId = column.dataset?.chordId || column.dataset?.originalPosition || null;
                         try { column.classList.add('chordbox-selected'); } catch (_) { }
+                        if (opts.armWindow === false) {
+                            if (opts.preserveWindow === true && Number.isFinite(this._chordSelectionExpiresAt) && this._chordSelectionExpiresAt > 0) {
+                                const now = (performance && performance.now) ? performance.now() : Date.now();
+                                const remaining = Math.max(0, this._chordSelectionExpiresAt - now);
+                                this._armChordSelectionWindow(remaining);
+                            }
+                        } else {
+                            this._armChordSelectionWindow();
+                        }
                         try {
                             const header = headerEl || column.querySelector('.extension-header');
                             if (header) {
@@ -30437,6 +30754,78 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         } catch (_) { }
                     } catch (_) { }
+                }
+
+                _schedulePendingChordReorderCommit() {
+                    try {
+                        if (this._pendingChordReorderTimer) {
+                            clearTimeout(this._pendingChordReorderTimer);
+                            this._pendingChordReorderTimer = null;
+                        }
+                        this._pendingChordReorderTimer = setTimeout(() => {
+                            this._commitPendingChordReorder('idle');
+                        }, 1000);
+                    } catch (_) { }
+                }
+
+                _commitPendingChordReorder(reason = 'unknown') {
+                    try {
+                        if (this._pendingChordReorderTimer) {
+                            clearTimeout(this._pendingChordReorderTimer);
+                            this._pendingChordReorderTimer = null;
+                        }
+                        if (!this._pendingChordReorderDirty) return;
+                        this._pendingChordReorderDirty = false;
+                        this._updateBracketPositions();
+                        try { window.requestSequencerRebuild && window.requestSequencerRebuild(`kbd-reorder-${reason}`); } catch (_) { }
+                    } catch (_) { }
+                }
+
+                _moveSelectedChordByKeyboard(direction) {
+                    try {
+                        if (this._projectLocked) return false;
+                        const selected = this._lastSelectedChordColumn;
+                        if (!selected || !selected.classList || !selected.classList.contains('extension-column')) return false;
+                        const container = document.getElementById('extensionColumns') || selected.parentElement;
+                        if (!container) return false;
+
+                        const children = Array.from(container.children || []);
+                        const currentIndex = children.indexOf(selected);
+                        if (currentIndex < 0) return false;
+
+                        let targetIndex = currentIndex + direction;
+                        while (targetIndex >= 0 && targetIndex < children.length) {
+                            const el = children[targetIndex];
+                            if (el && el.classList && el.classList.contains('extension-column')) break;
+                            targetIndex += direction;
+                        }
+                        if (targetIndex < 0 || targetIndex >= children.length) return false;
+
+                        const target = children[targetIndex];
+                        if (!target || target === selected) return false;
+
+                        if (direction > 0) {
+                            // Swap with right chord: place target before selected
+                            container.insertBefore(target, selected);
+                        } else {
+                            // Swap with left chord: place selected before target
+                            container.insertBefore(selected, target);
+                        }
+
+                        this._pendingChordReorderDirty = true;
+                        if (this._isSequencing) {
+                            this._commitPendingChordReorder('live');
+                        } else {
+                            this._schedulePendingChordReorderCommit();
+                        }
+
+                        this.currentActiveColumnEl = selected;
+                        this._setLastSelectedChordColumn(selected, selected.querySelector('.extension-header'));
+                        try { selected.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } catch (_) { }
+                        return true;
+                    } catch (_) {
+                        return false;
+                    }
                 }
 
                 _captureChordUndoState() {
@@ -30516,6 +30905,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 _deleteChordByColumnElement(column) {
                     if (!column) return;
                     try { column.classList.remove('chordbox-selected'); } catch (_) { }
+                    try {
+                        if (this._chordSelectionTimer) {
+                            clearTimeout(this._chordSelectionTimer);
+                            this._chordSelectionTimer = null;
+                        }
+                        this._chordSelectionExpiresAt = 0;
+                    } catch (_) { }
                     const chordId = column.dataset?.chordId ? String(column.dataset.chordId) : null;
                     let idx = -1;
                     if (chordId) {
@@ -37605,6 +38001,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // ENTER = confirm only
                                 ev.preventDefault();
                                 applyTypedName();
+                                try { this._clearPendingChordNameFocus(column?.dataset?.chordId); } catch (_) { }
                                 chordName.blur();
                                 return;
                             }
@@ -37613,6 +38010,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // TAB = confirm + move/create
                                 ev.preventDefault();
                                 applyTypedName();
+                                try { this._clearPendingChordNameFocus(column?.dataset?.chordId); } catch (_) { }
 
                                 const cols = Array.from(document.querySelectorAll('#extensionColumns .extension-column'));
                                 const idx = cols.indexOf(column);
@@ -37620,7 +38018,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 return;
                             }
 
-                            if (ev.key === 'Escape') { ev.preventDefault(); chordName.blur(); }
+                            if (ev.key === 'Escape') {
+                                ev.preventDefault();
+                                try { this._clearPendingChordNameFocus(column?.dataset?.chordId); } catch (_) { }
+                                chordName.blur();
+                            }
                         });
                         chordName.addEventListener('click', (e) => { e.stopPropagation(); });
                         chordName.addEventListener('mousedown', (e) => { e.stopPropagation(); });
@@ -37706,8 +38108,41 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         this.addSimpleClickHandlers();
                         this.restoreLockedChordStates(); // Restore locked chord states
                         this.restorePianoLockStates(); // Restore piano lock states
+                        try { this._restorePendingChordNameFocus(); } catch (_) { }
                         try { if (typeof window.initChordBoxDurationResize === 'function') window.initChordBoxDurationResize(); } catch (_) { }
                     }, 100);
+                }
+
+                _clearPendingChordNameFocus(chordId = null) {
+                    try {
+                        if (!this._pendingChordNameFocusId) return;
+                        if (chordId == null || String(this._pendingChordNameFocusId) === String(chordId)) {
+                            this._pendingChordNameFocusId = null;
+                        }
+                    } catch (_) { }
+                }
+
+                _restorePendingChordNameFocus() {
+                    try {
+                        const chordId = this._pendingChordNameFocusId ? String(this._pendingChordNameFocusId) : '';
+                        if (!chordId) return;
+                        const model = (this.chordExtensions || []).find(c => c && String(c.id) === chordId) || null;
+                        const isStillBlank = !!(model && model.isCustom && (!Array.isArray(model.intervals) || model.intervals.length === 0));
+                        if (!isStillBlank) {
+                            this._pendingChordNameFocusId = null;
+                            return;
+                        }
+                        const column = document.querySelector(`.extension-column[data-chord-id='${chordId}']`);
+                        if (!column) return;
+                        const nameEl = column.querySelector('.extension-header .chord-name');
+                        if (!nameEl) return;
+                        nameEl.setAttribute('contenteditable', 'true');
+                        nameEl.setAttribute('spellcheck', 'false');
+                        const ok = focusChordNameInput(column);
+                        if (!ok) return;
+                        try { this.currentActiveColumnEl = column; } catch (_) { }
+                        try { this.editArmed = true; } catch (_) { }
+                    } catch (_) { }
                 }
 
                 /**
@@ -39107,54 +39542,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // ===== Debug utilities =====
                 _dbg(tag, ...args) {
-                    try {
-                        if (!this._debug) return;
-                        const ts = new Date().toISOString().split('T')[1].replace('Z', '');
-                        const msg = `[${ts}] ${tag}: ${args.map(a => {
-                            if (a == null) return String(a);
-                            if (typeof a === 'object') {
-                                try { return JSON.stringify(a); } catch { return String(a); }
-                            }
-                            return String(a);
-                        }).join(' ')}`;
-                        this._debugLogs.push(msg);
-                        if (this._debugLogs.length > (this._debugMax || 500)) this._debugLogs.splice(0, this._debugLogs.length - (this._debugMax || 500));
-                        if (this._debugConsole) {
-                            const el = document.createElement('div');
-                            el.textContent = msg;
-                            this._debugConsole.appendChild(el);
-                            this._debugConsole.scrollTop = this._debugConsole.scrollHeight;
-                        }
-                    } catch { }
+                    return;
                 }
-                setDebug(on) { this._debug = false; }
+                setDebug(on) { return; }
                 _installDebugPanel() {
-                    if (!this._debugUI) return; // disabled per user request
-                    if (this._debugPanelInstalled) return;
-                    this._debugPanelInstalled = true;
-                    const panel = document.createElement('div');
-                    panel.id = 'omnidebug';
-                    panel.style.cssText = 'position:fixed;right:8px;bottom:8px;width:420px;max-height:40vh;background:rgba(0,0,0,0.7);color:#0f0;font:12px/1.4 monospace;z-index:99999;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.5);display:flex;flex-direction:column;';
-                    const bar = document.createElement('div');
-                    bar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.1);';
-                    const title = document.createElement('div'); title.textContent = 'ChromoTone Debug'; title.style.flex = '1';
-                    const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = !!this._debug; chk.title = 'Enable debug logging';
-                    chk.addEventListener('change', () => { this.setDebug(chk.checked); });
-                    const clr = document.createElement('button'); clr.textContent = 'Clear'; clr.style.cssText = 'background:#222;color:#fff;border:1px solid #444;border-radius:3px;padding:2px 6px;cursor:pointer;';
-                    clr.addEventListener('click', () => { this._debugLogs.length = 0; if (this._debugConsole) this._debugConsole.textContent = ''; });
-                    const dl = document.createElement('button'); dl.textContent = 'Download'; dl.style.cssText = clr.style.cssText;
-                    dl.addEventListener('click', () => {
-                        const blob = new Blob([this._debugLogs.join('\n')], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'ChromoTone-debug.log'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-                    });
-                    bar.appendChild(title); bar.appendChild(chk); bar.appendChild(clr); bar.appendChild(dl);
-                    const body = document.createElement('div'); body.style.cssText = 'overflow:auto;padding:8px;flex:1;';
-                    this._debugConsole = body;
-                    panel.appendChild(bar); panel.appendChild(body);
-                    document.body.appendChild(panel);
-                    // Flush any buffered logs
-                    (this._debugLogs || []).forEach(m => { const el = document.createElement('div'); el.textContent = m; body.appendChild(el); });
-                    body.scrollTop = body.scrollHeight;
+                    return;
                 }
 
                 // PLAY button flashing functions
@@ -42715,7 +43107,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         };
 
                         const selectChordOnContact = (clientY) => {
-                            // "Even touch" on header should select the chord immediately when CHORDS is lit.
+                            // Header touch should always select this chord immediately.
                             try {
                                 autoharp.currentActiveColumnEl = column;
                             } catch (_) { }
@@ -42727,9 +43119,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Suppress the legacy touch-gesture system's "tap = strum" for this header contact.
                             try { header.dataset.xenSuppressTapStrumTs = String(Date.now()); } catch (_) { }
 
-                            // If PLAY is running, actually switch the sustained chord immediately.
+                            // If PLAY is running and a chord/arp engine is active, switch immediately.
                             try {
-                                if (autoharp && autoharp.chordsEnabled && autoharp._isSequencing && typeof autoharp._executeChordChange === 'function') {
+                                if (
+                                    autoharp &&
+                                    autoharp._isSequencing &&
+                                    (autoharp.chordsEnabled || autoharp.arpEnabled) &&
+                                    typeof autoharp._executeChordChange === 'function'
+                                ) {
                                     autoharp._executeChordChange(column, clientY);
                                 }
                             } catch (_) { }
@@ -42758,9 +43155,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             headerSwipeStrumFired = false;
                             selectedOnPress = false;
 
-                            // Immediate chord select on contact when CHORDS is lit.
+                            // In NON-LOOP, immediate chord select on header contact regardless CHORDS toggle.
                             try {
-                                if (startedOnHeader && autoharp && autoharp.chordsEnabled) {
+                                if (startedOnHeader && autoharp && !isLoopEnabled()) {
                                     const rect = column.getBoundingClientRect();
                                     const midY = rect.top + rect.height * 0.5;
                                     selectChordOnContact(midY);
@@ -42809,7 +43206,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     try { autoharp.highlightKeyboardForColumn && autoharp.highlightKeyboardForColumn(column); } catch (_) { }
                                     // Ensure chord is selected (if not already selected on contact).
                                     try {
-                                        if (!selectedOnPress && autoharp && autoharp.chordsEnabled) {
+                                        if (!selectedOnPress && autoharp && !isLoopEnabled()) {
                                             const rect = column.getBoundingClientRect();
                                             const midY = rect.top + rect.height * 0.5;
                                             selectChordOnContact(midY);
@@ -43084,6 +43481,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // Use the same logic as the footer trigger button
                                 const rect = column.getBoundingClientRect();
                                 const midY = rect.top + rect.height * 0.5;
+                                if (!isLoopEnabled()) {
+                                    // NON-LOOP: tapping header should always change/select chord, even when CHORDS is off.
+                                    selectChordOnContact(midY);
+                                    return;
+                                }
                                 autoharp.handleTriggerButtonClick(column, midY);
                             }
                         };
@@ -43266,6 +43668,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 handleStringTrigger(event, touchId = null) {
                     // Do not strum when interacting with modals/overlays
                     if (this._isPointerOverModal(event)) return;
+                    try { this._clearLastSelectedChordColumn(); } catch (_) { }
                     // During sequencing, just allow STRUM mode - don't affect sequence progression
                     if (this._isSequencing) {
                         // Force STRUM mode during sequencing
@@ -45717,203 +46120,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     } catch (_) { /* ignore */ }
                 }
 
-                // Tutorial System
-                initTutorial() {
-                    this.tutorialStep = 0;
-                    this.tutorialSteps = [
-                        { title: "Hi! Let's make music", text: "Tap the big + to add a chord. We'll build it together.", highlight: "#createNewChordBtn" },
-                        { title: "Pick your tuning (EDO)", text: "EDO = how many steps in an octave. Try 12, 19, or 24.", highlight: "#edoQuickInput" },
-                        { title: "Add notes on the top row", text: "Click the white/black circles or colored dots to add sounds. Pick at least two.", highlight: "#rootGrid" },
-                        { title: "Strum your chord", text: "Click and drag up/down the new box to hear it. Numbers 1–0 also trigger boxes!", highlight: "#extensionColumns" },
-                        { title: "Transpose everything", text: "Use the ▲ ▼ on the left of the keyboard or press + / - on your keys.", highlight: ".transpose-controls-left" },
-                        { title: "Try ARP mode", text: "Click ARP on the CHORD/ARP toggle, set a BPM and Quant, then hold a chord box to hear a pattern.", highlight: "#modeChordArp" },
-                        { title: "Change your sound", text: "Open OSCILLATORS and try Sine/Saw/Square, then tweak ADSR.", highlight: "#oscillatorsSection" },
-                        { title: "Add space & motion", text: "Open EFFECTS to add reverb or make the sound move left-right.", highlight: "#effectsSection" },
-                        { title: "Type a sequence", text: "Click SEQ and type chords (like I IV V or C F G).", highlight: "#openTextChordParserBtn" },
-                        { title: "Save your song", text: "💾 saves the full .XEN session; ⬇️ also exports .XEN.", highlight: "#bottomExportOMGBtn" },
-                        { title: "You're ready!", text: "Keep adding chords, strum, and experiment. Music rewards curiosity.", highlight: null }
-                    ];
-
-                    document.getElementById('tutorialButton').addEventListener('click', () => {
-                        this.startTutorial();
-                    });
-
-                    document.getElementById('tutorialNext').addEventListener('click', () => {
-                        this.nextTutorialStep();
-                    });
-
-                    document.getElementById('tutorialPrev').addEventListener('click', () => {
-                        this.prevTutorialStep();
-                    });
-
-                    document.getElementById('tutorialSkip').addEventListener('click', () => {
-                        this.endTutorial();
-                    });
-
-                    // Initialize escape mechanisms
-                    this.initTutorialEscapes();
-                }
-
-                startTutorial() {
-                    this.tutorialStep = 0;
-                    document.getElementById('tutorialOverlay').style.display = 'block';
-                    this.showTutorialStep();
-                    this.greyOutAll();
-
-                    // Add escape mechanisms
-                    document.addEventListener('keydown', this.tutorialEscapeHandler);
-                }
-
-                showTutorialStep() {
-                    const step = this.tutorialSteps[this.tutorialStep];
-                    document.getElementById('tutorialTitle').textContent = step.title;
-                    document.getElementById('tutorialText').textContent = step.text;
-
-                    // Update button states
-                    document.getElementById('tutorialPrev').style.display = this.tutorialStep > 0 ? 'inline-block' : 'none';
-                    document.getElementById('tutorialNext').textContent = this.tutorialStep < this.tutorialSteps.length - 1 ? 'Next' : 'Finish';
-
-                    // Position tutorial box
-                    this.positionTutorialBox(step.highlight);
-
-                    // Highlight current element
-                    this.highlightElement(step.highlight);
-                }
-
-                positionTutorialBox(selector) {
-                    const tutorialBox = document.getElementById('tutorialBox');
-
-                    if (selector) {
-                        const element = document.querySelector(selector);
-                        if (element) {
-                            const rect = element.getBoundingClientRect();
-                            const boxWidth = 400;
-                            const boxHeight = 250;
-
-                            // Try to position next to the element
-                            let left = rect.right + 20;
-                            let top = rect.top;
-
-                            // Keep box on screen
-                            if (left + boxWidth > window.innerWidth) {
-                                left = rect.left - boxWidth - 20;
-                            }
-                            if (left < 20) {
-                                left = 20;
-                            }
-
-                            if (top + boxHeight > window.innerHeight) {
-                                top = window.innerHeight - boxHeight - 20;
-                            }
-                            if (top < 20) {
-                                top = 20;
-                            }
-
-                            tutorialBox.style.left = `${left}px`;
-                            tutorialBox.style.top = `${top}px`;
-                            tutorialBox.style.transform = 'none';
-                        } else {
-                            // Center if element not found
-                            tutorialBox.style.left = '50%';
-                            tutorialBox.style.top = '50%';
-                            tutorialBox.style.transform = 'translate(-50%, -50%)';
-                        }
-                    } else {
-                        // Center the box
-                        tutorialBox.style.left = '50%';
-                        tutorialBox.style.top = '50%';
-                        tutorialBox.style.transform = 'translate(-50%, -50%)';
-                    }
-                }
-
-                highlightElement(selector) {
-                    // Remove previous highlights
-                    document.querySelectorAll('.tutorial-highlight').forEach(el => {
-                        el.classList.remove('tutorial-highlight');
-                        el.style.position = '';
-                        el.style.zIndex = '';
-                        el.style.filter = '';
-                    });
-
-                    if (selector) {
-                        const element = document.querySelector(selector);
-                        if (element) {
-                            element.classList.add('tutorial-highlight');
-                            element.style.position = 'relative';
-                            element.style.zIndex = '2100';
-                            element.style.filter = 'brightness(1.5) contrast(1.2)';
-                        }
-                    }
-                }
-
-                greyOutAll() {
-                    // Create overlay instead of using filter to avoid breaking highlighting
-                    const overlay = document.createElement('div');
-                    overlay.id = 'tutorialGreyOverlay';
-                    overlay.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0, 0, 0, 0.8);
-                    z-index: 1900;
-                    pointer-events: none;
-                `;
-                    document.body.appendChild(overlay);
-                }
-
-                ungreyAll() {
-                    const overlay = document.getElementById('tutorialGreyOverlay');
-                    if (overlay) {
-                        overlay.remove();
-                    }
-                    // Also remove any filters that might have been applied
-                    document.body.style.filter = '';
-                }
-
-                nextTutorialStep() {
-                    if (this.tutorialStep < this.tutorialSteps.length - 1) {
-                        this.tutorialStep++;
-                        this.showTutorialStep();
-                    } else {
-                        this.endTutorial();
-                    }
-                }
-
-                prevTutorialStep() {
-                    if (this.tutorialStep > 0) {
-                        this.tutorialStep--;
-                        this.showTutorialStep();
-                    }
-                }
-
-                endTutorial() {
-                    document.getElementById('tutorialOverlay').style.display = 'none';
-                    this.ungreyAll();
-                    this.highlightElement(null);
-
-                    // Remove any event listeners that might interfere
-                    document.removeEventListener('keydown', this.tutorialEscapeHandler);
-                }
-
-                // Add escape key handler and click-to-close functionality
-                initTutorialEscapes() {
-                    // ESC key to close tutorial
-                    this.tutorialEscapeHandler = (e) => {
-                        if (e.key === 'Escape') {
-                            this.endTutorial();
-                        }
-                    };
-
-                    // Click outside tutorial box to close
-                    document.getElementById('tutorialOverlay').addEventListener('click', (e) => {
-                        if (e.target.id === 'tutorialOverlay') {
-                            this.endTutorial();
-                        }
-                    });
-                }
-
                 // BELLS window (simple large bars for learning use)
                 initBells() {
                     const btn = document.getElementById('bellsButton');
@@ -47806,6 +48012,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (this.pendingBlankChordId && String(chordId) === String(this.pendingBlankChordId)) {
                                     this.pendingBlankChordId = null;
                                     this.pendingBlankChordStrumEligible = false;
+                                    try { this._clearPendingChordNameFocus(chordId); } catch (_) { }
                                 }
                             } catch (_) { }
                             try { this.saveChordConfiguration?.(); } catch (_) { }
@@ -49627,28 +49834,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                 } catch (_) { }
 
-                // Basic JAM tests (run manually in console: window.runJamTests())
-                window.runJamTests = function () {
-                    const results = [];
-                    const add = (name, ok, info = '') => results.push({ name, ok: !!ok, info });
-                    try { add('JAM open function', typeof autoharp.openBellsWindow === 'function'); } catch (_) { add('JAM open function', false, 'autoharp missing'); }
-                    let w1 = null; let w2 = null;
-                    try {
-                        w1 = autoharp.openBellsWindow();
-                        w2 = autoharp.openBellsWindow();
-                    } catch (e) { add('JAM multi-window', false, 'Popup blocked or error'); }
-                    if (w1 && w2) {
-                        add('JAM multi-window', w1 !== w2);
-                        try {
-                            const sel = w1.document && w1.document.getElementById('midiOut-bells');
-                            add('JAM MIDI OUT select exists', !!sel);
-                            const playBtn = w1.document && w1.document.getElementById('bellsPlayBtn');
-                            add('JAM transport button exists', !!playBtn);
-                        } catch (_) { add('JAM window DOM access', false, 'Cross-window access failed'); }
-                    }
-                    try { console.table(results); } catch (_) { console.log(results); }
-                    return results;
-                };
+                window.runJamTests = undefined;
 
                 // --- Startup UX: prompt every load; NEW PROJECT starts blank with keyboard closed ---
                 try {
@@ -50167,10 +50353,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const barLen16 = Math.max(1, (tsi && Number.isFinite(tsi.barLen16) ? (tsi.barLen16 | 0) : 16));
                                     const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
                                     const lenValueEl = document.getElementById('patternLenValue');
+                                    const lenUiPending = !!(lenValueEl && lenValueEl.dataset && lenValueEl.dataset.pending === '1');
                                     const lenUi = parseInt((lenValueEl && lenValueEl.textContent) ? String(lenValueEl.textContent).trim() : '', 10);
                                     const lenPg = parseInt(pg.dataset.length || '', 10);
                                     const cycleLen16 = Math.max(1, Math.min(maxLen,
-                                        (Number.isFinite(lenUi) && lenUi > 0) ? lenUi : ((Number.isFinite(lenPg) && lenPg > 0) ? lenPg : barLen16)
+                                        (Number.isFinite(lenPg) && lenPg > 0) ? lenPg : (((!lenUiPending && Number.isFinite(lenUi) && lenUi > 0) ? lenUi : barLen16))
                                     ));
                                     const cycleTicks = Math.max(1, Math.round(tpb * (cycleLen16 / barLen16)));
                                     const cycleTick = (((absTickNow | 0) % cycleTicks) + cycleTicks) % cycleTicks;
@@ -51698,90 +51885,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                 } catch { }
 
-                // Add test function for transpose behavior
-                autoharp.testTransposeSequence = function () {
-                    console.log('🎵 TESTING TRANSPOSE SEQUENCE');
-                    console.log('Expected: C major → transpose up → C↑E↑G↑ → edit notes correctly');
-
-                    // Helper functions
-                    const getKeyboardState = () => {
-                        const kb = document.querySelector('#rootGrid .piano-keyboard');
-                        const litKeys = [];
-                        if (kb) {
-                            kb.querySelectorAll('[data-step].chord-tone').forEach(el => {
-                                litKeys.push({
-                                    step: parseInt(el.dataset.step),
-                                    originalStep: parseInt(el.dataset.originalStep || el.dataset.step),
-                                    label: el.textContent.trim()
-                                });
-                            });
-                        }
-                        return litKeys.sort((a, b) => a.step - b.step);
-                    };
-
-                    const getChordName = () => {
-                        const col = document.querySelector('.extension-column');
-                        const nameEl = col?.querySelector('.extension-header .chord-name');
-                        return nameEl?.textContent?.trim()?.replace(/^🔒\s*/, '') || 'Unknown';
-                    };
-
-                    const clickKeyByLabel = (label) => {
-                        const kb = document.querySelector('#rootGrid .piano-keyboard');
-                        const keys = kb.querySelectorAll('[data-step]');
-                        for (let key of keys) {
-                            if (key.textContent.trim() === label) {
-                                console.log(`  Clicking: ${label}`);
-                                key.click();
-                                return true;
-                            }
-                        }
-                        console.log(`  ❌ Key not found: ${label}`);
-                        return false;
-                    };
-
-                    const logState = (stepName) => {
-                        const state = getKeyboardState();
-                        const chordName = getChordName();
-                        console.log(`${stepName}:`);
-                        console.log(`  Chord: ${chordName}`);
-                        console.log(`  Transpose: ${this.transposeDelta}`);
-                        console.log(`  Lit keys: ${state.map(k => `${k.label}(${k.step})`).join(', ')}`);
-                    };
-
-                    // Set up test environment
-                    this.currentTuning = 24;
-                    this.transposeDelta = 0;
-                    this.generateRootButtons();
-
-                    setTimeout(() => {
-                        logState('1. Initial state');
-
-                        setTimeout(() => {
-                            console.log('\n2. Transpose up...');
-                            document.querySelector('#transposeUp')?.click();
-
-                            setTimeout(() => {
-                                logState('2. After transpose up');
-                                console.log('   Expected: Keys should show microtonal notation');
-
-                                setTimeout(() => {
-                                    console.log('\n✅ Test setup complete. Now manually test:');
-                                    console.log('   - Click any key and verify correct chord tones light up');
-                                    console.log('   - The issue was: clicking F would incorrectly light C#, F#, G#');
-                                    console.log('   - Now it should light the correct chord tones');
-
-                                }, 100);
-                            }, 100);
-                        }, 100);
-                    }, 100);
-                };
+                autoharp.testTransposeSequence = undefined;
 
                 // Keyboard logo adjustment no longer needed after rebrand; keep namespace for compatibility
                 window.PianoApp = window.PianoApp || {};
                 window.PianoApp.adjustKeyboardForLogo = undefined;
 
                 // Initialize new features
-                autoharp.initTutorial();
                 autoharp.initBells();
                 try { autoharp.wireEffectsPresetsUI(); } catch { }
                 // Wire bottom bar SAVE XEN / LOAD XEN
@@ -51952,6 +52062,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                                     // Enhanced synchronization: Ensure all transport systems start on beat 1 together
                                     console.log('🎵 SYNCHRONIZED STARTUP: Preparing all transport systems');
+
+                                    // Warm heavy UI paths before transport starts.
+                                    try {
+                                        const warm = () => { try { window.preloadPlaybackUi && window.preloadPlaybackUi(); } catch (_) { } };
+                                        if (typeof window.runAudioPriorityUiTask === 'function') {
+                                            window.runAudioPriorityUiTask(warm, { label: 'preload-playback-ui', forceImmediate: true });
+                                        } else {
+                                            warm();
+                                        }
+                                    } catch (_) { }
 
                                     // 1. PRELOAD AND SYNC ALL TRANSPORT SYSTEMS
                                     autoharp._ensureArpDefaults();
@@ -54313,14 +54433,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (closeFx && !closeFx._wired) { closeFx._wired = true; closeFx.addEventListener('click', () => { const m = document.getElementById('fxModal'); if (m) m.style.display = 'none'; }); }
                     const closeTuning = document.getElementById('closeTuningModal');
                     if (closeTuning && !closeTuning._wired) { closeTuning._wired = true; closeTuning.addEventListener('click', () => { const m = document.getElementById('tuningModal'); if (m) m.style.display = 'none'; }); }
-
-                    const tutorialBtnSidebar = document.getElementById('tutorialBtnSidebar');
-                    if (tutorialBtnSidebar) {
-                        tutorialBtnSidebar.addEventListener('click', () => {
-                            const originalBtn = document.getElementById('tutorialButton');
-                            if (originalBtn) originalBtn.click();
-                        });
-                    }
 
                     return true;
                 };
