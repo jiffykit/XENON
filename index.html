@@ -13854,9 +13854,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     state = cloneJson(ensureSectionState(captureSectionState()));
                                 }
                             } else {
-                                // EDIT mode: start a blank section (no chords) while preserving other section state.
+                                // EDIT mode: clone current section state so accidental section creation
+                                // cannot wipe visible chords.
                                 state = cloneJson(ensureSectionState(captureSectionState()));
-                                state.chordExtensions = [];
                             }
                             const nextId = String.fromCharCode(65 + (window._sections?.length || 0));
                             const id = nextId && nextId.length === 1 ? nextId : `S${(window._sections?.length || 0) + 1}`;
