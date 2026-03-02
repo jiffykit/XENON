@@ -608,12 +608,13 @@
         #jamArea .bells-block {
             position: absolute;
             border-radius: 0;
-            pointer-events: none;
+            pointer-events: auto;
             z-index: 7;
             box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.6);
             border: none;
             opacity: 1;
             transition: box-shadow 0.18s ease;
+            cursor: pointer;
         }
 
         #jamArea .bells-block::before {
@@ -12238,9 +12239,56 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     systemTop: null,
                     splitHeight: null
                 };
+                let _stringCompressionTimer = null;
+                let _stringCompressionRaf = null;
                 const minStrumHeight = 80;
                 const hideAllThreshold = 60;
                 const collapseThreshold = RULER_H + 8;
+
+                const scheduleStringCompression = (priority = 'defer') => {
+                    try {
+                        if (priority === 'now') {
+                            if (_stringCompressionTimer) {
+                                clearTimeout(_stringCompressionTimer);
+                                _stringCompressionTimer = null;
+                            }
+                            if (_stringCompressionRaf) {
+                                cancelAnimationFrame(_stringCompressionRaf);
+                                _stringCompressionRaf = null;
+                            }
+                            if (typeof updateStringCompression === 'function') updateStringCompression();
+                            return;
+                        }
+                        if (isResizingMid || isResizingTop) {
+                            if (_stringCompressionTimer) return;
+                            _stringCompressionTimer = setTimeout(() => {
+                                _stringCompressionTimer = null;
+                                if (_stringCompressionRaf) return;
+                                _stringCompressionRaf = requestAnimationFrame(() => {
+                                    _stringCompressionRaf = null;
+                                    try { if (typeof updateStringCompression === 'function') updateStringCompression(); } catch (_) { }
+                                });
+                            }, 80);
+                            return;
+                        }
+                        if (_stringCompressionTimer) {
+                            clearTimeout(_stringCompressionTimer);
+                            _stringCompressionTimer = null;
+                        }
+                        _stringCompressionTimer = setTimeout(() => {
+                            _stringCompressionTimer = null;
+                            try {
+                                if (typeof window.deferUiTask === 'function') {
+                                    window.deferUiTask(() => {
+                                        try { if (typeof updateStringCompression === 'function') updateStringCompression(); } catch (_) { }
+                                    });
+                                } else if (typeof updateStringCompression === 'function') {
+                                    updateStringCompression();
+                                }
+                            } catch (_) { }
+                        }, 36);
+                    } catch (_) { }
+                };
 
                 const applyLayout = () => {
                     const topOffset = _getChordTopOffsetPx();
@@ -12316,7 +12364,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     layout.systemTop = systemTop;
                     layout.splitHeight = splitHeight;
 
-                    setTimeout(() => updateStringCompression(), 10);
+                    scheduleStringCompression('defer');
                 };
 
                 try {
@@ -12384,6 +12432,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         isResizingTop = false;
                         document.body.style.userSelect = '';
                         document.body.style.cursor = '';
+                        scheduleStringCompression('now');
                     }
                 };
 
@@ -13370,6 +13419,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 const cloneJson = (v) => { try { return JSON.parse(JSON.stringify(v)); } catch (_) { return v; } };
 
+                const ensureSectionState = (st) => {
+                    if (!st || typeof st !== 'object') st = {};
+                    if (!Array.isArray(st.chordExtensions)) st.chordExtensions = [];
+                    return st;
+                };
+
                 const mapToObj = (mp) => {
                     const out = {};
                     try {
@@ -13607,12 +13662,30 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const omni = window.autoharp;
                     if (!omni || !state) return;
 
+                    const hasPlayableChords = (list) => {
+                        try {
+                            if (!Array.isArray(list) || !list.length) return false;
+                            return list.some(item => item && typeof item === 'object' && !item.isRepeatMarker && !item.isSeparator && item.name !== '|');
+                        } catch (_) { return false; }
+                    };
+
                     if (Array.isArray(state.chordExtensions)) {
-                        omni.chordExtensions = cloneJson(state.chordExtensions);
-                        // FORCE synchronous column regeneration to avoid deferred DOM update
-                        // that causes section switching to read stale (old section) columns
-                        try { omni.generateExtensionColumns && omni.generateExtensionColumns({ force: true }); } catch (_) { }
-                        try { omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch (_) { }
+                        const incomingChords = cloneJson(state.chordExtensions);
+                        const currentChords = Array.isArray(omni.chordExtensions) ? omni.chordExtensions : [];
+                        const allowEmptyApply = !!state._allowEmptyChordsApply || !!state.forceEmptyChords;
+                        const incomingHasPlayable = hasPlayableChords(incomingChords);
+                        const currentHasPlayable = hasPlayableChords(currentChords);
+                        const shouldSkipEmptyOverwrite = !allowEmptyApply && !incomingHasPlayable && currentHasPlayable;
+
+                        if (!shouldSkipEmptyOverwrite) {
+                            omni.chordExtensions = incomingChords;
+                            // FORCE synchronous column regeneration to avoid deferred DOM update
+                            // that causes section switching to read stale (old section) columns
+                            try { omni.generateExtensionColumns && omni.generateExtensionColumns({ force: true }); } catch (_) { }
+                            try { omni.saveChordConfiguration && omni.saveChordConfiguration(); } catch (_) { }
+                        } else {
+                            console.warn('Section apply skipped empty chord overwrite to preserve live chords');
+                        }
                         try {
                             const r = document.getElementById('chordRuler');
                             if (r) {
@@ -13702,12 +13775,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (!host) return false;
                     if (host._sectionsWired) return true;
                     host._sectionsWired = true;
-
-                    const ensureSectionState = (st) => {
-                        if (!st || typeof st !== 'object') st = {};
-                        if (!Array.isArray(st.chordExtensions)) st.chordExtensions = [];
-                        return st;
-                    };
 
                     window._sections = window._sections || [];
                     if (!window._sections.length) {
@@ -28704,6 +28771,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Mouse events for strings with optimized performance
                     extensionColumns.addEventListener('mousedown', (e) => {
                         if (this._isPointerOverModal(e)) return;
+                        const downHit = document.elementFromPoint(e.clientX, e.clientY);
+                        const downCol = downHit && downHit.closest ? downHit.closest('.extension-column') : null;
+                        const downString = downHit && downHit.closest ? downHit.closest('.string,[data-frequency]') : null;
+                        if (!downCol && !downString) return;
                         this._mouseChordTapCandidate = null;
                         const tapCol = e.target && e.target.closest ? e.target.closest('.extension-column') : null;
                         if (tapCol && isChordboxTapSelectableTarget(e.target)) {
@@ -28964,6 +29035,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Touch events for strings
                     extensionColumns.addEventListener('touchstart', (e) => {
                         if (this._isPointerOverModal(e)) return;
+                        const isTouchActionable = (touch) => {
+                            try {
+                                if (!touch) return false;
+                                const hit = document.elementFromPoint(touch.clientX, touch.clientY);
+                                if (!hit) return false;
+                                return !!(hit.closest && (hit.closest('.extension-column') || hit.closest('.string,[data-frequency]')));
+                            } catch (_) { return false; }
+                        };
+                        const changed = Array.from(e.changedTouches || []);
+                        const actionableTouches = changed.filter(isTouchActionable);
+                        if (!actionableTouches.length) return;
                         e.preventDefault();
                         if (this.audioContext && this.audioContext.state === 'suspended') {
                             this.audioContext.resume();
@@ -28971,9 +29053,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (!this._touchChordTapCandidates) this._touchChordTapCandidates = new Map();
 
                         // Enhanced touch sensitivity: immediately mark all touch targets to prevent missed taps
-                        this._enhanceTouchResponsiveness(e);
+                        this._enhanceTouchResponsiveness({ changedTouches: actionableTouches, touches: actionableTouches });
                         let startedStrum = false;
-                        Array.from(e.changedTouches).forEach(touch => {
+                        actionableTouches.forEach(touch => {
                             const hit = document.elementFromPoint(touch.clientX, touch.clientY);
                             const tapCol = hit && hit.closest ? hit.closest('.extension-column') : null;
                             if (tapCol && isChordboxTapSelectableTarget(hit)) {
@@ -29004,11 +29086,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }, { passive: false });
 
                     extensionColumns.addEventListener('touchmove', (e) => {
-                        e.preventDefault();
+                        let consumedTouch = false;
                         if (!this._touchChordTapCandidates) this._touchChordTapCandidates = new Map();
                         Array.from(e.changedTouches).forEach(touch => {
                             const cand = this._touchChordTapCandidates.get(touch.identifier);
                             if (!cand) return;
+                            consumedTouch = true;
                             const dx = touch.clientX - cand.x;
                             const dy = touch.clientY - cand.y;
                             if (Math.hypot(dx, dy) > chordboxTapMoveThresholdPx) {
@@ -29032,6 +29115,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const h = document.elementFromPoint(t.clientX, t.clientY);
                                 const c = h && h.closest ? h.closest('.extension-column') : null;
                                 if (c && c !== this._arpLastColumn) {
+                                    consumedTouch = true;
                                     // Schedule quantized ARP chord change to preserve transport sync
                                     this._scheduleQuantizedArpChordChange(c, t.clientY);
                                     this._arpLastColumn = c;
@@ -29039,6 +29123,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         }
                         if (this.isPlayingStrings || (this.chordsEnabled && this._sustainActive && this._isSequencing)) {
+                            consumedTouch = true;
                             // CHORDS mode with slide enabled: trigger chords when entering a new box (enter-box behavior)
                             // Only when PLAY is active (isSequencing)
                             if (this.chordsEnabled && this._chordSlideActive && this._isSequencing) {
@@ -29098,10 +29183,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 });
                             }
                         }
+                        if (consumedTouch) e.preventDefault();
                     }, { passive: false });
 
                     extensionColumns.addEventListener('touchend', (e) => {
-                        e.preventDefault();
+                        const hadCandidates = !!(this._touchChordTapCandidates && this._touchChordTapCandidates.size);
+                        const hadActiveTouches = !!(this.activeTouches && this.activeTouches.size);
+                        const hadGesture = !!(this.arpEnabled && this._arpGestureActive);
+                        if (hadCandidates || hadActiveTouches || hadGesture || this.isPlayingStrings) e.preventDefault();
                         if (!this._touchChordTapCandidates) this._touchChordTapCandidates = new Map();
                         // Don't stop ARPs when just finishing string strumming - only stop if ARP gesture was active
                         if (this.arpEnabled && this._arpGestureActive) {
@@ -42055,13 +42144,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Pre-mark touch targets to ensure they register properly
                     Array.from(touchEvent.changedTouches || touchEvent.touches || []).forEach(touch => {
                         const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                        if (target) {
+                        const stringTarget = target && target.closest ? target.closest('.string,[data-frequency]') : null;
+                        if (stringTarget) {
                             // Mark visual feedback immediately for responsive UI
-                            target.classList.add('touch-active');
-                            setTimeout(() => target.classList.remove('touch-active'), 150);
+                            stringTarget.classList.add('touch-active');
+                            setTimeout(() => stringTarget.classList.remove('touch-active'), 150);
 
                             // Pre-cache element relationships to avoid lookup delays during trigger
-                            const stringEl = target.closest('[data-frequency]');
+                            const stringEl = stringTarget.closest('[data-frequency]') || stringTarget;
                             const columnEl = target.closest('.extension-column');
 
                             if (stringEl && columnEl) {
@@ -47183,7 +47273,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         };
                         const isDragSurface = (target) => {
                             if (!target) return true;
-                            if (target.closest && target.closest('.bells-key')) return false;
+                            if (target.closest && target.closest('.bells-key, .bells-block, .bells-label-overlay, .bells-glow, .bells-master-glow')) return false;
                             if (isInteractive(target)) return false;
                             return true;
                         };
