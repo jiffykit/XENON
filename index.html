@@ -45389,7 +45389,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (!this.audioContext) return;
 
                     // Create dual oscillators (or single) with separate envelopes
-                    let osc1, osc2;
+                    let osc1, osc2 = null;
                     let peak1 = null;
                     let peak2 = null;
                     let dcBlockVoice = null;
@@ -45430,12 +45430,6 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         let freq2 = adjustedFrequency * Math.pow(2, (o2.octave || 0) + (totalDetune2 / 1200));
                         freq2 = Math.max(safeMin, Math.min(safeMax, freq2));
                         osc2.frequency.setValueAtTime(freq2, this.audioContext.currentTime);
-                    } else {
-                        // No second osc for chord/arp/bass
-                        osc2 = this.audioContext.createOscillator();
-                        osc2.type = 'sine';
-                        osc2.frequency.setValueAtTime(0.0001, this.audioContext.currentTime);
-                        osc2Gain.gain.value = 0; // muted
                     }
 
                     // Set oscillator levels with volume + velocity multipliers applied
@@ -45502,16 +45496,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         osc2.connect(hp2);
                         hp2.connect(peak2);
                         peak2.connect(osc2Gain);
-                    } else {
+                    } else if (useSecond && osc2) {
                         osc2.connect(osc2Gain);
                     }
-                    osc2Gain.connect(osc2Envelope);
+                    if (useSecond && osc2) {
+                        osc2Gain.connect(osc2Envelope);
+                    }
                     // Mix envelopes into final mixer
                     osc1Envelope.connect(finalMixer);
-                    osc2Envelope.connect(finalMixer);
+                    if (useSecond && osc2) {
+                        osc2Envelope.connect(finalMixer);
+                    }
                     if (window.DEBUG_AUDIO) console.log('Both oscillators mixed (with per-oscillator bandpass shaping)');
 
                     const currentTime = this.audioContext.currentTime;
+                    // Slightly future-schedule note start to avoid same-sample start clicks on Android/WebKit.
+                    const noteStartTime = currentTime + 0.005;
 
                     // No DC sources used for shape width anymore
 
@@ -45657,23 +45657,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     env1Attack = Math.max(minAttack, Number(env1Attack) || 0);
                     env2Attack = Math.max(minAttack, Number(env2Attack) || 0);
 
-                    const osc1AttackTime = currentTime + env1Attack;
+                    const osc1AttackTime = noteStartTime + env1Attack;
                     const osc1DecayTime = osc1AttackTime + env1Decay;
 
                     osc1Envelope.gain.setValueAtTime(0, currentTime);
+                    osc1Envelope.gain.setValueAtTime(0, noteStartTime);
                     osc1Envelope.gain.linearRampToValueAtTime(1, osc1AttackTime); // Attack
                     osc1Envelope.gain.linearRampToValueAtTime(env1Sustain, osc1DecayTime); // Decay to sustain
 
                     // OSC 2 ADSR envelope (separate OSC 2 ADSR)
-                    const osc2AttackTime = currentTime + env2Attack;
+                    const osc2AttackTime = noteStartTime + env2Attack;
                     const osc2DecayTime = osc2AttackTime + env2Decay;
 
-                    osc2Envelope.gain.setValueAtTime(0, currentTime);
-                    osc2Envelope.gain.linearRampToValueAtTime(1, osc2AttackTime); // Attack
-                    osc2Envelope.gain.linearRampToValueAtTime(env2Sustain, osc2DecayTime); // Decay to sustain
+                    if (useSecond && osc2) {
+                        osc2Envelope.gain.setValueAtTime(0, currentTime);
+                        osc2Envelope.gain.setValueAtTime(0, noteStartTime);
+                        osc2Envelope.gain.linearRampToValueAtTime(1, osc2AttackTime); // Attack
+                        osc2Envelope.gain.linearRampToValueAtTime(env2Sustain, osc2DecayTime); // Decay to sustain
+                    }
 
-                    osc1.start();
-                    osc2.start();
+                    osc1.start(noteStartTime);
+                    if (useSecond && osc2) osc2.start(noteStartTime);
 
                     // If we applied piano-locked settings, restore the original synthesizer state immediately
                     if (originalSettings) {
@@ -45874,19 +45878,29 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const currentTime = this.audioContext.currentTime;
 
                         // Apply OSC 1 release envelope
-                        osc1Envelope.gain.cancelScheduledValues(currentTime);
-                        osc1Envelope.gain.setValueAtTime(osc1Envelope.gain.value, currentTime);
-                        osc1Envelope.gain.linearRampToValueAtTime(0, currentTime + Math.max(0, env1?.release ?? this.envelope.release));
+                        const applyRelease = (param, releaseSec) => {
+                            if (!param) return;
+                            const r = Math.max(0, Number(releaseSec) || 0);
+                            if (typeof param.cancelAndHoldAtTime === 'function') {
+                                param.cancelAndHoldAtTime(currentTime);
+                            } else {
+                                param.cancelScheduledValues(currentTime);
+                                const v = Math.max(0, Number(param.value) || 0);
+                                param.setValueAtTime(v, currentTime);
+                            }
+                            param.linearRampToValueAtTime(0, currentTime + r);
+                        };
+
+                        // Apply OSC 1 release envelope
+                        applyRelease(osc1Envelope?.gain, Math.max(0, env1?.release ?? this.envelope.release));
 
                         // Apply OSC 2 release envelope
-                        osc2Envelope.gain.cancelScheduledValues(currentTime);
-                        osc2Envelope.gain.setValueAtTime(osc2Envelope.gain.value, currentTime);
-                        osc2Envelope.gain.linearRampToValueAtTime(0, currentTime + Math.max(0, env2?.release ?? this.osc2Envelope.release));
+                        applyRelease(osc2Envelope?.gain, Math.max(0, env2?.release ?? this.osc2Envelope.release));
 
                         // Stop oscillators after the longer of the two release times (based on the values used at note start)
                         const maxReleaseTime = Math.max(Math.max(0, env1?.release ?? this.envelope.release), Math.max(0, env2?.release ?? this.osc2Envelope.release));
                         osc1.stop(currentTime + maxReleaseTime);
-                        osc2.stop(currentTime + maxReleaseTime);
+                        if (osc2 && typeof osc2.stop === 'function') osc2.stop(currentTime + maxReleaseTime);
 
 
                         if (window.DEBUG_AUDIO) console.log('Note stopped with', maxReleaseTime, 'second release time');
