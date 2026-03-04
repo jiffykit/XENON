@@ -3106,7 +3106,7 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            z-index: 0;
+            z-index: 3;
         }
 
         .drum-row.pattern-row .pattern-tie-pill {
@@ -3115,13 +3115,35 @@
             height: var(--tie-height, 12px);
             transform: translateY(-50%);
             border-radius: calc(var(--tie-height, 12px) * 0.6667);
-            background: linear-gradient(90deg, rgba(255, 179, 143, 0.7), rgba(255, 125, 90, 0.7));
-            box-shadow: 0 0 14px 3px rgba(255, 150, 100, 0.55);
+            background: linear-gradient(90deg, rgba(253, 224, 71, 0.95), rgba(245, 158, 11, 0.95));
+            box-shadow: 0 0 12px 2px rgba(245, 158, 11, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 1;
+        }
+
+        .drum-row.pattern-row .pattern-tie-pill.vel-quiet {
+            background: linear-gradient(90deg, rgba(64, 224, 208, 0.95), rgba(30, 144, 255, 0.95));
+            box-shadow: 0 0 12px 2px rgba(30, 144, 255, 0.5);
+        }
+
+        .drum-row.pattern-row .pattern-tie-pill.vel-low {
+            background: linear-gradient(90deg, rgba(45, 212, 191, 0.95), rgba(16, 185, 129, 0.95));
+            box-shadow: 0 0 12px 2px rgba(45, 212, 191, 0.5);
+        }
+
+        .drum-row.pattern-row .pattern-tie-pill.vel-mid {
+            background: linear-gradient(90deg, rgba(253, 224, 71, 0.95), rgba(245, 158, 11, 0.95));
+            box-shadow: 0 0 12px 2px rgba(245, 158, 11, 0.5);
+        }
+
+        .drum-row.pattern-row .pattern-tie-pill.vel-high {
+            background: linear-gradient(90deg, rgba(248, 113, 113, 0.95), rgba(239, 68, 68, 0.95));
+            box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.5);
         }
 
         .drum-row.pattern-row .drum-step {
             position: relative;
-            z-index: 1;
+            z-index: 2;
         }
 
         /* Pattern grid pixel-tight styling (NPC x LEN grid) */
@@ -8355,7 +8377,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try {
                             const doRebuild = () => { try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { } };
                             if (typeof window.runAudioPriorityUiTask === 'function') {
-                                window.runAudioPriorityUiTask(doRebuild, { label: 'pattern-tie-drag', allowDuringPlayback: false });
+                                window.runAudioPriorityUiTask(doRebuild, { label: 'pattern-tie-drag', allowDuringPlayback: true });
                             } else {
                                 doRebuild();
                             }
@@ -8557,7 +8579,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try {
                                 const doRebuild = () => { try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { } };
                                 if (typeof window.runAudioPriorityUiTask === 'function') {
-                                    window.runAudioPriorityUiTask(doRebuild, { label: 'pattern-tie-click', allowDuringPlayback: false });
+                                    window.runAudioPriorityUiTask(doRebuild, { label: 'pattern-tie-click', allowDuringPlayback: true });
                                 } else {
                                     doRebuild();
                                 }
@@ -8612,7 +8634,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             try {
                                 const doRebuild = () => { try { if (typeof window.rebuildPatternTieOverlays === 'function') window.rebuildPatternTieOverlays(lane); } catch (_) { } };
                                 if (typeof window.runAudioPriorityUiTask === 'function') {
-                                    window.runAudioPriorityUiTask(doRebuild, { label: 'pattern-tie-context', allowDuringPlayback: false });
+                                    window.runAudioPriorityUiTask(doRebuild, { label: 'pattern-tie-context', allowDuringPlayback: true });
                                 } else {
                                     doRebuild();
                                 }
