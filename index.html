@@ -5297,7 +5297,7 @@
                             style="flex: 0 0 auto; min-height:0; overflow-x: auto; overflow-y: visible;">
                             <div class="drum-grid-header">
                                 <span style="opacity:.8;">Pattern</span>
-                                <input id="drumPatternNumber" type="number" min="1" max="128" value="1"
+                                <input id="drumPatternNumber" type="number" min="1" max="1" value="1"
                                     style="width:64px;background:#2a4858;color:#fff;border:1px solid #4a6870;border-radius:4px;padding:2px 6px;" />
                                 <button id="drumDuplicateBtn" title="Duplicate to next empty (Ctrl+D)"
                                     style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;">DUP</button>
@@ -5466,7 +5466,7 @@
                             <div class="drum-grid-header"
                                 style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
                                 <span style="opacity:.8;">Pattern</span>
-                                <input id="patternPatternNumber" type="number" min="1" max="128" value="1"
+                                <input id="patternPatternNumber" type="number" min="1" max="3" value="1"
                                     style="width:50px;background:#2a4858;color:#fff;border:1px solid #4a6870;border-radius:4px;padding:2px 4px;font-size:11px;" />
                                 <div style="display:inline-flex;align-items:center;gap:4px;">
                                     <button id="patternLenDec" style="padding:2px 6px;">-</button>
@@ -5490,22 +5490,9 @@
                                 </div>
                                 <button id="patternClearBtn" title="Clear all pattern rows (keeps bass row)"
                                     style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;">CLEAR</button>
-                                <select id="universalPattern" title="ARP Pattern"
-                                    style="width:80px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:2px 4px;font-size:11px;">
-                                    <option value="up">Up</option>
-                                    <option value="down" selected>Down</option>
-                                    <option value="updown">UpDn</option>
-                                    <option value="downup">DnUp</option>
-                                    <option value="walk-up">Walk↑</option>
-                                    <option value="walk-down">Walk↓</option>
-                                    <option value="alt-ends">AltEnd</option>
-                                    <option value="alt-center">AltCtr</option>
-                                    <option value="random">Rand</option>
-                                    <option value="custom">CUSTOM</option>
-                                </select>
-                                <input id="universalPatternText" type="text" placeholder="Pattern"
-                                    title="Pattern tokens (auto-sync)"
-                                    style="display:none;width:100%;max-width:280px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:2px 4px;font-size:11px;" />
+                                <!-- Preset arp selector is retired; keep hidden fields for legacy state compatibility. -->
+                                <input id="universalPattern" type="hidden" value="custom" />
+                                <input id="universalPatternText" type="hidden" value="" />
 
                                 <input id="universalNpc" type="number" min="1" max="512" value="16"
                                     title="Rows are automatic per mode (C2–C9)"
@@ -7542,12 +7529,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 const cyclePatternMode = (btn, gridEl) => {
                     if (!gridEl) return;
-                    const cur = getPatternPitchMode(gridEl);
-                    const idx = Math.max(0, PATTERN_PITCH_MODES.findIndex(m => m.value === cur));
-                    const next = PATTERN_PITCH_MODES[(idx + 1) % PATTERN_PITCH_MODES.length] || PATTERN_PITCH_MODES[0];
-                    try { gridEl.dataset.pitchMode = next.value; } catch (_) { }
-                    applyPatternPitchModeToGrid(gridEl, next.value);
+                    // Free build is always CURRENT CHORD mode.
+                    try { gridEl.dataset.pitchMode = 'single'; } catch (_) { }
+                    applyPatternPitchModeToGrid(gridEl, 'single');
                     updatePatternModeButton(btn, gridEl);
+                    try { window.showFeatureLockModal && window.showFeatureLockModal(); } catch (_) { }
                 };
 
                 try {
@@ -8657,6 +8643,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const baseModal = document.getElementById('patternModal');
                     if (!baseModal) return null;
 
+                    try {
+                        const spawned = Array.isArray(window._patternInstances) ? window._patternInstances.length : 0;
+                        if (spawned >= CHROMOTONE_FREE_LIMITS.maxPatternInstances) {
+                            window.showFeatureLockModal && window.showFeatureLockModal();
+                            return null;
+                        }
+                    } catch (_) { }
+
                     const prevInfo = (window._patternInstances && window._patternInstances.length)
                         ? window._patternInstances[window._patternInstances.length - 1]
                         : null;
@@ -9208,7 +9202,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     if (!obj || typeof obj !== 'object') return;
                                     Object.keys(obj).forEach(k => {
                                         const n = parseInt(k, 10);
-                                        if (!Number.isFinite(n) || n < 1) return;
+                                        if (!Number.isFinite(n) || n < 1 || n > CHROMOTONE_FREE_LIMITS.maxPatternSlots) return;
                                         const st = obj[k];
                                         if (st && typeof st === 'object') synthPatterns.set(n, st);
                                     });
@@ -9217,7 +9211,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const saveSynthBank = () => {
                                 try {
                                     const out = {};
-                                    synthPatterns.forEach((v, k) => { if (k >= 1 && k <= 128) out[String(k)] = v; });
+                                    synthPatterns.forEach((v, k) => { if (k >= 1 && k <= CHROMOTONE_FREE_LIMITS.maxPatternSlots) out[String(k)] = v; });
                                     localStorage.setItem(LS_KEY, JSON.stringify(out));
                                 } catch (_) { }
                             };
@@ -9317,6 +9311,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         if (s.dataset.tie === '1') obj.tie = 1;
                                         if (s.dataset.npc) obj.npc = s.dataset.npc;
                                         if (s.dataset.vel) obj.vel = s.dataset.vel;
+                                        if (s.dataset.octave != null && s.dataset.octave !== '') obj.octave = s.dataset.octave;
+                                        if (s.dataset.oct != null && s.dataset.oct !== '') obj.oct = s.dataset.oct;
+                                        if (s.dataset.noteIndex != null && s.dataset.noteIndex !== '') obj.noteIndex = s.dataset.noteIndex;
                                         return obj;
                                     });
                                     return steps;
@@ -9335,12 +9332,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             if (data.len) s.dataset.len = data.len; else delete s.dataset.len;
                                             if (data.tie) s.dataset.tie = '1'; else delete s.dataset.tie;
                                             if (data.npc) s.dataset.npc = data.npc; else delete s.dataset.npc;
+                                            if (data.octave != null && data.octave !== '') s.dataset.octave = String(data.octave); else delete s.dataset.octave;
+                                            if (data.oct != null && data.oct !== '') s.dataset.oct = String(data.oct); else delete s.dataset.oct;
+                                            if (data.noteIndex != null && data.noteIndex !== '') s.dataset.noteIndex = String(data.noteIndex); else delete s.dataset.noteIndex;
                                             if (data.vel != null) s.dataset.vel = String(data.vel);
+                                            else delete s.dataset.vel;
                                         } else {
                                             s.classList.remove('active');
                                             delete s.dataset.len;
                                             delete s.dataset.tie;
                                             delete s.dataset.npc;
+                                            delete s.dataset.octave;
+                                            delete s.dataset.oct;
+                                            delete s.dataset.noteIndex;
+                                            delete s.dataset.vel;
                                         }
                                         try { if (window.updateStepVelocityClass) window.updateStepVelocityClass(s); } catch (_) { }
                                     });
@@ -10352,6 +10357,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 window.spawnDrumInstance = function () {
                     ensureRegistry();
+                    try {
+                        const count = Array.isArray(window._drumInstances) ? window._drumInstances.length : 0;
+                        if (count >= CHROMOTONE_FREE_LIMITS.maxDrumInstances) {
+                            window.showFeatureLockModal && window.showFeatureLockModal();
+                            return null;
+                        }
+                    } catch (_) { }
                     const n = (++window._drumInstanceCounter);
                     const id = 'drum' + String(n);
                     const defaultLabel = `DRUM ${n}`;
@@ -13444,6 +13456,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const ensureSectionState = (st) => {
                     if (!st || typeof st !== 'object') st = {};
                     if (!Array.isArray(st.chordExtensions)) st.chordExtensions = [];
+                    const tune = parseInt(String(st.tuning ?? ''), 10);
+                    if (!Number.isFinite(tune)) {
+                        const fallback = parseInt(String(window.autoharp?.currentTuning ?? 24), 10);
+                        st.tuning = Number.isFinite(fallback) ? fallback : 24;
+                    }
                     return st;
                 };
 
@@ -13664,6 +13681,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                     return {
                         chordExtensions: captureChordExtensionsFromDom(),
+                        tuning: parseInt(String(omni.currentTuning || 24), 10) || 24,
                         basePatternEnabled,
                         loopRange: captureLoopRange(),
                         patternInstances: patternInstancesState,
@@ -13683,6 +13701,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 const applySectionState = (state) => {
                     const omni = window.autoharp;
                     if (!omni || !state) return;
+
+                    try {
+                        const nextTuning = parseInt(String(state.tuning ?? ''), 10);
+                        if (Number.isFinite(nextTuning) && nextTuning >= 5 && nextTuning <= 96) {
+                            if (typeof omni.updateTuningSystem === 'function') omni.updateTuningSystem(nextTuning);
+                            else omni.currentTuning = nextTuning;
+                            ['edoQuickInputTransport', 'edoQuickInput', 'seqEdoInput', 'edoDivisions'].forEach(id => {
+                                const el = document.getElementById(id);
+                                if (el) el.value = String(nextTuning);
+                            });
+                        }
+                    } catch (_) { }
 
                     const hasPlayableChords = (list) => {
                         try {
@@ -14206,6 +14236,55 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
             }
 
 
+            const CHROMOTONE_FREE_LIMITS = Object.freeze({
+                maxPatternSlots: 3,
+                maxPatternInstances: 3,
+                maxDrumPatterns: 1,
+                maxDrumInstances: 1,
+            });
+
+            const CHROMOTONE_FEATURE_LOCK_MESSAGE = "Hi there! I made ChromoTone to be used by everyone, and I hope you're having a marvelous time exploring it.\n\nIf you'd like to unlock the more advanced features ... including MIDI support, extra patterns, additional pitch sources, and drum parts  - please consider supporting the project on my Patreon https://www.patreon.com/12845525/join . Members get access to the full feature set and ongoing updates.\n\nOnce unlocked, it's yours to use forever.\n\nNo cloud.\nNo DRM.\nNo ads.\nNo restrictions.\nNo time limits.";
+
+            window.showFeatureLockModal = window.showFeatureLockModal || function () {
+                try {
+                    let overlay = document.getElementById('featureLockModalOverlay');
+                    if (!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.id = 'featureLockModalOverlay';
+                        overlay.style.position = 'fixed';
+                        overlay.style.inset = '0';
+                        overlay.style.background = 'rgba(0,0,0,0.85)';
+                        overlay.style.display = 'none';
+                        overlay.style.alignItems = 'center';
+                        overlay.style.justifyContent = 'center';
+                        overlay.style.zIndex = '14000';
+                        overlay.innerHTML = `
+                            <div style="width:min(92vw,760px);max-height:85vh;overflow:auto;background:#071520;border:1px solid #2b5567;border-radius:12px;padding:18px;box-shadow:0 14px 34px rgba(0,0,0,0.45);color:#e8f5ff;">
+                                <div style="font-size:18px;font-weight:700;color:#ffd046;margin-bottom:10px;">Feature Available In Full Version</div>
+                                <pre id="featureLockModalMessage" style="white-space:pre-wrap;margin:0;font:13px/1.5 var(--retro-font);color:#e8f5ff;"></pre>
+                                <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+                                    <button id="featureLockModalCloseBtn" class="osc-btn" style="min-width:96px;">Close</button>
+                                </div>
+                            </div>
+                        `;
+                        document.body.appendChild(overlay);
+                        const closeBtn = document.getElementById('featureLockModalCloseBtn');
+                        if (closeBtn) closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
+                        overlay.addEventListener('click', (ev) => { if (ev.target === overlay) overlay.style.display = 'none'; });
+                    }
+                    const msg = document.getElementById('featureLockModalMessage');
+                    if (msg) {
+                        const patreonUrl = 'https://www.patreon.com/12845525/join';
+                        msg.innerHTML = CHROMOTONE_FEATURE_LOCK_MESSAGE.replace(
+                            patreonUrl,
+                            `<a href="${patreonUrl}" target="_blank" rel="noopener noreferrer" style="color:#7dd3fc;text-decoration:underline;">${patreonUrl}</a>`
+                        );
+                    }
+                    overlay.style.display = 'flex';
+                } catch (_) { }
+            };
+
+
             // Define sidebar button handler early for onclick access
             window.sidebarBtnClick = function (buttonType) {
                 const btn = document.getElementById(buttonType + 'Btn');
@@ -14374,108 +14453,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         break;
 
                     case 'midi':
-                        // Sidebar MIDI button: ensure loopMIDI present, initialize MIDI, map outputs, mute internal sound.
-                        (async () => {
-                            try {
-                                // Ensure guard exists before use
-                                if (!window._xenMidiInitGuard) window._xenMidiInitGuard = { prompted: false };
-                                // If already enabled, clicking turns it off via existing hidden toggle
-                                if (window.midi && window.midi.enabled) {
-                                    const midiToggle = document.getElementById('midiToggle');
-                                    if (midiToggle && typeof midiToggle.click === 'function') {
-                                        midiToggle.click();
-                                    } else {
-                                        try {
-                                            window.midi.enabled = false;
-                                            if (window.midi.inputs) {
-                                                for (const input of window.midi.inputs.values()) {
-                                                    input.onmidimessage = null;
-                                                }
-                                            }
-                                            window.midi.inputHandler = null;
-                                        } catch (_) { }
-                                        try {
-                                            const oc = window.autoharp;
-                                            if (oc) {
-                                                oc.midiBypassOscillators = false;
-                                                const restore = (typeof oc._preMidiMasterVolume === 'number') ? oc._preMidiMasterVolume : oc.masterVolume;
-                                                oc.masterVolume = restore;
-                                                if (oc.gainNode) oc.gainNode.gain.value = oc.volume * oc.masterVolume;
-                                                if (oc.dryGainNode) oc.dryGainNode.gain.value = oc.masterVolume;
-                                                if (oc.reverbOutGain) oc.reverbOutGain.gain.value = oc.masterVolume;
-                                                delete oc._preMidiMasterVolume;
-                                            }
-                                            if (window.midi) delete window.midi._masterVolumeScale;
-                                        } catch (_) { }
-                                        try {
-                                            const led = document.getElementById('midiStatusLed');
-                                            if (led) { led.classList.remove('on'); led.title = 'MIDI Disabled'; }
-                                        } catch (_) { }
-                                    }
-                                    btn.classList.remove('active');
-                                    return;
-                                }
-                                // Attempt init if not enabled
-                                if (window.midi && !window.midi.enabled) {
-                                    if (window.midi._initializing) return; // guard
-                                    window.midi._initializing = true;
-                                    const ok = await window.midi.init();
-                                    window.midi._initializing = false;
-                                    if (!ok) return;
-                                    // Detect loopMIDI outputs
-                                    let hasLoop = false; let firstLoopId = null; let firstLoopName = null;
-                                    try {
-                                        const outsArr = Array.from(window.midi.outputs.values());
-                                        for (const o of outsArr) { const nm = String(o.name || o.id || ''); if (/loopmidi/i.test(nm)) { hasLoop = true; if (!firstLoopId) { firstLoopId = o.id; firstLoopName = nm; } } }
-                                    } catch (_) { }
-                                    if (!hasLoop) {
-                                        // Allow enable if any outputs exist (hardware) OR selects already show items.
-                                        let anyOutputs = false;
-                                        try { anyOutputs = window.midi.outputs && window.midi.outputs.size > 0; } catch (_) { }
-                                        if (!anyOutputs) {
-                                            let uiVisible = false;
-                                            try {
-                                                const selIds = ['midiOutputSelect', 'midiStrumOutput', 'midiChordOutput', 'midiArpOutput', 'midiBassOutput', 'midiDrumOutput'];
-                                                for (const id of selIds) { const el = document.getElementById(id); if (el && el.options && el.options.length > 0) { uiVisible = true; break; } }
-                                            } catch (_) { }
-                                            if (!uiVisible && !window._xenMidiInitGuard.prompted) {
-                                                window._xenMidiInitGuard.prompted = true;
-                                                try { window.alert('No MIDI outputs detected yet. (Optional) Install loopMIDI if you need virtual routing:\nhttps://www.tobias-erichsen.de/software/loopmidi.html'); } catch (_) { }
-                                            }
-                                        }
-                                        // Continue enabling regardless; future hot-plug will populate.
-                                    }
-                                    // Auto-map if none chosen
-                                    try {
-                                        const haveAny = Object.values(window.midi.outputPortMap || {}).some(v => !!v);
-                                        if (!haveAny && firstLoopId) {
-                                            ['strum1', 'strum2', 'chord', 'arp', 'bass', 'bells', 'drum', 'default'].forEach(sec => { window.midi.outputPortMap[sec] = firstLoopId; });
-                                            console.log(`[MIDI] (Sidebar) Auto-mapped loopMIDI port '${firstLoopName}' to all sections.`);
-                                        }
-                                        if (typeof window.midi._normalizeOutputMappings === 'function') {
-                                            window.midi._normalizeOutputMappings();
-                                        }
-                                    } catch (_) { }
-                                    // Apply UI population
-                                    try { window.midi.applySettingsToUI(); } catch (_) { }
-                                    try {
-                                        if (window.autoharp && typeof window.autoharp._syncChordboxMidiDefaultsAcrossSession === 'function') {
-                                            window.autoharp._syncChordboxMidiDefaultsAcrossSession({ force: true });
-                                        }
-                                    } catch (_) { }
-                                    // Mute internal oscillators while MIDI active
-                                    try {
-                                        const oc = window.autoharp; if (oc) { if (oc._preMidiMasterVolume === undefined) oc._preMidiMasterVolume = oc.masterVolume; oc.masterVolume = 0.0001; if (oc.gainNode) oc.gainNode.gain.value = oc.volume * oc.masterVolume; if (oc.dryGainNode) oc.dryGainNode.gain.value = oc.masterVolume; if (oc.reverbOutGain) oc.reverbOutGain.gain.value = oc.masterVolume; }
-                                    } catch (_) { }
-                                    btn.classList.add('active');
-                                    if (window.autoharp) window.autoharp.midiBypassOscillators = true;
-                                    // Also mark hidden toggle button state if present
-                                    const midiToggle = document.getElementById('midiToggle');
-                                    if (midiToggle) midiToggle.classList.add('active');
-                                }
-                            } catch (_) { }
-                            try { window.midi && window.midi.markActivity(); } catch (_) { }
-                        })();
+                        btn.classList.remove('active');
+                        try { window.showFeatureLockModal && window.showFeatureLockModal(); } catch (_) { }
                         break;
                 }
             };
@@ -16534,6 +16513,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Helper: duplicate current pattern to next empty slot and select it
                             this._duplicateCurrentDrumPattern = () => {
                                 try {
+                                    window.showFeatureLockModal && window.showFeatureLockModal();
+                                    return;
                                     const cur = Math.max(1, parseInt(document.getElementById('drumPatternNumber')?.value || '1', 10));
                                     this._drumPatterns.set(cur, captureGrid());
                                     let target = null;
@@ -16565,7 +16546,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             if (!this._drumPatterns.has(1)) this._drumPatterns.set(1, captureGrid());
                             if (!this._drumPatternLaneQuants.has(1)) this._drumPatternLaneQuants.set(1, captureLaneQuants());
                             patNum.addEventListener('change', (e) => {
-                                let v = parseInt(e.target.value, 10); if (!Number.isFinite(v) || v < 1) v = 1; e.target.value = String(v);
+                                let v = parseInt(e.target.value, 10);
+                                if (!Number.isFinite(v) || v < 1) v = 1;
+                                if (v > CHROMOTONE_FREE_LIMITS.maxDrumPatterns) {
+                                    v = CHROMOTONE_FREE_LIMITS.maxDrumPatterns;
+                                    try { window.showFeatureLockModal && window.showFeatureLockModal(); } catch (_) { }
+                                }
+                                e.target.value = String(v);
                                 const prev = this._lastDrumPatternNumber || 1;
                                 // If increasing and new slot empty, clone from previous
                                 if (v > prev && !this._drumPatterns.has(v)) {
@@ -16610,7 +16597,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     if (!obj || typeof obj !== 'object') return;
                                     Object.keys(obj).forEach(k => {
                                         const n = parseInt(k, 10);
-                                        if (!Number.isFinite(n) || n < 1) return;
+                                        if (!Number.isFinite(n) || n < 1 || n > CHROMOTONE_FREE_LIMITS.maxPatternSlots) return;
                                         const st = obj[k];
                                         if (st && typeof st === 'object') this._arpSynthPatterns.set(n, st);
                                     });
@@ -16619,7 +16606,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const saveSynthBank = () => {
                                 try {
                                     const out = {};
-                                    this._arpSynthPatterns.forEach((v, k) => { if (k >= 1 && k <= 128) out[String(k)] = v; });
+                                    this._arpSynthPatterns.forEach((v, k) => { if (k >= 1 && k <= CHROMOTONE_FREE_LIMITS.maxPatternSlots) out[String(k)] = v; });
                                     localStorage.setItem(LS_KEY, JSON.stringify(out));
                                 } catch (_) { }
                             };
@@ -16723,6 +16710,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         if (s.dataset.len) obj.len = s.dataset.len;
                                         if (s.dataset.tie === '1') obj.tie = 1;
                                         if (s.dataset.npc) obj.npc = s.dataset.npc;
+                                        if (s.dataset.vel != null) obj.vel = String(s.dataset.vel);
+                                        if (s.dataset.octave != null && s.dataset.octave !== '') obj.octave = s.dataset.octave;
+                                        if (s.dataset.oct != null && s.dataset.oct !== '') obj.oct = s.dataset.oct;
+                                        if (s.dataset.noteIndex != null && s.dataset.noteIndex !== '') obj.noteIndex = s.dataset.noteIndex;
                                         return obj;
                                     });
                                     return steps;
@@ -16769,10 +16760,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             if (data.tie) s.dataset.tie = '1';
                                             else delete s.dataset.tie;
                                             if (data.npc) s.dataset.npc = data.npc;
+                                            else delete s.dataset.npc;
+                                            if (data.vel != null) s.dataset.vel = String(data.vel);
+                                            else delete s.dataset.vel;
+                                            if (data.octave != null && data.octave !== '') s.dataset.octave = String(data.octave);
+                                            else delete s.dataset.octave;
+                                            if (data.oct != null && data.oct !== '') s.dataset.oct = String(data.oct);
+                                            else delete s.dataset.oct;
+                                            if (data.noteIndex != null && data.noteIndex !== '') s.dataset.noteIndex = String(data.noteIndex);
+                                            else delete s.dataset.noteIndex;
                                         } else {
                                             s.classList.remove('active');
                                             delete s.dataset.len;
                                             delete s.dataset.tie;
+                                            delete s.dataset.npc;
+                                            delete s.dataset.vel;
+                                            delete s.dataset.octave;
+                                            delete s.dataset.oct;
+                                            delete s.dataset.noteIndex;
                                         }
                                     });
                                     try { window.rebuildPatternTieOverlays && window.rebuildPatternTieOverlays(lane); } catch (_) { }
@@ -16783,7 +16788,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Expose pattern apply helper for deferred apply
                             this._applyArpPatternNumber = (n) => {
                                 try {
-                                    const num = Math.max(1, parseInt(n, 10) || 1);
+                                    const num = Math.max(1, Math.min(CHROMOTONE_FREE_LIMITS.maxPatternSlots, parseInt(n, 10) || 1));
                                     const patt = this._arpPatterns.get(num);
                                     if (patt) applyPatternGrid(patt);
                                 } catch (_) { }
@@ -16791,14 +16796,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             // Helper: immediate autosave to current slot
                             this._saveArpPattern = () => {
                                 try {
-                                    const n = Math.max(1, parseInt(document.getElementById('patternPatternNumber')?.value || '1', 10));
+                                    const n = Math.max(1, Math.min(CHROMOTONE_FREE_LIMITS.maxPatternSlots, parseInt(document.getElementById('patternPatternNumber')?.value || '1', 10)));
                                     this._arpPatterns.set(n, capturePatternGrid());
                                 } catch (_) { }
                             };
                             // Helper: immediate autosave synth UI state to current slot
                             this._saveArpPatternSynth = () => {
                                 try {
-                                    const n = Math.max(1, parseInt(document.getElementById('patternPatternNumber')?.value || '1', 10));
+                                    const n = Math.max(1, Math.min(CHROMOTONE_FREE_LIMITS.maxPatternSlots, parseInt(document.getElementById('patternPatternNumber')?.value || '1', 10)));
                                     const st = captureArpSynthUIState();
                                     if (st) this._arpSynthPatterns.set(n, st);
                                     saveSynthBank();
@@ -16916,7 +16921,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 saveSynthBank();
                             }
                             patNum.addEventListener('change', (e) => {
-                                let v = parseInt(e.target.value, 10); if (!Number.isFinite(v) || v < 1) v = 1; e.target.value = String(v);
+                                let v = parseInt(e.target.value, 10);
+                                if (!Number.isFinite(v) || v < 1) v = 1;
+                                if (v > CHROMOTONE_FREE_LIMITS.maxPatternSlots) {
+                                    v = CHROMOTONE_FREE_LIMITS.maxPatternSlots;
+                                    try { window.showFeatureLockModal && window.showFeatureLockModal(); } catch (_) { }
+                                }
+                                e.target.value = String(v);
                                 const prev = this._lastArpPatternNumber || 1;
                                 // Before switching away, save current grid + synth settings
                                 this._arpPatterns.set(prev, capturePatternGrid());
@@ -19290,23 +19301,60 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try {
                             // Clear buttons for Pattern / Drums / Bass
                             (function () {
-                                const patternClear = document.getElementById('patternClearBtn');
-                                if (patternClear && !patternClear._wired) {
-                                    patternClear._wired = true;
-                                    patternClear.addEventListener('click', () => {
+                                if (!window._patternClearDelegatedWired) {
+                                    window._patternClearDelegatedWired = true;
+                                    document.addEventListener('click', (ev) => {
+                                        const btn = ev.target && ev.target.closest
+                                            ? ev.target.closest('[data-role="patternClearBtn"], #patternClearBtn')
+                                            : null;
+                                        if (!btn) return;
                                         if (window.autoharp && window.autoharp._projectLocked) return;
                                         try {
-                                            const pg = document.getElementById('patternGrid');
+                                            const modal = btn.closest('.floating-modal') || btn.closest('.pattern-modal') || document;
+                                            const pg = (modal.querySelector && (modal.querySelector('[data-role="patternGrid"]') || modal.querySelector('#patternGrid') || modal.querySelector('.pattern-grid')))
+                                                || document.getElementById('patternGrid');
                                             if (!pg) return;
+
+                                            const stopPatternVoicesNow = (pt) => {
+                                                try {
+                                                    if (!pt || !pt.activeVoices) return;
+                                                    for (const vid of Array.from(pt.activeVoices)) {
+                                                        const meta = pt[vid];
+                                                        try { if (meta && typeof meta.stop === 'function') meta.stop(); } catch (_) { }
+                                                        try { pt.activeVoices.delete(vid); } catch (_) { }
+                                                        try { delete pt[vid]; } catch (_) { }
+                                                    }
+                                                } catch (_) { }
+                                            };
+
+                                            // Clear any cached playback snapshot so scheduler reads the cleared DOM immediately.
+                                            try { delete pg._audioSnapshot; } catch (_) { pg._audioSnapshot = null; }
+                                            try { pg._pendingAudioEdits = true; } catch (_) { }
+                                            try {
+                                                const lanes0 = Array.from(pg.querySelectorAll('.pattern-lane'));
+                                                lanes0.forEach(lane => { try { delete lane._lastPatternAbsQStep; } catch (_) { lane._lastPatternAbsQStep = null; } });
+                                            } catch (_) { }
+
+                                            // Stop currently sounding pattern notes right away.
+                                            try { stopPatternVoicesNow(modal && modal._patternTransport); } catch (_) { }
+                                            try {
+                                                const basePg = document.getElementById('patternGrid');
+                                                if (basePg && pg === basePg) stopPatternVoicesNow(window._patternTransport);
+                                            } catch (_) { }
+
                                             const lanes = Array.from(pg.querySelectorAll('.pattern-lane'));
                                             lanes.forEach(lane => {
+                                                const row = lane.closest('.pattern-row, .drum-row');
+                                                if (row && row.classList.contains('bass-row')) return;
                                                 const steps = Array.from(lane.querySelectorAll('.pattern-step, .drum-step'));
                                                 steps.forEach(st => {
-                                                    // Skip bass in pattern grid: it has an 'npc' dataset key (even if empty)
-                                                    if (st.dataset && Object.prototype.hasOwnProperty.call(st.dataset, 'npc')) return;
                                                     st.classList.remove('active');
                                                     delete st.dataset.len;
                                                     delete st.dataset.tie;
+                                                    delete st.dataset.npc;
+                                                    delete st.dataset.octave;
+                                                    delete st.dataset.oct;
+                                                    delete st.dataset.noteIndex;
                                                 });
                                                 try { window.rebuildPatternTieOverlays && window.rebuildPatternTieOverlays(lane); } catch (_) { }
                                             });
@@ -19315,7 +19363,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             // Autosave to current pattern slot after clearing
                                             try { window.autoharp && window.autoharp._saveArpPattern && window.autoharp._saveArpPattern(); } catch (_) { }
                                         } catch (_) { }
-                                    });
+                                    }, true);
                                 }
                                 const drumClear = document.getElementById('drumClearBtn');
                                 if (drumClear && !drumClear._wired) {
@@ -29057,16 +29105,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Touch events for strings
                     extensionColumns.addEventListener('touchstart', (e) => {
                         if (this._isPointerOverModal(e)) return;
-                        const isTouchActionable = (touch) => {
+                        const getTouchActionability = (touch) => {
                             try {
-                                if (!touch) return false;
+                                if (!touch) return null;
                                 const hit = document.elementFromPoint(touch.clientX, touch.clientY);
-                                if (!hit) return false;
-                                return !!(hit.closest && (hit.closest('.extension-column') || hit.closest('.string,[data-frequency]')));
-                            } catch (_) { return false; }
+                                if (!hit) return null;
+                                const tapCol = hit.closest ? hit.closest('.extension-column') : null;
+                                const stringTarget = hit.closest ? hit.closest('.string,[data-frequency]') : null;
+                                const selectableTap = !!(tapCol && isChordboxTapSelectableTarget(hit));
+                                return {
+                                    touch,
+                                    hit,
+                                    tapCol,
+                                    stringTarget,
+                                    selectableTap,
+                                    actionable: !!(stringTarget || selectableTap)
+                                };
+                            } catch (_) { return null; }
                         };
                         const changed = Array.from(e.changedTouches || []);
-                        const actionableTouches = changed.filter(isTouchActionable);
+                        const actionableTouches = changed
+                            .map(getTouchActionability)
+                            .filter(info => info && info.actionable);
                         if (!actionableTouches.length) return;
                         e.preventDefault();
                         if (this.audioContext && this.audioContext.state === 'suspended') {
@@ -29074,13 +29134,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                         if (!this._touchChordTapCandidates) this._touchChordTapCandidates = new Map();
 
-                        // Enhanced touch sensitivity: immediately mark all touch targets to prevent missed taps
-                        this._enhanceTouchResponsiveness({ changedTouches: actionableTouches, touches: actionableTouches });
+                        // Only pre-warm responsiveness for actual string targets, not empty column space.
+                        const stringTouches = actionableTouches
+                            .filter(info => !!info.stringTarget)
+                            .map(info => info.touch);
+                        if (stringTouches.length) {
+                            this._enhanceTouchResponsiveness({ changedTouches: stringTouches, touches: stringTouches });
+                        }
+
                         let startedStrum = false;
-                        actionableTouches.forEach(touch => {
-                            const hit = document.elementFromPoint(touch.clientX, touch.clientY);
-                            const tapCol = hit && hit.closest ? hit.closest('.extension-column') : null;
-                            if (tapCol && isChordboxTapSelectableTarget(hit)) {
+                        actionableTouches.forEach(info => {
+                            const touch = info.touch;
+                            const hit = info.hit;
+                            const tapCol = info.tapCol;
+                            if (tapCol && info.selectableTap) {
                                 this._touchChordTapCandidates.set(touch.identifier, {
                                     x: touch.clientX,
                                     y: touch.clientY,
@@ -29091,6 +29158,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 this._pointerLastStringKey.set(`t${touch.identifier}`, null);
                                 return;
                             }
+
+                            // Ignore neutral canvas touches (non-string, non-selectable targets).
+                            if (!info.stringTarget) return;
+
                             if (!this.isPlayingStrings) {
                                 this.isPlayingStrings = true;
                                 this.triggeredStrings.clear();
@@ -29117,6 +29188,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             const dx = touch.clientX - cand.x;
                             const dy = touch.clientY - cand.y;
                             if (Math.hypot(dx, dy) > chordboxTapMoveThresholdPx) {
+                                const moveHit = document.elementFromPoint(touch.clientX, touch.clientY);
+                                const moveString = moveHit && moveHit.closest ? moveHit.closest('.string,[data-frequency]') : null;
+                                if (!moveString) return;
                                 this._touchChordTapCandidates.delete(touch.identifier);
                                 if (!this.isPlayingStrings) {
                                     this.isPlayingStrings = true;
@@ -29200,6 +29274,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 }
                             } else {
                                 Array.from(e.changedTouches).forEach(touch => {
+                                    if (!this.activeTouches.has(touch.identifier)) return;
                                     this.activeTouches.set(touch.identifier, touch);
                                     this.handleStringTrigger(touch);
                                 });
@@ -33522,6 +33597,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         if (s.dataset.tie === '1') obj.tie = 1;
                                         if (s.dataset.npc) obj.npc = String(s.dataset.npc);
                                         if (s.dataset.vel != null) obj.vel = String(s.dataset.vel);
+                                        if (s.dataset.octave != null && s.dataset.octave !== '') obj.octave = String(s.dataset.octave);
+                                        if (s.dataset.oct != null && s.dataset.oct !== '') obj.oct = String(s.dataset.oct);
+                                        if (s.dataset.noteIndex != null && s.dataset.noteIndex !== '') obj.noteIndex = String(s.dataset.noteIndex);
                                         return obj;
                                     });
                                     return steps;
@@ -33597,6 +33675,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             });
                         } catch (_) { }
                     } catch (_) { }
+
+                    // Ensure the currently active section state (including per-section tuning) is flushed before save.
+                    try { if (typeof window._storeCurrentSectionState === 'function') window._storeCurrentSectionState(); } catch (_) { }
 
                     // Capture current chord/marker ordering from the DOM (drag-rearranged), without mutating live state.
                     const cloneJson = (v) => { try { return JSON.parse(JSON.stringify(v)); } catch (_) { return v; } };
@@ -33776,6 +33857,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         if (s.dataset.tie === '1') obj.tie = 1;
                                         if (s.dataset.npc) obj.npc = String(s.dataset.npc);
                                         if (s.dataset.vel != null) obj.vel = String(s.dataset.vel);
+                                        if (s.dataset.octave != null && s.dataset.octave !== '') obj.octave = String(s.dataset.octave);
+                                        if (s.dataset.oct != null && s.dataset.oct !== '') obj.oct = String(s.dataset.oct);
+                                        if (s.dataset.noteIndex != null && s.dataset.noteIndex !== '') obj.noteIndex = String(s.dataset.noteIndex);
                                         return obj;
                                     });
                                     return steps;
@@ -33944,7 +34028,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         transportBpm: bpmForSave,
                         quantize: document.getElementById('universalQuant')?.value || 'beat:1',
                         timeSignature: document.getElementById('universalTimeSignature')?.value || '4/4',
-                        pattern: document.getElementById('universalPattern')?.value || 'down',
+                        pattern: document.getElementById('universalPattern')?.value || 'custom',
                         // Persist custom typed pattern (if any) from companion text field
                         patternText: document.getElementById('universalPatternText')?.value || '',
                         loop: loopForSave,
@@ -34380,6 +34464,63 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     reject(new Error('Invalid session file format'));
                                     return;
                                 }
+
+                                try {
+                                    // Free-tier import sanitation: strip advanced features before any state restoration.
+                                    delete sessionData.midi;
+
+                                    const clampSlotObj = (obj, maxSlots) => {
+                                        const out = {};
+                                        if (!obj || typeof obj !== 'object') return out;
+                                        const keys = Object.keys(obj)
+                                            .map(k => parseInt(k, 10))
+                                            .filter(n => Number.isFinite(n) && n >= 1 && n <= maxSlots)
+                                            .sort((a, b) => a - b);
+                                        keys.forEach(k => { out[String(k)] = obj[String(k)]; });
+                                        return out;
+                                    };
+
+                                    const clampToIntRange = (v, lo, hi, fallback) => {
+                                        const n = parseInt(String(v ?? ''), 10);
+                                        if (!Number.isFinite(n)) return fallback;
+                                        return Math.max(lo, Math.min(hi, n));
+                                    };
+
+                                    if (sessionData.patternEditor && typeof sessionData.patternEditor === 'object') {
+                                        const pe = sessionData.patternEditor;
+                                        pe.patterns = clampSlotObj(pe.patterns, CHROMOTONE_FREE_LIMITS.maxPatternSlots);
+                                        pe.synthPatterns = clampSlotObj(pe.synthPatterns, CHROMOTONE_FREE_LIMITS.maxPatternSlots);
+                                        pe.currentPatternNumber = clampToIntRange(pe.currentPatternNumber, 1, CHROMOTONE_FREE_LIMITS.maxPatternSlots, 1);
+                                        pe.lastArpPatternNumber = clampToIntRange(pe.lastArpPatternNumber, 1, CHROMOTONE_FREE_LIMITS.maxPatternSlots, 1);
+                                    }
+
+                                    if (Array.isArray(sessionData.patternInstances)) {
+                                        sessionData.patternInstances = sessionData.patternInstances.slice(0, CHROMOTONE_FREE_LIMITS.maxPatternInstances).map((inst) => {
+                                            const safe = (inst && typeof inst === 'object') ? inst : {};
+                                            safe.patterns = clampSlotObj(safe.patterns, CHROMOTONE_FREE_LIMITS.maxPatternSlots);
+                                            safe.synthPatterns = clampSlotObj(safe.synthPatterns, CHROMOTONE_FREE_LIMITS.maxPatternSlots);
+                                            safe.currentPatternNumber = clampToIntRange(safe.currentPatternNumber, 1, CHROMOTONE_FREE_LIMITS.maxPatternSlots, 1);
+                                            safe.lastArpPatternNumber = clampToIntRange(safe.lastArpPatternNumber, 1, CHROMOTONE_FREE_LIMITS.maxPatternSlots, 1);
+                                            return safe;
+                                        });
+                                    }
+
+                                    if (sessionData.drums && typeof sessionData.drums === 'object') {
+                                        const d = sessionData.drums;
+                                        d.active = 1;
+                                        if (d.patterns && typeof d.patterns === 'object') {
+                                            d.patterns = (d.patterns['1'] != null) ? { '1': d.patterns['1'] } : {};
+                                        }
+                                        if (d.laneQuants && typeof d.laneQuants === 'object') {
+                                            d.laneQuants = (d.laneQuants['1'] != null) ? { '1': d.laneQuants['1'] } : {};
+                                        }
+                                    }
+
+                                    if (Array.isArray(sessionData.drumInstances)) {
+                                        sessionData.drumInstances = sessionData.drumInstances.slice(0, CHROMOTONE_FREE_LIMITS.maxDrumInstances);
+                                    }
+                                } catch (_) { }
+
                                 console.log('🎵 Loading session file:', sessionData);
                                 // Stop transport/playback if active (safety)
                                 try { if (this.stop) this.stop(); } catch (_) { }
@@ -34406,7 +34547,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (sessionData.paletteChords) this.paletteChords = sessionData.paletteChords;
                                 if (sessionData.currentRoot !== undefined) this.currentRoot = sessionData.currentRoot;
                                 if (sessionData.currentQuality !== undefined) this.currentQuality = sessionData.currentQuality;
-                                if (sessionData.currentTuning !== undefined) this.currentTuning = sessionData.currentTuning;
+                                if (sessionData.currentTuning !== undefined) {
+                                    const savedTuning = parseInt(String(sessionData.currentTuning), 10);
+                                    if (Number.isFinite(savedTuning) && savedTuning >= 5 && savedTuning <= 96) {
+                                        if (typeof this.updateTuningSystem === 'function') this.updateTuningSystem(savedTuning);
+                                        else this.currentTuning = savedTuning;
+                                    }
+                                }
                                 if (sessionData.gamelanMode !== undefined) this.gamelanMode = sessionData.gamelanMode;
                                 if (sessionData.transposeDelta !== undefined) this.transposeDelta = sessionData.transposeDelta;
 
@@ -34414,31 +34561,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 try {
                                     if (Array.isArray(sessionData.sections) && sessionData.sections.length) {
                                         window._sections = cloneJson(sessionData.sections);
-                                        // If a section state is missing chordExtensions (or empty), hydrate it from top-level
-                                        try {
-                                            const topChords = Array.isArray(sessionData.chordExtensions) ? cloneJson(sessionData.chordExtensions) : [];
-                                            if (topChords.length) {
-                                                window._sections.forEach(sec => {
-                                                    if (!sec || typeof sec !== 'object') return;
-                                                    sec.state = (sec.state && typeof sec.state === 'object') ? sec.state : {};
-                                                    const hasChords = Array.isArray(sec.state.chordExtensions) && sec.state.chordExtensions.length;
-                                                    if (!hasChords) sec.state.chordExtensions = cloneJson(topChords);
-                                                });
-                                            }
-                                        } catch (_) { }
-                                        // Force loop markers to full range for every section on load
                                         window._sections.forEach(sec => {
                                             if (!sec || typeof sec !== 'object') return;
                                             sec.state = (sec.state && typeof sec.state === 'object') ? sec.state : {};
-                                            const lr = sec.state.loopRange;
-                                            sec.state.loopRange = {
-                                                start: 0,
-                                                end: 0,
-                                                startId: (lr && lr.startId) ? lr.startId : null,
-                                                endId: (lr && lr.endId) ? lr.endId : null,
-                                                edgeLeft: true,
-                                                edgeRight: true
-                                            };
+                                            if (!Array.isArray(sec.state.chordExtensions)) sec.state.chordExtensions = [];
+                                            if (!Number.isFinite(parseInt(String(sec.state.tuning ?? ''), 10))) {
+                                                sec.state.tuning = parseInt(String(sessionData.currentTuning ?? this.currentTuning ?? 24), 10) || 24;
+                                            }
                                         });
                                         const activeId = sessionData.activeSectionId || window._sections[0]?.id || 'A';
                                         window._activeSectionId = activeId;
@@ -34681,7 +34810,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 }
                                 if (sessionData.pattern !== undefined) {
                                     const el = document.getElementById('universalPattern');
-                                    if (el) { el.value = sessionData.pattern; el.dispatchEvent(new Event('change')); }
+                                    if (el) { el.value = 'custom'; el.dispatchEvent(new Event('change')); }
                                 }
                                 // Restore custom pattern text BEFORE NPC/other dependent recalcs, then trigger handler
                                 if (sessionData.patternText !== undefined) {
@@ -35078,12 +35207,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                                         if (data.len) s.dataset.len = String(data.len); else delete s.dataset.len;
                                                         if (data.tie) s.dataset.tie = '1'; else delete s.dataset.tie;
                                                         if (data.npc) s.dataset.npc = String(data.npc); else delete s.dataset.npc;
+                                                        if (data.octave != null && data.octave !== '') s.dataset.octave = String(data.octave);
+                                                        else delete s.dataset.octave;
+                                                        if (data.oct != null && data.oct !== '') s.dataset.oct = String(data.oct);
+                                                        else delete s.dataset.oct;
+                                                        if (data.noteIndex != null && data.noteIndex !== '') s.dataset.noteIndex = String(data.noteIndex);
+                                                        else delete s.dataset.noteIndex;
                                                         if (data.vel != null) s.dataset.vel = String(data.vel);
+                                                        else delete s.dataset.vel;
                                                     } else {
                                                         s.classList.remove('active');
                                                         delete s.dataset.len;
                                                         delete s.dataset.tie;
                                                         delete s.dataset.npc;
+                                                        delete s.dataset.octave;
+                                                        delete s.dataset.oct;
+                                                        delete s.dataset.noteIndex;
+                                                        delete s.dataset.vel;
                                                     }
                                                     try { if (window.updateStepVelocityClass) window.updateStepVelocityClass(s); } catch (_) { }
                                                 });
@@ -35126,10 +35266,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             maybe(`${instKey}ReleaseSlider`, (v) => setInput(`${instKey}ReleaseSlider`, v));
                                             maybe(`${instKey}FxSend`, (v) => setCheck(`${instKey}FxSend`, v));
 
-                                            if ('midiIn' in state) setInput(`midiIn-${instKey}`, state.midiIn, 'change');
-                                            if ('midiOut' in state) setInput(`midiOut-${instKey}`, state.midiOut, 'change');
-                                            if ('midiOct' in state) setInput(`midiOct-${instKey}`, state.midiOct, 'change');
-                                            if ('midiVel' in state) setInput(`midiVel-${instKey}`, state.midiVel, 'change');
+                                            // Free build: MIDI settings are intentionally not restored.
                                         } catch (_) { }
                                     };
 
@@ -35139,7 +35276,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             if (!obj || typeof obj !== 'object') return mp;
                                             for (const k of Object.keys(obj)) {
                                                 const n = parseInt(k, 10);
-                                                if (!Number.isFinite(n) || n < 1) continue;
+                                                if (!Number.isFinite(n) || n < 1 || n > CHROMOTONE_FREE_LIMITS.maxPatternSlots) continue;
                                                 mp.set(n, obj[k]);
                                             }
                                         } catch (_) { }
@@ -42163,11 +42300,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                 // Enhanced touch responsiveness system to prevent missed taps and improve sensitivity
                 _enhanceTouchResponsiveness(touchEvent) {
+                    const touchedStrings = [];
                     // Pre-mark touch targets to ensure they register properly
                     Array.from(touchEvent.changedTouches || touchEvent.touches || []).forEach(touch => {
                         const target = document.elementFromPoint(touch.clientX, touch.clientY);
                         const stringTarget = target && target.closest ? target.closest('.string,[data-frequency]') : null;
                         if (stringTarget) {
+                            touchedStrings.push(stringTarget);
                             // Mark visual feedback immediately for responsive UI
                             stringTarget.classList.add('touch-active');
                             setTimeout(() => stringTarget.classList.remove('touch-active'), 150);
@@ -42185,18 +42324,23 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     });
 
                     // Reset any existing throttling states for immediate responsiveness
-                    this._resetTouchThrottling();
+                    this._resetTouchThrottling(touchedStrings);
                 }
 
                 // Reset touch throttling to allow immediate responses
-                _resetTouchThrottling() {
+                _resetTouchThrottling(touchedStrings = null) {
                     const now = performance.now();
                     // Don't reset if we just did this very recently (prevents spam)
                     if (this._lastThrottleReset && (now - this._lastThrottleReset) < 10) return;
                     this._lastThrottleReset = now;
 
-                    // Clear throttling for more responsive subsequent touches
-                    document.querySelectorAll('[data-frequency]').forEach(stringEl => {
+                    const list = Array.isArray(touchedStrings)
+                        ? Array.from(new Set(touchedStrings.filter(Boolean)))
+                        : [];
+                    if (!list.length) return;
+
+                    // Clear throttling only on touched strings for responsive subsequent touches
+                    list.forEach(stringEl => {
                         if (stringEl.lastTriggerTime && (now - stringEl.lastTriggerTime) > 15) {
                             // Allow immediate retrigger for strings that haven't been hit recently
                             stringEl.lastTriggerTime = Math.max(0, stringEl.lastTriggerTime - 15);
@@ -43211,6 +43355,27 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         let headerSwipeStrumFired = false;
                         let preMoveListening = false;
                         let selectedOnPress = false;
+                        const TOUCH_STRUM_MIN_INTERVAL_MS = 12;
+                        let lastTouchStrumAt = 0;
+                        let touchStrumRaf = null;
+                        let pendingTouchStrum = null;
+                        let dragMoveRaf = null;
+                        let pendingDragPoint = null;
+
+                        const queueTouchStrum = (frequency, stringEl) => {
+                            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                            if ((now - lastTouchStrumAt) < TOUCH_STRUM_MIN_INTERVAL_MS) return;
+                            lastTouchStrumAt = now;
+                            pendingTouchStrum = { frequency, stringEl };
+                            if (touchStrumRaf != null) return;
+                            touchStrumRaf = requestAnimationFrame(() => {
+                                touchStrumRaf = null;
+                                const queued = pendingTouchStrum;
+                                pendingTouchStrum = null;
+                                if (!queued) return;
+                                try { autoharp.playFrequency(queued.frequency, queued.stringEl, 'strum'); } catch (_) { }
+                            });
+                        };
 
                         const getPointer = (e) => (e.touches && e.touches[0]) || e;
                         const canStartFrom = (target) => {
@@ -43254,10 +43419,11 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (
                                     autoharp &&
                                     autoharp._isSequencing &&
-                                    (autoharp.chordsEnabled || autoharp.arpEnabled) &&
                                     typeof autoharp._executeChordChange === 'function'
                                 ) {
-                                    autoharp._executeChordChange(column, clientY);
+                                    if (!isLoopEnabled() || autoharp.chordsEnabled || autoharp.arpEnabled) {
+                                        autoharp._executeChordChange(column, clientY);
+                                    }
                                 }
                             } catch (_) { }
                         };
@@ -43357,7 +43523,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             if (topString) {
                                                 const f = parseFloat(topString.dataset.frequency);
                                                 if (Number.isFinite(f)) {
-                                                    autoharp.playFrequency(f, topString, 'strum');
+                                                    const isTouchGesture = !!(e && (e.touches || e.changedTouches || (p && p.identifier != null)));
+                                                    if (isTouchGesture) queueTouchStrum(f, topString);
+                                                    else autoharp.playFrequency(f, topString, 'strum');
                                                 }
                                                 // Skip the first string on entry so header counts as the first note.
                                                 try {
@@ -43492,7 +43660,26 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             }
                         };
 
-                        const onMove = (e) => { if (!isDragging && pressTimer) { maybeCancelOnMove(e); return; } if (!isDragging) return; const p = getPointer(e); moveDrag(p); e.preventDefault(); };
+                        const onMove = (e) => {
+                            if (!isDragging && pressTimer) { maybeCancelOnMove(e); return; }
+                            if (!isDragging) return;
+                            const p = getPointer(e);
+                            const isTouchGesture = !!(e && (e.touches || e.changedTouches || (p && p.identifier != null)));
+                            if (isTouchGesture) {
+                                pendingDragPoint = p;
+                                if (dragMoveRaf == null) {
+                                    dragMoveRaf = requestAnimationFrame(() => {
+                                        dragMoveRaf = null;
+                                        const pt = pendingDragPoint;
+                                        pendingDragPoint = null;
+                                        if (pt) moveDrag(pt);
+                                    });
+                                }
+                            } else {
+                                moveDrag(p);
+                            }
+                            e.preventDefault();
+                        };
 
                         const onEnd = () => {
                             cancelPress();
@@ -43501,6 +43688,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             window.removeEventListener('touchmove', onMove);
                             window.removeEventListener('mouseup', onEnd);
                             window.removeEventListener('touchend', onEnd);
+                            if (dragMoveRaf != null) { cancelAnimationFrame(dragMoveRaf); dragMoveRaf = null; }
+                            if (touchStrumRaf != null) { cancelAnimationFrame(touchStrumRaf); touchStrumRaf = null; }
+                            pendingDragPoint = null;
+                            pendingTouchStrum = null;
                             if (dwellTimer) { clearTimeout(dwellTimer); dwellTimer = null; }
 
                             column.classList.remove('dragging');
@@ -50837,1160 +51028,74 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     };
                 }
 
-                // Minimal Web MIDI manager providing init/send/receive APIs and integration
+                // MIDI is intentionally disabled in this build.
                 (function () {
-                    class WebMIDIManager {
-                        constructor() {
-                            this.enabled = false;
-                            this.midiAccess = null;
-                            this.inputs = new Map();
-                            this.outputs = new Map();
-                            this.inputHandler = null;
-                            this.channelMap = { strum: 1, strum1: 1, strum2: 2, chord: 3, arp: 4, bass: 5, drum: 6, osc1: 7, osc2: 8, bells: 9, default: 6 };
-                            this.noteState = new Map(); // key: `${note}@${ch}` -> {ts}
-                            this.sustain = false; // CC64 >= 64
-                            this.deferredOff = new Set(); // keys to send off when sustain released
-                            this._idleTimer = null;
-                            this._idleMs = 10000; // 10s PANIC after no interaction
-                            this.octaveOffset = 0; // UI-controlled MIDI octave transpose
-                            this.defaultVelocity = 100; // UI-controlled default velocity
-                            // Per-source octave transpose (octaves, always 12 semitones per octave for MIDI)
-                            this.perSourceOctave = { strum1: 0, strum2: 0, chord: 0, arp: 0, bass: 0, osc1: 0, osc2: 0, bells: 0, default: 0 };
-                            // Per-source default velocity (overrides global if set)
-                            this.perSourceVelocity = { strum1: 100, strum2: 100, chord: 100, arp: 100, bass: 100, osc1: 100, osc2: 100, bells: 100, default: 100 };
-                            // Per-section MIDI IN channel filter (1=channel 1, not 0=omni)
-                            this.inputChannelMap = { strum1: 1, strum2: 1, chord: 1, arp: 1, bass: 1, bells: 1, default: 1 };
-                            // Per-section MIDI OUT port selection (stores output.id). Empty values are auto-resolved to a concrete output.
-                            this.outputPortMap = { strum1: null, strum2: null, chord: null, arp: null, bass: null, bells: null, drum: null, default: null };
-                            this.currentProgram = 0;
-                            // Load saved MIDI settings on initialization
-                            this.loadMIDISettings();
-                        }
-                        // Save MIDI settings to localStorage
-                        saveMIDISettings() {
-                            try {
-                                const settings = {
-                                    inputChannelMap: this.inputChannelMap,
-                                    outputPortMap: this.outputPortMap,
-                                    perSourceOctave: this.perSourceOctave,
-                                    perSourceVelocity: this.perSourceVelocity,
-                                    octaveOffset: this.octaveOffset,
-                                    defaultVelocity: this.defaultVelocity
-                                };
-                                localStorage.setItem('xenmicord_midi_settings', JSON.stringify(settings));
-                                console.log('🎛️ MIDI settings saved to localStorage');
-                            } catch (e) {
-                                console.warn('Failed to save MIDI settings:', e);
-                            }
-                        }
-                        // Load MIDI settings from localStorage
-                        loadMIDISettings() {
-                            try {
-                                const saved = localStorage.getItem('xenmicord_midi_settings');
-                                if (saved) {
-                                    const settings = JSON.parse(saved);
-                                    if (settings.inputChannelMap) this.inputChannelMap = { ...this.inputChannelMap, ...settings.inputChannelMap };
-                                    if (settings.outputPortMap) this.outputPortMap = { ...this.outputPortMap, ...settings.outputPortMap };
-                                    if (settings.perSourceOctave) this.perSourceOctave = { ...this.perSourceOctave, ...settings.perSourceOctave };
-                                    if (settings.perSourceVelocity) this.perSourceVelocity = { ...this.perSourceVelocity, ...settings.perSourceVelocity };
-                                    if (typeof settings.octaveOffset === 'number') this.octaveOffset = settings.octaveOffset;
-                                    if (typeof settings.defaultVelocity === 'number') this.defaultVelocity = settings.defaultVelocity;
-                                    console.log('🎛️ MIDI settings loaded from localStorage');
-                                    // Apply loaded settings to UI elements
-                                    this.applySettingsToUI();
-                                }
-                            } catch (e) {
-                                console.warn('Failed to load MIDI settings:', e);
-                            }
-                        }
-                        // Apply loaded settings to UI elements
-                        applySettingsToUI() {
-                            try {
-                                const sections = ['strum1', 'strum2', 'chord', 'arp', 'bass', 'bells', 'drum'];
-                                for (const sec of sections) {
-                                    const inEl = document.getElementById(`midiIn-${sec}`);
-                                    const outEl = document.getElementById(`midiOut-${sec}`);
-                                    const octEl = document.getElementById(`midiOct-${sec}`);
-                                    const velEl = document.getElementById(`midiVel-${sec}`);
-                                    if (inEl && this.inputChannelMap[sec] !== undefined) inEl.value = String(this.inputChannelMap[sec]);
-                                    else if (inEl) inEl.value = '1'; // Default to channel 1
-                                    if (outEl && this.outputPortMap[sec] !== undefined) {
-                                        const resolved = this._pickOutputForSection(sec, { preferUnused: true });
-                                        if (resolved) this.outputPortMap[sec] = resolved;
-                                        outEl.value = String(resolved || this.outputPortMap[sec] || '');
-                                    }
-                                    if (octEl && this.perSourceOctave[sec] !== undefined) octEl.value = String(this.perSourceOctave[sec]);
-                                    if (velEl && this.perSourceVelocity[sec] !== undefined) velEl.value = String(this.perSourceVelocity[sec]);
-                                }
-                                // Apply octave offset if element exists
-                                const octOffsetEl = document.getElementById('midiOctaveOffset');
-                                if (octOffsetEl) octOffsetEl.value = String(this.octaveOffset);
-                                // Populate ALL MIDI OUT selects (including cloned pattern/drum/JAM windows)
-                                try { this.populateAllOutputSelects(); } catch (_) { }
-                            } catch (e) {
-                                console.warn('Failed to apply MIDI settings to UI:', e);
-                            }
-                        }
-                        async init() {
-                            if (!('requestMIDIAccess' in navigator)) {
-                                console.warn('Web MIDI not supported in this browser');
-                                return false;
-                            }
-                            try {
-                                this.midiAccess = await navigator.requestMIDIAccess({ sysex: false });
-                            } catch (e) {
-                                console.warn('Web MIDI access denied:', e);
-                                return false;
-                            }
-                            this.refreshPorts();
-                            this.midiAccess.onstatechange = () => this.refreshPorts();
-                            this.enabled = true;
-                            return true;
-                        }
-                        refreshPorts() {
-                            this.inputs.clear();
-                            this.outputs.clear();
-                            if (!this.midiAccess) return;
-                            try {
-                                for (const input of this.midiAccess.inputs.values()) {
-                                    this.inputs.set(input.id, input);
-                                    input.onmidimessage = (ev) => this._handleMIDIMessage(ev);
-                                }
-                                for (const output of this.midiAccess.outputs.values()) {
-                                    this.outputs.set(output.id, output);
-                                }
-                            } catch (e) { console.warn('Enumerating MIDI ports failed', e); }
-                            try {
-                                const inNames = Array.from(this.inputs.values()).map(p => p.name || p.id);
-                                const outNames = Array.from(this.outputs.values()).map(p => p.name || p.id);
-                                const loopIn = inNames.filter(n => /loopmidi/i.test(String(n)));
-                                const loopOut = outNames.filter(n => /loopmidi/i.test(String(n)));
-                                console.log(`[MIDI] Inputs(${this.inputs.size}): ${inNames.join(', ')}`);
-                                console.log(`[MIDI] Outputs(${this.outputs.size}): ${outNames.join(', ')}`);
-                                if (!loopIn.length && !loopOut.length) {
-                                    console.warn('[MIDI] No loopMIDI ports detected (case-insensitive search).');
-                                } else {
-                                    console.log(`[MIDI] loopMIDI detected -> In:[${loopIn.join(', ')}] Out:[${loopOut.join(', ')}]`);
-                                    try {
-                                        // Auto-map first loopMIDI OUT to all sections if nothing chosen yet
-                                        const haveAnyMapping = Object.values(this.outputPortMap || {}).some(v => !!v);
-                                        if (!haveAnyMapping && loopOut.length) {
-                                            const loopId = (() => {
-                                                // Find actual output id corresponding to first detected loopMIDI name
-                                                const wanted = loopOut[0];
-                                                for (const o of this.outputs.values()) {
-                                                    const nm = o.name || o.id || '';
-                                                    if (nm === wanted) return o.id; // exact match
-                                                }
-                                                // Fallback: first output whose name matches /loopmidi/i
-                                                for (const o of this.outputs.values()) {
-                                                    const nm = o.name || o.id || '';
-                                                    if (/loopmidi/i.test(nm)) return o.id;
-                                                }
-                                                return null;
-                                            })();
-                                            if (loopId) {
-                                                ['strum1', 'strum2', 'chord', 'arp', 'bass', 'bells', 'drum', 'default'].forEach(sec => { this.outputPortMap[sec] = loopId; });
-                                                console.log(`[MIDI] Auto-mapped loopMIDI port '${loopOut[0]}' (id=${loopId}) to all sections.`);
-                                            }
-                                        }
-                                    } catch (e) { console.warn('MIDI auto-map error', e); }
-                                }
-                            } catch (e) { console.warn('MIDI logging error', e); }
-                            try {
-                                this._normalizeOutputMappings();
-                                ['strum1', 'strum2', 'chord', 'arp', 'bass', 'bells', 'drum'].forEach(sec => {
-                                    const el = document.getElementById(`midiOut-${sec}`);
-                                    if (el && el.tagName === 'SELECT') {
-                                        this.populateOutputSelect(el);
-                                        try {
-                                            const sel = this._pickOutputForSection(sec, { preferUnused: true });
-                                            if (sel && Array.from(el.options).some(op => op.value === sel)) el.value = sel;
-                                        } catch (_) { }
-                                    }
-                                });
-                            } catch (_) { }
-                            // Also refresh any cloned or popup MIDI OUT selects
-                            try { this.populateAllOutputSelects(); } catch (_) { }
-                            // Re-attach chordbox MIDI deviceIds by name if port IDs changed
-                            try {
-                                const omni = window.autoharp;
-                                if (omni && Array.isArray(omni.chordExtensions) && this.outputs && this.outputs.size) {
-                                    const outs = Array.from(this.outputs.values());
-                                    const norm = (s) => String(s || '').trim().toLowerCase();
-                                    const findIdByName = (name) => {
-                                        const target = norm(name);
-                                        if (!target) return null;
-                                        const exact = outs.find(o => norm(o.name || o.id) === target);
-                                        if (exact) return exact.id;
-                                        const partial = outs.find(o => {
-                                            const nm = norm(o.name || o.id);
-                                            return nm && (nm.includes(target) || target.includes(nm));
-                                        });
-                                        return partial ? partial.id : null;
-                                    };
-                                    omni.chordExtensions.forEach(ch => {
-                                        const midi = ch?.synth?.midi;
-                                        if (!midi) return;
-                                        const curId = String(midi.deviceId || '');
-                                        if (curId && this.outputs.has(curId)) {
-                                            if (!midi.deviceName) {
-                                                try { midi.deviceName = String(this.outputs.get(curId)?.name || curId); } catch (_) { }
-                                            }
-                                            return;
-                                        }
-                                        const name = String(midi.deviceName || '').trim();
-                                        if (!name) return;
-                                        const id = findIdByName(name);
-                                        if (id) midi.deviceId = id;
-                                    });
-                                }
-                            } catch (_) { }
-                        }
-                        onInput(cb) { this.inputHandler = cb; }
-                        // If outputTarget provided (string id or WebMIDIOutput), send to that port; otherwise resolve to a single concrete default output.
-                        sendRaw(data, timestamp = 0, channel = 1, outputTarget = null) {
-                            if (!this.enabled || this.outputs.size === 0) return;
-                            const status = data[0];
-                            const isChanMsg = (status & 0xF0) >= 0x80 && (status & 0xF0) <= 0xE0;
-                            const msg = isChanMsg ? [(status & 0xF0) | ((channel - 1) & 0x0F), data[1] ?? 0, data[2] ?? 0] : data;
-                            const sendTo = (out) => { try { out && out.send(msg, timestamp || undefined); } catch (_) { } };
-                            if (outputTarget) {
-                                const out = (typeof outputTarget === 'string') ? this.outputs.get(outputTarget) : outputTarget;
-                                sendTo(out);
-                            } else {
-                                const fallbackId = this._pickOutputForSection('default', { preferUnused: false });
-                                if (!fallbackId) return;
-                                sendTo(this.outputs.get(fallbackId));
-                            }
-                        }
-                        getOutputsArray() { try { return Array.from(this.outputs.values()); } catch (_) { return []; } }
-                        _pickOutputForSection(section, opts = {}) {
-                            try {
-                                const key = String(section || 'default');
-                                const preferUnused = !!opts.preferUnused;
-                                const arr = this.getOutputsArray();
-                                if (!arr.length) return null;
-                                const has = (id) => !!(id && this.outputs && this.outputs.has(id));
-                                const fromKey = this.outputPortMap ? this.outputPortMap[key] : null;
-                                if (has(fromKey)) return fromKey;
-                                const fromDefault = this.outputPortMap ? this.outputPortMap.default : null;
-                                if (has(fromDefault)) return fromDefault;
-                                if (preferUnused) {
-                                    const used = new Set();
-                                    try {
-                                        Object.values(this.outputPortMap || {}).forEach(v => { if (has(v)) used.add(v); });
-                                    } catch (_) { }
-                                    const free = arr.find(o => o && o.id && !used.has(o.id));
-                                    if (free && free.id) return free.id;
-                                }
-                                return arr[0]?.id || null;
-                            } catch (_) { return null; }
-                        }
-                        _normalizeOutputMappings() {
-                            try {
-                                const sections = ['strum1', 'strum2', 'chord', 'arp', 'bass', 'bells', 'drum', 'default'];
-                                sections.forEach((sec) => {
-                                    const id = this._pickOutputForSection(sec, { preferUnused: sec !== 'default' });
-                                    if (id) this.outputPortMap[sec] = id;
-                                });
-                            } catch (_) { }
-                        }
-                        populateOutputSelect(selectEl) {
-                            try {
-                                if (!selectEl) return;
-                                const arr = this.getOutputsArray();
-                                const prev = selectEl.value || '';
-                                while (selectEl.firstChild) selectEl.removeChild(selectEl.firstChild);
-                                arr.forEach(o => {
-                                    const opt = document.createElement('option');
-                                    opt.value = o.id;
-                                    opt.textContent = o.name || o.id || 'MIDI Out';
-                                    selectEl.appendChild(opt);
-                                });
-                                if (prev && Array.from(selectEl.options).some(op => op.value === prev)) {
-                                    selectEl.value = prev;
-                                } else {
-                                    const id = String(selectEl.id || '');
-                                    const m = id.match(/^midiOut-(.+)$/);
-                                    const key = m ? m[1] : 'default';
-                                    const desired = this._pickOutputForSection(key, { preferUnused: key !== 'default' });
-                                    if (desired && Array.from(selectEl.options).some(op => op.value === desired)) {
-                                        selectEl.value = desired;
-                                    }
-                                }
-                            } catch (_) { }
-                        }
-                        populateAllOutputSelects() {
-                            const self = this;
-                            const applySelect = (sel) => {
-                                try {
-                                    if (!sel || sel.tagName !== 'SELECT') return;
-                                    self.populateOutputSelect(sel);
-                                    const id = String(sel.id || '');
-                                    const m = id.match(/^midiOut-(.+)$/);
-                                    const key = m ? m[1] : null;
-                                    const desired = self._pickOutputForSection(key || 'default', { preferUnused: !!key && key !== 'default' });
-                                    if (desired && Array.from(sel.options).some(op => op.value === desired)) sel.value = String(desired);
-                                } catch (_) { }
-                            };
-                            try {
-                                document.querySelectorAll('select[id^="midiOut-"]').forEach(applySelect);
-                            } catch (_) { }
-                            try {
-                                const bellWin = window.autoharp?._bellsWin;
-                                if (bellWin && !bellWin.closed && bellWin.document) {
-                                    bellWin.document.querySelectorAll('select[id^="midiOut-"]').forEach(applySelect);
-                                }
-                            } catch (_) { }
-                        }
-                        _portIdFromOutput(output) {
-                            try {
-                                if (!output) return '*';
-                                if (typeof output === 'string') return output;
-                                return output.id || output.name || '*';
-                            } catch (_) { return '*'; }
-                        }
-                        outputForSource(src) {
-                            try {
-                                const sel = this._pickOutputForSection(src || 'default', { preferUnused: false });
-                                if (!sel) return null;
-                                if (typeof sel === 'string') return this.outputs.get(sel) ? sel : null;
-                                // If stored as index (1-based), map to current outputs list
-                                const arr = this.getOutputsArray();
-                                if (Number.isFinite(sel)) {
-                                    const idx = Math.max(1, Math.min(arr.length, (sel | 0)));
-                                    return arr[idx - 1]?.id || null;
-                                }
-                                return null;
-                            } catch (_) { return null; }
-                        }
-                        // Normalize note and channel so that final MIDI note stays within 0..127.
-                        // If note overflows >127 (or <0), subtract/add EDO steps and move to adjacent channels.
-                        // Assumes receiving instrument tunes adjacent channels in octave steps for current EDO.
+                    const noop = () => { };
+                    const disabled = {
+                        enabled: false,
+                        midiAccess: null,
+                        inputs: new Map(),
+                        outputs: new Map(),
+                        inputHandler: null,
+                        channelMap: { strum: 1, strum1: 1, strum2: 2, chord: 3, arp: 4, bass: 5, drum: 6, osc1: 7, osc2: 8, bells: 9, default: 6 },
+                        noteState: new Map(),
+                        sustain: false,
+                        deferredOff: new Set(),
+                        octaveOffset: 0,
+                        defaultVelocity: 100,
+                        perSourceOctave: { strum1: 0, strum2: 0, chord: 0, arp: 0, bass: 0, osc1: 0, osc2: 0, bells: 0, default: 0 },
+                        perSourceVelocity: { strum1: 100, strum2: 100, chord: 100, arp: 100, bass: 100, osc1: 100, osc2: 100, bells: 100, default: 100 },
+                        inputChannelMap: { strum1: 1, strum2: 1, chord: 1, arp: 1, bass: 1, bells: 1, default: 1 },
+                        outputPortMap: { strum1: null, strum2: null, chord: null, arp: null, bass: null, bells: null, drum: null, default: null },
+                        currentProgram: 0,
+                        _initializing: false,
+                        saveMIDISettings: noop,
+                        loadMIDISettings: noop,
+                        applySettingsToUI: noop,
+                        init: async () => false,
+                        refreshPorts: noop,
+                        onInput(cb) { this.inputHandler = cb; },
+                        sendRaw: noop,
+                        getOutputsArray() { return []; },
+                        _pickOutputForSection() { return null; },
+                        _normalizeOutputMappings: noop,
+                        populateOutputSelect: noop,
+                        populateAllOutputSelects: noop,
+                        _portIdFromOutput() { return '*'; },
+                        outputForSource() { return null; },
                         normalizeNoteChannel(note, channel) {
-                            try {
-                                const edo = (window?.autoharp?.currentTuning | 0) || 12;
-                                // Global MIDI octave offset uses 12 semitones per octave
-                                let n = (note | 0) + ((this.octaveOffset | 0) * 12);
-                                let ch = channel | 0;
-                                if (!Number.isFinite(n) || !Number.isFinite(ch) || edo <= 0) {
-                                    return { note: Math.max(0, Math.min(127, n | 0)), channel: Math.min(16, Math.max(1, ch || 1)) };
-                                }
-                                // Shift up while above 127 by subtracting one EDO octave per extra channel
-                                while (n > 127 && edo > 0) { n -= edo; ch += 1; }
-                                // Shift down while below 0 by adding one EDO octave per previous channel
-                                while (n < 0 && edo > 0) { n += edo; ch -= 1; }
-                                // Wrap channel into 1..16 to stay valid
-                                if (ch < 1) ch = ((ch % 16) + 16);
-                                if (ch > 16) ch = ((ch - 1) % 16) + 1;
-                                // Final clamp for safety
-                                n = Math.max(0, Math.min(127, n | 0));
-                                ch = Math.min(16, Math.max(1, ch | 0));
-                                return { note: n, channel: ch };
-                            } catch (_) {
-                                return { note: Math.max(0, Math.min(127, note | 0)), channel: Math.min(16, Math.max(1, channel || 1)) };
-                            }
-                        }
-                        sendNoteOn(note, velocity = 100, channel = 1, outputTarget = null) {
-                            // Panic mute: silence immediately but keep playback/clock running.
-                            if (this._panicMuted) return;
-                            const norm = this.normalizeNoteChannel(note, channel);
-                            const n = norm.note;
-                            channel = norm.channel;
-                            let vRaw = Number.isFinite(velocity) ? velocity : this.defaultVelocity;
+                            return {
+                                note: Math.max(0, Math.min(127, Number(note) | 0)),
+                                channel: Math.max(1, Math.min(16, Number(channel) | 0 || 1)),
+                            };
+                        },
+                        sendNoteOn: noop,
+                        sendNoteOff: noop,
+                        sendProgramChange: noop,
+                        sendCC: noop,
+                        sendPitchBend: noop,
+                        setPitchBendRange: noop,
+                        selectRPN: noop,
+                        rpnNull: noop,
+                        dataEntry: noop,
+                        setFineTune: noop,
+                        setCoarseTune: noop,
+                        allNotesOff: noop,
+                        markActivity: noop,
+                    };
 
-                            // Apply master volume scaling to MIDI velocity if available
-                            if (typeof this._masterVolumeScale === 'number') {
-                                vRaw = vRaw * this._masterVolumeScale;
-                            }
+                    window.midi = disabled;
+                    try { if (window.autoharp) window.autoharp.midi = disabled; } catch (_) { }
 
-                            const v = Math.max(1, Math.min(127, Math.round(vRaw)));
-                            this.sendRaw([0x90, n & 0x7F, v], 0, channel, outputTarget);
-                            const pId = this._portIdFromOutput(outputTarget);
-                            this.noteState.set(`${n}@${channel}@${pId}`, { ts: performance.now() });
-                        }
-                        sendNoteOff(note, channel = 1, outputTarget = null) {
-                            const norm = this.normalizeNoteChannel(note, channel);
-                            const n = norm.note;
-                            channel = norm.channel;
-                            this.sendRaw([0x80, n & 0x7F, 0], 0, channel, outputTarget);
-                            const pId = this._portIdFromOutput(outputTarget);
-                            this.noteState.delete(`${n}@${channel}@${pId}`);
-                        }
-                        sendProgramChange(program = 0, channel = 1) {
-                            const p = Math.max(0, Math.min(127, Math.round(program)));
-                            this.sendRaw([0xC0, p & 0x7F, 0], 0, channel);
-                        }
-                        sendCC(cc, value, channel = 1, outputTarget = null) {
-                            const v = Math.max(0, Math.min(127, Math.round(value)));
-                            this.sendRaw([0xB0, cc & 0x7F, v], 0, channel, outputTarget);
-                        }
-                        sendPitchBend(value = 0, channel = 1, outputTarget = null) {
-                            // value in range -1..1
-                            const v = Math.max(-1, Math.min(1, Number(value) || 0));
-                            const val14 = Math.round((v + 1) * 8191.5); // 0..16383
-                            const lsb = val14 & 0x7F;
-                            const msb = (val14 >> 7) & 0x7F;
-                            this.sendRaw([0xE0, lsb, msb], 0, channel, outputTarget);
-                        }
-                        setPitchBendRange(semitones = 2, channel = 1) {
-                            const s = Math.max(0, Math.min(24, Math.round(Number(semitones) || 0)));
-                            this.selectRPN(0, 0, channel); this.dataEntry(s, 0, channel); this.rpnNull(channel);
-                        }
-                        // RPN helpers for tuning
-                        selectRPN(msb, lsb, channel = 1) { this.sendCC(101, msb & 0x7F, channel); this.sendCC(100, lsb & 0x7F, channel); }
-                        rpnNull(channel = 1) { this.sendCC(101, 127, channel); this.sendCC(100, 127, channel); }
-                        dataEntry(msb, lsb = null, channel = 1) { this.sendCC(6, msb & 0x7F, channel); if (lsb != null) this.sendCC(38, lsb & 0x7F, channel); }
-                        setFineTune(cents = 0, channel = 1) {
-                            const v = Math.max(-100, Math.min(100, Number(cents) || 0));
-                            const val14 = Math.round((v / 100) * 8192) + 8192; // 0..16383
-                            const msb = (val14 >> 7) & 0x7F; const lsb = val14 & 0x7F;
-                            this.selectRPN(0, 1, channel); this.dataEntry(msb, lsb, channel); this.rpnNull(channel);
-                        }
-                        setCoarseTune(semitones = 0, channel = 1) {
-                            const s = Math.max(-64, Math.min(63, Math.round(Number(semitones) || 0)));
-                            const msb = 64 + s; // 0..127, 64=0
-                            this.selectRPN(0, 2, channel); this.dataEntry(msb, null, channel); this.rpnNull(channel);
-                        }
-                        allNotesOff() {
-                            // Send All Notes Off (CC123) on all 16 channels (do not cut sounds)
-                            for (let ch = 1; ch <= 16; ch++) {
-                                this.sendCC(123, 0, ch);
-                            }
-                            // Clear local note state and deferred offs
-                            this.noteState.clear();
-                            this.deferredOff.clear();
-                        }
-                        markActivity() {
-                            if (this._idleTimer) clearTimeout(this._idleTimer);
-                            this._idleTimer = setTimeout(() => {
-                                // Do not panic while sustain held; re-arm timer instead
-                                if (this.sustain) { this.markActivity(); return; }
-                                try {
-                                    this.allNotesOff();
-                                } catch (_) { }
-                            }, this._idleMs);
-                        }
-                        _handleMIDIMessage(ev) {
-                            const [status, d1 = 0, d2 = 0] = ev.data || [];
-                            const type = status & 0xF0; const ch = (status & 0x0F) + 1;
-                            const payload = { status, type, channel: ch, data1: d1, data2: d2, timeStamp: ev.timeStamp };
-                            // Suppress immediate MIDI echo from our own recently-sent notes (loopMIDI feedback, etc.)
-                            try {
-                                if (type === 0x90 || type === 0x80) { // Note On/Off
-                                    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-                                    const ECHO_MS = 50;
-                                    let isEcho = false;
-                                    for (const [key, info] of this.noteState.entries()) {
-                                        if (!info || typeof info.ts !== 'number') continue;
-                                        const parts = String(key).split('@');
-                                        const n = parseInt(parts[0] || '0', 10);
-                                        const chKey = parseInt(parts[1] || '0', 10);
-                                        if (n === d1 && chKey === ch) {
-                                            const dt = now - info.ts;
-                                            if (dt >= 0 && dt <= ECHO_MS) { isEcho = true; break; }
-                                        }
-                                    }
-                                    if (isEcho) return; // treat as self-feedback; ignore for input routing
-                                }
-                            } catch (_) { }
-                            // Basic per-section input filtering: if any section specifies a non-omni channel
-                            // and the message channel doesn't match any, drop it from inputHandler.
-                            try {
-                                const ins = this.inputChannelMap || {};
-                                const filters = Object.values(ins).filter(v => Number.isFinite(v) && v > 0 && v <= 16);
-                                let pass = true;
-                                if (filters.length > 0) { pass = filters.includes(ch); }
-                                if (this.inputHandler && pass) this.inputHandler(payload);
-                            } catch (_) {
-                                if (this.inputHandler) try { this.inputHandler(payload); } catch (_) { }
-                            }
-                            this.markActivity();
-                        }
-                    }
-
-                    const midi = new WebMIDIManager();
-                    window.midi = midi;
-
-                    // Prevent duplicate initialization during session import or re-entrant UI wiring
-                    if (!window._xenMidiInitGuard) window._xenMidiInitGuard = { prompted: false };
-
-                    // Wire MIDI toggle button
-                    const midiBtn = document.getElementById('midiToggle');
-                    if (midiBtn && !midiBtn._wired) {
-                        midiBtn._wired = true;
-                        midiBtn.addEventListener('click', async () => {
-                            if (!midi.enabled) {
-                                // Skip if already initializing to avoid double errors
-                                if (midi._initializing) return;
-                                midi._initializing = true;
-                                const ok = await midi.init();
-                                midi._initializing = false;
-                                if (ok) {
-                                    // Detect loopMIDI outputs with short retry window (async enumeration may lag)
-                                    let hasLoop = false; let firstLoopId = null; let firstLoopName = null; let attempts = 0;
-                                    for (; attempts < 8; attempts++) { // up to ~8*75ms = 600ms
-                                        try {
-                                            const outsArr = Array.from(midi.outputs.values());
-                                            for (const o of outsArr) {
-                                                const nm = String(o.name || o.id || '');
-                                                if (/loopmidi/i.test(nm)) { hasLoop = true; if (!firstLoopId) { firstLoopId = o.id; firstLoopName = nm; } }
-                                            }
-                                            if (hasLoop || outsArr.length > 0) break;
-                                        } catch (_) { }
-                                        await new Promise(r => setTimeout(r, 75));
-                                    }
-                                    // Extra deferred pass (after a microdelay) in case drivers enumerate slower
-                                    if (!hasLoop && midi.outputs.size === 0) {
-                                        await new Promise(r => setTimeout(r, 300));
-                                        try {
-                                            for (const o of midi.outputs.values()) {
-                                                const nm = String(o.name || o.id || '');
-                                                if (/loopmidi/i.test(nm)) { hasLoop = true; if (!firstLoopId) { firstLoopId = o.id; firstLoopName = nm; } }
-                                            }
-                                        } catch (_) { }
-                                    }
-                                    if (!hasLoop) {
-                                        // If there are zero outputs after retries, check UI for visible outputs; suppress prompt if any outputs appear in UI
-                                        const outsCount = midi.outputs.size;
-                                        if (outsCount === 0) {
-                                            // Double-check UI selects: if any select already populated, treat as outputs visible
-                                            let uiVisible = false;
-                                            try {
-                                                const selIds = ['midiOutputSelect', 'midiStrumOutput', 'midiChordOutput', 'midiArpOutput', 'midiBassOutput', 'midiDrumOutput'];
-                                                for (const id of selIds) {
-                                                    const el = document.getElementById(id);
-                                                    if (el && el.options && el.options.length > 0) { uiVisible = true; break; }
-                                                }
-                                            } catch (_) { }
-                                            if (!uiVisible) {
-                                                if (!window._xenMidiInitGuard.prompted) {
-                                                    window._xenMidiInitGuard.prompted = true;
-                                                    const msg = 'No MIDI outputs detected yet. If you intend to route to other software, you can install loopMIDI:\nhttps://www.tobias-erichsen.de/software/loopmidi.html';
-                                                    // Use non-blocking alert style (no redirect) to avoid annoyance; user can still continue once devices appear
-                                                    try { window.alert(msg); } catch (_) { }
-                                                }
-                                                // Keep enabled; devices might appear slightly later (hot‑plug)
-                                            }
-                                        } else {
-                                            // Proceed silently; any output counts (hardware or loopback)
-                                            try {
-                                                if (!firstLoopId) {
-                                                    const first = Array.from(midi.outputs.values())[0];
-                                                    if (first) { firstLoopId = first.id; firstLoopName = first.name || first.id; }
-                                                }
-                                            } catch (_) { }
-                                        }
-                                        // At this point we do NOT disable MIDI merely for missing loopMIDI; user has some outputs or may have them appear soon.
-                                    }
-                                    midiBtn.classList.add('active');
-                                    try {
-                                        // Auto-map first loopMIDI port to all sections if none chosen yet
-                                        const haveAnyMapping = Object.values(midi.outputPortMap || {}).some(v => !!v);
-                                        if (!haveAnyMapping && firstLoopId) {
-                                            ['strum1', 'strum2', 'chord', 'arp', 'bass', 'bells', 'drum', 'default'].forEach(sec => { midi.outputPortMap[sec] = firstLoopId; });
-                                            console.log(`[MIDI] Auto-mapped loopMIDI port '${firstLoopName}' (id=${firstLoopId}) to all sections (toggle).`);
-                                        }
-                                    } catch (_) { }
-                                    // Mute internal oscillators & drums by reducing masterVolume but remember prior
-                                    try {
-                                        const oc = window.autoharp;
-                                        if (oc) {
-                                            if (oc._preMidiMasterVolume === undefined) oc._preMidiMasterVolume = oc.masterVolume;
-                                            // Set a very low master volume (not zero to keep envelopes functional visually)
-                                            oc.masterVolume = 0.0001;
-                                            if (oc.gainNode) oc.gainNode.gain.value = oc.volume * oc.masterVolume;
-                                            if (oc.dryGainNode) oc.dryGainNode.gain.value = oc.masterVolume;
-                                            if (oc.reverbOutGain) oc.reverbOutGain.gain.value = oc.masterVolume;
-                                        }
-                                    } catch (_) { }
-                                    try { midi.applySettingsToUI(); } catch (_) { }
-                                    try {
-                                        if (window.autoharp && typeof window.autoharp._syncChordboxMidiDefaultsAcrossSession === 'function') {
-                                            window.autoharp._syncChordboxMidiDefaultsAcrossSession({ force: true });
-                                        }
-                                    } catch (_) { }
-                                    // Light indicator if present
-                                    try {
-                                        const led = document.getElementById('midiStatusLed');
-                                        if (led) { led.classList.add('on'); led.title = 'MIDI Enabled'; }
-                                    } catch (_) { }
-                                }
-                            } else {
-                                midi.enabled = false; midiBtn.classList.remove('active');
-
-                                // Disconnect all MIDI input handlers
-                                try {
-                                    if (midi.inputs) {
-                                        for (const input of midi.inputs.values()) {
-                                            input.onmidimessage = null;
-                                        }
-                                    }
-                                } catch (_) { }
-
-                                // Clear MIDI input handler
-                                try {
-                                    if (midi.inputHandler) {
-                                        midi.inputHandler = null;
-                                    }
-                                } catch (_) { }
-
-                                try {
-                                    // When MIDI is off, restore MASTER so all oscillators are heard
-                                    const oc = window.autoharp;
-                                    if (oc) {
-                                        // Disable MIDI bypass to return to oscillator mode
-                                        oc.midiBypassOscillators = false;
-
-                                        const restore = (typeof oc._preMidiMasterVolume === 'number') ? oc._preMidiMasterVolume : oc.masterVolume;
-                                        oc.masterVolume = restore;
-                                        if (oc.gainNode) oc.gainNode.gain.value = oc.volume * oc.masterVolume;
-                                        if (oc.dryGainNode) oc.dryGainNode.gain.value = oc.masterVolume;
-                                        if (oc.reverbOutGain) oc.reverbOutGain.gain.value = oc.masterVolume;
-                                        // Clear the pre-MIDI backup so volume controls work normally
-                                        delete oc._preMidiMasterVolume;
-                                    }
-                                    // Clear MIDI volume scaling
-                                    if (midi) {
-                                        delete midi._masterVolumeScale;
-                                    }
-                                } catch (_) { }
-                                try {
-                                    const led = document.getElementById('midiStatusLed');
-                                    if (led) { led.classList.remove('on'); led.title = 'MIDI Disabled'; }
-                                } catch (_) { }
-                            }
-                            midi.markActivity();
+                    const midiToggle = document.getElementById('midiToggle');
+                    if (midiToggle && !midiToggle._wiredDisabledFeatureLock) {
+                        midiToggle._wiredDisabledFeatureLock = true;
+                        midiToggle.classList.remove('active');
+                        midiToggle.addEventListener('click', (ev) => {
+                            try { ev.preventDefault(); ev.stopPropagation(); } catch (_) { }
+                            try { window.showFeatureLockModal && window.showFeatureLockModal(); } catch (_) { }
                         });
                     }
-                    // Program change UI removed per request
-
-                    // Helper: map internal frequency to MIDI note based on current EDO steps
-                    // Anchor: C4 = MIDI 60. Each EDO step => +1 MIDI note.
-                    function freqToMidiNote(freq) {
-                        try {
-                            const oc = window.autoharp;
-                            const tuning = oc?.currentTuning || 12;
-                            // C in current tuning (semitone 0 -> step in EDO), octave 4
-                            const cStep = typeof oc?.semitoneToStep === 'function' ? oc.semitoneToStep(0, tuning) : 0;
-                            const c4 = typeof oc?.getFrequency === 'function' ? oc.getFrequency(cStep, 4, tuning) : 261.6256; // fallback C4
-                            const stepDiff = Math.round(tuning * Math.log2(freq / c4));
-                            const midi = 60 + stepDiff; // C4 anchor, 1 step per EDO unit
-                            return midi; // do not clamp here; allow overflow handling later
-                        } catch (_) {
-                            // Fallback to A440 mapping if anything goes wrong
-                            const n = 69 + 12 * Math.log2(freq / 440);
-                            return Math.round(n);
-                        }
-                    }
-                    function channelForSource(src) { return midi.channelMap[src] || midi.channelMap.default; }
-
-                    // Hook play/stop to mirror MIDI out with minimal intrusion
-                    const _playFrequency = autoharp.playFrequency.bind(autoharp);
-                    autoharp.playFrequency = async function (frequency, element, sourceType = 'default', velocityOverride = null) {
-                        // Send MIDI Note On first to avoid race with quick releases
-                        try {
-                            if (midi.enabled) {
-                                const rawType = String(sourceType || 'default');
-                                const baseType = rawType.startsWith('arp') ? 'arp' : rawType;
-                                const chordboxSynth = (baseType === 'chord' || baseType === 'strum')
-                                    ? autoharp._getChordboxSynthForElement(element, baseType)
-                                    : null;
-                                const voiceLeadingActive = !!(autoharp.chordsEnabled && autoharp._isSequencing && autoharp._arpTransport && autoharp._arpTransport.running);
-                                const chordboxMidiEnabled = !!(midi.enabled && chordboxSynth && chordboxSynth.midi && !(baseType === 'chord' && voiceLeadingActive));
-                                const chordboxMidiDevice = chordboxSynth?.midi?.deviceId || '';
-                                const chordboxMidiChannel = Math.max(1, Math.min(16, parseInt(chordboxSynth?.midi?.channel || 1, 10) || 1));
-                                const chordboxTranspose = Math.max(-24, Math.min(24, parseInt(chordboxSynth?.pitch?.transpose || 0, 10) || 0));
-
-                                const note = freqToMidiNote(frequency);
-                                const pointerKey = (element && element.__touchHold && element.__touchPointerKey) ? element.__touchPointerKey : null;
-                                const holdTouch = !!pointerKey;
-                                if (holdTouch && !autoharp._touchMidiHoldNotes) autoharp._touchMidiHoldNotes = new Map();
-                                let targets = (sourceType === 'strum') ? ['strum1', 'strum2'] : [sourceType];
-                                if (sourceType === 'default') {
-                                    // Mirror to all five primary sections so oscillators still fire independently
-                                    targets = ['strum1', 'strum2', 'chord', 'arp', 'bass'];
-                                }
-                                if (chordboxMidiEnabled) {
-                                    targets = ['__chordbox__'];
-                                }
-                                const velInput = document.getElementById('midiDefaultVelocity');
-                                const vGlobal = velInput ? Math.max(1, Math.min(127, parseInt(velInput.value || '100', 10))) : 100;
-                                midi.defaultVelocity = vGlobal;
-                                const octSel = document.getElementById('midiOctaveOffset');
-                                midi.octaveOffset = octSel ? (parseInt(octSel.value || '0', 10) || 0) : 0;
-                                // Helper to derive decay ms per target instrument
-                                const decayMsFor = (t) => {
-                                    try {
-                                        const ins = autoharp.instruments || {};
-                                        if (t === 'strum1') return Math.max(0, Math.round(((ins.strum1?.env?.decay) ?? autoharp.envelope?.decay ?? 0.2) * 1000));
-                                        if (t === 'strum2') return Math.max(0, Math.round(((ins.strum2?.env?.decay) ?? autoharp.osc2Envelope?.decay ?? 0.05) * 1000));
-                                        if (t === 'chord') return Math.max(0, Math.round(((ins.chord?.env?.decay) ?? 0.2) * 1000));
-                                        if (t === 'arp') return Math.max(0, Math.round(((ins.arp?.env?.decay) ?? 0.2) * 1000));
-                                        if (t === 'bass') return Math.max(0, Math.round(((ins.bass?.env?.decay) ?? 0.08) * 1000));
-                                        if (t === 'bells') return Math.max(0, Math.round(((ins.bells?.env?.decay) ?? 0.25) * 1000));
-                                        return 200;
-                                    } catch (_) { return 200; }
-                                };
-                                for (const tgt of targets) {
-                                    const isChordbox = (tgt === '__chordbox__');
-                                    const tgtType = isChordbox ? baseType : tgt;
-                                    const chBase = isChordbox ? chordboxMidiChannel : channelForSource(tgt);
-                                    const perOct = (!isChordbox && midi.perSourceOctave && Number.isFinite(midi.perSourceOctave[tgt])) ? (midi.perSourceOctave[tgt] | 0) : 0;
-                                    const stepsPerOct = (window?.autoharp?.currentTuning | 0) || 12;
-                                    const readOct = (id, fallback) => {
-                                        const el = document.getElementById(id);
-                                        return el ? (parseInt(el.value || '0', 10) || 0) : (fallback | 0);
-                                    };
-                                    const extraOctSteps = (() => {
-                                        if (isChordbox) {
-                                            const oct = Math.max(-4, Math.min(4, parseInt(chordboxSynth?.pitch?.octave || 0, 10) || 0));
-                                            return oct * stepsPerOct;
-                                        }
-                                        if (tgtType === 'arp') {
-                                            const oct = Math.max(-3, Math.min(3, readOct('arpOctave', autoharp?.instruments?.arp?.osc?.octave || 0)));
-                                            return oct * stepsPerOct;
-                                        }
-                                        if (tgtType === 'bells') {
-                                            const oct = Math.max(-3, Math.min(3, readOct('bellsOscOctave', autoharp?.instruments?.bells?.osc?.octave || 0)));
-                                            return oct * stepsPerOct;
-                                        }
-                                        return 0;
-                                    })();
-                                    const effNote = note + (perOct * stepsPerOct) + (isChordbox ? chordboxTranspose : 0) + extraOctSteps;
-                                    const norm = midi.normalizeNoteChannel(effNote, chBase);
-                                    const nNote = norm.note; const nCh = norm.channel;
-                                    let outSel = isChordbox ? (chordboxMidiDevice || null) : midi.outputForSource(tgt);
-                                    if (tgt === 'bells' && element && element.__midiOutOverride) outSel = element.__midiOutOverride;
-                                    const key = `${nNote}@${nCh}@${(outSel || '*')}`;
-                                    if (!isChordbox && (tgt === 'strum1' || tgt === 'strum2') && midi.noteState.has(key) && !midi.sustain) {
-                                        midi.sendNoteOff(nNote, nCh, outSel);
-                                    }
-                                    if (!isChordbox && tgt === 'chord' && midi.noteState.has(key) && !midi.sustain) {
-                                        midi.sendNoteOff(nNote, nCh, outSel);
-                                    }
-                                    const perV = isChordbox
-                                        ? vGlobal
-                                        : ((midi.perSourceVelocity && Number.isFinite(midi.perSourceVelocity[tgt])) ? (midi.perSourceVelocity[tgt] | 0) : vGlobal);
-                                    // Per-note velocity override (pattern/arp steps) wins
-                                    let noteVel = null;
-                                    try {
-                                        if (velocityOverride != null && Number.isFinite(parseInt(velocityOverride, 10))) noteVel = parseInt(velocityOverride, 10);
-                                        if (noteVel == null && window.getStepVelocity) noteVel = window.getStepVelocity(element);
-                                    } catch (_) { noteVel = null; }
-                                    const useV = Math.max(1, Math.min(127, (noteVel == null ? perV : noteVel)));
-                                    midi.sendNoteOn(nNote, useV, nCh, outSel);
-                                    if (holdTouch) {
-                                        try {
-                                            const list = autoharp._touchMidiHoldNotes.get(pointerKey) || [];
-                                            list.push({ note: nNote, channel: nCh, outSel, target: tgtType });
-                                            autoharp._touchMidiHoldNotes.set(pointerKey, list);
-                                        } catch (_) { }
-                                        continue; // Defer Note Off until touch release
-                                    }
-                                    // Schedule Note Off based on musical intent per section
-                                    const epsilonMs = 8;
-                                    let offDelay = Math.max(10, decayMsFor(tgtType) | 0);
-                                    let gateFromElement = null;
-                                    try {
-                                        gateFromElement = (element && Number.isFinite(element.__gateMs)) ? Number(element.__gateMs) : null;
-                                        if (gateFromElement && !['chord', 'bass'].includes(tgtType)) {
-                                            offDelay = Math.max(10, Math.floor(gateFromElement - epsilonMs));
-                                        }
-                                    } catch (_) { gateFromElement = null; }
-                                    try {
-                                        if ((tgtType === 'strum1' || tgtType === 'strum2' || tgtType === 'bells') && element && Number.isFinite(element.__gateMs)) {
-                                            offDelay = Math.max(10, Math.floor(element.__gateMs));
-                                        }
-                                    } catch (_) { }
-                                    try {
-                                        if (tgtType === 'chord') {
-                                            // Align CHORD MIDI note-off to the next DRUM bar boundary for tight chord changes
-                                            let useOff = null;
-                                            const tp = autoharp._arpTransport;
-                                            if (tp && tp.running && Number.isFinite(tp.tickMs) && Number.isFinite(tp.ticksPerBar)) {
-                                                const cur = (tp.tickCounter | 0) % (tp.ticksPerBar || 1);
-                                                const remTicks = ((tp.ticksPerBar || 1) - cur) % (tp.ticksPerBar || 1);
-                                                const untilMs = Math.max(1, Math.floor((remTicks || (tp.ticksPerBar || 1)) * tp.tickMs - epsilonMs));
-                                                useOff = untilMs;
-                                            }
-                                            if (useOff == null) {
-                                                // Fallback to HOLD-based duration if transport info unavailable
-                                                const bpmEl = document.getElementById('universalBpm');
-                                                const bpm = bpmEl ? (parseFloat(bpmEl.value) || 120) : (autoharp._arpTransport?.bpm || 120);
-                                                const beatMs = 60000 / Math.max(1, bpm);
-                                                // Bar duration from time signature
-                                                const tsEl = document.getElementById('universalTimeSignature');
-                                                const timeSignature = tsEl ? tsEl.value : (autoharp._arpTransport?.timeSignature || '4/4');
-                                                const [beatsPerBar] = String(timeSignature).split('/').map(Number);
-                                                const barMs = Math.floor(beatMs * (beatsPerBar || 4));
-                                                const holdSel = document.getElementById('universalHold') || document.getElementById('chordHold');
-                                                const holdVal = holdSel ? String(holdSel.value || 'bar:1') : 'bar:1';
-                                                const [kind, valStr] = holdVal.split(':');
-                                                const n = Math.max(1, parseInt(valStr || '1', 10));
-                                                const holdMs = (kind === 'beat') ? n * beatMs : n * barMs;
-                                                useOff = Math.max(10, Math.floor(holdMs - epsilonMs));
-                                            }
-                                            offDelay = Math.max(10, useOff | 0);
-                                        } else if (tgtType === 'arp') {
-                                            // QUANT-based duration for ARP (e.g., 1/8 note)
-                                            // BUT if autoharp has a stored gate duration for this note (from pill metadata), use that instead
-                                            const elGateMs = gateFromElement != null ? gateFromElement : ((element && Number.isFinite(element.__gateMs)) ? element.__gateMs : null);
-                                            if (elGateMs && elGateMs > 0) {
-                                                offDelay = Math.max(10, Math.floor(elGateMs - epsilonMs));
-                                            } else if (autoharp._lastArpGateMs && Number.isFinite(autoharp._lastArpGateMs) && autoharp._lastArpGateMs > 0) {
-                                                offDelay = Math.max(10, Math.floor(autoharp._lastArpGateMs - epsilonMs));
-                                            } else {
-                                                try { if (typeof autoharp._ensureArpTransport === 'function') autoharp._ensureArpTransport(); } catch (_) { }
-                                                let quantMs = autoharp._arpTransport?.tickMs;
-                                                if (!quantMs || !Number.isFinite(quantMs)) {
-                                                    const quantEl = document.getElementById('universalQuant');
-                                                    const bpmEl = document.getElementById('universalBpm');
-                                                    const bpm = bpmEl ? (parseFloat(bpmEl.value) || 120) : (autoharp._arpTransport?.bpm || 120);
-                                                    const q = quantEl?.value || autoharp._arpTransport?.quant || '1/16';
-                                                    if (typeof autoharp._parseQuantToMs === 'function') {
-                                                        quantMs = autoharp._parseQuantToMs(q, bpm);
-                                                    } else {
-                                                        const beatMs = 60000 / Math.max(1, bpm);
-                                                        const base = String(q).replace('T', '');
-                                                        const map = { '1/1': 1, '1/2': 2, '1/4': 4, '1/8': 8, '1/16': 16, '1/32': 32 };
-                                                        const div = map[base] || 8;
-                                                        quantMs = beatMs * (4 / div);
-                                                        if (String(q).endsWith('T')) quantMs *= 2 / 3;
-                                                    }
-                                                }
-                                                offDelay = Math.max(10, Math.floor(quantMs - epsilonMs));
-                                            }
-                                        } else if (tgtType === 'bass') {
-                                            // Match CHORD behavior: HOLD-based duration for BASS
-                                            const bpmEl = document.getElementById('universalBpm');
-                                            const bpm = bpmEl ? (parseFloat(bpmEl.value) || 120) : (autoharp._arpTransport?.bpm || 120);
-                                            const beatMs = 60000 / Math.max(1, bpm);
-                                            const tsEl = document.getElementById('timeSignatureSelect');
-                                            const timeSignature = tsEl ? tsEl.value : (autoharp._arpTransport?.timeSignature || '4/4');
-                                            const [beatsPerBar] = String(timeSignature).split('/').map(Number);
-                                            const barMs = beatMs * (beatsPerBar || 4);
-                                            const holdSel = document.getElementById('universalHold') || document.getElementById('chordHold');
-                                            const holdVal = holdSel ? String(holdSel.value || 'bar:1') : 'bar:1';
-                                            const [kind, valStr] = holdVal.split(':');
-                                            const n = Math.max(1, parseInt(valStr || '1', 10));
-                                            const holdMs = (kind === 'beat') ? n * beatMs : n * barMs;
-                                            offDelay = Math.max(10, Math.floor(holdMs - epsilonMs));
-                                        }
-                                    } catch (_) { }
-                                    setTimeout(() => {
-                                        try {
-                                            if (!midi.enabled) return;
-                                            midi.sendNoteOff(nNote, nCh, outSel);
-                                        } catch (_) { }
-                                    }, offDelay);
-                                }
-                            }
-                        } catch (_) { }
-                        // Clear the stored gate duration so it doesn't affect subsequent notes
-                        try { autoharp._lastArpGateMs = null; } catch (_) { }
-                        await _playFrequency(frequency, element, sourceType, velocityOverride);
-                        try { midi.markActivity(); } catch (_) { }
-                    };
-
-                    const _stopFrequency = autoharp.stopFrequency.bind(autoharp);
-                    autoharp.stopFrequency = function (frequency, element, sourceType = 'default') {
-                        try {
-                            if (midi.enabled) {
-                                const rawType = String(sourceType || 'default');
-                                const baseType = rawType.startsWith('arp') ? 'arp' : rawType;
-                                const chordboxSynth = (baseType === 'chord' || baseType === 'strum')
-                                    ? autoharp._getChordboxSynthForElement(element, baseType)
-                                    : null;
-                                const voiceLeadingActive = !!(autoharp.chordsEnabled && autoharp._isSequencing && autoharp._arpTransport && autoharp._arpTransport.running);
-                                const chordboxMidiEnabled = !!(midi.enabled && chordboxSynth && chordboxSynth.midi && !(baseType === 'chord' && voiceLeadingActive));
-                                const chordboxMidiDevice = chordboxSynth?.midi?.deviceId || '';
-                                const chordboxMidiChannel = Math.max(1, Math.min(16, parseInt(chordboxSynth?.midi?.channel || 1, 10) || 1));
-                                const chordboxTranspose = Math.max(-24, Math.min(24, parseInt(chordboxSynth?.pitch?.transpose || 0, 10) || 0));
-
-                                const note = freqToMidiNote(frequency);
-                                let targets = (sourceType === 'strum') ? ['strum1', 'strum2'] : [sourceType];
-                                if (sourceType === 'default') {
-                                    targets = ['strum1', 'strum2', 'chord', 'arp', 'bass'];
-                                }
-                                if (chordboxMidiEnabled) {
-                                    targets = ['__chordbox__'];
-                                }
-                                for (const tgt of targets) {
-                                    const isChordbox = (tgt === '__chordbox__');
-                                    const tgtType = isChordbox ? baseType : tgt;
-                                    // Do not send immediate Note Off for CHORD/ARP/BASS; allow HOLD/QUANT timers to release
-                                    if (tgtType === 'chord' || tgtType === 'arp' || tgtType === 'bass') continue;
-                                    const chBase = isChordbox ? chordboxMidiChannel : channelForSource(tgt);
-                                    const perOct = (!isChordbox && midi.perSourceOctave && Number.isFinite(midi.perSourceOctave[tgt])) ? (midi.perSourceOctave[tgt] | 0) : 0;
-                                    const stepsPerOct = (window?.autoharp?.currentTuning | 0) || 12;
-                                    const readOct = (id, fallback) => {
-                                        const el = document.getElementById(id);
-                                        return el ? (parseInt(el.value || '0', 10) || 0) : (fallback | 0);
-                                    };
-                                    const extraOctSteps = (() => {
-                                        if (isChordbox) {
-                                            const oct = Math.max(-4, Math.min(4, parseInt(chordboxSynth?.pitch?.octave || 0, 10) || 0));
-                                            return oct * stepsPerOct;
-                                        }
-                                        if (tgtType === 'arp') {
-                                            const oct = Math.max(-3, Math.min(3, readOct('arpOctave', autoharp?.instruments?.arp?.osc?.octave || 0)));
-                                            return oct * stepsPerOct;
-                                        }
-                                        if (tgtType === 'bells') {
-                                            const oct = Math.max(-3, Math.min(3, readOct('bellsOscOctave', autoharp?.instruments?.bells?.osc?.octave || 0)));
-                                            return oct * stepsPerOct;
-                                        }
-                                        return 0;
-                                    })();
-                                    const effNote = note + (perOct * stepsPerOct) + (isChordbox ? chordboxTranspose : 0) + extraOctSteps;
-                                    const norm = midi.normalizeNoteChannel(effNote, chBase);
-                                    const nNote = norm.note; const nCh = norm.channel;
-                                    const outSel = isChordbox ? (chordboxMidiDevice || null) : midi.outputForSource(tgt);
-                                    midi.sendNoteOff(nNote, nCh, outSel);
-                                }
-                            }
-                        } catch (_) { }
-                        try { midi.markActivity(); } catch (_) { }
-                        return _stopFrequency(frequency, element, sourceType);
-                    };
-
-                    // Map keyboard modifiers to MIDI pedals during playback
-                    (function () {
-                        try {
-                            if (window.__midiPedalsHooked) return;
-                            window.__midiPedalsHooked = true;
-                            const usedChannels = () => {
-                                const s = new Set(Object.values(midi.channelMap || {}));
-                                // Always include default channel
-                                s.add(midi.channelMap?.default || 5);
-                                // Also include any channels currently holding notes (for overflow splitting)
-                                try {
-                                    for (const key of midi.noteState.keys()) {
-                                        const parts = String(key).split('@');
-                                        const ch = parseInt(parts[1] || '0', 10);
-                                        if (ch >= 1 && ch <= 16) s.add(ch);
-                                    }
-                                } catch (_) { }
-                                return Array.from(s);
-                            };
-                            const sendSustain = (on) => { try { for (const ch of usedChannels()) midi.sendCC(64, on ? 127 : 0, ch); } catch (_) { } };
-                            const sendSoft = (on) => { try { for (const ch of usedChannels()) midi.sendCC(67, on ? 127 : 0, ch); } catch (_) { } };
-                            const flushDeferred = () => { }; // No-op: avoid abrupt kills on pedal release
-                            window.addEventListener('keydown', (e) => {
-                                if (!midi.enabled) return;
-                                // SHIFT: sustain pedal on (edge only, ignore repeats)
-                                if (e.key === 'Shift' && !e.repeat) {
-                                    if (!window.__sustainKeyDown) {
-                                        window.__sustainKeyDown = true;
-                                        midi.sustain = true;
-                                        sendSustain(true);
-                                    }
-                                }
-                                if (e.key === 'Control' && !window.__softPedalDown) {
-                                    window.__softPedalDown = true; sendSoft(true);
-                                }
-                                // ALT+C: toggle CHORD/ARP mode
-                                if (e.altKey && (e.key === 'c' || e.key === 'C')) {
-                                    try { if (window.autoharp && typeof window.autoharp.toggleChordArpMode === 'function') window.autoharp.toggleChordArpMode(); } catch (_) { }
-                                    e.preventDefault();
-                                }
-                                // ALT+B: toggle Bass
-                                if (e.altKey && (e.key === 'b' || e.key === 'B')) {
-                                    try { if (window.autoharp && typeof window.autoharp.toggleBassMode === 'function') window.autoharp.toggleBassMode(); } catch (_) { }
-                                    e.preventDefault();
-                                }
-                                // ALT +/−: octave up/down for ARP and CHORD MIDI
-                                if (e.altKey && !e.repeat) {
-                                    const plus = (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd');
-                                    const minus = (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract');
-                                    if (plus || minus) {
-                                        const delta = plus ? 1 : -1;
-                                        try {
-                                            midi.perSourceOctave = midi.perSourceOctave || {};
-                                            midi.perSourceOctave.chord = (midi.perSourceOctave.chord || 0) + delta;
-                                            midi.perSourceOctave.arp = (midi.perSourceOctave.arp || 0) + delta;
-                                            const chordSel = document.getElementById('midiOct-chord');
-                                            if (chordSel) {
-                                                const newVal = String(Math.max(-3, Math.min(3, parseInt(chordSel.value || '0', 10) + delta)));
-                                                chordSel.value = newVal;
-                                            }
-                                            const arpSel = document.getElementById('midiOct-arp');
-                                            if (arpSel) {
-                                                const newVal = String(Math.max(-3, Math.min(3, parseInt(arpSel.value || '0', 10) + delta)));
-                                                arpSel.value = newVal;
-                                            }
-                                        } catch (_) { }
-                                        e.preventDefault();
-                                    }
-                                }
-                                // ArrowUp: ramp mod wheel up while held, LATCH on release (do not auto-reset)
-                                if (e.key === 'ArrowUp' && !window.__modWheelRampActive) {
-                                    window.__modWheelRampActive = true;
-                                    try { if (!window.__modWheelVal) window.__modWheelVal = 0; } catch (_) { }
-                                    try { if (window.__modWheelTimer) { clearInterval(window.__modWheelTimer); window.__modWheelTimer = null; } } catch (_) { }
-                                    window.__modWheelTimer = setInterval(() => {
-                                        try {
-                                            window.__modWheelVal = Math.min(127, (window.__modWheelVal || 0) + 5);
-                                            for (const ch of usedChannels()) midi.sendCC(1, window.__modWheelVal, ch);
-                                            if (window.__modWheelVal >= 127) {
-                                                clearInterval(window.__modWheelTimer); window.__modWheelTimer = null;
-                                            }
-                                        } catch (_) { }
-                                    }, 40);
-                                    e.preventDefault();
-                                }
-                                // ArrowDown: ramp mod wheel back down while held
-                                if (e.key === 'ArrowDown' && !window.__modWheelDownActive) {
-                                    window.__modWheelDownActive = true;
-                                    try { if (window.__modWheelTimer) { clearInterval(window.__modWheelTimer); window.__modWheelTimer = null; } } catch (_) { }
-                                    window.__modWheelTimer = setInterval(() => {
-                                        try {
-                                            window.__modWheelVal = Math.max(0, (window.__modWheelVal || 0) - 5);
-                                            for (const ch of usedChannels()) midi.sendCC(1, window.__modWheelVal, ch);
-                                            if (window.__modWheelVal <= 0) {
-                                                clearInterval(window.__modWheelTimer); window.__modWheelTimer = null;
-                                            }
-                                        } catch (_) { }
-                                    }, 40);
-                                    e.preventDefault();
-                                }
-                            }, { passive: true });
-                            window.addEventListener('keyup', (e) => {
-                                if (!midi.enabled) return;
-                                // SHIFT: sustain pedal off on keyup
-                                if (e.key === 'Shift') {
-                                    if (window.__sustainKeyDown) { window.__sustainKeyDown = false; }
-                                    if (midi.sustain) { midi.sustain = false; sendSustain(false); }
-                                }
-                                if (e.key === 'Control' && window.__softPedalDown) {
-                                    window.__softPedalDown = false; sendSoft(false);
-                                }
-                                // Stop current mod wheel ramp on ArrowUp release, but DO NOT reset value (latch)
-                                if (e.key === 'ArrowUp') {
-                                    try { if (window.__modWheelTimer) { clearInterval(window.__modWheelTimer); window.__modWheelTimer = null; } } catch (_) { }
-                                    try { window.__modWheelRampActive = false; } catch (_) { }
-                                    e.preventDefault();
-                                }
-                                // Stop ramping down on ArrowDown release (value stays wherever it is)
-                                if (e.key === 'ArrowDown') {
-                                    try { if (window.__modWheelTimer) { clearInterval(window.__modWheelTimer); window.__modWheelTimer = null; } } catch (_) { }
-                                    try { window.__modWheelDownActive = false; } catch (_) { }
-                                    e.preventDefault();
-                                }
-                            }, { passive: true });
-                            window.addEventListener('blur', () => {
-                                if (!midi.enabled) return;
-                                if (midi.sustain) { midi.sustain = false; sendSustain(false); }
-                                if (window.__softPedalDown) { window.__softPedalDown = false; sendSoft(false); }
-                            });
-                        } catch (_) { }
-                    })();
-                    // Incoming MIDI → chord selection + mod wheel strum
-                    const baseNote = 0; // C-2 (MIDI 0)
-                    const maxSlots = 32; // 32 slots starting at C-2
-                    let heldChordSlot = null;
-                    midi.onInput((msg) => {
-                        if (!midi.enabled) return;
-                        const { type, data1, data2 } = msg;
-                        if (type === 0x90 && data2 > 0) { // Note On
-                            const idx = data1 - baseNote; // 0..31
-                            if (idx >= 0 && idx < maxSlots) {
-                                heldChordSlot = idx;
-                                try { autoharp.playChordByIndex(idx); } catch (_) { }
-                            }
-                        } else if (type === 0x80 || (type === 0x90 && data2 === 0)) { // Note Off
-                            const idx = data1 - baseNote;
-                            if (idx >= 0 && idx < maxSlots) {
-                                heldChordSlot = null;
-                                try { autoharp.stopAllActiveNotes(); } catch (_) { }
-                            }
-                        } else if (type === 0xB0) { // CC
-                            if (data1 === 64) { // Sustain pedal
-                                midi.sustain = data2 >= 64;
-                            } else if (data1 === 1) { // Mod wheel → strum
-                                if (heldChordSlot != null) {
-                                    // Map CC value to a brief strum gesture across current column
-                                    const columns = document.querySelectorAll('.extension-column');
-                                    const col = columns[heldChordSlot] || null;
-                                    if (col) {
-                                        const rect = col.getBoundingClientRect();
-                                        const y = rect.top + (1 - (data2 / 127)) * rect.height;
-                                        try { autoharp.playChordStrum(col, { name: 'MIDI' }, y - 8, y + 8); } catch (_) { }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                    // Wire per-section MIDI controls (IN/OUT-PORT/OCTAVE/VELOCITY)
-                    ; (function () {
-                        try {
-                            const sections = ['strum1', 'strum2', 'chord', 'arp', 'bass', 'bells', 'drum'];
-                            for (const sec of sections) {
-                                const inEl = document.getElementById(`midiIn-${sec}`);
-                                const outEl = document.getElementById(`midiOut-${sec}`);
-                                const octEl = document.getElementById(`midiOct-${sec}`);
-                                const velEl = document.getElementById(`midiVel-${sec}`);
-                                if (inEl) { inEl.addEventListener('change', () => { midi.inputChannelMap[sec] = Math.max(0, Math.min(15, parseInt(inEl.value || '0', 10) | 0)); try { autoharp._ensureArpTransport(); autoharp._arpTransport.deferFlags = Object.assign(autoharp._arpTransport.deferFlags || {}, { midi: true }); const tpBeat = Math.max(1, autoharp._arpTransport.ticksPerBeat || 1); const nowAbs = autoharp._arpTransport.absTickCounter | 0; autoharp._arpTransport.deferApplyAtAbsTick = (nowAbs + 2 * tpBeat) >>> 0; } catch (_) { } midi.saveMIDISettings(); }); }
-                                if (outEl) {
-                                    outEl.addEventListener('change', () => {
-                                        const id = String(outEl.value || '');
-                                        const resolved = id || midi._pickOutputForSection(sec, { preferUnused: true }) || null;
-                                        midi.outputPortMap[sec] = resolved;
-                                        if (resolved && outEl.value !== resolved) outEl.value = resolved;
-                                        try { autoharp._ensureArpTransport(); autoharp._arpTransport.deferFlags = Object.assign(autoharp._arpTransport.deferFlags || {}, { midi: true }); const tpBeat = Math.max(1, autoharp._arpTransport.ticksPerBeat || 1); const nowAbs = autoharp._arpTransport.absTickCounter | 0; autoharp._arpTransport.deferApplyAtAbsTick = (nowAbs + 2 * tpBeat) >>> 0; } catch (_) { } midi.saveMIDISettings();
-                                    });
-                                }
-                                if (octEl) { octEl.addEventListener('change', () => { midi.perSourceOctave[sec] = Math.max(-3, Math.min(3, parseInt(octEl.value || '0', 10) | 0)); midi.saveMIDISettings(); }); }
-                                if (velEl) { velEl.addEventListener('change', () => { midi.perSourceVelocity[sec] = Math.max(1, Math.min(127, parseInt(velEl.value || '100', 10) | 0)); midi.saveMIDISettings(); }); }
-                                // Initialize from defaults
-                                if (inEl) inEl.value = String(midi.inputChannelMap[sec] ?? 1);
-                                if (outEl && outEl.tagName === 'SELECT') {
-                                    // Populate once now
-                                    try { midi.populateOutputSelect(outEl); } catch (_) { }
-                                    const sel = midi._pickOutputForSection(sec, { preferUnused: true }) || '';
-                                    if (sel) midi.outputPortMap[sec] = sel;
-                                    outEl.value = sel || '';
-                                }
-                                if (octEl) octEl.value = String(midi.perSourceOctave[sec] ?? 0);
-                                if (velEl) velEl.value = String(midi.perSourceVelocity[sec] ?? midi.defaultVelocity ?? 100);
-                            }
-                        } catch (_) { }
-                    })();
-
-                    // Keyboard hotkeys for MIDI velocity: [,] down 5, [.] up 5 (apply to ALL sections)
-                    (function () {
-                        try {
-                            if (window.__midiVelHotkeys) return; window.__midiVelHotkeys = true;
-                            const clamp127 = (n) => Math.max(1, Math.min(127, n | 0));
-                            const adjust = (delta) => {
-                                const inp = document.getElementById('midiDefaultVelocity');
-                                let base = Number.isFinite(parseInt(inp?.value || '0', 10)) ? (parseInt(inp.value, 10)) : (midi.defaultVelocity || 100);
-                                const newDefault = clamp127(base + delta);
-                                if (inp) inp.value = String(newDefault);
-                                midi.defaultVelocity = newDefault;
-                                try {
-                                    const sections = ['strum1', 'strum2', 'chord', 'arp', 'bass', 'bells', 'drum'];
-                                    midi.perSourceVelocity = midi.perSourceVelocity || {};
-                                    for (const sec of sections) {
-                                        const el = document.getElementById(`midiVel-${sec}`);
-                                        // Derive current value: prefer object, else input, else default
-                                        let curVal = midi.perSourceVelocity[sec];
-                                        if (!Number.isFinite(curVal)) curVal = Number.parseInt(el?.value || '') || newDefault;
-                                        const nextVal = clamp127(curVal + delta);
-                                        if (el) el.value = String(nextVal);
-                                        midi.perSourceVelocity[sec] = nextVal;
-                                    }
-                                } catch (_) { }
-                            };
-                            window.addEventListener('keydown', (e) => {
-                                if (!midi.enabled) return;
-                                if (e.key === ',') { e.preventDefault(); adjust(-5); }
-                                else if (e.key === '.') { e.preventDefault(); adjust(+5); }
-                            }, { passive: false });
-                        } catch (_) { }
-                    })();
                 })();
 
                 // Force 24-EDO at startup before any parsing/sequencing occurs
@@ -54239,22 +53344,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     autoharp.updateModeUI();
                 }
 
-                // Auto-initialize MIDI (silent) if not already enabled and API available
-                try {
-                    if (window.autoharp && !window.autoharp._midiAutoInitTried) {
-                        window.autoharp._midiAutoInitTried = true;
-                        const midiToggleBtn = document.getElementById('midiToggle');
-                        // If the internal MIDI manager exists and not enabled, attempt init
-                        if (window.autoharp.midi && !window.autoharp.midi.enabled && navigator.requestMIDIAccess) {
-                            window.autoharp.midi.init().then(ok => {
-                                if (ok) console.log('[MIDI] Auto-init success'); else console.warn('[MIDI] Auto-init failed');
-                            }).catch(e => console.warn('[MIDI] Auto-init error', e));
-                        } else if (midiToggleBtn && navigator.requestMIDIAccess) {
-                            // Fallback: simulate a click to run existing wiring
-                            try { midiToggleBtn.click(); } catch (_) { }
-                        }
-                    }
-                } catch (e) { console.warn('MIDI auto-init exception', e); }
+                // MIDI is disabled in this build.
 
 
                 // Global touch/pointer support for modal close buttons (red X)
