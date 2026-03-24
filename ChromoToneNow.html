@@ -8001,6 +8001,60 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     return 'arp' + String(idx);
                 };
 
+                const isPatternInstanceKey = (key) => /^arp\d+$/i.test(String(key || '').trim());
+
+                const ensurePatternMidiOutputPrompt = (modalEl, outEl, instKey) => {
+                    try {
+                        const midi = window.midi;
+                        if (!modalEl || !outEl || !instKey || !isPatternInstanceKey(instKey)) return;
+                        if (!midi || !midi.enabled || !midi.outputs || midi.outputs.size <= 0) return;
+                        const mapped = String((midi.outputPortMap && midi.outputPortMap[instKey]) || '').trim();
+                        const hasMapped = !!(mapped && midi.outputs.has(mapped));
+                        const existing = modalEl.querySelector('[data-role="pattern-midi-out-prompt"]');
+                        if (hasMapped) {
+                            try { if (existing) existing.remove(); } catch (_) { }
+                            return;
+                        }
+
+                        if (!existing) {
+                            const msg = document.createElement('div');
+                            msg.dataset.role = 'pattern-midi-out-prompt';
+                            msg.textContent = 'Select MIDI OUT for this PATTERN to enable MIDI routing.';
+                            msg.style.marginTop = '6px';
+                            msg.style.padding = '6px 8px';
+                            msg.style.fontSize = '11px';
+                            msg.style.borderRadius = '6px';
+                            msg.style.border = '1px solid #7cc9ff';
+                            msg.style.background = 'rgba(22,53,68,0.9)';
+                            msg.style.color = '#e8f5ff';
+                            const host = outEl.parentElement || modalEl;
+                            try { host.appendChild(msg); } catch (_) { }
+                        }
+
+                        try {
+                            outEl.style.outline = '2px solid #7cc9ff';
+                            outEl.style.outlineOffset = '1px';
+                        } catch (_) { }
+
+                        if (!outEl._patternMidiPromptWired) {
+                            outEl._patternMidiPromptWired = true;
+                            outEl.addEventListener('change', () => {
+                                try {
+                                    const m = window.midi;
+                                    const selected = String(outEl.value || '').trim();
+                                    const valid = !!(m && selected && m.outputs && m.outputs.has(selected));
+                                    if (!valid) return;
+                                    try { outEl.style.outline = ''; outEl.style.outlineOffset = ''; } catch (_) { }
+                                    try {
+                                        const node = modalEl.querySelector('[data-role="pattern-midi-out-prompt"]');
+                                        if (node) node.remove();
+                                    } catch (_) { }
+                                } catch (_) { }
+                            });
+                        }
+                    } catch (_) { }
+                };
+
                 const remapIdsInSubtree = (root, mapFn) => {
                     if (!root) return;
                     const nodes = root.querySelectorAll('[id]');
@@ -8831,7 +8885,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                             // Seed defaults from ARP if missing
                             if (midi.inputChannelMap[instKey] == null) midi.inputChannelMap[instKey] = (midi.inputChannelMap.arp ?? 1);
-                            if (midi.outputPortMap[instKey] == null) midi.outputPortMap[instKey] = (typeof midi._pickOutputForSection === 'function') ? midi._pickOutputForSection('arp', { preferUnused: false }) : (midi.outputPortMap.arp ?? midi.outputPortMap.default ?? null);
+                            if (midi.outputPortMap[instKey] == null) midi.outputPortMap[instKey] = null;
                             if (midi.perSourceOctave[instKey] == null) midi.perSourceOctave[instKey] = (midi.perSourceOctave.arp ?? 0);
                             if (midi.perSourceVelocity[instKey] == null) midi.perSourceVelocity[instKey] = (midi.perSourceVelocity.arp ?? midi.defaultVelocity ?? 100);
 
@@ -8862,13 +8916,12 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 // Populate outputs list for this cloned select
                                 try { midi.populateOutputSelect && midi.populateOutputSelect(outEl); } catch (_) { }
                                 try {
-                                    const sel = (typeof midi._pickOutputForSection === 'function') ? midi._pickOutputForSection(instKey, { preferUnused: true }) : (midi.outputPortMap[instKey] || midi.outputPortMap.default || '');
-                                    if (sel) midi.outputPortMap[instKey] = sel;
+                                    const sel = String(midi.outputPortMap[instKey] || '');
                                     outEl.value = String(sel || '');
                                 } catch (_) { }
                                 outEl.addEventListener('change', () => {
                                     const id = String(outEl.value || '');
-                                    const resolved = id || ((typeof midi._pickOutputForSection === 'function') ? midi._pickOutputForSection(instKey, { preferUnused: true }) : null);
+                                    const resolved = id && midi.outputs && midi.outputs.has(id) ? id : null;
                                     midi.outputPortMap[instKey] = resolved || null;
                                     if (resolved && outEl.value !== resolved) outEl.value = resolved;
                                     try {
@@ -8882,7 +8935,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         }
                                     } catch (_) { }
                                     try { midi.saveMIDISettings && midi.saveMIDISettings(); } catch (_) { }
+                                    try { ensurePatternMidiOutputPrompt(clone, outEl, instKey); } catch (_) { }
                                 });
+                                try { ensurePatternMidiOutputPrompt(clone, outEl, instKey); } catch (_) { }
                             }
                             if (octEl && !octEl._wiredMidiInst) {
                                 octEl._wiredMidiInst = true;
@@ -11279,6 +11334,35 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 } else {
                     step.classList.add('vel-high'); // Red (loud)
                 }
+
+                // Live-sync pattern snapshot velocity so playback/MIDI updates immediately
+                // without waiting for a deferred bar-boundary rebuild.
+                try {
+                    if (!(step.classList && step.classList.contains('pattern-step'))) return;
+                    const lane = step.closest && step.closest('.pattern-lane');
+                    if (!lane) return;
+                    const grid = lane.closest && lane.closest('[data-role="patternGrid"], #patternGrid, .pattern-grid');
+                    if (!grid) return;
+                    const snap = grid._audioSnapshot;
+                    if (!snap || !Array.isArray(snap.lanes)) return;
+
+                    const lanes = Array.from(grid.querySelectorAll('.pattern-lane'));
+                    const laneIdx = lanes.indexOf(lane);
+                    if (laneIdx < 0) return;
+
+                    const laneSnap = snap.lanes[laneIdx];
+                    if (!laneSnap) return;
+                    laneSnap.vel = Array.isArray(laneSnap.vel) ? laneSnap.vel : [];
+
+                    let stepIdx = parseInt(step.dataset.step || '', 10);
+                    if (!Number.isFinite(stepIdx)) {
+                        const laneSteps = Array.from(lane.querySelectorAll('.pattern-step'));
+                        stepIdx = laneSteps.indexOf(step);
+                    }
+                    if (!Number.isFinite(stepIdx) || stepIdx < 0) return;
+
+                    laneSnap.vel[stepIdx] = Math.max(1, Math.min(127, parseInt(step.dataset.vel || '100', 10) || 100));
+                } catch (_) { }
             };
 
             // Helper: derive a step velocity (0-127) from dataset or color class.
@@ -22358,7 +22442,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     } else {
                                         const label = (chordName.dataset.lockedName || chordName.textContent || '').trim();
                                         const normLabel = this._normalizeChordSymbolsForParse ? this._normalizeChordSymbolsForParse(label) : label;
-                                        const m = normLabel.match(/^([A-Ga-g])([#b\-d]?)([\^v]*)/);
+                                        const m = normLabel.match(/^([A-Ga-g])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|-|d|♭|♯)?)([\^v]*)/u);
                                         if (m) {
                                             const semi = this.rootToSemitone(m[1].toUpperCase(), m[2] || '');
                                             let step = Math.round((semi * edoForRoot) / 12);
@@ -22484,7 +22568,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } else {
                                 const label = (chordName.dataset.lockedName || chordName.textContent || '').trim();
                                 const normLabel = this._normalizeChordSymbolsForParse ? this._normalizeChordSymbolsForParse(label) : label;
-                                const m = normLabel.match(/^([A-Ga-g])([#b\-d]?)([\^v]*)/);
+                                const m = normLabel.match(/^([A-Ga-g])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|-|d|♭|♯)?)([\^v]*)/u);
                                 if (m) {
                                     const semi = this.rootToSemitone(m[1].toUpperCase(), m[2] || '');
                                     let step = Math.round((semi * (this.currentTuning || 12)) / 12);
@@ -24739,7 +24823,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const norm = this.normalizeChordToken(chordName);
                     if (!norm) return null;
                     const normAscii = this._normalizeChordSymbolsForParse(norm);
-                    const rootMatch = normAscii.match(/^([A-G])([#b♭♯𝄲𝄳d]?)([\^v]*)/);
+                    const rootMatch = normAscii.match(/^([A-G])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|d|♭|♯)?)([\^v]*)/u);
                     let rootAcc = rootMatch ? (rootMatch[2] || '') : '';
                     let rootMicro = rootMatch ? (rootMatch[3] || '') : '';
                     // Treat half-flat (d/𝄳) as a micro down-step rather than a full flat
@@ -24748,9 +24832,22 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         rootMicro = 'v' + rootMicro;
                     }
                     // Treat quarter-sharp (𝄲) as micro up-step
-                    if (rootAcc === '𝄲') {
+                    if (rootAcc === '𝄲' || rootAcc === '𝄰') {
                         rootAcc = '';
                         rootMicro = '^' + rootMicro;
+                    }
+                    // Preserve other combined accidental semantics explicitly
+                    if (rootAcc === '𝄱') {
+                        rootAcc = '#';
+                        rootMicro = 'v' + rootMicro;
+                    }
+                    if (rootAcc === '𝄬') {
+                        rootAcc = 'b';
+                        rootMicro = '^' + rootMicro;
+                    }
+                    if (rootAcc === '𝄭') {
+                        rootAcc = 'b';
+                        rootMicro = 'v' + rootMicro;
                     }
                     const rootSemitone = rootMatch ? this.rootToSemitone(rootMatch[1], rootAcc || '') : null;
                     // Compute root step in current EDO including micro marks (^ up, v down). Multiple marks accumulate.
@@ -24800,7 +24897,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                     let preferredRootName = null;
                     try {
-                        const rootLabelMatch = normAscii.match(/^([A-G])([#b♭♯𝄲𝄳d]?)([\^v]*)/);
+                        const rootLabelMatch = normAscii.match(/^([A-G])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|d|♭|♯)?)([\^v]*)/u);
                         if (rootLabelMatch) {
                             preferredRootName = this._formatRootWithSymbols(rootLabelMatch[1], rootLabelMatch[2] || '', rootLabelMatch[3] || '');
                         }
@@ -25061,13 +25158,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (acc === 'b' || acc === '♭') return (base + 11) % 12;
                     if (acc === 'd' || acc === '𝄳') return base; // half-flat handled via micro step elsewhere
                     if (acc === '𝄲') return base; // half-sharp handled via micro step elsewhere
+                    if (acc === '𝄰') return base; // quarter-sharp handled via micro step elsewhere
+                    if (acc === '𝄱') return (base + 1) % 12; // sharp lowered by one micro step
+                    if (acc === '𝄬') return (base + 11) % 12; // flat raised by one micro step
+                    if (acc === '𝄭') return (base + 11) % 12; // flat lowered by one micro step
                     return base;
                 }
 
                 _getAccidentalPreference(name) {
                     const s = String(name || '');
-                    if (/[#♯]/.test(s)) return 'sharp';
-                    if (/[b♭d𝄳]/.test(s)) return 'flat';
+                    if (/[#♯𝄲𝄰𝄱]/.test(s)) return 'sharp';
+                    if (/[b♭d𝄳𝄬𝄭]/.test(s)) return 'flat';
                     return null;
                 }
 
@@ -25077,15 +25178,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (d === 0) return name;
                     try {
                         const norm = this._normalizeChordSymbolsForParse(name);
-                        const m = norm.match(/^([A-G])([#b♭♯𝄲𝄳d]?)([\^v]*)/);
+                        const m = norm.match(/^([A-G])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|d|♭|♯)?)([\^v]*)/u);
                         if (!m) return name;
                         const letter = m[1];
                         let acc = m[2] || '';
                         let micro = m[3] || '';
-                        // half-flat/sharp as micro marks
-                        if (acc === 'd' || acc === '𝄳') { acc = 'd'; }
-                        if (acc === '𝄲') { acc = '𝄲'; }
-                        const semi = this.rootToSemitone(letter, (acc === 'd' || acc === '𝄳' || acc === '𝄲') ? '' : acc);
+                        // Decode combined microtonal accidentals into base accidental + micro marks
+                        if (acc === 'd' || acc === '𝄳') { acc = ''; micro = 'v' + micro; }
+                        if (acc === '𝄲' || acc === '𝄰') { acc = ''; micro = '^' + micro; }
+                        if (acc === '𝄱') { acc = '#'; micro = 'v' + micro; }
+                        if (acc === '𝄬') { acc = 'b'; micro = '^' + micro; }
+                        if (acc === '𝄭') { acc = 'b'; micro = 'v' + micro; }
+                        const semi = this.rootToSemitone(letter, acc || '');
                         const baseStep = Math.round((semi * edo) / 12);
                         const ups = (micro.match(/\^/g) || []).length;
                         const downs = (micro.match(/v/g) || []).length;
@@ -25140,10 +25244,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         // keep standard ♭/♯ as-is for display-aware parsing
                         .replace(/𝄲/g, '𝄲') // quarter tone sharp
                         .replace(/𝄳/g, '𝄳') // quarter tone flat
-                        .replace(/𝄰/g, '#^') // sharp up -> sharp + up
-                        .replace(/𝄱/g, '#v') // sharp down -> sharp + down
-                        .replace(/𝄬/g, 'b^') // flat up -> flat + up
-                        .replace(/𝄭/g, 'bv') // flat down -> flat + down
+                        .replace(/𝄰/g, '𝄰') // quarter-sharp preserved
+                        .replace(/𝄱/g, '𝄱') // sharp-down preserved
+                        .replace(/𝄬/g, '𝄬') // flat-up preserved
+                        .replace(/𝄭/g, '𝄭') // flat-down preserved
                         .replace(/𝄮/g, '^')  // natural up
                         .replace(/𝄯/g, 'v')  // natural down
                         .replace(/𝅉/g, '^')  // up
@@ -25153,12 +25257,31 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 // Format a root using SMuFL microtonal symbols (no ASCII #/b/d in output)
                 _formatRootWithSymbols(letter, acc = '', micro = '') {
                     const L = String(letter || '').toUpperCase();
+                    const microRaw = String(micro || '');
+                    const ups = (microRaw.match(/\^/g) || []).length;
+                    const downs = (microRaw.match(/v/g) || []).length;
+
                     let a = '';
                     if (acc === '♯' || acc === '#') a = '♯';
                     else if (acc === '♭' || acc === 'b') a = '♭';
                     else if (acc === '𝄲') a = '𝄲';
                     else if (acc === '𝄳' || acc === 'd') a = '𝄳';
-                    const m = String(micro || '').replace(/\^/g, '𝅉').replace(/v/g, '𝅏');
+                    else if (acc === '𝄰') a = '𝄰';
+                    else if (acc === '𝄱') a = '𝄱';
+                    else if (acc === '𝄬') a = '𝄬';
+                    else if (acc === '𝄭') a = '𝄭';
+
+                    // Prefer combined SMuFL symbols for single micro offsets so typed names stay stable
+                    // C#^ -> C𝄰, C#v -> C𝄱, Db^ -> D𝄬, Dbv -> D𝄭
+                    // C^ -> C𝄮, Cv -> C𝄯
+                    if (a === '♯' && ups === 1 && downs === 0) return L + '𝄰';
+                    if (a === '♯' && downs === 1 && ups === 0) return L + '𝄱';
+                    if (a === '♭' && ups === 1 && downs === 0) return L + '𝄬';
+                    if (a === '♭' && downs === 1 && ups === 0) return L + '𝄭';
+                    if (!a && ups === 1 && downs === 0) return L + '𝄮';
+                    if (!a && downs === 1 && ups === 0) return L + '𝄯';
+
+                    const m = '^'.repeat(ups).replace(/\^/g, '𝅉') + 'v'.repeat(downs).replace(/v/g, '𝅏');
                     return L + a + m;
                 }
 
@@ -25253,7 +25376,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
 
                     // Root parse: letter + optional accidental (#, b, -) and optional micro marks (^ up, v down)
-                    const mRoot = t.match(/^([A-Ga-g])([#b\-d]?)([\^v]*)(.*)$/);
+                    const mRoot = t.match(/^([A-Ga-g])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|-|d|♭|♯)?)([\^v]*)(.*)$/u);
                     if (!mRoot) return null;
                     const letter = mRoot[1].toUpperCase();
                     let acc = (mRoot[2] === '-') ? 'b' : (mRoot[2] || '');
@@ -36795,7 +36918,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } else {
                                 const label = (chordName?.dataset?.lockedName || chordName?.textContent || '').trim();
                                 const normLabel = this._normalizeChordSymbolsForParse ? this._normalizeChordSymbolsForParse(label) : label;
-                                const m = normLabel.match(/^([A-Ga-g])([#b\-d]?)([\^v]*)/);
+                                const m = normLabel.match(/^([A-Ga-g])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|-|d|♭|♯)?)([\^v]*)/u);
                                 if (m) {
                                     const semi = this.rootToSemitone(m[1].toUpperCase(), m[2] || '');
                                     let step = Math.round((semi * edoForRoot) / 12);
@@ -37896,7 +38019,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         } else {
                             const label = (chordName?.dataset?.lockedName || chordName?.textContent || '').trim();
                             const normLabel = this._normalizeChordSymbolsForParse ? this._normalizeChordSymbolsForParse(label) : label;
-                            const m = normLabel.match(/^([A-Ga-g])([#b\-d]?)([\^v]*)/);
+                            const m = normLabel.match(/^([A-Ga-g])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|-|d|♭|♯)?)([\^v]*)/u);
                             if (m) {
                                 const semi = this.rootToSemitone(m[1].toUpperCase(), m[2] || '');
                                 let step = Math.round((semi * edoForRoot) / 12);
@@ -38384,7 +38507,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             } else {
                                 const label = (chordName?.dataset?.lockedName || chordName?.textContent || '').trim();
                                 const normLabel = this._normalizeChordSymbolsForParse ? this._normalizeChordSymbolsForParse(label) : label;
-                                const m = normLabel.match(/^([A-Ga-g])([#b\-d]?)([\^v]*)/);
+                                const m = normLabel.match(/^([A-Ga-g])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|-|d|♭|♯)?)([\^v]*)/u);
                                 if (m) {
                                     const semi = this.rootToSemitone(m[1].toUpperCase(), m[2] || '');
                                     let step = Math.round((semi * edoForRoot) / 12);
@@ -38808,13 +38931,16 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         try {
                             if (preferredRootName) {
                                 const normPref = this._normalizeChordSymbolsForParse(preferredRootName);
-                                const m = normPref.match(/^([A-G])([#b♭♯𝄲𝄳d]?)([\^v]*)/);
+                                const m = normPref.match(/^([A-G])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|d|♭|♯)?)([\^v]*)/u);
                                 if (m) {
                                     let acc = m[2] || '';
                                     let micro = m[3] || '';
                                     // Treat half-flat/sharp as micro marks
                                     if (acc === 'd' || acc === '𝄳') { acc = ''; micro = 'v' + micro; }
-                                    if (acc === '𝄲') { acc = ''; micro = '^' + micro; }
+                                    if (acc === '𝄲' || acc === '𝄰') { acc = ''; micro = '^' + micro; }
+                                    if (acc === '𝄱') { acc = '#'; micro = 'v' + micro; }
+                                    if (acc === '𝄬') { acc = 'b'; micro = '^' + micro; }
+                                    if (acc === '𝄭') { acc = 'b'; micro = 'v' + micro; }
                                     const semi = this.rootToSemitone(m[1], acc || '');
                                     const baseStep = Math.round((semi * edo) / 12);
                                     const ups = (micro.match(/\^/g) || []).length;
@@ -50838,7 +50964,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                         document.addEventListener('wheel', (e) => {
                             try {
-                                const target = e.target;
+                                const rawTarget = e.target;
+                                const target = (rawTarget && rawTarget.nodeType === 3) ? rawTarget.parentElement : rawTarget;
                                 if (!target || e.ctrlKey) return;
 
                                 // 3) Wheel on sliders: ensure at least one visible step change per wheel line
@@ -50875,28 +51002,39 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const stripBtn = target.closest && target.closest('#patternButtons .panel-btn, #drumButtons .panel-btn');
                                 if (stripBtn) {
                                     const delta = (e.deltaY < 0 ? 1 : -1) * wheelLines(e.deltaY);
-                                    if (stripBtn.dataset.instanceType === 'pattern') {
-                                        const key = String(stripBtn.dataset.patternInstanceKey || '').trim();
+                                    const hostPattern = stripBtn.closest && stripBtn.closest('#patternButtons');
+                                    const hostDrum = stripBtn.closest && stripBtn.closest('#drumButtons');
+                                    const inferredType = hostPattern ? 'pattern' : (hostDrum ? 'drum' : String(stripBtn.dataset.instanceType || '').trim());
+                                    if (inferredType === 'pattern') {
+                                        let key = String(stripBtn.dataset.patternInstanceKey || '').trim();
+                                        if (!key) {
+                                            try {
+                                                const info = (window._patternInstances || []).find(x => x && x.modal && x.modal._stripBtn === stripBtn);
+                                                key = String(info?.key || info?.modal?.dataset?.patternInstanceKey || '').trim();
+                                                if (key) stripBtn.dataset.patternInstanceKey = key;
+                                            } catch (_) { }
+                                        }
                                         if (key) {
-                                            const levelEl = document.getElementById(`${key}Level`);
-                                            if (levelEl) {
-                                                const min = toNumber(levelEl.min, 0);
-                                                const max = toNumber(levelEl.max, 10);
-                                                const cur = toNumber(levelEl.value, min);
-                                                const step = (() => {
-                                                    const s = toNumber(levelEl.step, NaN);
-                                                    if (Number.isFinite(s) && s > 0) return s;
-                                                    return (Number.isInteger(min) && Number.isInteger(max)) ? 1 : Math.max((max - min) * 0.002, 0.01);
-                                                })();
-                                                let next = clamp(cur + (delta * step), min, max);
-                                                if (Number.isFinite(step) && step > 0) next = min + Math.round((next - min) / step) * step;
-                                                next = clamp(next, min, max);
-                                                if (next !== cur) {
-                                                    levelEl.value = String(next);
-                                                    levelEl.dispatchEvent(new Event('input', { bubbles: true }));
-                                                    levelEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                            let appliedPatternVelOffset = false;
+                                            try {
+                                                const info = (window._patternInstances || []).find(x => x && (String(x.key || '') === key || String(x?.modal?.dataset?.patternInstanceKey || '') === key));
+                                                const modal = (info && info.modal) ? info.modal : (document.getElementById(`patternModal_${key}`) || null);
+                                                const grid = modal && (modal.querySelector('[data-role="patternGrid"]') || modal.querySelector('#patternGrid') || modal.querySelector('.pattern-grid'));
+                                                if (grid) {
+                                                    const steps = Array.from(grid.querySelectorAll('.pattern-step'));
+                                                    if (steps.length) {
+                                                        steps.forEach(st => {
+                                                            const curVel = clamp(parseInt(st.dataset.vel || '100', 10) || 100, 1, 127);
+                                                            const nextVel = clamp(curVel + delta, 1, 127);
+                                                            st.dataset.vel = String(nextVel);
+                                                            try { window.updateStepVelocityClass && window.updateStepVelocityClass(st); } catch (_) { }
+                                                        });
+                                                        appliedPatternVelOffset = true;
+                                                    }
                                                 }
-                                            } else {
+                                            } catch (_) { }
+
+                                            if (!appliedPatternVelOffset) {
                                                 const midi = window.midi || null;
                                                 if (midi) midi.perSourceVelocity = midi.perSourceVelocity || {};
                                                 const velEl = document.getElementById(`midiVel-${key}`);
@@ -50919,7 +51057,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                             e.preventDefault();
                                             return;
                                         }
-                                    } else if (stripBtn.dataset.instanceType === 'drum') {
+                                    } else if (inferredType === 'drum') {
                                         const drumId = String(stripBtn.dataset.drumInstanceId || '').trim();
                                         const list = window._drumInstances || [];
                                         const inst = list.find(x => x && String(x.id || '') === drumId);
@@ -52080,14 +52218,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         _pickOutputForSection(section, opts = {}) {
                             try {
                                 const key = String(section || 'default');
+                                const isPatternInstance = /^arp\d+$/i.test(key);
                                 const preferUnused = !!opts.preferUnused;
+                                const allowDefaultFallback = (opts.allowDefaultFallback !== false);
                                 const arr = this.getOutputsArray();
                                 if (!arr.length) return null;
                                 const has = (id) => !!(id && this.outputs && this.outputs.has(id));
                                 const fromKey = this.outputPortMap ? this.outputPortMap[key] : null;
                                 if (has(fromKey)) return fromKey;
+                                if (isPatternInstance) return null;
                                 const fromDefault = this.outputPortMap ? this.outputPortMap.default : null;
-                                if (has(fromDefault)) return fromDefault;
+                                if (allowDefaultFallback && has(fromDefault)) return fromDefault;
                                 if (preferUnused) {
                                     const used = new Set();
                                     try {
@@ -52096,6 +52237,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const free = arr.find(o => o && o.id && !used.has(o.id));
                                     if (free && free.id) return free.id;
                                 }
+                                if (!allowDefaultFallback) return null;
                                 return arr[0]?.id || null;
                             } catch (_) { return null; }
                         }
@@ -52113,7 +52255,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (!selectEl) return;
                                 const arr = this.getOutputsArray();
                                 const prev = selectEl.value || '';
+                                const id = String(selectEl.id || '');
+                                const m = id.match(/^midiOut-(.+)$/);
+                                const key = m ? m[1] : 'default';
+                                const isPatternInstance = /^arp\d+$/i.test(key);
                                 while (selectEl.firstChild) selectEl.removeChild(selectEl.firstChild);
+                                if (isPatternInstance) {
+                                    const opt = document.createElement('option');
+                                    opt.value = '';
+                                    opt.textContent = 'Select MIDI OUT…';
+                                    selectEl.appendChild(opt);
+                                }
                                 arr.forEach(o => {
                                     const opt = document.createElement('option');
                                     opt.value = o.id;
@@ -52123,12 +52275,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 if (prev && Array.from(selectEl.options).some(op => op.value === prev)) {
                                     selectEl.value = prev;
                                 } else {
-                                    const id = String(selectEl.id || '');
-                                    const m = id.match(/^midiOut-(.+)$/);
-                                    const key = m ? m[1] : 'default';
-                                    const desired = this._pickOutputForSection(key, { preferUnused: key !== 'default' });
+                                    const desired = this._pickOutputForSection(key, {
+                                        preferUnused: key !== 'default',
+                                        allowDefaultFallback: !isPatternInstance
+                                    });
                                     if (desired && Array.from(selectEl.options).some(op => op.value === desired)) {
                                         selectEl.value = desired;
+                                    } else if (isPatternInstance) {
+                                        selectEl.value = '';
                                     }
                                 }
                             } catch (_) { }
@@ -52165,7 +52319,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                         outputForSource(src) {
                             try {
-                                const sel = this._pickOutputForSection(src || 'default', { preferUnused: false });
+                                const key = String(src || 'default');
+                                const isPatternInstance = /^arp\d+$/i.test(key);
+                                const sel = this._pickOutputForSection(key, {
+                                    preferUnused: false,
+                                    allowDefaultFallback: !isPatternInstance
+                                });
+                                if (isPatternInstance && !sel) return '__unassigned_pattern_output__';
                                 if (!sel) return null;
                                 if (typeof sel === 'string') return this.outputs.get(sel) ? sel : null;
                                 // If stored as index (1-based), map to current outputs list
