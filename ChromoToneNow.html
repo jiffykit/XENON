@@ -27149,7 +27149,8 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             } catch { }
                         }
                     }
-                    const quality = normAscii.replace(/^([A-G][#b♭♯𝄲𝄳d]?[\^v]*)/, '');
+                    const rootPrefix = rootMatch ? rootMatch[0] : '';
+                    const quality = normAscii.slice(rootPrefix.length);
                     // Exclude slash bass from stacked-interval parsing; it will be added explicitly below
                     const tailForIntervals = quality.replace(/\/[A-G](?:#|b)?/, '');
                     let intervals = this.parseChordQualityToIntervals(tailForIntervals);
