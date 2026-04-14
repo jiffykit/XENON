@@ -4087,6 +4087,93 @@
             background: linear-gradient(145deg, #5aa3f0, #4080cd);
         }
 
+        .sidebar-settings-btn {
+            margin-top: 6px;
+            min-height: 30px;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0;
+            padding: 4px 0;
+            border-radius: 8px;
+        }
+
+        .app-settings-body {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 68vh;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .app-settings-group {
+            border: 1px solid #365565;
+            border-radius: 8px;
+            padding: 10px;
+            background: rgba(8, 30, 44, 0.55);
+        }
+
+        .app-settings-group h4 {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            color: #b7d9ea;
+            letter-spacing: 0.3px;
+        }
+
+        .app-settings-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 7px;
+        }
+
+        .app-settings-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .app-settings-row label {
+            font-size: 11px;
+            color: #d7eef9;
+        }
+
+        .app-settings-row input[type="number"],
+        .app-settings-row input[type="text"],
+        .app-settings-row select {
+            width: 120px;
+            background: #102a3a;
+            color: #e8f5ff;
+            border: 1px solid #2b5567;
+            border-radius: 6px;
+            padding: 4px 6px;
+            font-size: 11px;
+        }
+
+        .app-settings-row input[type="range"] {
+            width: 120px;
+        }
+
+        .app-settings-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .app-settings-status {
+            font-size: 11px;
+            color: #9fd0e8;
+            min-height: 14px;
+        }
+
+        .app-settings-folder {
+            font-size: 11px;
+            color: #87b3c8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 250px;
+        }
+
         /* Main content offset for sidebar */
         .main-content {
             margin-left: 80px;
@@ -5489,6 +5576,7 @@
                         <input id="bellsZoom" type="range" min="1" max="4" step="1" value="1" />
                         <div id="bellsZoomValue" class="sidebar-zoom-value">1 key</div>
                     </div>
+                    <button id="appSettingsBtn" class="sidebar-btn sidebar-settings-btn" title="App Settings">⚙</button>
                 </div>
 
                 <!-- Main Content Area -->
@@ -6539,6 +6627,89 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 </div>
             </div>
         </div>
+
+        <div id="appSettingsModal" class="floating-modal" style="top:120px; left:84px; width:420px; z-index:12020;">
+            <div class="modal-header">
+                <span>App Settings</span>
+                <button class="modal-close" id="closeAppSettingsModalBtn">×</button>
+            </div>
+            <div class="modal-body app-settings-body">
+                <div class="app-settings-group">
+                    <h4>Ping Calibration</h4>
+                    <div class="app-settings-row">
+                        <label for="settingsPingGain">Ping volume</label>
+                        <input id="settingsPingGain" type="range" min="0.05" max="1" step="0.01" value="0.18">
+                    </div>
+                    <div class="app-settings-row">
+                        <label for="settingsPingLowHz">Sweep low (Hz)</label>
+                        <input id="settingsPingLowHz" type="number" min="3000" max="16000" step="10" value="7800">
+                    </div>
+                    <div class="app-settings-row">
+                        <label for="settingsPingHighHz">Sweep high (Hz)</label>
+                        <input id="settingsPingHighHz" type="number" min="5000" max="22000" step="10" value="15000">
+                    </div>
+                </div>
+
+                <div class="app-settings-group">
+                    <h4>Startup Defaults</h4>
+                    <div class="app-settings-row">
+                        <label for="settingsStartupMidiMode">Start in MIDI mode</label>
+                        <input id="settingsStartupMidiMode" type="checkbox">
+                    </div>
+                    <div class="app-settings-row">
+                        <label for="settingsStartupEdo">Default EDO</label>
+                        <input id="settingsStartupEdo" type="number" min="5" max="53" step="1" value="24">
+                    </div>
+                    <div class="app-settings-row">
+                        <label for="settingsStartupBpm">Default BPM</label>
+                        <input id="settingsStartupBpm" type="number" min="1" max="1000" step="1" value="120">
+                    </div>
+                    <div class="app-settings-row">
+                        <label for="settingsStartupTimeSig">Default time signature</label>
+                        <input id="settingsStartupTimeSig" type="text" value="4/4">
+                    </div>
+                    <div class="app-settings-row">
+                        <label for="settingsStartupMasterVolume">Startup master volume</label>
+                        <input id="settingsStartupMasterVolume" type="range" min="0" max="10" step="0.1" value="10">
+                    </div>
+                    <div class="app-settings-row">
+                        <label for="settingsStartupLoopEnabled">Startup loop mode</label>
+                        <input id="settingsStartupLoopEnabled" type="checkbox" checked>
+                    </div>
+                </div>
+
+                <div class="app-settings-group">
+                    <h4>Appearance</h4>
+                    <div class="app-settings-row">
+                        <label for="settingsColorScheme">Strings/Keyboard scheme</label>
+                        <select id="settingsColorScheme">
+                            <option value="roygbiv">ROYGBIV</option>
+                            <option value="piano">Piano (B/W + micro grey)</option>
+                            <option value="metallic">Metallic Omnichord</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="app-settings-group">
+                    <h4>Settings Files</h4>
+                    <div class="app-settings-actions" style="margin-bottom:8px;">
+                        <button id="settingsChooseFolderBtn" class="osc-btn" type="button">Choose Folder</button>
+                        <button id="settingsExportBtn" class="osc-btn" type="button">Export Settings</button>
+                        <button id="settingsImportBtn" class="osc-btn" type="button">Import Settings</button>
+                    </div>
+                    <div id="settingsFolderLabel" class="app-settings-folder">Folder: download fallback</div>
+                </div>
+
+                <div class="app-settings-actions">
+                    <button id="settingsApplyNowBtn" class="osc-btn" type="button">Apply Now</button>
+                    <button id="settingsSaveBtn" class="osc-btn" type="button">Save Defaults</button>
+                    <button id="settingsResetBtn" class="osc-btn" type="button" style="background:#7f1d1d;border-color:#aa3b3b;">Reset</button>
+                </div>
+                <div id="appSettingsStatus" class="app-settings-status"></div>
+            </div>
+        </div>
+
+        <input id="importSettingsFileInput" type="file" accept=".xen-settings,.json" style="display:none;">
 
 
         <script>
@@ -11160,11 +11331,28 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
 
                         return new Promise((resolve) => {
                             try {
+                                const appSettings = (typeof window._getAppSettings === 'function') ? window._getAppSettings() : null;
+                                const prefPingGain = Number(appSettings && appSettings.pingGain);
+                                const prefSweepLowHz = Number(appSettings && appSettings.pingSweepLowHz);
+                                const prefSweepHighHz = Number(appSettings && appSettings.pingSweepHighHz);
                                 const sampleRate = Math.max(8000, Math.round(Number(ac.sampleRate) || 48000));
                                 const emitDelaySec = 0.08;
                                 const nyquistHz = Math.max(400, sampleRate * 0.5);
-                                const sweepHiHz = Math.max(1200, Math.min(16000, nyquistHz * 0.92));
-                                const sweepLoHz = Math.max(1000, Math.min(7000, sweepHiHz * 0.75));
+                                const sweepHiHz = _clampLoopValue(
+                                    Number.isFinite(prefSweepHighHz) ? prefSweepHighHz : 15000,
+                                    5000,
+                                    Math.max(5000, nyquistHz * 0.94)
+                                );
+                                const sweepLoHz = _clampLoopValue(
+                                    Number.isFinite(prefSweepLowHz) ? prefSweepLowHz : 7800,
+                                    3000,
+                                    Math.max(3000, sweepHiHz - 500)
+                                );
+                                const pingGain = _clampLoopValue(
+                                    Number.isFinite(prefPingGain) ? prefPingGain : 0.18,
+                                    0.05,
+                                    1
+                                );
                                 const refLen = Math.max(256, Math.min(2048, Math.round(sampleRate * 0.018)));
                                 const ref = new Float32Array(refLen);
                                 const sweepRatio = Math.max(1.0001, sweepHiHz / Math.max(1, sweepLoHz));
@@ -11174,7 +11362,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     const freq = sweepLoHz * Math.pow(sweepRatio, t);
                                     phase += (2 * Math.PI * freq) / sampleRate;
                                     const env = Math.pow(Math.sin(Math.PI * t), 1.35);
-                                    ref[i] = Math.sin(phase) * env * 0.92;
+                                    ref[i] = Math.sin(phase) * env * 0.65;
                                 }
 
                                 const probe = {
@@ -11195,9 +11383,9 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 const gain = ac.createGain();
                                 const hp = ac.createBiquadFilter();
                                 hp.type = 'highpass';
-                                hp.frequency.value = Math.max(1000, sweepLoHz * 0.92);
+                                hp.frequency.value = Math.max(1000, sweepLoHz * 0.9);
                                 hp.Q.value = 0.6;
-                                gain.gain.value = 0.88;
+                                gain.gain.value = pingGain;
                                 src.buffer = probeBuffer;
                                 src.connect(hp);
                                 hp.connect(gain);
@@ -42299,15 +42487,59 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
 
                 // Universal pitch colors: C=RED, D=ORANGE, E=YELLOW, F=GREEN, G=BLUE, A=INDIGO, B=VIOLET
                 _universalColorAnchors() {
+                    let scheme = 'roygbiv';
+                    try {
+                        if (typeof window._getAppSettings === 'function') {
+                            const st = window._getAppSettings();
+                            if (st && typeof st.colorScheme === 'string') scheme = String(st.colorScheme || '').toLowerCase();
+                        }
+                    } catch (_) { }
+
+                    if (scheme === 'piano') {
+                        return [
+                            { semi: 0, name: 'C', color: '#f3f4f6' },
+                            { semi: 1, name: 'C#', color: '#5f6770' },
+                            { semi: 2, name: 'D', color: '#f4f5f6' },
+                            { semi: 3, name: 'D#', color: '#666e77' },
+                            { semi: 4, name: 'E', color: '#f5f6f7' },
+                            { semi: 5, name: 'F', color: '#f3f4f6' },
+                            { semi: 6, name: 'F#', color: '#616972' },
+                            { semi: 7, name: 'G', color: '#f4f5f6' },
+                            { semi: 8, name: 'G#', color: '#656d76' },
+                            { semi: 9, name: 'A', color: '#f5f6f7' },
+                            { semi: 10, name: 'A#', color: '#68707a' },
+                            { semi: 11, name: 'B', color: '#f3f4f6' },
+                            { semi: 12, name: 'C', color: '#f3f4f6' },
+                        ];
+                    }
+
+                    if (scheme === 'metallic') {
+                        return [
+                            { semi: 0, name: 'C', color: '#dce2e7' },
+                            { semi: 1, name: 'C#', color: '#97a2ad' },
+                            { semi: 2, name: 'D', color: '#c9a54f' },
+                            { semi: 3, name: 'D#', color: '#bfc7ce' },
+                            { semi: 4, name: 'E', color: '#b7794d' },
+                            { semi: 5, name: 'F', color: '#a8afb6' },
+                            { semi: 6, name: 'F#', color: '#868d95' },
+                            { semi: 7, name: 'G', color: '#d2d8dd' },
+                            { semi: 8, name: 'G#', color: '#b47f66' },
+                            { semi: 9, name: 'A', color: '#c7a35d' },
+                            { semi: 10, name: 'A#', color: '#8f9aa5' },
+                            { semi: 11, name: 'B', color: '#b99654' },
+                            { semi: 12, name: 'C', color: '#dce2e7' },
+                        ];
+                    }
+
                     return [
-                        { semi: 0, name: 'C', color: '#FF0000' }, // Red
-                        { semi: 2, name: 'D', color: '#FFA500' }, // Orange
-                        { semi: 4, name: 'E', color: '#FFFF00' }, // Yellow
-                        { semi: 5, name: 'F', color: '#00FF00' }, // Green
-                        { semi: 7, name: 'G', color: '#0000FF' }, // Blue
-                        { semi: 9, name: 'A', color: '#4B0082' }, // Indigo
-                        { semi: 11, name: 'B', color: '#8F00FF' }, // Violet
-                        { semi: 12, name: 'C', color: '#FF0000' }, // wrap C for interpolation
+                        { semi: 0, name: 'C', color: '#FF0000' },
+                        { semi: 2, name: 'D', color: '#FFA500' },
+                        { semi: 4, name: 'E', color: '#FFFF00' },
+                        { semi: 5, name: 'F', color: '#00FF00' },
+                        { semi: 7, name: 'G', color: '#0000FF' },
+                        { semi: 9, name: 'A', color: '#4B0082' },
+                        { semi: 11, name: 'B', color: '#8F00FF' },
+                        { semi: 12, name: 'C', color: '#FF0000' },
                     ];
                 }
                 _getUniversalColorForSemitoneFloat(semiFloat) {
@@ -59702,7 +59934,15 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
 
                 // Auto-initialize MIDI (silent) if not already enabled and API available
                 try {
-                    if (window.autoharp && !window.autoharp._midiAutoInitTried) {
+                    let shouldAutoMidi = false;
+                    try {
+                        const raw = localStorage.getItem('xen_app_settings_v1');
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            shouldAutoMidi = !!(parsed && parsed.startupMidiMode);
+                        }
+                    } catch (_) { }
+                    if (window.autoharp && !window.autoharp._midiAutoInitTried && shouldAutoMidi) {
                         window.autoharp._midiAutoInitTried = true;
                         const midiToggleBtn = document.getElementById('midiToggle');
                         // If the internal MIDI manager exists and not enabled, attempt init
@@ -60060,6 +60300,493 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                 if (!bind()) {
                     document.addEventListener('DOMContentLoaded', bind, { once: true });
                 }
+            })();
+        </script>
+        <script>
+            // App Settings subsystem: startup defaults, ping profile, color scheme, and settings file import/export.
+            (function () {
+                const SETTINGS_STORAGE_KEY = 'xen_app_settings_v1';
+                const SETTINGS_FILE_TYPE = 'Xenmicord Settings';
+                const SETTINGS_SCHEMA_VERSION = 1;
+                const DEFAULT_SETTINGS = {
+                    schemaVersion: SETTINGS_SCHEMA_VERSION,
+                    pingGain: 0.18,
+                    pingSweepLowHz: 7800,
+                    pingSweepHighHz: 15000,
+                    startupMidiMode: false,
+                    startupEdo: 24,
+                    startupBpm: 120,
+                    startupTimeSignature: '4/4',
+                    startupMasterVolume: 10,
+                    startupLoopEnabled: true,
+                    colorScheme: 'roygbiv',
+                    exportFolderName: ''
+                };
+
+                let settingsCache = null;
+                let startupApplied = false;
+                let exportFolderHandle = null;
+
+                const byId = (id) => document.getElementById(id);
+                const clone = (v) => { try { return JSON.parse(JSON.stringify(v)); } catch (_) { return v; } };
+                const clamp = (value, min, max, fallback) => {
+                    const n = Number(value);
+                    if (!Number.isFinite(n)) return fallback;
+                    return Math.max(min, Math.min(max, n));
+                };
+                const clampInt = (value, min, max, fallback) => {
+                    const n = parseInt(String(value || ''), 10);
+                    if (!Number.isFinite(n)) return fallback;
+                    return Math.max(min, Math.min(max, n | 0));
+                };
+                const normalizeTimeSignature = (value) => {
+                    const raw = String(value == null ? '' : value).trim();
+                    if (!raw) return '4/4';
+                    if (!/^\d+\s*\/\s*\d+$/.test(raw)) return '4/4';
+                    return raw.replace(/\s+/g, '');
+                };
+
+                const normalizeSettings = (input) => {
+                    const src = (input && typeof input === 'object') ? input : {};
+                    const normalized = {
+                        schemaVersion: SETTINGS_SCHEMA_VERSION,
+                        pingGain: clamp(src.pingGain, 0.05, 1, DEFAULT_SETTINGS.pingGain),
+                        pingSweepHighHz: clampInt(src.pingSweepHighHz, 5000, 22000, DEFAULT_SETTINGS.pingSweepHighHz),
+                        startupMidiMode: !!src.startupMidiMode,
+                        startupEdo: clampInt(src.startupEdo, 5, 53, DEFAULT_SETTINGS.startupEdo),
+                        startupBpm: clampInt(src.startupBpm, 1, 1000, DEFAULT_SETTINGS.startupBpm),
+                        startupTimeSignature: normalizeTimeSignature(src.startupTimeSignature),
+                        startupMasterVolume: Math.round(clamp(src.startupMasterVolume, 0, 10, DEFAULT_SETTINGS.startupMasterVolume) * 10) / 10,
+                        startupLoopEnabled: (src.startupLoopEnabled == null) ? DEFAULT_SETTINGS.startupLoopEnabled : !!src.startupLoopEnabled,
+                        colorScheme: ['roygbiv', 'piano', 'metallic'].includes(String(src.colorScheme || '').toLowerCase())
+                            ? String(src.colorScheme || '').toLowerCase()
+                            : DEFAULT_SETTINGS.colorScheme,
+                        exportFolderName: String(src.exportFolderName || '').slice(0, 120)
+                    };
+                    normalized.pingSweepLowHz = clampInt(
+                        src.pingSweepLowHz,
+                        3000,
+                        Math.max(3000, normalized.pingSweepHighHz - 500),
+                        DEFAULT_SETTINGS.pingSweepLowHz
+                    );
+                    return normalized;
+                };
+
+                const readStoredSettings = () => {
+                    try {
+                        const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+                        if (!raw) return clone(DEFAULT_SETTINGS);
+                        const parsed = JSON.parse(raw);
+                        return normalizeSettings(parsed);
+                    } catch (_) {
+                        return clone(DEFAULT_SETTINGS);
+                    }
+                };
+
+                const persistSettings = (settings) => {
+                    try { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); } catch (_) { }
+                };
+
+                const getSettings = () => {
+                    if (!settingsCache) {
+                        settingsCache = readStoredSettings();
+                        persistSettings(settingsCache);
+                    }
+                    return clone(settingsCache);
+                };
+
+                const setSettings = (nextSettings) => {
+                    settingsCache = normalizeSettings(nextSettings);
+                    persistSettings(settingsCache);
+                    return clone(settingsCache);
+                };
+
+                const setStatus = (message, isError = false) => {
+                    const el = byId('appSettingsStatus');
+                    if (!el) return;
+                    el.textContent = String(message || '');
+                    el.style.color = isError ? '#f5a3a3' : '#9fd0e8';
+                };
+
+                const updateFolderLabel = (settings = null) => {
+                    const label = byId('settingsFolderLabel');
+                    if (!label) return;
+                    if (exportFolderHandle && exportFolderHandle.name) {
+                        label.textContent = `Folder: ${exportFolderHandle.name}`;
+                        return;
+                    }
+                    const st = settings || getSettings();
+                    if (st.exportFolderName) {
+                        label.textContent = `Folder: ${st.exportFolderName} (reselect on reload)`;
+                    } else {
+                        label.textContent = 'Folder: download fallback';
+                    }
+                };
+
+                const dispatchInputAndChange = (el) => {
+                    if (!el) return;
+                    try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) { }
+                    try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) { }
+                };
+
+                const isMidiActive = () => {
+                    try {
+                        if (window.midi && typeof window.midi.enabled === 'boolean' && window.midi.enabled) return true;
+                    } catch (_) { }
+                    try {
+                        const a = byId('midiToggle');
+                        const b = byId('midiBtn');
+                        return !!(a && a.classList.contains('active')) || !!(b && b.classList.contains('active'));
+                    } catch (_) { return false; }
+                };
+
+                const setMidiMode = (enabled) => {
+                    const want = !!enabled;
+                    const active = isMidiActive();
+                    if (want === active) return;
+                    const btn = byId('midiToggle') || byId('midiBtn');
+                    if (!btn || typeof btn.click !== 'function') return;
+                    try { btn.click(); } catch (_) { }
+                };
+
+                const refreshColorSchemeVisuals = () => {
+                    const omni = window.autoharp;
+                    if (!omni) return;
+                    try {
+                        const tuning = Math.max(5, parseInt(String(omni.currentTuning || 24), 10) || 24);
+                        document.querySelectorAll('#extensionColumns .string').forEach((el) => {
+                            const step = parseInt(String(el.dataset.noteIndex || ''), 10);
+                            if (!Number.isFinite(step)) return;
+                            const uni = omni.getUniversalPitchColorForStep(step, tuning);
+                            const color = uni && uni.color ? uni.color : null;
+                            if (!color) return;
+                            el.style.backgroundColor = color;
+                            el.dataset.glowColor = color;
+                        });
+                    } catch (_) { }
+                    try { omni.generateRootButtons && omni.generateRootButtons(); } catch (_) { }
+                    try { omni.updateChordDisplay && omni.updateChordDisplay(); } catch (_) { }
+                };
+
+                const applySettings = (settings, opts = {}) => {
+                    const st = normalizeSettings(settings || {});
+                    try { document.documentElement.setAttribute('data-color-scheme', st.colorScheme); } catch (_) { }
+                    refreshColorSchemeVisuals();
+
+                    if (!(opts.applyStartup || opts.applyNow)) return;
+
+                    const edoValue = st.startupEdo;
+                    ['edoQuickInputTransport', 'edoQuickInput', 'seqEdoInput', 'edoDivisions'].forEach((id) => {
+                        const el = byId(id);
+                        if (el) el.value = String(edoValue);
+                    });
+                    try {
+                        if (window.autoharp && typeof window.autoharp.updateTuningSystem === 'function') {
+                            window.autoharp.updateTuningSystem(edoValue);
+                        }
+                    } catch (_) { }
+
+                    const bpmEl = byId('transportBpm');
+                    if (bpmEl) {
+                        bpmEl.value = String(st.startupBpm);
+                        dispatchInputAndChange(bpmEl);
+                    }
+
+                    const tsEl = byId('universalTimeSignature');
+                    if (tsEl) {
+                        tsEl.value = st.startupTimeSignature;
+                        dispatchInputAndChange(tsEl);
+                    }
+
+                    const volEl = byId('transportMasterVolume') || byId('masterVolume');
+                    if (volEl) {
+                        volEl.value = String(st.startupMasterVolume);
+                        dispatchInputAndChange(volEl);
+                    }
+
+                    const loopEl = byId('loopToggle') || byId('playLoop');
+                    if (loopEl) {
+                        loopEl.checked = !!st.startupLoopEnabled;
+                        dispatchInputAndChange(loopEl);
+                    }
+
+                    setMidiMode(!!st.startupMidiMode);
+                };
+
+                const populateForm = (settings) => {
+                    const st = normalizeSettings(settings || {});
+                    const pingGain = byId('settingsPingGain');
+                    const pingLow = byId('settingsPingLowHz');
+                    const pingHigh = byId('settingsPingHighHz');
+                    const startupMidi = byId('settingsStartupMidiMode');
+                    const startupEdo = byId('settingsStartupEdo');
+                    const startupBpm = byId('settingsStartupBpm');
+                    const startupTs = byId('settingsStartupTimeSig');
+                    const startupVol = byId('settingsStartupMasterVolume');
+                    const startupLoop = byId('settingsStartupLoopEnabled');
+                    const colorScheme = byId('settingsColorScheme');
+
+                    if (pingGain) pingGain.value = String(st.pingGain);
+                    if (pingLow) pingLow.value = String(st.pingSweepLowHz);
+                    if (pingHigh) pingHigh.value = String(st.pingSweepHighHz);
+                    if (startupMidi) startupMidi.checked = !!st.startupMidiMode;
+                    if (startupEdo) startupEdo.value = String(st.startupEdo);
+                    if (startupBpm) startupBpm.value = String(st.startupBpm);
+                    if (startupTs) startupTs.value = st.startupTimeSignature;
+                    if (startupVol) startupVol.value = String(st.startupMasterVolume);
+                    if (startupLoop) startupLoop.checked = !!st.startupLoopEnabled;
+                    if (colorScheme) colorScheme.value = st.colorScheme;
+                    updateFolderLabel(st);
+                };
+
+                const readForm = () => {
+                    const current = getSettings();
+                    const next = {
+                        ...current,
+                        pingGain: byId('settingsPingGain') ? byId('settingsPingGain').value : current.pingGain,
+                        pingSweepLowHz: byId('settingsPingLowHz') ? byId('settingsPingLowHz').value : current.pingSweepLowHz,
+                        pingSweepHighHz: byId('settingsPingHighHz') ? byId('settingsPingHighHz').value : current.pingSweepHighHz,
+                        startupMidiMode: !!(byId('settingsStartupMidiMode') && byId('settingsStartupMidiMode').checked),
+                        startupEdo: byId('settingsStartupEdo') ? byId('settingsStartupEdo').value : current.startupEdo,
+                        startupBpm: byId('settingsStartupBpm') ? byId('settingsStartupBpm').value : current.startupBpm,
+                        startupTimeSignature: byId('settingsStartupTimeSig') ? byId('settingsStartupTimeSig').value : current.startupTimeSignature,
+                        startupMasterVolume: byId('settingsStartupMasterVolume') ? byId('settingsStartupMasterVolume').value : current.startupMasterVolume,
+                        startupLoopEnabled: !!(byId('settingsStartupLoopEnabled') && byId('settingsStartupLoopEnabled').checked),
+                        colorScheme: byId('settingsColorScheme') ? byId('settingsColorScheme').value : current.colorScheme
+                    };
+                    return normalizeSettings(next);
+                };
+
+                const openSettingsModal = () => {
+                    const modal = byId('appSettingsModal');
+                    if (!modal) return;
+                    populateForm(getSettings());
+                    if (typeof window.bringModalToFront === 'function') {
+                        window.bringModalToFront('appSettingsModal');
+                    } else {
+                        modal.style.display = 'block';
+                    }
+                    try {
+                        if (!modal._draggableSet && typeof window.makeDraggable === 'function') {
+                            window.makeDraggable(modal);
+                            modal._draggableSet = true;
+                        }
+                    } catch (_) { }
+                };
+
+                const closeSettingsModal = () => {
+                    const modal = byId('appSettingsModal');
+                    if (modal) modal.style.display = 'none';
+                };
+
+                const downloadSettingsPayload = (payload, fileName) => {
+                    try {
+                        const data = JSON.stringify(payload, null, 2);
+                        const blob = new Blob([data], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        return true;
+                    } catch (_) {
+                        return false;
+                    }
+                };
+
+                const exportSettingsFile = async () => {
+                    const st = getSettings();
+                    const dateStamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    const fileName = `Xenmicord-settings-${dateStamp}.xen-settings`;
+                    const payload = {
+                        fileType: SETTINGS_FILE_TYPE,
+                        schemaVersion: '1.0',
+                        savedDate: new Date().toISOString(),
+                        appSettings: st
+                    };
+
+                    if (exportFolderHandle && typeof exportFolderHandle.getFileHandle === 'function') {
+                        try {
+                            const fh = await exportFolderHandle.getFileHandle(fileName, { create: true });
+                            const writable = await fh.createWritable();
+                            await writable.write(JSON.stringify(payload, null, 2));
+                            await writable.close();
+                            setStatus(`Exported to folder: ${fileName}`);
+                            return;
+                        } catch (_) {
+                            setStatus('Folder write failed, used download fallback.', true);
+                        }
+                    }
+
+                    if (downloadSettingsPayload(payload, fileName)) {
+                        setStatus(`Downloaded: ${fileName}`);
+                    } else {
+                        setStatus('Export failed.', true);
+                    }
+                };
+
+                const chooseExportFolder = async () => {
+                    if (typeof window.showDirectoryPicker !== 'function') {
+                        setStatus('Folder picker unavailable in this browser; download fallback will be used.', true);
+                        return;
+                    }
+                    try {
+                        const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                        exportFolderHandle = handle;
+                        const next = setSettings({ ...getSettings(), exportFolderName: String(handle.name || '') });
+                        updateFolderLabel(next);
+                        setStatus(`Folder selected: ${handle.name}`);
+                    } catch (_) {
+                        setStatus('Folder selection cancelled.');
+                    }
+                };
+
+                const parseSettingsFile = (rawObj) => {
+                    if (!rawObj || typeof rawObj !== 'object') throw new Error('Invalid settings file');
+                    if (rawObj.fileType === 'Xenmicord Session' || rawObj.fileType === 'OMG-nichord Session') {
+                        throw new Error('That is a full session file; use LOAD for .xen sessions.');
+                    }
+                    if (rawObj.fileType && String(rawObj.fileType).toLowerCase() === SETTINGS_FILE_TYPE.toLowerCase()) {
+                        return normalizeSettings(rawObj.appSettings || {});
+                    }
+                    if (rawObj.appSettings && typeof rawObj.appSettings === 'object') {
+                        return normalizeSettings(rawObj.appSettings);
+                    }
+                    return normalizeSettings(rawObj);
+                };
+
+                const importSettingsFromFile = async (file) => {
+                    if (!file) return;
+                    try {
+                        const text = await file.text();
+                        const parsed = JSON.parse(text);
+                        const next = parseSettingsFile(parsed);
+                        setSettings(next);
+                        populateForm(next);
+                        applySettings(next, { applyNow: true });
+                        setStatus('Settings imported and applied.');
+                    } catch (err) {
+                        setStatus(err && err.message ? err.message : 'Import failed.', true);
+                    }
+                };
+
+                const wireSettingsUi = () => {
+                    const openBtn = byId('appSettingsBtn');
+                    const closeBtn = byId('closeAppSettingsModalBtn');
+                    const applyNowBtn = byId('settingsApplyNowBtn');
+                    const saveBtn = byId('settingsSaveBtn');
+                    const resetBtn = byId('settingsResetBtn');
+                    const chooseFolderBtn = byId('settingsChooseFolderBtn');
+                    const exportBtn = byId('settingsExportBtn');
+                    const importBtn = byId('settingsImportBtn');
+                    const importInput = byId('importSettingsFileInput');
+                    const colorSelect = byId('settingsColorScheme');
+
+                    if (openBtn && !openBtn._wiredSettingsOpen) {
+                        openBtn._wiredSettingsOpen = true;
+                        openBtn.addEventListener('click', openSettingsModal);
+                    }
+                    if (closeBtn && !closeBtn._wiredSettingsClose) {
+                        closeBtn._wiredSettingsClose = true;
+                        closeBtn.addEventListener('click', closeSettingsModal);
+                    }
+                    if (applyNowBtn && !applyNowBtn._wiredSettingsApply) {
+                        applyNowBtn._wiredSettingsApply = true;
+                        applyNowBtn.addEventListener('click', () => {
+                            const next = setSettings(readForm());
+                            applySettings(next, { applyNow: true });
+                            populateForm(next);
+                            setStatus('Applied now and saved.');
+                        });
+                    }
+                    if (saveBtn && !saveBtn._wiredSettingsSave) {
+                        saveBtn._wiredSettingsSave = true;
+                        saveBtn.addEventListener('click', () => {
+                            const next = setSettings(readForm());
+                            applySettings(next, { applyNow: false });
+                            populateForm(next);
+                            setStatus('Startup defaults saved.');
+                        });
+                    }
+                    if (resetBtn && !resetBtn._wiredSettingsReset) {
+                        resetBtn._wiredSettingsReset = true;
+                        resetBtn.addEventListener('click', () => {
+                            const next = setSettings(clone(DEFAULT_SETTINGS));
+                            applySettings(next, { applyNow: true });
+                            populateForm(next);
+                            setStatus('Settings reset to defaults.');
+                        });
+                    }
+                    if (chooseFolderBtn && !chooseFolderBtn._wiredSettingsFolder) {
+                        chooseFolderBtn._wiredSettingsFolder = true;
+                        chooseFolderBtn.addEventListener('click', () => { chooseExportFolder(); });
+                    }
+                    if (exportBtn && !exportBtn._wiredSettingsExport) {
+                        exportBtn._wiredSettingsExport = true;
+                        exportBtn.addEventListener('click', () => { exportSettingsFile(); });
+                    }
+                    if (importBtn && !importBtn._wiredSettingsImportBtn) {
+                        importBtn._wiredSettingsImportBtn = true;
+                        importBtn.addEventListener('click', () => {
+                            if (importInput) importInput.click();
+                        });
+                    }
+                    if (importInput && !importInput._wiredSettingsImportInput) {
+                        importInput._wiredSettingsImportInput = true;
+                        importInput.addEventListener('change', (e) => {
+                            const file = e.target && e.target.files ? e.target.files[0] : null;
+                            importSettingsFromFile(file);
+                            try { e.target.value = ''; } catch (_) { }
+                        });
+                    }
+                    if (colorSelect && !colorSelect._wiredSettingsPreview) {
+                        colorSelect._wiredSettingsPreview = true;
+                        colorSelect.addEventListener('change', () => {
+                            const next = normalizeSettings({ ...getSettings(), colorScheme: colorSelect.value });
+                            setSettings(next);
+                            applySettings(next, { applyNow: false });
+                            setStatus('Color scheme preview updated.');
+                        });
+                    }
+                };
+
+                const tryApplyStartupDefaults = (attempt = 0) => {
+                    if (startupApplied) return;
+                    if (!window.autoharp) {
+                        if (attempt < 60) setTimeout(() => tryApplyStartupDefaults(attempt + 1), 120);
+                        return;
+                    }
+                    const st = getSettings();
+                    applySettings(st, { applyStartup: true });
+                    startupApplied = true;
+                };
+
+                // Public helpers used by other subsystems.
+                window._getAppSettings = () => getSettings();
+                window._setAppSettings = (partial, opts = {}) => {
+                    const merged = normalizeSettings({ ...getSettings(), ...(partial || {}) });
+                    const next = setSettings(merged);
+                    if (opts.applyNow) applySettings(next, { applyNow: true });
+                    else applySettings(next, { applyNow: false });
+                    return next;
+                };
+                window._applyAppSettingsStartupDefaults = tryApplyStartupDefaults;
+                window._exportAppSettingsFile = exportSettingsFile;
+
+                const init = () => {
+                    setSettings(readStoredSettings());
+                    wireSettingsUi();
+                    populateForm(getSettings());
+                    tryApplyStartupDefaults(0);
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', init, { once: true });
+                } else {
+                    init();
+                }
+                setTimeout(() => tryApplyStartupDefaults(0), 900);
             })();
         </script>
 </body>
