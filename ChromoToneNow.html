@@ -11000,6 +11000,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (!window._loopInstanceCounter) window._loopInstanceCounter = 0;
                     let _loopMicSrc = null, _loopProcessor = null, _loopMicSilencer = null;
                     let _loopRecSession = null; // { chunks:[], totalSamples:0, baseSample:0, cycleMarkSample:null, state:'armed'|'recording' }
+                    let _loopLatencyRtProbe = null;
                     let _loopCaptureBlockSize = 4096;
                     let _loopWorkletReadyPromise = null;
                     const _loopScriptRecordBufferSize = 4096;
@@ -11013,6 +11014,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const _loopPlaybackOffsetMaxMs = 500;
                     const _loopMidiDefaultPlaybackOffsetMs = -50;
                     const _loopOscDefaultPlaybackOffsetMs = 30;
+                    const _loopLatencyProbeMaxDeltaMs = 450;
+                    const _loopLatencyProbeSmoothing = 0.7;
                     const _loopFilterMinHz = 60;
                     const _loopFilterMaxHz = 20000;
                     const _getLoopCaptureBlockSize = () => Math.max(128, Number(_loopCaptureBlockSize) || _loopScriptRecordBufferSize);
@@ -11071,9 +11074,203 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         } catch (_) { }
                         return false;
                     };
-                    const _getLoopModeDefaultPlaybackOffsetMs = () => _isLoopMidiModeActive()
+                    const _getLoopLatencyCalibrationBiasMs = () => {
+                        const raw = Number(window._loopLatencyCalibrationBiasMs);
+                        return Number.isFinite(raw)
+                            ? _clampLoopValue(raw, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs)
+                            : 0;
+                    };
+                    const _setLoopLatencyCalibrationBiasMs = (valueMs) => {
+                        const next = _clampLoopValue(Number(valueMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
+                        window._loopLatencyCalibrationBiasMs = next;
+                        return next;
+                    };
+                    const _getLoopLatencyCaptureLeadMs = () => {
+                        const raw = Number(window._loopLatencyCaptureLeadMs);
+                        return Number.isFinite(raw)
+                            ? _clampLoopValue(raw, -_loopLatencyProbeMaxDeltaMs, _loopLatencyProbeMaxDeltaMs)
+                            : 0;
+                    };
+                    const _setLoopLatencyCaptureLeadMs = (valueMs) => {
+                        const next = _clampLoopValue(Number(valueMs) || 0, -_loopLatencyProbeMaxDeltaMs, _loopLatencyProbeMaxDeltaMs);
+                        window._loopLatencyCaptureLeadMs = next;
+                        return next;
+                    };
+                    const _getLoopModeBasePlaybackOffsetMs = () => _isLoopMidiModeActive()
                         ? _loopMidiDefaultPlaybackOffsetMs
                         : _loopOscDefaultPlaybackOffsetMs;
+                    const _getLoopModeDefaultPlaybackOffsetMs = () => {
+                        const base = _getLoopModeBasePlaybackOffsetMs();
+                        return _clampLoopValue(base + _getLoopLatencyCalibrationBiasMs(), -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
+                    };
+                    const _learnLoopLatencyFromManualOffset = (offsetMs, opts = {}) => {
+                        const targetOffsetMs = _clampLoopValue(Number(offsetMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
+                        const desiredBiasMs = _clampLoopValue(
+                            targetOffsetMs - _getLoopModeBasePlaybackOffsetMs(),
+                            -_loopPlaybackOffsetMaxMs,
+                            _loopPlaybackOffsetMaxMs
+                        );
+                        const alpha = _clampLoopValue(
+                            Number.isFinite(opts.alpha) ? Number(opts.alpha) : 0.85,
+                            0.05,
+                            1
+                        );
+                        const prevBiasMs = _getLoopLatencyCalibrationBiasMs();
+                        const nextBiasMs = _clampLoopValue(
+                            (prevBiasMs * (1 - alpha)) + (desiredBiasMs * alpha),
+                            -_loopPlaybackOffsetMaxMs,
+                            _loopPlaybackOffsetMaxMs
+                        );
+                        _setLoopLatencyCalibrationBiasMs(nextBiasMs);
+                        _setLoopLatencyCaptureLeadMs(-nextBiasMs);
+                        window._loopLastManualLatencyOffsetMs = targetOffsetMs;
+                        return nextBiasMs;
+                    };
+                    const _seedLoopCalibrationFromSharedOffset = () => {
+                        if (!window._loopSharedPlaybackOffsetUserAdjusted) return null;
+                        const stored = _getStoredLoopSharedPlaybackOffsetMs();
+                        if (stored == null) return null;
+                        return _learnLoopLatencyFromManualOffset(stored, { alpha: 0.6 });
+                    };
+                    const _applyLoopRoundTripProbeLatencyMs = (probeMs, sess = null) => {
+                        const measuredMs = _clampLoopValue(Number(probeMs) || 0, 0, _loopPlaybackOffsetMaxMs);
+                        if (!(measuredMs > 0.5)) return null;
+                        const targetOffsetMs = _clampLoopValue(-measuredMs, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
+                        const biasMs = _learnLoopLatencyFromManualOffset(targetOffsetMs, { alpha: 0.95 });
+                        const prevMs = _getStoredLoopSharedPlaybackOffsetMs();
+                        const nextMs = _applyLoopSharedPlaybackOffsetMs(targetOffsetMs, {
+                            prevMs: prevMs == null ? targetOffsetMs : prevMs,
+                            reschedule: false,
+                            userAdjusted: false
+                        });
+                        window._loopLastRoundTripLatencyMs = measuredMs;
+                        if (sess) {
+                            sess.roundTripLatencyMs = measuredMs;
+                            sess.roundTripOffsetMs = targetOffsetMs;
+                            sess.roundTripBiasMs = biasMs;
+                            sess.calibratedPlaybackOffsetMs = nextMs;
+                        }
+                        return nextMs;
+                    };
+                    const _runLoopRoundTripLatencyProbe = () => {
+                        const omni = window.autoharp;
+                        const ac = omni && omni.audioContext;
+                        if (!ac || !_loopProcessor || !_loopMicSrc) return Promise.resolve(null);
+                        if (_loopLatencyRtProbe && _loopLatencyRtProbe.active) return Promise.resolve(null);
+
+                        return new Promise((resolve) => {
+                            try {
+                                const sampleRate = Math.max(8000, Math.round(Number(ac.sampleRate) || 48000));
+                                const emitDelaySec = 0.08;
+                                const nyquistHz = Math.max(400, sampleRate * 0.5);
+                                const sweepHiHz = Math.max(1200, Math.min(16000, nyquistHz * 0.92));
+                                const sweepLoHz = Math.max(1000, Math.min(7000, sweepHiHz * 0.75));
+                                const refLen = Math.max(256, Math.min(2048, Math.round(sampleRate * 0.018)));
+                                const ref = new Float32Array(refLen);
+                                const sweepRatio = Math.max(1.0001, sweepHiHz / Math.max(1, sweepLoHz));
+                                let phase = 0;
+                                for (let i = 0; i < refLen; i++) {
+                                    const t = i / Math.max(1, refLen - 1);
+                                    const freq = sweepLoHz * Math.pow(sweepRatio, t);
+                                    phase += (2 * Math.PI * freq) / sampleRate;
+                                    const env = Math.pow(Math.sin(Math.PI * t), 1.35);
+                                    ref[i] = Math.sin(phase) * env * 0.92;
+                                }
+
+                                const probe = {
+                                    active: true,
+                                    chunks: [],
+                                    totalSamples: 0,
+                                    sampleRate,
+                                    startCtx: ac.currentTime,
+                                    emitCtx: ac.currentTime + emitDelaySec,
+                                    emitIndex: Math.round(emitDelaySec * sampleRate),
+                                    ref
+                                };
+                                _loopLatencyRtProbe = probe;
+
+                                const probeBuffer = ac.createBuffer(1, refLen, sampleRate);
+                                probeBuffer.getChannelData(0).set(ref);
+                                const src = ac.createBufferSource();
+                                const gain = ac.createGain();
+                                const hp = ac.createBiquadFilter();
+                                hp.type = 'highpass';
+                                hp.frequency.value = Math.max(1000, sweepLoHz * 0.92);
+                                hp.Q.value = 0.6;
+                                gain.gain.value = 0.88;
+                                src.buffer = probeBuffer;
+                                src.connect(hp);
+                                hp.connect(gain);
+                                gain.connect(ac.destination);
+                                src.start(probe.emitCtx);
+
+                                const finalize = () => {
+                                    if (_loopLatencyRtProbe !== probe) { resolve(null); return; }
+                                    _loopLatencyRtProbe = null;
+                                    probe.active = false;
+                                    try { src.disconnect(); } catch (_) { }
+                                    try { hp.disconnect(); } catch (_) { }
+                                    try { gain.disconnect(); } catch (_) { }
+
+                                    const total = probe.totalSamples | 0;
+                                    if (total <= (probe.emitIndex + refLen + 32)) { resolve(null); return; }
+                                    const mic = new Float32Array(total);
+                                    let off = 0;
+                                    probe.chunks.forEach((chunk) => {
+                                        mic.set(chunk, off);
+                                        off += chunk.length;
+                                    });
+
+                                    const refNorm = Math.sqrt(ref.reduce((acc, v) => acc + (v * v), 0));
+                                    if (!(refNorm > 1e-6)) { resolve(null); return; }
+
+                                    const searchStart = Math.max(0, probe.emitIndex + Math.round(sampleRate * 0.01));
+                                    const searchEnd = Math.min(total - refLen - 1, probe.emitIndex + Math.round(sampleRate * 0.9));
+                                    if (searchEnd <= searchStart) { resolve(null); return; }
+
+                                    const scoreAt = (idx) => {
+                                        let dot = 0;
+                                        let micNormSq = 0;
+                                        for (let j = 0; j < refLen; j++) {
+                                            const m = mic[idx + j];
+                                            dot += ref[j] * m;
+                                            micNormSq += m * m;
+                                        }
+                                        const denom = refNorm * Math.sqrt(Math.max(1e-12, micNormSq));
+                                        return dot / denom;
+                                    };
+
+                                    let bestIdx = -1;
+                                    let bestScore = -Infinity;
+                                    const coarseStep = 4;
+                                    for (let i = searchStart; i <= searchEnd; i += coarseStep) {
+                                        const s = scoreAt(i);
+                                        if (s > bestScore) { bestScore = s; bestIdx = i; }
+                                    }
+
+                                    if (bestIdx >= 0) {
+                                        const refineStart = Math.max(searchStart, bestIdx - (coarseStep * 4));
+                                        const refineEnd = Math.min(searchEnd, bestIdx + (coarseStep * 4));
+                                        for (let i = refineStart; i <= refineEnd; i++) {
+                                            const s = scoreAt(i);
+                                            if (s > bestScore) { bestScore = s; bestIdx = i; }
+                                        }
+                                    }
+
+                                    if (!(bestIdx >= 0) || !(bestScore > 0.08)) { resolve(null); return; }
+                                    const latencySamples = bestIdx - probe.emitIndex;
+                                    const latencyMs = (latencySamples * 1000) / sampleRate;
+                                    if (!Number.isFinite(latencyMs) || latencyMs <= 0) { resolve(null); return; }
+                                    resolve(_clampLoopValue(latencyMs, 0, _loopPlaybackOffsetMaxMs));
+                                };
+
+                                setTimeout(finalize, Math.round((emitDelaySec + 0.95) * 1000));
+                            } catch (_) {
+                                _loopLatencyRtProbe = null;
+                                resolve(null);
+                            }
+                        });
+                    };
                     const _syncLoopSharedPlaybackOffsetUi = (valueMs) => {
                         const nextValue = String(Math.round(Number(valueMs) || 0));
                         const slider = document.getElementById('loopStartOffsetSlider');
@@ -11081,25 +11278,41 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (slider && slider.value !== nextValue) slider.value = nextValue;
                         if (valueEl) valueEl.textContent = _formatLoopPlaybackOffsetMs(nextValue);
                     };
-                    const _rescheduleLoopInstancesForSharedOffset = (prevMs, nextMs) => {
+                    const _rescheduleLoopInstanceForOffset = (inst, prevMs, nextMs) => {
+                        if (!inst) return;
                         const safePrevMs = _clampLoopValue(Number(prevMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
                         const safeNextMs = _clampLoopValue(Number(nextMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
                         if (Math.abs(safePrevMs - safeNextMs) < 0.0001) return;
                         const ac = window.autoharp && window.autoharp.audioContext;
-                        if (!ac) return;
+                        if (!ac || !inst._sourceNode || !inst.buffer) return;
                         const shiftSec = (safePrevMs - safeNextMs) / 1000;
-                        (window._loopInstances || []).forEach((inst) => {
-                            if (!inst) return;
-                            inst.playbackOffsetMs = safeNextMs;
-                            if (!inst._sourceNode || !inst.buffer) return;
-                            const predictedOffsetSec = _getLoopPredictedOffsetSec(inst, ac.currentTime);
-                            if (!Number.isFinite(predictedOffsetSec)) return;
-                            _scheduleLoop(inst, {
-                                offsetSec: _wrapLoopPlaybackOffsetSec(inst, predictedOffsetSec + shiftSec),
-                                detuneCents: _getLoopTargetDetuneCents(inst),
-                                crossfade: true
-                            });
+                        const predictedOffsetSec = _getLoopPredictedOffsetSec(inst, ac.currentTime);
+                        if (!Number.isFinite(predictedOffsetSec)) return;
+                        _scheduleLoop(inst, {
+                            offsetSec: _wrapLoopPlaybackOffsetSec(inst, predictedOffsetSec + shiftSec),
+                            detuneCents: _getLoopTargetDetuneCents(inst),
+                            crossfade: true
                         });
+                    };
+                    const _rescheduleLoopInstancesForSharedOffset = (prevMs, nextMs) => {
+                        const safePrevMs = _clampLoopValue(Number(prevMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
+                        const safeNextMs = _clampLoopValue(Number(nextMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
+                        if (Math.abs(safePrevMs - safeNextMs) < 0.0001) return;
+                        (window._loopInstances || []).forEach((inst) => {
+                            _rescheduleLoopInstanceForOffset(inst, safePrevMs, safeNextMs);
+                        });
+                    };
+                    const _setLoopInstancePlaybackOffsetMs = (inst, valueMs, opts = {}) => {
+                        if (!inst) return null;
+                        const nextMs = _clampLoopValue(Number(valueMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
+                        const prevMs = Number.isFinite(opts.prevMs)
+                            ? _clampLoopValue(Number(opts.prevMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs)
+                            : (Number.isFinite(Number(inst.playbackOffsetMs))
+                                ? _clampLoopValue(Number(inst.playbackOffsetMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs)
+                                : nextMs);
+                        inst.playbackOffsetMs = nextMs;
+                        if (opts.reschedule) _rescheduleLoopInstanceForOffset(inst, prevMs, nextMs);
+                        return nextMs;
                     };
                     const _applyLoopSharedPlaybackOffsetMs = (valueMs, opts = {}) => {
                         const nextMs = _clampLoopValue(Number(valueMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
@@ -11110,11 +11323,13 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (typeof opts.userAdjusted === 'boolean') {
                             window._loopSharedPlaybackOffsetUserAdjusted = !!opts.userAdjusted;
                         }
-                        (window._loopInstances || []).forEach((inst) => {
-                            if (inst) inst.playbackOffsetMs = nextMs;
-                        });
+                        if (opts.applyToExisting) {
+                            (window._loopInstances || []).forEach((inst) => {
+                                _setLoopInstancePlaybackOffsetMs(inst, nextMs, { reschedule: !!opts.reschedule });
+                            });
+                        }
                         _syncLoopSharedPlaybackOffsetUi(nextMs);
-                        if (opts.reschedule) _rescheduleLoopInstancesForSharedOffset(prevMs, nextMs);
+                        if (opts.reschedule && opts.applyToExisting) _rescheduleLoopInstancesForSharedOffset(prevMs, nextMs);
                         return nextMs;
                     };
                     const _syncLoopSharedPlaybackOffsetDefaultForMode = (reschedule = false) => {
@@ -11142,7 +11357,138 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             ? stored
                             : _applyLoopSharedPlaybackOffsetMs(_getLoopModeDefaultPlaybackOffsetMs(), { userAdjusted: false });
                     };
-                    const _getLoopInstancePlaybackOffsetMs = () => _getLoopSharedPlaybackOffsetMs();
+                    const _getLoopInstancePlaybackOffsetMs = (inst = null) => {
+                        if (inst && Number.isFinite(Number(inst.playbackOffsetMs))) {
+                            return _clampLoopValue(Number(inst.playbackOffsetMs) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
+                        }
+                        return _getLoopSharedPlaybackOffsetMs();
+                    };
+                    const _normalizeLoopSectionSignatureToken = (value) => {
+                        return String(value == null ? '' : value).trim().replace(/\s+/g, ' ').toUpperCase();
+                    };
+                    const _buildLoopSectionSignatureFromState = (state, opts = {}) => {
+                        try {
+                            const src = (state && typeof state === 'object') ? state : {};
+                            const chords = Array.isArray(src.chordExtensions) ? src.chordExtensions : [];
+                            const tokens = [];
+                            for (let i = 0; i < chords.length; i++) {
+                                const item = chords[i];
+                                if (!item || typeof item !== 'object') continue;
+                                if (item.isSeparator || item.name === '|') {
+                                    tokens.push('SEP');
+                                    continue;
+                                }
+                                if (item.isRepeatMarker || item.type === 'bracket') {
+                                    const repName = _normalizeLoopSectionSignatureToken(item.name || item.id || 'REPEAT');
+                                    const repCountRaw = parseInt(String(item.repeatCount ?? ''), 10);
+                                    const repCount = Number.isFinite(repCountRaw) ? Math.max(0, repCountRaw | 0) : 0;
+                                    const nestRaw = parseInt(String(item.nestLevel ?? ''), 10);
+                                    const nest = Number.isFinite(nestRaw) ? Math.max(0, nestRaw | 0) : 0;
+                                    tokens.push(`REP:${repName}:${repCount}:${nest}`);
+                                    continue;
+                                }
+                                const chordName = _normalizeLoopSectionSignatureToken(item.name || item.id || `CH${i}`);
+                                const lenRaw = parseInt(String(item.len16 ?? item.length16 ?? item.length ?? ''), 10);
+                                const len16 = Number.isFinite(lenRaw) && lenRaw > 0
+                                    ? _clampLoopValue(lenRaw | 0, 1, 1024)
+                                    : 16;
+                                const localTransposeRaw = parseInt(String(item.localTranspose ?? ''), 10);
+                                const localTranspose = Number.isFinite(localTransposeRaw) ? (localTransposeRaw | 0) : 0;
+                                tokens.push(`CH:${chordName}:${len16}:${localTranspose}`);
+                            }
+                            if (!tokens.length) tokens.push('EMPTY');
+
+                            const lr = (src.loopRange && typeof src.loopRange === 'object') ? src.loopRange : null;
+                            const rangeStart = lr && Number.isFinite(Number(lr.start)) ? (Number(lr.start) | 0) : 'x';
+                            const rangeEnd = lr && Number.isFinite(Number(lr.end)) ? (Number(lr.end) | 0) : 'x';
+                            const rangeStartId = _normalizeLoopSectionSignatureToken(lr ? (lr.startId || '') : '');
+                            const rangeEndId = _normalizeLoopSectionSignatureToken(lr ? (lr.endId || '') : '');
+                            const rangeFlags = `${lr && lr.edgeLeft ? 1 : 0}${lr && lr.edgeRight ? 1 : 0}`;
+                            const rangeToken = `${rangeStart}-${rangeEnd}-${rangeStartId}-${rangeEndId}-${rangeFlags}`;
+
+                            let tsRaw = src.timeSignature != null ? String(src.timeSignature) : '';
+                            if (!tsRaw && opts.readDomTs !== false) {
+                                try { tsRaw = String(document.getElementById('universalTimeSignature')?.value || ''); } catch (_) { tsRaw = ''; }
+                            }
+                            const tsToken = _normalizeLoopSectionSignatureToken(tsRaw || '4/4');
+                            const tuneRaw = parseInt(String(src.tuning ?? window.autoharp?.currentTuning ?? 24), 10);
+                            const tuneToken = Number.isFinite(tuneRaw) ? (tuneRaw | 0) : 24;
+                            return `TS:${tsToken}|TUNE:${tuneToken}|RANGE:${rangeToken}|CHORDS:${tokens.join(';')}`;
+                        } catch (_) {
+                            return '';
+                        }
+                    };
+                    const _resolveLoopSectionStateById = (sectionId) => {
+                        try {
+                            const id = (sectionId != null && sectionId !== '') ? String(sectionId) : '';
+                            if (!id) return null;
+                            const sec = (window._sections || []).find(s => s && String(s.id || '') === id);
+                            if (sec && sec.state) return sec.state;
+                        } catch (_) { }
+                        return null;
+                    };
+                    const _getLoopSectionSignatureById = (sectionId, fallbackState = null) => {
+                        let st = fallbackState;
+                        if (!st) st = _resolveLoopSectionStateById(sectionId);
+                        if (!st) {
+                            const omni = window.autoharp;
+                            st = {
+                                chordExtensions: Array.isArray(omni && omni.chordExtensions) ? omni.chordExtensions : [],
+                                tuning: parseInt(String(omni && omni.currentTuning || 24), 10) || 24
+                            };
+                        }
+                        return _buildLoopSectionSignatureFromState(st, { readDomTs: true });
+                    };
+                    window._buildLoopSectionSignatureFromState = _buildLoopSectionSignatureFromState;
+                    window._getLoopSectionSignatureById = _getLoopSectionSignatureById;
+                    window._assignLegacyLoopInstancesToSection = function (sectionId, sectionSignature = null) {
+                        try {
+                            const normalizedSectionId = (sectionId != null && sectionId !== '') ? String(sectionId) : null;
+                            const signature = String(sectionSignature || _getLoopSectionSignatureById(normalizedSectionId)).trim();
+                            if (!signature && !normalizedSectionId) return 0;
+                            let tagged = 0;
+                            (window._loopInstances || []).forEach((inst) => {
+                                if (!inst || typeof inst !== 'object') return;
+                                const hasSignature = typeof inst.sectionSignature === 'string' && !!inst.sectionSignature.trim();
+                                if (hasSignature) return;
+                                if (normalizedSectionId && (inst.sectionId == null || inst.sectionId === '')) {
+                                    inst.sectionId = normalizedSectionId;
+                                }
+                                inst.sectionSignature = signature;
+                                tagged++;
+                            });
+                            return tagged;
+                        } catch (_) {
+                            return 0;
+                        }
+                    };
+                    window._autoMuteLoopInstancesForSectionSignature = function (targetSignature, targetSectionId = null) {
+                        try {
+                            const signature = String(targetSignature || '').trim();
+                            if (!signature) return 0;
+                            let muted = 0;
+                            const setter = (typeof window._setLoopInstanceEnabled === 'function') ? window._setLoopInstanceEnabled : null;
+                            (window._loopInstances || []).forEach((inst) => {
+                                if (!inst || typeof inst !== 'object') return;
+                                const instSignature = String(inst.sectionSignature || '').trim();
+                                if (!instSignature || instSignature === signature) return;
+                                const wasAudible = !!inst.enabled || !!inst.pendingEnabled;
+                                inst.pendingEnabled = null;
+                                if (setter) {
+                                    setter(inst, false, { clearPending: true });
+                                } else {
+                                    inst.enabled = false;
+                                    try { _applyLoopOutputLevel(inst, false); } catch (_) { }
+                                    try { window._updateLoopInstanceButtonVisual && window._updateLoopInstanceButtonVisual(inst); } catch (_) { }
+                                }
+                                if (targetSectionId != null && targetSectionId !== '') inst._autoMutedForSectionId = String(targetSectionId);
+                                if (wasAudible) muted++;
+                            });
+                            return muted;
+                        } catch (_) {
+                            return 0;
+                        }
+                    };
                     const _getLoopTransposeBypassState = (inst) => {
                         if (inst && typeof inst.transposeBypass === 'boolean') return inst.transposeBypass;
                         return true;
@@ -11223,16 +11569,24 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         if (Number.isFinite(cycleStartAbsTick) && Number.isFinite(absTick) && Number.isFinite(tickMs) && tickMs > 0) {
                             offsetSec = ((absTick - cycleStartAbsTick) * tickMs) / 1000;
                         }
-                        offsetSec -= (_getLoopSharedPlaybackOffsetMs() / 1000);
+                        offsetSec -= (_getLoopInstancePlaybackOffsetMs(inst) / 1000);
                         return _wrapLoopPlaybackOffsetSec(inst, offsetSec);
                     };
                     const _pushLoopCaptureChunk = (chunk) => {
-                        if (!_loopRecSession || !chunk) return;
+                        if (!chunk) return;
                         let data = null;
                         if (chunk instanceof Float32Array) data = chunk;
                         else if (chunk instanceof ArrayBuffer) data = new Float32Array(chunk);
                         else if (chunk.buffer instanceof ArrayBuffer) data = new Float32Array(chunk.buffer);
                         if (!data || !data.length) return;
+                        const probe = _loopLatencyRtProbe;
+                        if (probe && probe.active) {
+                            const copy = new Float32Array(data.length);
+                            copy.set(data);
+                            probe.chunks.push(copy);
+                            probe.totalSamples += copy.length;
+                        }
+                        if (!_loopRecSession) return;
                         _loopRecSession.chunks.push(data);
                         _loopRecSession.totalSamples += data.length;
                     };
@@ -11539,17 +11893,13 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
 
                     const _getLoopPlaybackLeadSamples = (sampleRate) => {
                         try {
-                            const omni = window.autoharp; if (!omni) return 0;
-                            const tr = omni._arpTransport; if (!tr) return 0;
-                            const tickMsVal = (Number.isFinite(tr.tickMs) && tr.tickMs > 0)
-                                ? tr.tickMs
-                                : ((60000 / Math.max(1, tr.bpm || 120)) / Math.max(1, tr.ticksPerBeat || 4));
-                            const ticksPerBeat = Math.max(1, tr.ticksPerBeat || 4);
-                            const leadSec = (tickMsVal * ticksPerBeat * 0.5) / 1000;
-                            const musicalLeadSamples = Math.max(0, Math.round(sampleRate * leadSec));
+                            const calibratedLeadMs = _getLoopLatencyCaptureLeadMs();
+                            if (Math.abs(calibratedLeadMs) > 0.0001) {
+                                return Math.round((calibratedLeadMs / 1000) * sampleRate);
+                            }
                             const captureBlockSamples = _getLoopCaptureBlockSize() | 0;
                             const captureLeadSamples = Math.max(0, captureBlockSamples - _getLoopRecordPhaseBaselineSamples());
-                            return musicalLeadSamples + captureLeadSamples;
+                            return captureLeadSamples;
                         } catch (_) { return 0; }
                     };
 
@@ -11607,16 +11957,142 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             setTimeout(dismiss, tone === 'recording' ? 1200 : 950);
                         } catch (_) { }
                     };
+                    const _estimateLoopCaptureLagSamples = (sess, ac) => {
+                        if (!sess || !ac || !Number.isFinite(ac.sampleRate) || ac.sampleRate <= 0) return null;
+                        if (!Number.isFinite(sess.armedAtContextTime)) return null;
+                        const elapsedSec = Math.max(0, ac.currentTime - Number(sess.armedAtContextTime));
+                        const expectedSinceArm = elapsedSec * ac.sampleRate;
+                        if (!(expectedSinceArm > 0)) return null;
+                        const observedSinceArm = Math.max(0, (sess.totalSamples | 0) - (sess.armedAtSample | 0));
+                        const lagSamples = expectedSinceArm - observedSinceArm;
+                        const maxLagSamples = Math.max(1, Math.round(ac.sampleRate * 0.3));
+                        return _clampLoopValue(lagSamples, -maxLagSamples, maxLagSamples);
+                    };
+                    const _calibrateLoopLatencyForSession = (sess) => {
+                        if (!sess || sess.latencyCalibrated) return null;
+                        const omni = window.autoharp;
+                        const ac = omni && omni.audioContext;
+                        if (!ac || !Number.isFinite(ac.sampleRate) || ac.sampleRate <= 0) return null;
+
+                        const lagSamples = _estimateLoopCaptureLagSamples(sess, ac);
+                        if (!Number.isFinite(lagSamples)) return null;
+
+                        const baselineSamples = _getLoopRecordPhaseBaselineSamples();
+                        const dynamicLagSamplesRaw = lagSamples - baselineSamples;
+                        const dynamicLagMsRaw = (dynamicLagSamplesRaw / ac.sampleRate) * 1000;
+                        const dynamicLagMs = _clampLoopValue(dynamicLagMsRaw, -_loopLatencyProbeMaxDeltaMs, _loopLatencyProbeMaxDeltaMs);
+                        const prevCaptureLeadMs = _getLoopLatencyCaptureLeadMs();
+                        const smoothedCaptureLeadMs = _clampLoopValue(
+                            (prevCaptureLeadMs * (1 - _loopLatencyProbeSmoothing)) + (dynamicLagMs * _loopLatencyProbeSmoothing),
+                            -_loopLatencyProbeMaxDeltaMs,
+                            _loopLatencyProbeMaxDeltaMs
+                        );
+                        const appliedCaptureLeadMs = _setLoopLatencyCaptureLeadMs(smoothedCaptureLeadMs);
+                        const renderLatencyMs = (() => {
+                            let totalMs = 0;
+                            const baseLatency = Number(ac.baseLatency);
+                            const outputLatency = Number(ac.outputLatency);
+                            if (Number.isFinite(baseLatency) && baseLatency > 0) totalMs += baseLatency * 1000;
+                            if (Number.isFinite(outputLatency) && outputLatency > 0) totalMs += outputLatency * 1000;
+                            return _clampLoopValue(totalMs, 0, _loopLatencyProbeMaxDeltaMs);
+                        })();
+                        const fallbackBiasMs = _clampLoopValue(
+                            -(appliedCaptureLeadMs + renderLatencyMs),
+                            -_loopPlaybackOffsetMaxMs,
+                            _loopPlaybackOffsetMaxMs
+                        );
+                        const probeBiasMs = Number.isFinite(sess.roundTripLatencyMs)
+                            ? _clampLoopValue(
+                                (-Number(sess.roundTripLatencyMs)) - _getLoopModeBasePlaybackOffsetMs(),
+                                -_loopPlaybackOffsetMaxMs,
+                                _loopPlaybackOffsetMaxMs
+                            )
+                            : null;
+                        const targetBiasMs = (probeBiasMs == null)
+                            ? fallbackBiasMs
+                            : _clampLoopValue(
+                                (probeBiasMs * 0.9) + (fallbackBiasMs * 0.1),
+                                -_loopPlaybackOffsetMaxMs,
+                                _loopPlaybackOffsetMaxMs
+                            );
+                        const prevBiasMs = _getLoopLatencyCalibrationBiasMs();
+                        const smoothedBiasMs = _clampLoopValue(
+                            (prevBiasMs * (1 - _loopLatencyProbeSmoothing)) + (targetBiasMs * _loopLatencyProbeSmoothing),
+                            -_loopPlaybackOffsetMaxMs,
+                            _loopPlaybackOffsetMaxMs
+                        );
+                        const appliedBiasMs = _setLoopLatencyCalibrationBiasMs(smoothedBiasMs);
+
+                        const targetOffsetMs = _getLoopModeDefaultPlaybackOffsetMs();
+                        const prevMs = _getStoredLoopSharedPlaybackOffsetMs();
+                        const nextMs = _applyLoopSharedPlaybackOffsetMs(targetOffsetMs, {
+                            prevMs: prevMs == null ? targetOffsetMs : prevMs,
+                            reschedule: false,
+                            userAdjusted: false
+                        });
+
+                        sess.latencyCalibrated = true;
+                        sess.latencyProbeLagSamples = lagSamples;
+                        sess.latencyProbeDynamicLagSamples = dynamicLagSamplesRaw;
+                        sess.latencyProbeDynamicLagMs = dynamicLagMs;
+                        sess.latencyProbeCaptureLeadMs = appliedCaptureLeadMs;
+                        sess.latencyProbeRenderLatencyMs = renderLatencyMs;
+                        sess.latencyProbeBiasMs = appliedBiasMs;
+                        sess.calibratedPlaybackOffsetMs = nextMs;
+                        return nextMs;
+                    };
+                    const _getPerfNowMs = () => (performance && performance.now ? performance.now() : Date.now());
+                    const _estimateLoopBoundarySample = (sess, ac, timingMeta = null) => {
+                        if (!sess || !ac || !Number.isFinite(ac.sampleRate) || ac.sampleRate <= 0) return null;
+                        if (!Number.isFinite(sess.armedAtContextTime)) return null;
+
+                        const callbackPerfMs = Number(timingMeta && timingMeta.callbackPerfMs);
+                        const scheduledPerfMs = Number(timingMeta && timingMeta.scheduledPerfMs);
+                        const boundaryPerfMs = Number.isFinite(scheduledPerfMs)
+                            ? scheduledPerfMs
+                            : (Number.isFinite(callbackPerfMs) ? callbackPerfMs : _getPerfNowMs());
+                        if (!Number.isFinite(boundaryPerfMs)) return null;
+
+                        const callbackPerfSec = Number.isFinite(callbackPerfMs)
+                            ? (callbackPerfMs / 1000)
+                            : (boundaryPerfMs / 1000);
+                        const instantCtxMinusPerfSec = ac.currentTime - callbackPerfSec;
+                        if (Number.isFinite(instantCtxMinusPerfSec)) {
+                            const prev = Number(sess.ctxMinusPerfSec);
+                            const alpha = sess.latencyCalibrated ? 0.2 : 0.35;
+                            sess.ctxMinusPerfSec = Number.isFinite(prev)
+                                ? ((prev * (1 - alpha)) + (instantCtxMinusPerfSec * alpha))
+                                : instantCtxMinusPerfSec;
+                        }
+                        const ctxMinusPerfSec = Number.isFinite(sess.ctxMinusPerfSec)
+                            ? sess.ctxMinusPerfSec
+                            : instantCtxMinusPerfSec;
+                        const boundaryCtxSec = (boundaryPerfMs / 1000) + (Number.isFinite(ctxMinusPerfSec) ? ctxMinusPerfSec : 0);
+
+                        const elapsedSec = Math.max(0, boundaryCtxSec - Number(sess.armedAtContextTime));
+                        const liveLagSamples = _estimateLoopCaptureLagSamples(sess, ac);
+                        const lagSamples = Number.isFinite(liveLagSamples)
+                            ? liveLagSamples
+                            : (Number.isFinite(sess.latencyProbeLagSamples)
+                                ? Number(sess.latencyProbeLagSamples)
+                                : _getLoopRecordPhaseBaselineSamples());
+                        const predictedSinceArm = Math.round((elapsedSec * ac.sampleRate) - lagSamples);
+                        const predictedAbs = (sess.armedAtSample | 0) + predictedSinceArm;
+                        const minAbs = sess.baseSample | 0;
+                        const maxAbs = sess.totalSamples | 0;
+                        return _clampLoopValue(predictedAbs, minAbs, maxAbs) | 0;
+                    };
 
                     // ---- Extract one cycle of audio from the continuous recording buffer ----
-                    const _extractCycleBuffer = (startSample) => {
+                    const _extractCycleBuffer = (startSample, requestedSamples = null) => {
                         if (!_loopRecSession) return null;
                         const omni = window.autoharp; const ac = omni && omni.audioContext; if (!ac) return null;
                         const cycleSec = _getCycleDurationSec();
                         const tr = omni._arpTransport;
                         const bpm = (tr && tr.bpm) || 120, bpb = (tr && tr.beatsPerBar) || 4;
                         const durationSec = cycleSec || ((60 / bpm) * bpb);
-                        const expectedSamples = Math.round(ac.sampleRate * durationSec);
+                        const fallbackSamples = Math.max(1, Math.round(ac.sampleRate * durationSec));
+                        const expectedSamples = Math.max(1, Number.isFinite(requestedSamples) ? Math.round(requestedSamples) : fallbackSamples);
                         const final = new Float32Array(expectedSamples);
                         const chunks = _loopRecSession.chunks;
                         const targetEnd = startSample + expectedSamples;
@@ -11635,7 +12111,10 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             chunkAbsStart = chunkAbsEnd;
                         }
                         let aligned = final;
-                        const leadSamples = expectedSamples > 1 ? (_getLoopPlaybackLeadSamples(ac.sampleRate) % expectedSamples) : 0;
+                        const rawLeadSamples = _getLoopPlaybackLeadSamples(ac.sampleRate);
+                        const leadSamples = expectedSamples > 1
+                            ? (((Math.round(rawLeadSamples) % expectedSamples) + expectedSamples) % expectedSamples)
+                            : 0;
                         if (leadSamples > 0) {
                             aligned = new Float32Array(expectedSamples);
                             aligned.set(final.subarray(leadSamples), 0);
@@ -11868,6 +12347,16 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             }
                             _updateLoopBtnVisual(inst);
                         } catch (_) { }
+                    };
+                    window._setLoopInstanceEnabled = function (inst, enabled, opts = {}) {
+                        try {
+                            if (!inst) return false;
+                            if (opts && opts.clearPending) inst.pendingEnabled = null;
+                            _setLoopEnabledState(inst, !!enabled);
+                            return !!inst.enabled;
+                        } catch (_) {
+                            return false;
+                        }
                     };
 
                     const _collectSoloTargets = () => {
@@ -12183,7 +12672,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         if (!len) return;
                         const sampleRate = Math.max(1, Number(inst.buffer.sampleRate) || 44100);
                         const durationSec = Math.max(0.0001, Number(inst.buffer.duration) || (len / sampleRate));
-                        const offsetSamples = Math.round((-_getLoopSharedPlaybackOffsetMs() / 1000) * sampleRate);
+                        const offsetSamples = Math.round((-_getLoopInstancePlaybackOffsetMs(inst) / 1000) * sampleRate);
                         const displayShift = ((offsetSamples % len) + len) % len;
                         const tr = window.autoharp && window.autoharp._arpTransport;
                         const ticksPerBeat = Math.max(1, Number(tr && tr.ticksPerBeat) || 4);
@@ -12263,7 +12752,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                     e.preventDefault();
                                     cv._dragPointerId = e.pointerId;
                                     cv._dragStartX = e.clientX;
-                                    cv._dragStartOffsetMs = _getLoopSharedPlaybackOffsetMs();
+                                    cv._dragStartOffsetMs = _getLoopInstancePlaybackOffsetMs(activeInst);
                                     cv.style.cursor = 'grabbing';
                                     try { cv.setPointerCapture(e.pointerId); } catch (_) { }
                                 });
@@ -12276,8 +12765,9 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                     const msPerPixel = (activeInst.buffer.duration * 1000) / Math.max(1, rect.width || cv.clientWidth || cv.width || 1);
                                     const deltaX = e.clientX - (cv._dragStartX || e.clientX);
                                     const nextMs = _clampLoopValue((Number(cv._dragStartOffsetMs) || 0) + (deltaX * msPerPixel), -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
-                                    const prevMs = _getLoopSharedPlaybackOffsetMs();
-                                    _applyLoopSharedPlaybackOffsetMs(nextMs, { prevMs, reschedule: true, userAdjusted: true });
+                                    _setLoopInstancePlaybackOffsetMs(activeInst, nextMs, { reschedule: true });
+                                    if (startOffset) startOffset.value = String(Math.round(nextMs));
+                                    if (startOffsetValue) startOffsetValue.textContent = _formatLoopPlaybackOffsetMs(nextMs);
                                     _drawWaveform(activeInst);
                                 });
                                 cv.addEventListener('pointerup', finishDrag);
@@ -12358,16 +12848,12 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         if (os) { os.checked = !!inst.oneShot; os.onchange = () => { inst.oneShot = os.checked; if (!inst.oneShot) inst._oneShotStopCycle = false; _updateLoopBtnVisual(inst); }; }
                         if (startOffset) {
                             const applyStartOffset = () => {
-                                const prevMs = _getLoopSharedPlaybackOffsetMs();
                                 const nextMs = _clampLoopValue(parseInt(startOffset.value, 10) || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs);
-                                _applyLoopSharedPlaybackOffsetMs(nextMs, {
-                                    prevMs,
-                                    reschedule: true,
-                                    userAdjusted: true
-                                });
+                                _setLoopInstancePlaybackOffsetMs(inst, nextMs, { reschedule: true });
+                                if (startOffsetValue) startOffsetValue.textContent = _formatLoopPlaybackOffsetMs(nextMs);
                                 _drawWaveform(inst);
                             };
-                            const currentOffsetMs = _getLoopSharedPlaybackOffsetMs();
+                            const currentOffsetMs = _getLoopInstancePlaybackOffsetMs(inst);
                             startOffset.value = String(Math.round(currentOffsetMs));
                             if (startOffsetValue) startOffsetValue.textContent = _formatLoopPlaybackOffsetMs(currentOffsetMs);
                             startOffset.oninput = applyStartOffset;
@@ -12408,9 +12894,18 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         const n = (++window._loopInstanceCounter);
                         const id = (saved && saved.id != null) ? String(saved.id) : ('loop' + String(n));
                         const label = (saved && saved.name != null) ? String(saved.name).slice(0, 16) : `LOOP ${n}`;
+                        const sourceSectionId = (saved && saved.sectionId != null)
+                            ? String(saved.sectionId)
+                            : ((window._activeSectionId != null && window._activeSectionId !== '') ? String(window._activeSectionId) : null);
+                        const sourceSectionState = _resolveLoopSectionStateById(sourceSectionId);
+                        const sourceSectionSignature = (saved && typeof saved.sectionSignature === 'string' && saved.sectionSignature.trim())
+                            ? String(saved.sectionSignature)
+                            : _getLoopSectionSignatureById(sourceSectionId, sourceSectionState);
                         const inst = {
                             id,
                             name: label,
+                            sectionId: sourceSectionId,
+                            sectionSignature: sourceSectionSignature,
                             enabled: (saved && typeof saved.enabled === 'boolean') ? !!saved.enabled : !!buffer,
                             oneShot: !!(saved && saved.oneShot),
                             pendingEnabled: (saved && saved.pendingEnabled != null) ? !!saved.pendingEnabled : null,
@@ -12441,6 +12936,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 ? saved.filterType
                                 : 'lowpass',
                             _oneShotStopCycle: !!(saved && saved._oneShotStopCycle),
+                            _autoMutedForSectionId: null,
                             _sourceNode: null, _gainNode: null, _stripBtn: null, _labelEl: null, _previewCanvas: null
                         };
                         window._loopInstances.push(inst);
@@ -12451,7 +12947,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     };
 
                     // ---- Transport hook: called every tick from master transport ----
-                    window._tickLoopInstances = function (tpBar, absTick, curTick, barIndex, tickMs) {
+                    window._tickLoopInstances = function (tpBar, absTick, curTick, barIndex, tickMs, timingMeta = null) {
                         // Detect cycle boundary
                         const tr = window.autoharp && window.autoharp._arpTransport;
                         const hasPlan = !!(tr && Array.isArray(tr._seqOneLoopPlan) && tr._seqOneLoopPlan.length > 0);
@@ -12460,7 +12956,12 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             : (curTick === 0);
                         const isChordBoundary = !!(tr && Number.isFinite(tr._seqLastSwitchAbsTick) && ((tr._seqLastSwitchAbsTick | 0) === (absTick | 0)));
                         window._loopCycleJustStarted = false;
-                        if (!hasPlan && isCycleStart) window._loopCycleStartAbsTick = absTick | 0;
+                        if (isCycleStart) {
+                            window._loopCycleStartAbsTick = absTick | 0;
+                        } else if (!Number.isFinite(Number(window._loopCycleStartAbsTick)) && curTick === 0) {
+                            // First tick after PLAY: establish deterministic cycle anchor at bar 1 beat 1.
+                            window._loopCycleStartAbsTick = absTick | 0;
+                        }
                         _syncLoopSharedPlaybackOffsetDefaultForMode(false);
                         const activeChordTransposeCents = _getLoopActiveChordTransposeCents();
 
@@ -12472,8 +12973,12 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 const minPrerollSamples = Math.max(1, sess.minPrerollSamples || (ac ? _getLoopArmPrerollSamples(ac.sampleRate) : 1));
                                 const bufferedSamples = Math.max(0, (sess.totalSamples | 0) - (sess.armedAtSample | 0));
                                 if (bufferedSamples >= minPrerollSamples) {
+                                    _calibrateLoopLatencyForSession(sess);
+                                    const boundarySample = (ac ? _estimateLoopBoundarySample(sess, ac, timingMeta) : null);
                                     // Enough preroll is buffered: the next full cycle starts recording now.
-                                    sess.cycleMarkSample = sess.totalSamples;
+                                    sess.cycleMarkSample = Number.isFinite(boundarySample)
+                                        ? (boundarySample | 0)
+                                        : (sess.totalSamples | 0);
                                     sess.state = 'recording';
                                     _trimLoopRecSessionBefore(sess.cycleMarkSample);
                                     _updateNewLoopBtnLabel();
@@ -12481,12 +12986,20 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 }
                             } else {
                                 // Subsequent boundary: extract one cycle → spawn LOOP instance
-                                const buf = _extractCycleBuffer(sess.cycleMarkSample);
+                                const cycleStartSample = sess.cycleMarkSample | 0;
+                                const ac = window.autoharp && window.autoharp.audioContext;
+                                const boundarySample = (ac ? _estimateLoopBoundarySample(sess, ac, timingMeta) : null);
+                                const cycleEndSample = Number.isFinite(boundarySample)
+                                    ? (boundarySample | 0)
+                                    : (sess.totalSamples | 0);
+                                const measuredCycleSamples = Math.max(1, cycleEndSample - cycleStartSample);
+                                const buf = _extractCycleBuffer(cycleStartSample, measuredCycleSamples);
                                 if (buf) {
                                     window.spawnLoopInstance(buf);
                                     // Playback is started by the per-instance sync below
                                 }
-                                sess.cycleMarkSample = sess.totalSamples;
+                                sess.lastMeasuredCycleSamples = measuredCycleSamples;
+                                sess.cycleMarkSample = cycleEndSample;
                                 _trimLoopRecSessionBefore(sess.cycleMarkSample);
                             }
                         }
@@ -12517,12 +13030,17 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                     if (inst._sourceNode && ac) {
                                         const syncErrorSec = _getLoopSyncErrorSec(inst, desiredOffsetSec, ac.currentTime);
                                         if (syncErrorSec > _loopResyncDriftThresholdSec) {
-                                            _ensureLoopBus();
-                                            _scheduleLoop(inst, { offsetSec: desiredOffsetSec, detuneCents: targetDetuneCents, crossfade: !!inst.enabled });
+                                            if (inst.enabled) {
+                                                _ensureLoopBus();
+                                                _scheduleLoop(inst, { offsetSec: desiredOffsetSec, detuneCents: targetDetuneCents, crossfade: true });
+                                            } else {
+                                                // Keep muted loops phase-continuous under the hood; don't retrigger while muted.
+                                                _setLoopSourceDetune(inst, targetDetuneCents, !detuneChanged);
+                                            }
                                         } else {
                                             _setLoopSourceDetune(inst, targetDetuneCents, !detuneChanged);
                                         }
-                                    } else if (inst.enabled) {
+                                    } else {
                                         _ensureLoopBus();
                                         _scheduleLoop(inst, { offsetSec: desiredOffsetSec, detuneCents: targetDetuneCents });
                                     }
@@ -12532,7 +13050,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             if (inst.buffer && inst._sourceNode && detuneChanged) {
                                 _setLoopSourceDetune(inst, targetDetuneCents, false);
                             }
-                            if (inst.buffer && !inst._sourceNode && inst.enabled && (isChordBoundary || curTick === 0)) {
+                            if (inst.buffer && !inst._sourceNode && (isChordBoundary || curTick === 0 || isCycleStart)) {
                                 _ensureLoopBus();
                                 _scheduleLoop(inst, { offsetAbsTick: absTick, offsetTickMs: tickMs, detuneCents: targetDetuneCents });
                             }
@@ -12552,20 +13070,34 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 if (_loopRecSession) {
                                     // Stop recording, discard partial cycle since last boundary
                                     _loopRecSession = null;
+                                    if (_loopLatencyRtProbe) {
+                                        _loopLatencyRtProbe.active = false;
+                                        _loopLatencyRtProbe = null;
+                                    }
                                     _updateNewLoopBtnLabel();
                                 } else {
                                     // Start continuous recording immediately (preroll captures audio before next cycle boundary)
+                                    _seedLoopCalibrationFromSharedOffset();
                                     _armLoopMic(() => {
                                         const ac = window.autoharp && window.autoharp.audioContext;
-                                        _loopRecSession = {
+                                        const sess = {
                                             chunks: [],
                                             totalSamples: 0,
                                             baseSample: 0,
                                             cycleMarkSample: null,
                                             state: 'armed',
                                             armedAtSample: 0,
-                                            minPrerollSamples: ac ? _getLoopArmPrerollSamples(ac.sampleRate) : 1
+                                            minPrerollSamples: ac ? _getLoopArmPrerollSamples(ac.sampleRate) : 1,
+                                            armedAtContextTime: ac ? ac.currentTime : null,
+                                            latencyCalibrated: false
                                         };
+                                        _loopRecSession = sess;
+                                        _runLoopRoundTripLatencyProbe().then((probeMs) => {
+                                            if (_loopRecSession !== sess) return;
+                                            if (Number.isFinite(probeMs) && probeMs > 0) {
+                                                _applyLoopRoundTripProbeLatencyMs(probeMs, sess);
+                                            }
+                                        }).catch(() => { });
                                         _updateNewLoopBtnLabel();
                                         _showLoopToast('Armed', 'armed');
                                     });
@@ -12579,13 +13111,22 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     // ---- Stop all loops when transport stops ----
                     window._stopAllLoops = function () {
                         if (_loopRecSession) { _loopRecSession = null; _updateNewLoopBtnLabel(); }
+                        if (_loopLatencyRtProbe) {
+                            _loopLatencyRtProbe.active = false;
+                            _loopLatencyRtProbe = null;
+                        }
                         window._loopCycleJustStarted = false;
+                        window._loopCycleStartAbsTick = null;
                         (window._loopInstances || []).forEach(inst => _stopLoop(inst));
                     };
 
                     // ---- Clear all loops (for session reset) ----
                     window._clearLoopInstances = function () {
                         if (_loopRecSession) { _loopRecSession = null; _updateNewLoopBtnLabel(); }
+                        if (_loopLatencyRtProbe) {
+                            _loopLatencyRtProbe.active = false;
+                            _loopLatencyRtProbe = null;
+                        }
                         (window._loopInstances || []).forEach(inst => { _stopLoop(inst); if (inst._stripBtn) inst._stripBtn.remove(); });
                         window._loopInstances = [];
                         window._loopInstanceCounter = 0;
@@ -12702,11 +13243,13 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 return {
                                     id: inst.id != null ? String(inst.id) : '',
                                     name: String(inst.name || 'LOOP').slice(0, 16),
+                                    sectionId: inst.sectionId != null ? String(inst.sectionId) : null,
+                                    sectionSignature: (typeof inst.sectionSignature === 'string') ? inst.sectionSignature : '',
                                     enabled: !!inst.enabled,
                                     oneShot: !!inst.oneShot,
                                     pendingEnabled: (inst.pendingEnabled != null) ? !!inst.pendingEnabled : null,
                                     transposeBypass: _getLoopTransposeBypassState(inst),
-                                    playbackOffsetMs: _clampLoopValue(Number(inst.playbackOffsetMs) || sharedPlaybackOffsetMs || 0, -_loopPlaybackOffsetMaxMs, _loopPlaybackOffsetMaxMs),
+                                    playbackOffsetMs: _getLoopInstancePlaybackOffsetMs(inst),
                                     compAmount: _getLoopCompressorAmount(inst),
                                     volume: _clampLoopValue(Number(inst.volume) || 0, 0, 2),
                                     delayTime: _clampLoopValue(Number(inst.delayTime) || 0, 0, 1),
@@ -16167,6 +16710,26 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     if (host._sectionsWired) return true;
                     host._sectionsWired = true;
 
+                    const _getSectionLoopSignature = (stateOrSection) => {
+                        try {
+                            const st = (stateOrSection && stateOrSection.state) ? stateOrSection.state : stateOrSection;
+                            return (typeof window._buildLoopSectionSignatureFromState === 'function')
+                                ? window._buildLoopSectionSignatureFromState(st || null)
+                                : '';
+                        } catch (_) {
+                            return '';
+                        }
+                    };
+                    const _applySectionLoopAutoMute = (stateOrSection, sectionId) => {
+                        try {
+                            const targetSignature = _getSectionLoopSignature(stateOrSection);
+                            if (!targetSignature) return;
+                            if (typeof window._autoMuteLoopInstancesForSectionSignature === 'function') {
+                                window._autoMuteLoopInstancesForSectionSignature(targetSignature, sectionId);
+                            }
+                        } catch (_) { }
+                    };
+
                     window._sections = window._sections || [];
                     if (!window._sections.length) {
                         const initial = ensureSectionState(captureSectionState());
@@ -16269,12 +16832,10 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 if (!list.length) return;
                                 if (wasActive) {
                                     const next = list[Math.min(idx, list.length - 1)] || list[0];
-                                    window._activeSectionId = next.id;
-                                    window._pendingSectionId = null;
-                                    if (omniRef) omniRef._pendingSectionSwitchId = null;
-                                    applySectionState(next.state);
+                                    applySectionSwitchById(next.id);
+                                } else {
+                                    renderButtons();
                                 }
-                                renderButtons();
                             });
 
                             b.addEventListener('dblclick', (e) => {
@@ -16316,11 +16877,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                         });
                                     } catch (_) { }
                                 } else {
-                                    window._activeSectionId = id;
-                                    window._pendingSectionId = null;
-                                    if (omni) omni._pendingSectionSwitchId = null;
-                                    applySectionState(sec.state);
-                                    renderButtons();
+                                    applySectionSwitchById(id);
                                 }
                                 applyActive();
                             });
@@ -16364,11 +16921,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             const nextId = String.fromCharCode(65 + (window._sections?.length || 0));
                             const id = nextId && nextId.length === 1 ? nextId : `S${(window._sections?.length || 0) + 1}`;
                             window._sections.push({ id, name: `SECTION ${id}`, state: cloneJson(state) });
-                            window._activeSectionId = id;
-                            window._pendingSectionId = null;
-                            if (omni) omni._pendingSectionSwitchId = null;
-                            applySectionState(state);
-                            renderButtons();
+                            applySectionSwitchById(id);
                         });
                     }
 
@@ -16376,6 +16929,14 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     const applySectionSwitchById = (id) => {
                         const sec = (window._sections || []).find(s => s && s.id === id);
                         if (!sec) return;
+                        const prevId = (window._activeSectionId != null) ? String(window._activeSectionId) : null;
+                        const prevSection = (window._sections || []).find(s => s && String(s.id || '') === String(prevId || ''));
+                        const prevSignature = _getSectionLoopSignature(prevSection);
+                        try {
+                            if (typeof window._assignLegacyLoopInstancesToSection === 'function') {
+                                window._assignLegacyLoopInstancesToSection(prevId, prevSignature);
+                            }
+                        } catch (_) { }
                         // Always read the live autoharp reference (omni may be stale/null
                         // if ensureSectionUI ran before autoharp was initialised)
                         const liveOmni = window.autoharp;
@@ -16383,6 +16944,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         window._pendingSectionId = null;
                         if (liveOmni) liveOmni._pendingSectionSwitchId = null;
                         applySectionState(sec.state);
+                        _applySectionLoopAutoMute(sec, id);
                         try {
                             const t = liveOmni && liveOmni._arpTransport;
                             const isPlaying = !!(liveOmni && liveOmni._isSequencing && t && t.running);
@@ -17432,7 +17994,11 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         try {
                             const _lAbsTick = this._arpTransport.absTickCounter | 0;
                             const _lBarIndex = Math.floor(_lAbsTick / tpBar);
-                            window._tickLoopInstances && window._tickLoopInstances(tpBar, _lAbsTick, curTick, _lBarIndex, tickMs);
+                            const _lTimingMeta = {
+                                callbackPerfMs: (performance && performance.now ? performance.now() : Date.now()),
+                                scheduledPerfMs: Number(this._arpTransport.nextAt)
+                            };
+                            window._tickLoopInstances && window._tickLoopInstances(tpBar, _lAbsTick, curTick, _lBarIndex, tickMs, _lTimingMeta);
                         } catch (_) { }
 
                         // ---- Multi-instance drums (NEW DRUM): if instances exist, drive them all here ----
@@ -27098,7 +27664,8 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     const norm = this.normalizeChordToken(chordName);
                     if (!norm) return null;
                     const normAscii = this._normalizeChordSymbolsForParse(norm);
-                    const rootMatch = normAscii.match(/^([A-G])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|d|♭|♯)?)([\^v]*)/u);
+                    const rootPattern = /^([A-G])((?:𝄰|𝄱|𝄬|𝄭|𝄲|𝄳|#|b|d|♭|♯)?)([\^v]*)/u;
+                    const rootMatch = normAscii.match(rootPattern);
                     let rootAcc = rootMatch ? (rootMatch[2] || '') : '';
                     let rootMicro = rootMatch ? (rootMatch[3] || '') : '';
                     // Treat half-flat (d/𝄳) as a micro down-step rather than a full flat
@@ -27149,8 +27716,9 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             } catch { }
                         }
                     }
-                    const rootPrefix = rootMatch ? rootMatch[0] : '';
-                    const quality = normAscii.slice(rootPrefix.length);
+                    const quality = rootMatch
+                        ? normAscii.slice(rootMatch[0].length)
+                        : normAscii.replace(rootPattern, '');
                     // Exclude slash bass from stacked-interval parsing; it will be added explicitly below
                     const tailForIntervals = quality.replace(/\/[A-G](?:#|b)?/, '');
                     let intervals = this.parseChordQualityToIntervals(tailForIntervals);
