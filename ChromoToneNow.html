@@ -398,37 +398,41 @@
             touch-action: none;
         }
 
-        .sidebar-zoom-wrap {
-            margin-top: 6px;
+        #jamArea #bellsZoomWrap {
+            margin-left: auto;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 6px;
-            padding: 6px 4px;
+            gap: 8px;
+            min-width: 0;
+            padding: 4px 8px;
             border: 1px solid rgba(143, 179, 211, 0.35);
             border-radius: 10px;
             background: rgba(7, 14, 18, 0.5);
         }
 
-        .sidebar-zoom-label {
+        #jamArea .bells-zoom-label {
             font-size: 9px;
             color: #9db6c8;
             letter-spacing: 0.5px;
             text-transform: uppercase;
+            white-space: nowrap;
         }
 
-        .sidebar-zoom-value {
+        #jamArea .bells-zoom-value {
+            min-width: 56px;
             font-size: 10px;
             color: #e8f5ff;
+            text-align: right;
+            white-space: nowrap;
         }
 
-        .sidebar-zoom-wrap input[type="range"] {
-            writing-mode: bt-lr;
-            -webkit-appearance: slider-vertical;
-            appearance: slider-vertical;
-            width: 18px;
-            height: 120px;
-            accent-color: #8fb3d3;
+        #jamArea #bellsZoom {
+            -webkit-appearance: auto;
+            appearance: auto;
+            width: min(30vw, 290px);
+            min-width: 140px;
+            height: 20px;
+            accent-color: #ffd046;
         }
 
         #jamArea #bellsBars .bells-scroll-track {
@@ -5571,11 +5575,6 @@
                         <button id="transposeDownBtn"
                             style="width:34px;height:18px;background:#e74c3c;border:1px solid #c0392b;border-radius:4px;color:#fff;font-size:11px;font-weight:600;line-height:1;cursor:pointer;">▼</button>
                     </div>
-                    <div id="bellsZoomWrap" class="sidebar-zoom-wrap" aria-label="Keyboard zoom" style="display:none;">
-                        <div class="sidebar-zoom-label">Zoom</div>
-                        <input id="bellsZoom" type="range" min="1" max="4" step="1" value="1" />
-                        <div id="bellsZoomValue" class="sidebar-zoom-value">1 key</div>
-                    </div>
                     <button id="appSettingsBtn" class="sidebar-btn sidebar-settings-btn" title="App Settings">⚙</button>
                 </div>
 
@@ -6315,6 +6314,11 @@
                         <label id="bellsGlideWrap"><input id="bellsGlide" type="checkbox" /> GLIDE</label>
                         <button id="bellsPlayModeBtn" class="bells-playmode-btn" type="button"
                             title="PLAY keyboard mode">ALL NOTES</button>
+                        <div id="bellsZoomWrap" aria-label="Keyboard zoom" style="display:none;">
+                            <div class="bells-zoom-label">Zoom</div>
+                            <input id="bellsZoom" type="range" min="1" max="4" step="1" value="1" />
+                            <div id="bellsZoomValue" class="bells-zoom-value">1 key</div>
+                        </div>
                     </div>
                     <div id="bellsDrawerRow">
                         <button id="bellsGearBtn" class="bells-gear" aria-expanded="false"
@@ -6703,7 +6707,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 <div class="app-settings-actions">
                     <button id="settingsApplyNowBtn" class="osc-btn" type="button">Apply Now</button>
                     <button id="settingsSaveBtn" class="osc-btn" type="button">Save Defaults</button>
-                    <button id="settingsResetBtn" class="osc-btn" type="button" style="background:#7f1d1d;border-color:#aa3b3b;">Reset</button>
+                    <button id="settingsResetBtn" class="osc-btn" type="button"
+                        style="background:#7f1d1d;border-color:#aa3b3b;">Reset</button>
                 </div>
                 <div id="appSettingsStatus" class="app-settings-status"></div>
             </div>
@@ -6737,6 +6742,56 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     }
                 } catch (_) { }
             };
+
+            // ---- Auto-shrink strip buttons so all fit on screen ----
+            (function () {
+                const DEFAULT_BTN_W = 132;
+                const MIN_BTN_W = 50;
+                const ROW_GAP = 8;   // gap between action btn and button container
+                const BTN_GAP = 6;   // gap between buttons inside the container
+                let _fitRafPending = false;
+
+                window._fitStripButtons = function () {
+                    if (_fitRafPending) return;
+                    _fitRafPending = true;
+                    requestAnimationFrame(() => {
+                        _fitRafPending = false;
+                        try {
+                            const strip = document.getElementById('patternStrip');
+                            if (!strip) return;
+                            const stripW = strip.offsetWidth;
+                            if (!stripW || stripW <= 0) return;
+
+                            // Count buttons in each row (instance buttons + 1 for the NEW action button)
+                            const ids = ['sectionButtons', 'patternButtons', 'drumButtons', 'loopButtons'];
+                            let maxCount = 0;
+                            for (let i = 0; i < ids.length; i++) {
+                                const container = document.getElementById(ids[i]);
+                                const btnCount = container ? container.querySelectorAll('.panel-btn').length : 0;
+                                // +1 for the NEW button in the actions column
+                                const total = btnCount + 1;
+                                if (total > maxCount) maxCount = total;
+                            }
+                            if (maxCount <= 1) {
+                                document.documentElement.style.setProperty('--strip-btn-w', DEFAULT_BTN_W + 'px');
+                                return;
+                            }
+
+                            // Available width = stripW
+                            // Layout: [NEW btn (w)] -ROW_GAP- [btn1 (w)] -BTN_GAP- [btn2 (w)] ...
+                            // Total = maxCount * w + ROW_GAP + (maxCount - 2) * BTN_GAP   (if maxCount >= 2)
+                            // gaps between instance buttons = (maxCount - 2) * BTN_GAP (instance count = maxCount - 1)
+                            const instanceCount = maxCount - 1;
+                            const gapTotal = ROW_GAP + (instanceCount > 1 ? (instanceCount - 1) * BTN_GAP : 0);
+                            const idealW = Math.floor((stripW - gapTotal) / maxCount);
+                            const clampedW = Math.max(MIN_BTN_W, Math.min(DEFAULT_BTN_W, idealW));
+                            document.documentElement.style.setProperty('--strip-btn-w', clampedW + 'px');
+                        } catch (_) { }
+                    });
+                };
+
+                window.addEventListener('resize', () => { window._fitStripButtons(); });
+            })();
 
             (function initQuantRowControls() {
                 const MIN_Q = 7;
@@ -10220,6 +10275,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                             strip.appendChild(b);
                             clone._stripBtn = b;
                             setStripState();
+                            try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { }
                         }
                     } catch (_) { }
 
@@ -10256,6 +10312,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const arr = window._patternInstances || [];
                         window._patternInstances = arr.filter(x => x && x.modal !== modalEl);
                     } catch (_) { }
+                    try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { }
                     try { modalEl.remove(); } catch (_) { try { modalEl.style.display = 'none'; } catch (__) { } }
                     try { window._storeCurrentSectionState && window._storeCurrentSectionState(); } catch (_) { }
                 };
@@ -10918,6 +10975,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     strip.appendChild(b);
                     inst._stripBtn = b;
                     updateButtonVisual(inst);
+                    try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { }
                     return b;
                 };
 
@@ -10946,6 +11004,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         inst._lastLaneSteps = new Array(9).fill(-1);
                     } catch (_) { }
                     try { if (inst._stripBtn) inst._stripBtn.remove(); } catch (_) { }
+                    try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { }
                     const list = window._drumInstances || [];
                     const idx = list.indexOf(inst);
                     if (idx >= 0) list.splice(idx, 1);
@@ -11627,8 +11686,68 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         }
                         return _buildLoopSectionSignatureFromState(st, { readDomTs: true });
                     };
+                    const _getLoopSectionBinding = (sectionId = null, fallbackState = null) => {
+                        const normalizedSectionId = (sectionId != null && sectionId !== '') ? String(sectionId) : null;
+                        const sectionState = fallbackState || _resolveLoopSectionStateById(normalizedSectionId);
+                        const resolvedSectionId = normalizedSectionId
+                            || ((window._activeSectionId != null && window._activeSectionId !== '') ? String(window._activeSectionId) : null);
+                        const sectionSignature = _getLoopSectionSignatureById(resolvedSectionId, sectionState);
+                        return {
+                            sectionId: resolvedSectionId,
+                            sectionState: sectionState || null,
+                            sectionSignature: String(sectionSignature || '').trim()
+                        };
+                    };
+                    const _primeLoopPendingBoundary = (opts = {}) => {
+                        const requestedSectionId = (opts.sectionId != null && opts.sectionId !== '')
+                            ? String(opts.sectionId)
+                            : ((window._pendingSectionId != null && window._pendingSectionId !== '')
+                                ? String(window._pendingSectionId)
+                                : ((window._activeSectionId != null && window._activeSectionId !== '') ? String(window._activeSectionId) : null));
+                        const binding = _getLoopSectionBinding(requestedSectionId, opts.sectionState || null);
+                        const meta = {
+                            sectionId: binding.sectionId,
+                            sectionSignature: binding.sectionSignature,
+                            sectionState: binding.sectionState,
+                            absTick: Number.isFinite(Number(opts.absTick)) ? (Number(opts.absTick) | 0) : null,
+                            callbackPerfMs: Number.isFinite(Number(opts.callbackPerfMs)) ? Number(opts.callbackPerfMs) : null,
+                            scheduledPerfMs: Number.isFinite(Number(opts.scheduledPerfMs)) ? Number(opts.scheduledPerfMs) : null
+                        };
+                        window._loopPendingBoundaryMeta = meta;
+                        return meta;
+                    };
+                    const _takeLoopPendingBoundaryMeta = (absTick = null) => {
+                        const meta = window._loopPendingBoundaryMeta;
+                        if (!meta || typeof meta !== 'object') return null;
+                        const metaAbsTick = Number(meta.absTick);
+                        const currentAbsTick = Number(absTick);
+                        if (Number.isFinite(metaAbsTick) && Number.isFinite(currentAbsTick)) {
+                            const tickDelta = (currentAbsTick | 0) - (metaAbsTick | 0);
+                            if (tickDelta < 0) return null;
+                            if (tickDelta > 1) {
+                                window._loopPendingBoundaryMeta = null;
+                                return null;
+                            }
+                        }
+                        window._loopPendingBoundaryMeta = null;
+                        return meta;
+                    };
+                    const _bindLoopSessionCycleSection = (sess, binding = null) => {
+                        if (!sess) return null;
+                        const resolved = (binding && typeof binding === 'object')
+                            ? {
+                                sectionId: (binding.sectionId != null && binding.sectionId !== '') ? String(binding.sectionId) : null,
+                                sectionSignature: String(binding.sectionSignature || '').trim(),
+                                sectionState: binding.sectionState || null
+                            }
+                            : _getLoopSectionBinding();
+                        sess.currentCycleSectionId = resolved.sectionId;
+                        sess.currentCycleSectionSignature = resolved.sectionSignature;
+                        return resolved;
+                    };
                     window._buildLoopSectionSignatureFromState = _buildLoopSectionSignatureFromState;
                     window._getLoopSectionSignatureById = _getLoopSectionSignatureById;
+                    window._primeLoopPendingBoundary = _primeLoopPendingBoundary;
                     window._assignLegacyLoopInstancesToSection = function (sectionId, sectionSignature = null) {
                         try {
                             const normalizedSectionId = (sectionId != null && sectionId !== '') ? String(sectionId) : null;
@@ -12528,8 +12647,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             if (inst.enabled && isPlaying && inst.oneShot) inst._oneShotStopCycle = true;
                             else inst._oneShotStopCycle = false;
                             if (!isPlaying) {
-                                if (inst.enabled) _scheduleLoop(inst);
-                                else _stopLoop(inst);
+                                _stopLoop(inst);
                             } else {
                                 _applyLoopOutputLevel(inst, false);
                             }
@@ -12792,18 +12910,12 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
 
                         const queueToggle = () => {
                             if (!inst.buffer) return; // nothing to play yet
-                            const isPlaying = !!(window.autoharp && window.autoharp._arpTransport && window.autoharp._arpTransport.running);
-                            inst.enabled = !inst.enabled;
-                            if (inst.enabled && isPlaying && inst.oneShot) {
-                                inst._oneShotStopCycle = true; // stop at next cycle boundary
-                            } else { inst._oneShotStopCycle = false; }
-                            if (!isPlaying) {
-                                if (inst.enabled) _scheduleLoop(inst);
-                                else _stopLoop(inst);
+                            if (typeof window._setLoopInstanceEnabled === 'function') {
+                                window._setLoopInstanceEnabled(inst, !inst.enabled, { clearPending: true });
                             } else {
-                                _applyLoopOutputLevel(inst, false);
+                                _setLoopEnabledState(inst, !inst.enabled);
                             }
-                            _updateLoopBtnVisual(inst);
+                            try { window._storeCurrentSectionState && window._storeCurrentSectionState(); } catch (_) { }
                         };
 
                         // Hold → open editor
@@ -12843,6 +12955,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         inst._stripBtn = b;
                         _updateLoopBtnVisual(inst);
                         _drawLoopButtonWaveform(inst);
+                        try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { }
                         return b;
                     };
 
@@ -13074,6 +13187,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         if (inst._stripBtn) inst._stripBtn.remove();
                         const idx = (window._loopInstances || []).indexOf(inst);
                         if (idx >= 0) window._loopInstances.splice(idx, 1);
+                        try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { }
                     };
 
                     // ---- Spawn a new loop instance (called at cycle boundaries with extracted buffer) ----
@@ -13139,13 +13253,42 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         // Detect cycle boundary
                         const tr = window.autoharp && window.autoharp._arpTransport;
                         const hasPlan = !!(tr && Array.isArray(tr._seqOneLoopPlan) && tr._seqOneLoopPlan.length > 0);
+                        const primedBoundaryMeta = _takeLoopPendingBoundaryMeta(absTick);
+                        const primedCycleStartAbsTick = (primedBoundaryMeta && Number.isFinite(Number(primedBoundaryMeta.absTick)))
+                            ? (Number(primedBoundaryMeta.absTick) | 0)
+                            : null;
+                        const liveCycleStartAbsTick = !!window._loopCycleJustStarted
+                            ? (Number.isFinite(Number(window._loopCycleStartAbsTick))
+                                ? (Number(window._loopCycleStartAbsTick) | 0)
+                                : (absTick | 0))
+                            : null;
+                        const rawCycleStartAbsTick = Number.isFinite(primedCycleStartAbsTick)
+                            ? primedCycleStartAbsTick
+                            : liveCycleStartAbsTick;
+                        const lastProcessedCycleStartAbsTick = Number(window._loopLastProcessedCycleStartAbsTick);
                         const isCycleStart = hasPlan
-                            ? !!window._loopCycleJustStarted
+                            ? (Number.isFinite(rawCycleStartAbsTick)
+                                && (!Number.isFinite(lastProcessedCycleStartAbsTick)
+                                    || ((lastProcessedCycleStartAbsTick | 0) !== (rawCycleStartAbsTick | 0))))
                             : (curTick === 0);
                         const isChordBoundary = !!(tr && Number.isFinite(tr._seqLastSwitchAbsTick) && ((tr._seqLastSwitchAbsTick | 0) === (absTick | 0)));
                         window._loopCycleJustStarted = false;
+                        const effectiveTimingMeta = primedBoundaryMeta
+                            ? {
+                                callbackPerfMs: Number.isFinite(Number(primedBoundaryMeta.callbackPerfMs))
+                                    ? Number(primedBoundaryMeta.callbackPerfMs)
+                                    : Number(timingMeta && timingMeta.callbackPerfMs),
+                                scheduledPerfMs: Number.isFinite(Number(primedBoundaryMeta.scheduledPerfMs))
+                                    ? Number(primedBoundaryMeta.scheduledPerfMs)
+                                    : Number(timingMeta && timingMeta.scheduledPerfMs)
+                            }
+                            : timingMeta;
                         if (isCycleStart) {
-                            window._loopCycleStartAbsTick = absTick | 0;
+                            const cycleStartAbsTick = Number.isFinite(rawCycleStartAbsTick)
+                                ? rawCycleStartAbsTick
+                                : (absTick | 0);
+                            if (hasPlan) window._loopLastProcessedCycleStartAbsTick = cycleStartAbsTick;
+                            window._loopCycleStartAbsTick = cycleStartAbsTick;
                         } else if (!Number.isFinite(Number(window._loopCycleStartAbsTick)) && curTick === 0) {
                             // First tick after PLAY: establish deterministic cycle anchor at bar 1 beat 1.
                             window._loopCycleStartAbsTick = absTick | 0;
@@ -13156,38 +13299,71 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         // ---- Continuous recording: at cycle boundary, extract previous cycle ----
                         if (isCycleStart && _loopRecSession) {
                             const sess = _loopRecSession;
+                            const boundaryBinding = primedBoundaryMeta || _getLoopSectionBinding();
                             if (sess.cycleMarkSample == null) {
                                 const ac = window.autoharp && window.autoharp.audioContext;
                                 const minPrerollSamples = Math.max(1, sess.minPrerollSamples || (ac ? _getLoopArmPrerollSamples(ac.sampleRate) : 1));
                                 const bufferedSamples = Math.max(0, (sess.totalSamples | 0) - (sess.armedAtSample | 0));
                                 if (bufferedSamples >= minPrerollSamples) {
                                     _calibrateLoopLatencyForSession(sess);
-                                    const boundarySample = (ac ? _estimateLoopBoundarySample(sess, ac, timingMeta) : null);
+                                    const boundarySample = (ac ? _estimateLoopBoundarySample(sess, ac, effectiveTimingMeta) : null);
                                     // Enough preroll is buffered: the next full cycle starts recording now.
                                     sess.cycleMarkSample = Number.isFinite(boundarySample)
                                         ? (boundarySample | 0)
                                         : (sess.totalSamples | 0);
                                     sess.state = 'recording';
+                                    _bindLoopSessionCycleSection(sess, boundaryBinding);
                                     _trimLoopRecSessionBefore(sess.cycleMarkSample);
                                     _updateNewLoopBtnLabel();
                                     _showLoopToast('Recording', 'recording');
                                 }
                             } else {
                                 // Subsequent boundary: extract one cycle → spawn LOOP instance
+                                const cycleBinding = {
+                                    sectionId: (sess.currentCycleSectionId != null && sess.currentCycleSectionId !== '')
+                                        ? String(sess.currentCycleSectionId)
+                                        : ((boundaryBinding && boundaryBinding.sectionId != null && boundaryBinding.sectionId !== '')
+                                            ? String(boundaryBinding.sectionId)
+                                            : null),
+                                    sectionSignature: String(
+                                        (sess.currentCycleSectionSignature != null && sess.currentCycleSectionSignature !== '')
+                                            ? sess.currentCycleSectionSignature
+                                            : (boundaryBinding && boundaryBinding.sectionSignature ? boundaryBinding.sectionSignature : '')
+                                    ).trim()
+                                };
                                 const cycleStartSample = sess.cycleMarkSample | 0;
                                 const ac = window.autoharp && window.autoharp.audioContext;
-                                const boundarySample = (ac ? _estimateLoopBoundarySample(sess, ac, timingMeta) : null);
-                                const cycleEndSample = Number.isFinite(boundarySample)
-                                    ? (boundarySample | 0)
-                                    : (sess.totalSamples | 0);
-                                const measuredCycleSamples = Math.max(1, cycleEndSample - cycleStartSample);
-                                const buf = _extractCycleBuffer(cycleStartSample, measuredCycleSamples);
+                                // BPM-derived exact cycle length — immune to UI-jitter during section switches
+                                const _bpmCycleSec = _getCycleDurationSec();
+                                const bpmCycleSamples = (_bpmCycleSec && ac && Number.isFinite(ac.sampleRate) && ac.sampleRate > 0)
+                                    ? Math.round(ac.sampleRate * _bpmCycleSec) : null;
+                                // Measured boundary only used as fallback when BPM calc is unavailable
+                                const boundarySample = (!bpmCycleSamples && ac)
+                                    ? _estimateLoopBoundarySample(sess, ac, effectiveTimingMeta) : null;
+                                const measuredFallback = Number.isFinite(boundarySample)
+                                    ? Math.max(1, (boundarySample | 0) - cycleStartSample) : null;
+                                const cycleSamples = bpmCycleSamples || measuredFallback
+                                    || Math.max(1, (sess.totalSamples | 0) - cycleStartSample);
+                                const shouldDiscardCycleForSectionSwitch = !!(
+                                    primedBoundaryMeta
+                                    && sess.currentCycleSectionId != null
+                                    && sess.currentCycleSectionId !== ''
+                                    && boundaryBinding
+                                    && boundaryBinding.sectionId != null
+                                    && boundaryBinding.sectionId !== ''
+                                    && String(boundaryBinding.sectionId) !== String(sess.currentCycleSectionId)
+                                );
+                                const buf = shouldDiscardCycleForSectionSwitch
+                                    ? null
+                                    : _extractCycleBuffer(cycleStartSample, cycleSamples);
                                 if (buf) {
-                                    window.spawnLoopInstance(buf);
+                                    window.spawnLoopInstance(buf, cycleBinding);
                                     // Playback is started by the per-instance sync below
                                 }
-                                sess.lastMeasuredCycleSamples = measuredCycleSamples;
-                                sess.cycleMarkSample = cycleEndSample;
+                                sess.lastMeasuredCycleSamples = cycleSamples;
+                                // Advance mark by BPM-aligned step to prevent cumulative drift
+                                sess.cycleMarkSample = cycleStartSample + cycleSamples;
+                                _bindLoopSessionCycleSection(sess, boundaryBinding);
                                 _trimLoopRecSessionBefore(sess.cycleMarkSample);
                             }
                         }
@@ -13277,6 +13453,8 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                             armedAtSample: 0,
                                             minPrerollSamples: ac ? _getLoopArmPrerollSamples(ac.sampleRate) : 1,
                                             armedAtContextTime: ac ? ac.currentTime : null,
+                                            currentCycleSectionId: null,
+                                            currentCycleSectionSignature: '',
                                             latencyCalibrated: false
                                         };
                                         _loopRecSession = sess;
@@ -13305,6 +13483,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         }
                         window._loopCycleJustStarted = false;
                         window._loopCycleStartAbsTick = null;
+                        window._loopLastProcessedCycleStartAbsTick = null;
                         (window._loopInstances || []).forEach(inst => _stopLoop(inst));
                     };
 
@@ -13320,8 +13499,10 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         window._loopInstanceCounter = 0;
                         window._loopCycleJustStarted = false;
                         window._loopCycleStartAbsTick = null;
+                        window._loopLastProcessedCycleStartAbsTick = null;
                         const host = document.getElementById('loopButtons');
                         if (host) host.innerHTML = '';
+                        try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { }
                         try { if (_loopProcessor) { _loopProcessor.disconnect(); } } catch (_) { }
                         try { if (_loopMicSrc) { _loopMicSrc.disconnect(); } } catch (_) { }
                         try { if (_loopMicSilencer) { _loopMicSilencer.disconnect(); } } catch (_) { }
@@ -17075,9 +17256,10 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         });
                     };
 
-                    window._renderSectionButtons = renderButtons;
+                    window._renderSectionButtons = function () { renderButtons(); try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { } };
 
                     renderButtons();
+                    try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { }
 
                     const newBtn = document.getElementById('newSectionBtn');
                     if (newBtn && !newBtn._wired) {
@@ -17148,7 +17330,102 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         } catch (_) { }
                         renderButtons();
                     };
+                    const primeSectionsForPlayback = (opts = {}) => {
+                        const sections = Array.isArray(window._sections) ? window._sections.filter(sec => sec && sec.id) : [];
+                        if (sections.length < 2) return false;
+                        const liveOmni = window.autoharp;
+                        const isPlaying = !!(liveOmni && (liveOmni._isSequencing || liveOmni._arpTransport?.running));
+                        if (isPlaying && !opts.allowDuringPlayback) return false;
+                        if (window._sectionPrimeInProgress) return false;
+
+                        try { if (typeof window._storeCurrentSectionState === 'function') window._storeCurrentSectionState(); } catch (_) { }
+
+                        const activeId = (window._activeSectionId != null && window._activeSectionId !== '')
+                            ? String(window._activeSectionId)
+                            : String(sections[0]?.id || 'A');
+                        const activeSection = sections.find(sec => String(sec.id || '') === activeId) || sections[0] || null;
+                        const buildPrimeCacheKey = () => {
+                            try {
+                                const patternCount = Array.isArray(window._patternInstances) ? window._patternInstances.length : 0;
+                                const drumCount = Array.isArray(window._drumInstances) ? window._drumInstances.length : 0;
+                                const loopCount = Array.isArray(window._loopInstances) ? window._loopInstances.length : 0;
+                                const pianoPresetCount = (liveOmni && liveOmni.preloadedPresets && typeof liveOmni.preloadedPresets.size === 'number')
+                                    ? liveOmni.preloadedPresets.size
+                                    : 0;
+                                const sectionKeys = sections.map(sec => `${String(sec?.id || '')}:${_getSectionLoopSignature(sec)}`).join('||');
+                                return `${activeId}|P${patternCount}|D${drumCount}|L${loopCount}|PL${pianoPresetCount}|${sectionKeys}`;
+                            } catch (_) {
+                                return '';
+                            }
+                        };
+                        const cacheKey = buildPrimeCacheKey();
+                        if (!opts.force && cacheKey && window._sectionPrimeCacheKey === cacheKey) return false;
+
+                        const warmCurrentSectionDom = () => {
+                            try {
+                                if (typeof window.__xenApplyChordLayout === 'function') window.__xenApplyChordLayout();
+                                if (typeof updateStringCompression === 'function') updateStringCompression();
+                            } catch (_) { }
+                            try {
+                                const root = document.getElementById('extensionColumns');
+                                if (root) {
+                                    root.getBoundingClientRect();
+                                    Array.from(root.querySelectorAll('.extension-column')).forEach(col => {
+                                        try {
+                                            col.getBoundingClientRect();
+                                            const strings = col.querySelector('.strings-column');
+                                            if (strings) strings.getBoundingClientRect();
+                                            const hdr = col.querySelector('.extension-header');
+                                            const chordData = (liveOmni && typeof liveOmni.getChordDataFromColumn === 'function')
+                                                ? liveOmni.getChordDataFromColumn(col, hdr)
+                                                : null;
+                                            if (chordData && chordData.isPianoLocked && liveOmni && typeof liveOmni.preloadPianoLockedChord === 'function') {
+                                                liveOmni.preloadPianoLockedChord(col);
+                                            }
+                                        } catch (_) { }
+                                    });
+                                }
+                            } catch (_) { }
+                            try {
+                                const ruler = document.getElementById('chordRuler');
+                                if (ruler) ruler.getBoundingClientRect();
+                            } catch (_) { }
+                        };
+
+                        let primed = false;
+                        window._sectionPrimeInProgress = true;
+                        try {
+                            sections.forEach(sec => {
+                                if (!sec || !sec.state) return;
+                                const sid = String(sec.id || '');
+                                if (!sid || sid === activeId) return;
+                                window._activeSectionId = sid;
+                                window._pendingSectionId = null;
+                                applySectionState(sec.state);
+                                warmCurrentSectionDom();
+                                primed = true;
+                            });
+                        } catch (_) { }
+                        try {
+                            if (activeSection && activeSection.state) {
+                                window._activeSectionId = String(activeSection.id || activeId);
+                                applySectionState(activeSection.state);
+                                warmCurrentSectionDom();
+                            } else {
+                                window._activeSectionId = activeId;
+                            }
+                        } catch (_) {
+                            window._activeSectionId = activeId;
+                        } finally {
+                            window._pendingSectionId = null;
+                            window._sectionPrimeInProgress = false;
+                            try { renderButtons(); } catch (_) { }
+                            if (cacheKey) window._sectionPrimeCacheKey = cacheKey;
+                        }
+                        return primed;
+                    };
                     window._applySectionSwitchById = applySectionSwitchById;
+                    window._primeSectionsForPlayback = primeSectionsForPlayback;
                     if (omni && !omni._applySectionSwitchById) {
                         omni._applySectionSwitchById = applySectionSwitchById;
                     }
@@ -27325,6 +27602,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             window._activeSectionId = activeId;
                             if (typeof window._applySectionSwitchById === 'function') {
                                 window._applySectionSwitchById(activeId);
+                                try { if (typeof window._primeSectionsForPlayback === 'function') window._primeSectionsForPlayback({ force: true }); } catch (_) { }
                                 return;
                             }
                         }
@@ -27424,6 +27702,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             try { applySectionState(sec.state); } catch (_) { }
                         }
                     }
+                    try { if (typeof window._primeSectionsForPlayback === 'function') window._primeSectionsForPlayback({ force: true }); } catch (_) { }
                     try {
                         if (typeof window.__xenApplyChordLayout === 'function') window.__xenApplyChordLayout();
                         if (typeof updateStringCompression === 'function') updateStringCompression();
@@ -44151,6 +44430,16 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 ? this._applySectionSwitchById
                                 : (typeof window._applySectionSwitchById === 'function' ? window._applySectionSwitchById : null);
                             if (!loopEnabled && isBarStart && this._pendingSectionSwitchId && applyFn) {
+                                try {
+                                    if (typeof window._primeLoopPendingBoundary === 'function') {
+                                        window._primeLoopPendingBoundary({
+                                            sectionId: this._pendingSectionSwitchId,
+                                            absTick: this._arpTransport.absTickCounter | 0,
+                                            callbackPerfMs: (performance && performance.now ? performance.now() : Date.now()),
+                                            scheduledPerfMs: Number(this._arpTransport.nextAt)
+                                        });
+                                    }
+                                } catch (_) { }
                                 applyFn(this._pendingSectionSwitchId);
                                 this._pendingSectionSwitchId = null;
                             }
@@ -52174,8 +52463,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             zoomEl.step = '1';
                             const curSteps = Math.max(limits.minSpan, Math.min(limits.maxSpan, (st.spanSteps || limits.minSpan) | 0));
                             zoomEl.value = String(curSteps);
-                            const curOct = curSteps / edo;
-                            zoomValEl.textContent = `${curSteps} ${curSteps === 1 ? 'key' : 'keys'} (${curOct.toFixed(2)}x)`;
+                            zoomValEl.textContent = `${curSteps} ${curSteps === 1 ? 'key' : 'keys'}`;
                             if (!zoomEl._wired) {
                                 zoomEl._wired = true;
                                 zoomEl.addEventListener('input', () => {
@@ -52189,8 +52477,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                     const nextBase = Math.max(minAbs, Math.min(maxBase, center - ((steps - 1) / 2)));
                                     st.spanSteps = steps;
                                     st.baseAbsStep = nextBase;
-                                    const oct = steps / edoNow;
-                                    zoomValEl.textContent = `${steps} ${steps === 1 ? 'key' : 'keys'} (${oct.toFixed(2)}x)`;
+                                    zoomValEl.textContent = `${steps} ${steps === 1 ? 'key' : 'keys'}`;
                                     this._renderBellsBars(win);
                                 });
                             }
@@ -55609,6 +55896,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             window._patternInstanceCounter = 0;
                             const host = document.getElementById('patternButtons');
                             if (host) host.innerHTML = '';
+                            try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { }
                         } catch (_) { }
                     };
 
@@ -55621,6 +55909,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             window._activeDrumInstanceId = null;
                             const host = document.getElementById('drumButtons');
                             if (host) host.innerHTML = '';
+                            try { window._fitStripButtons && window._fitStripButtons(); } catch (_) { }
                         } catch (_) { }
                     };
 
@@ -57902,7 +58191,10 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
 
                                     // Warm heavy UI paths before transport starts.
                                     try {
-                                        const warm = () => { try { window.preloadPlaybackUi && window.preloadPlaybackUi(); } catch (_) { } };
+                                        const warm = () => {
+                                            try { window.preloadPlaybackUi && window.preloadPlaybackUi(); } catch (_) { }
+                                            try { window._primeSectionsForPlayback && window._primeSectionsForPlayback({ force: true }); } catch (_) { }
+                                        };
                                         if (typeof window.runAudioPriorityUiTask === 'function') {
                                             window.runAudioPriorityUiTask(warm, { label: 'preload-playback-ui', forceImmediate: true });
                                         } else {
@@ -58553,6 +58845,17 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                                         ? autoharp._applySectionSwitchById
                                                         : (typeof window._applySectionSwitchById === 'function' ? window._applySectionSwitchById : null);
                                                     if (applyFn) {
+                                                        try {
+                                                            if (typeof window._primeLoopPendingBoundary === 'function') {
+                                                                const tr = autoharp && autoharp._arpTransport;
+                                                                window._primeLoopPendingBoundary({
+                                                                    sectionId: autoharp._pendingSectionSwitchId,
+                                                                    absTick: tr ? (tr.absTickCounter | 0) : null,
+                                                                    callbackPerfMs: (performance && performance.now ? performance.now() : Date.now()),
+                                                                    scheduledPerfMs: tr ? Number(tr.nextAt) : null
+                                                                });
+                                                            }
+                                                        } catch (_) { }
                                                         applyFn(autoharp._pendingSectionSwitchId);
                                                         // Safety: ensure _pendingSectionSwitchId is cleared even if
                                                         // applySectionSwitchById failed to clear it (stale closure).
