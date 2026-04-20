@@ -1964,6 +1964,32 @@
         }
 
         /* Loop recording pulse */
+        .loop-eq-band {
+            min-width: 30px;
+        }
+
+        .loop-eq-gain,
+        .loop-eq-slider {
+            writing-mode: vertical-lr;
+            direction: rtl;
+            appearance: slider-vertical;
+            width: 18px;
+            height: 70px;
+            cursor: ns-resize;
+            accent-color: #3bb8f0;
+        }
+
+        .loop-eq-q {
+            width: 50px;
+            height: 8px;
+            accent-color: #f0c040;
+            cursor: ew-resize;
+        }
+
+        .loop-eq-label {
+            user-select: none;
+        }
+
         @keyframes loopRecPulse {
 
             0%,
@@ -5517,7 +5543,8 @@
                     <div class="instance-strip-actions">
                         <button id="newPatternBtn" class="panel-btn strip-has-subbtn" title="New Pattern"
                             style="background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;position:relative;">NEW
-                            PATTERN<span id="soloAllPatternsBtn" class="strip-sub-btn" role="button" tabindex="0" title="Solo all unmuted patterns">[S]</span></button>
+                            PATTERN<span id="soloAllPatternsBtn" class="strip-sub-btn" role="button" tabindex="0"
+                                title="Solo all unmuted patterns">[S]</span></button>
                     </div>
                     <div id="patternButtons" style="display:flex;align-items:center;gap:6px;min-height:30px;"></div>
                 </div>
@@ -5525,7 +5552,8 @@
                     <div class="instance-strip-actions">
                         <button id="newDrumBtn" class="panel-btn strip-has-subbtn" title="New Drum"
                             style="background:#1f8f4a;color:#eafff3;border:1px solid #46c37b;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;position:relative;">NEW
-                            DRUM<span id="soloAllDrumsBtn" class="strip-sub-btn" role="button" tabindex="0" title="Solo all unmuted drums">[S]</span></button>
+                            DRUM<span id="soloAllDrumsBtn" class="strip-sub-btn" role="button" tabindex="0"
+                                title="Solo all unmuted drums">[S]</span></button>
                     </div>
                     <div id="drumButtons" style="display:flex;align-items:center;gap:6px;min-height:30px;"></div>
                 </div>
@@ -5533,7 +5561,8 @@
                     <div class="instance-strip-actions">
                         <button id="newLoopBtn" class="panel-btn strip-has-subbtn" title="New Loop"
                             style="background:#8f1f6a;color:#ffe8f7;border:1px solid #c346a0;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;position:relative;">NEW
-                            LOOP<span id="soloAllLoopsBtn" class="strip-sub-btn" role="button" tabindex="0" title="Solo all unmuted loops">[S]</span></button>
+                            LOOP<span id="soloAllLoopsBtn" class="strip-sub-btn" role="button" tabindex="0"
+                                title="Solo all unmuted loops">[S]</span></button>
                     </div>
                     <div id="loopButtons" style="display:flex;align-items:center;gap:6px;min-height:30px;"></div>
                 </div>
@@ -5659,6 +5688,11 @@
                                 <input id="universalSwing" type="number" min="0" max="75" value="0" title="Swing %"
                                     style="width:48px;background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:2px 4px;font-size:11px;" />
                                 <span id="drumLenHint" style="font-size:10px;opacity:.6;">Cycle: 16 steps</span>
+                                <button id="drumArrToggleBtn" title="Arranger (per-chord mute)"
+                                    style="pointer-events:auto;margin-left:auto;width:32px;height:24px;display:inline-flex;align-items:center;justify-content:center;background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;line-height:1;">ARR</button>
+                            </div>
+                            <div id="drumArrDrawer"
+                                style="display:none;background:#0d1b24;border:1px solid #2b5567;border-radius:6px;padding:6px 8px;margin-top:4px;">
                             </div>
                             <div class="drum-grid" id="drumGrid"></div>
                         </div>
@@ -5763,6 +5797,13 @@
                         <button class="modal-close" id="loopModalClose" style="margin-left:6px;">×</button>
                     </div>
                     <div class="modal-body" style="padding:12px;display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;align-items:center;justify-content:flex-end;">
+                            <button id="loopArrToggleBtn" title="Arranger (per-chord mute)"
+                                style="pointer-events:auto;width:32px;height:24px;display:inline-flex;align-items:center;justify-content:center;background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;line-height:1;">ARR</button>
+                        </div>
+                        <div id="loopArrDrawer"
+                            style="display:none;background:#0d1b24;border:1px solid #2b5567;border-radius:6px;padding:6px 8px;">
+                        </div>
                         <canvas id="loopWaveformCanvas" width="480" height="100"
                             style="width:100%;height:100px;background:#111;border-radius:4px;cursor:grab;touch-action:none;"></canvas>
                         <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:#ccc;">
@@ -5781,16 +5822,69 @@
                                     type="range" min="0" max="1000" value="0" step="1" style="width:70px;"></label>
                             <label style="display:flex;align-items:center;gap:4px;">FB<input id="loopDelayFB"
                                     type="range" min="0" max="95" value="0" style="width:60px;"></label>
+                            <label style="display:flex;align-items:center;gap:4px;">MIX<input id="loopDelayMix"
+                                    type="range" min="0" max="100" value="50" style="width:60px;"></label>
                             <label style="display:flex;align-items:center;gap:4px;">VERB<input id="loopVerbSlider"
                                     type="range" min="0" max="300" value="0" style="width:70px;"></label>
-                            <label style="display:flex;align-items:center;gap:4px;">FILTER<input id="loopFilterFreq"
-                                    type="range" min="0" max="100" value="100" step="0.1" style="width:70px;"></label>
-                            <select id="loopFilterType"
-                                style="background:#2a4858;color:#e8f5ff;border:1px solid #4a6870;border-radius:4px;font-size:10px;">
-                                <option value="lowpass">LP</option>
-                                <option value="highpass">HP</option>
-                                <option value="bandpass">BP</option>
-                            </select>
+                        </div>
+                        <div id="loopEqContainer"
+                            style="display:flex;align-items:flex-end;gap:6px;padding:8px 4px;background:#181e24;border-radius:6px;min-height:100px;">
+                            <div class="loop-eq-band" data-band="hp"
+                                style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                                <span style="color:#f0c040;font-size:9px;font-weight:700;">HP</span>
+                                <input type="range" orient="vertical" class="loop-eq-slider" id="loopEqHpFreq" min="20"
+                                    max="800" value="20" step="1" title="HP Frequency">
+                                <span class="loop-eq-label" id="loopEqHpLabel"
+                                    style="font-size:9px;color:#aaa;">20</span>
+                            </div>
+                            <div class="loop-eq-band" data-band="1"
+                                style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                                <input type="range" orient="vertical" class="loop-eq-gain" id="loopEqGain1" min="-18"
+                                    max="18" value="0" step="0.5" title="80 Hz Gain">
+                                <input type="range" class="loop-eq-q" id="loopEqQ1" min="0.1" max="12" value="1"
+                                    step="0.1" title="80 Hz Q (width)">
+                                <span class="loop-eq-label" id="loopEqFreqLabel1"
+                                    style="font-size:9px;color:#aaa;cursor:ew-resize;"
+                                    title="Drag to change freq">80</span>
+                            </div>
+                            <div class="loop-eq-band" data-band="2"
+                                style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                                <input type="range" orient="vertical" class="loop-eq-gain" id="loopEqGain2" min="-18"
+                                    max="18" value="0" step="0.5" title="200 Hz Gain">
+                                <input type="range" class="loop-eq-q" id="loopEqQ2" min="0.1" max="12" value="1"
+                                    step="0.1" title="200 Hz Q (width)">
+                                <span class="loop-eq-label" id="loopEqFreqLabel2"
+                                    style="font-size:9px;color:#aaa;cursor:ew-resize;"
+                                    title="Drag to change freq">200</span>
+                            </div>
+                            <div class="loop-eq-band" data-band="3"
+                                style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                                <input type="range" orient="vertical" class="loop-eq-gain" id="loopEqGain3" min="-18"
+                                    max="18" value="0" step="0.5" title="800 Hz Gain">
+                                <input type="range" class="loop-eq-q" id="loopEqQ3" min="0.1" max="12" value="1"
+                                    step="0.1" title="800 Hz Q (width)">
+                                <span class="loop-eq-label" id="loopEqFreqLabel3"
+                                    style="font-size:9px;color:#aaa;cursor:ew-resize;"
+                                    title="Drag to change freq">800</span>
+                            </div>
+                            <div class="loop-eq-band" data-band="4"
+                                style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                                <input type="range" orient="vertical" class="loop-eq-gain" id="loopEqGain4" min="-18"
+                                    max="18" value="0" step="0.5" title="4k Hz Gain">
+                                <input type="range" class="loop-eq-q" id="loopEqQ4" min="0.1" max="12" value="1"
+                                    step="0.1" title="4k Hz Q (width)">
+                                <span class="loop-eq-label" id="loopEqFreqLabel4"
+                                    style="font-size:9px;color:#aaa;cursor:ew-resize;"
+                                    title="Drag to change freq">4k</span>
+                            </div>
+                            <div class="loop-eq-band" data-band="lp"
+                                style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                                <span style="color:#f0c040;font-size:9px;font-weight:700;">LP</span>
+                                <input type="range" orient="vertical" class="loop-eq-slider" id="loopEqLpFreq" min="200"
+                                    max="20000" value="20000" step="1" title="LP Frequency">
+                                <span class="loop-eq-label" id="loopEqLpLabel"
+                                    style="font-size:9px;color:#aaa;">20k</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -6031,6 +6125,11 @@
                                 </select>
                                 <button id="patternSynthToggleBtn" title="Synth controls"
                                     style="pointer-events:auto;width:28px;height:26px;display:inline-flex;align-items:center;justify-content:center;background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;font-size:14px;cursor:pointer;line-height:1;">⚙</button>
+                                <button id="patternArrToggleBtn" title="Arranger (per-chord mute)"
+                                    style="pointer-events:auto;width:32px;height:26px;display:inline-flex;align-items:center;justify-content:center;background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;line-height:1;">ARR</button>
+                            </div>
+                            <div id="patternArrDrawer"
+                                style="display:none;background:#0d1b24;border:1px solid #2b5567;border-radius:6px;padding:6px 8px;margin-top:4px;">
                             </div>
                         </div>
                     </div>
@@ -6257,6 +6356,10 @@
                     <label
                         style="display:flex;align-items:center;gap:4px;color:#e8f5ff;font-size:11px;font-weight:700;">
                         <input id="loopToggle" type="checkbox" style="transform:scale(1.0);" checked> LOOP
+                    </label>
+                    <label
+                        style="display:flex;align-items:center;gap:4px;color:#e8f5ff;font-size:11px;font-weight:700;">
+                        <input id="arrangerToggle" type="checkbox" style="transform:scale(1.0);" checked> ARR
                     </label>
                     <label
                         style="display:flex;align-items:center;gap:4px;color:#e8f5ff;font-size:11px;font-weight:700;">
@@ -6679,6 +6782,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     <div class="app-settings-row">
                         <label for="settingsStartupLoopEnabled">Startup loop mode</label>
                         <input id="settingsStartupLoopEnabled" type="checkbox" checked>
+                    </div>
+                    <div class="app-settings-row">
+                        <label for="settingsStartupArrEnabled">Startup arranger (ARR)</label>
+                        <input id="settingsStartupArrEnabled" type="checkbox" checked>
                     </div>
                 </div>
 
@@ -7163,6 +7270,7 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                 try { ctx.highlightKeyboardForColumn(column); } catch (_) { }
                 try { ctx.saveChordConfiguration?.(); } catch (_) { }
                 try { ctx.updateChordDisplay?.(); } catch (_) { }
+                try { if (typeof window._syncArrangerOnChordChange === 'function') window._syncArrangerOnChordChange(); } catch (_) { }
                 return true;
             }
 
@@ -8715,6 +8823,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                 return;
                             }
                         } catch (_) { }
+                        // Arranger mute: skip audio if ARR system has muted this pattern for the current chord
+                        try {
+                            if (window._arrangerEnabled && modalEl && modalEl._arrangerMuted) {
+                                if (pt.activeVoices.size) {
+                                    for (const vid of Array.from(pt.activeVoices)) {
+                                        const meta = pt[vid]; if (meta && meta.stop) { try { meta.stop(); } catch (_) { } }
+                                        pt.activeVoices.delete(vid); delete pt[vid];
+                                    }
+                                }
+                                return;
+                            }
+                        } catch (_) { }
                         const tickMs = (window.autoharp && window.autoharp._arpTransport && window.autoharp._arpTransport.tickMs) ? Number(window.autoharp._arpTransport.tickMs) : NaN;
 
                         // LEN defines cycle position; per-row D subdivides the full cycle.
@@ -9586,6 +9706,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const speakerBtn = (clone.querySelector('[data-role="patternSpeakerBtn"]') || clone.querySelector('#patternSpeakerBtn'));
                         if (gridEl) {
                             clone._patternEnabled = true;
+                            // Always create a fresh arranger config for clones (cloneNode doesn't copy expandos
+                            // but inherited checkbox states from the base modal's ARR drawer would be stale).
+                            clone.arrangerConfig = (typeof window._buildDefaultArrangerConfig === 'function') ? window._buildDefaultArrangerConfig() : [{ chordEnabled: {} }];
+                            clone._arrangerMuted = false;
+                            // Reset the cloned ARR drawer to closed/empty so the user must open it fresh
+                            // (cloneNode copies DOM but not event listeners, so inherited checkboxes are inert).
+                            try {
+                                const cloneArrDrawer = clone.querySelector('[data-role="patternArrDrawer"]') || clone.querySelector('#patternArrDrawer');
+                                if (cloneArrDrawer) { cloneArrDrawer.style.display = 'none'; cloneArrDrawer.innerHTML = ''; }
+                                const cloneArrBtn = clone.querySelector('[data-role="patternArrToggleBtn"]') || clone.querySelector('#patternArrToggleBtn');
+                                if (cloneArrBtn) { cloneArrBtn.style.background = '#214051'; cloneArrBtn.style.color = '#e8f5ff'; }
+                            } catch (_) { }
                             const enabledFn = () => !!clone._patternEnabled;
                             const pt = wirePatternInstanceTransport(clone, gridEl, instKey, enabledFn);
                             clone._patternTransport = pt;
@@ -9794,6 +9926,38 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                     if (grid) grid.style.display = showGrid ? '' : 'none';
                                     if (handle) handle.style.display = showGrid ? '' : 'none';
                                 } catch (_) { }
+                            });
+                        }
+                    } catch (_) { }
+
+                    // Per-instance ARR drawer toggle
+                    try {
+                        const arrBtn = (clone.querySelector('[data-role="patternArrToggleBtn"]') || clone.querySelector('#patternArrToggleBtn'));
+                        if (arrBtn && !arrBtn._arrWired) {
+                            arrBtn._arrWired = true;
+                            arrBtn.addEventListener('click', (ev) => {
+                                try { ev.preventDefault(); ev.stopPropagation(); } catch (_) { }
+                                const root = arrBtn.closest('.floating-modal') || clone;
+                                const drawer = root.querySelector
+                                    ? (root.querySelector('[data-role="patternArrDrawer"]') || root.querySelector('#patternArrDrawer'))
+                                    : document.getElementById('patternArrDrawer');
+                                if (!drawer) return;
+                                const isOpen = (drawer.style.display !== 'none');
+                                if (isOpen) {
+                                    drawer.style.display = 'none';
+                                    arrBtn.style.background = '#214051';
+                                    window._unregisterArrangerDrawer && window._unregisterArrangerDrawer(drawer);
+                                } else {
+                                    drawer.style.display = 'block';
+                                    arrBtn.style.background = '#2ecc71';
+                                    arrBtn.style.color = '#0a1014';
+                                    if (!clone.arrangerConfig) {
+                                        clone.arrangerConfig = (typeof window._buildDefaultArrangerConfig === 'function') ? window._buildDefaultArrangerConfig() : [{ chordEnabled: {} }];
+                                    }
+                                    window._ensureArrangerConfig && window._ensureArrangerConfig(clone);
+                                    window._buildArrangerDrawer && window._buildArrangerDrawer(drawer, clone, 'pattern');
+                                    window._registerArrangerDrawer && window._registerArrangerDrawer(drawer, clone, 'pattern');
+                                }
                             });
                         }
                     } catch (_) { }
@@ -10115,17 +10279,20 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                                         const enabledNow = !!modalEl._patternEnabled;
                                         const pendEnabled = (modalEl._patternPendingEnabled != null) ? !!modalEl._patternPendingEnabled : null;
                                         const pendAny = (modalEl._patternPendingEnabled != null) || !!(modalEl.querySelector && (modalEl.querySelector('[data-role="patternGrid"]') || modalEl.querySelector('#patternGrid'))?.dataset?.pendingLength) || !!(modalEl.querySelector && (modalEl.querySelector('[data-role="patternGrid"]') || modalEl.querySelector('#patternGrid'))?.dataset?.pendingNpc);
+                                        const arrangerMuted = !!(window._arrangerEnabled && modalEl._arrangerMuted);
                                         let traffic = enabledNow ? 'traffic-green' : 'traffic-red';
                                         if (pendEnabled != null) {
                                             if (enabledNow && pendEnabled === false) traffic = 'traffic-orange';
                                             else if (!enabledNow && pendEnabled === true) traffic = 'traffic-yellow';
                                             else traffic = pendEnabled ? 'traffic-green' : 'traffic-red';
                                         }
+                                        // ARR override: if the pattern is enabled but arranger-muted, show red
+                                        if (arrangerMuted && enabledNow) traffic = 'traffic-red';
                                         try {
                                             ['traffic-green', 'traffic-red', 'traffic-yellow', 'traffic-orange'].forEach(c => btn.classList.remove(c));
                                             btn.classList.add(traffic);
                                         } catch (_) { }
-                                        try { if (enabledNow) btn.classList.add('active'); else btn.classList.remove('active'); } catch (_) { }
+                                        try { if (enabledNow && !arrangerMuted) btn.classList.add('active'); else btn.classList.remove('active'); } catch (_) { }
                                         try { if (pendAny) btn.classList.add('pending-change'); else btn.classList.remove('pending-change'); } catch (_) { }
                                         try { if (modalEl._patternOneShot) btn.classList.add('oneshot-armed'); else btn.classList.remove('oneshot-armed'); } catch (_) { }
                                         try {
@@ -10320,6 +10487,15 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     // Start all patterns unmuted by default
                     try {
                         clone._patternEnabled = true;
+                        clone.arrangerConfig = (typeof window._buildDefaultArrangerConfig === 'function') ? window._buildDefaultArrangerConfig() : [{ chordEnabled: {} }];
+                        clone._arrangerMuted = false;
+                        // Reset cloned ARR drawer to closed/empty (inherited from base modal has stale listeners)
+                        try {
+                            const cloneArrDrawer = clone.querySelector('[data-role="patternArrDrawer"]') || clone.querySelector('#patternArrDrawer');
+                            if (cloneArrDrawer) { cloneArrDrawer.style.display = 'none'; cloneArrDrawer.innerHTML = ''; }
+                            const cloneArrBtn = clone.querySelector('[data-role="patternArrToggleBtn"]') || clone.querySelector('#patternArrToggleBtn');
+                            if (cloneArrBtn) { cloneArrBtn.style.background = '#214051'; cloneArrBtn.style.color = '#e8f5ff'; }
+                        } catch (_) { }
                         const speakerBtn = (clone.querySelector('[data-role="patternSpeakerBtn"]') || clone.querySelector('#patternSpeakerBtn'));
                         if (speakerBtn) speakerBtn.textContent = '🔊';
                     } catch (_) { }
@@ -10545,17 +10721,18 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     if (!window._drumInstanceCounter) window._drumInstanceCounter = 0;
                 };
 
+                const _drumGmNotes = ['C2', 'D2', 'F#2', 'A#2', 'D3', 'C3', 'E2', 'C#3', 'G#2'];
                 const blankState = (len) => {
                     const maxLen = (window.autoharp && typeof window.autoharp._getMaxCycleSteps === 'function') ? window.autoharp._getMaxCycleSteps() : 64;
                     const baseLen = (len == null || len === '') ? getDefaultBarLen16() : (parseInt(len || '0', 10) || 0);
                     const safeLen = Math.max(1, Math.min(maxLen, baseLen || 16));
-                    const lanes = new Array(9).fill(0).map(() => ({
+                    const lanes = new Array(9).fill(0).map((_, i) => ({
                         steps: new Array(safeLen).fill(0),
                         vel: new Array(safeLen).fill(100),
                         quant: String(safeLen),
                         vol: 80,
                         send: 0,
-                        midi: '',
+                        midi: _drumGmNotes[i] || 'C2',
                         pitch: 0,
                         atk: 2,
                         dec: 180,
@@ -10789,9 +10966,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     const enabledNow = !!inst.enabled;
                     const pendEnabled = (inst.pendingEnabled != null) ? !!inst.pendingEnabled : null;
                     const pendAny = (inst.pendingEnabled != null || inst.pendingLen != null);
+                    const arrangerMuted = !!(window._arrangerEnabled && inst._arrangerMuted);
                     // Traffic colors:
                     // - GREEN: enabled now
-                    // - RED: muted now
+                    // - RED: muted now (or arranger-muted)
                     // - ORANGE: enabled now, queued to mute
                     // - YELLOW: muted now, queued to unmute
                     let traffic = enabledNow ? 'traffic-green' : 'traffic-red';
@@ -10800,8 +10978,10 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         else if (!enabledNow && pendEnabled === true) traffic = 'traffic-yellow';
                         else traffic = pendEnabled ? 'traffic-green' : 'traffic-red';
                     }
+                    // ARR override: if enabled but arranger-muted, show red
+                    if (arrangerMuted && enabledNow) traffic = 'traffic-red';
                     setTrafficClass(b, traffic);
-                    try { if (enabledNow) b.classList.add('active'); else b.classList.remove('active'); } catch (_) { }
+                    try { if (enabledNow && !arrangerMuted) b.classList.add('active'); else b.classList.remove('active'); } catch (_) { }
                     try { if (inst.oneShot) b.classList.add('oneshot-armed'); else b.classList.remove('oneshot-armed'); } catch (_) { }
                     try {
                         const sb = b && b._soloBtn;
@@ -11095,6 +11275,8 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         cycleStartGlobalStep: null,
                         _lastStep: -1,
                         _lenIsDefault: true,
+                        arrangerConfig: (typeof window._buildDefaultArrangerConfig === 'function') ? window._buildDefaultArrangerConfig() : [{ chordEnabled: {} }],
+                        _arrangerMuted: false,
                     };
                     window._drumInstances.push(inst);
 
@@ -11313,7 +11495,14 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                     window._loopFxState = window._loopFxState || {
                         delayTime: 0,
                         delayFB: 0,
+                        delayMix: 0.5,
                         verbMix: 0,
+                        eqHpFreq: 20,
+                        eqLpFreq: 20000,
+                        eq1: { freq: 80, gain: 0, q: 1 },
+                        eq2: { freq: 200, gain: 0, q: 1 },
+                        eq3: { freq: 800, gain: 0, q: 1 },
+                        eq4: { freq: 4000, gain: 0, q: 1 },
                         filterFreq: _loopFilterMaxHz,
                         filterType: 'lowpass'
                     };
@@ -11321,7 +11510,17 @@ NESTED REPEATS: [[C Am F G]x2 [C Dm Em F^]x2]x4
                         const state = window._loopFxState || (window._loopFxState = {});
                         state.delayTime = _clampLoopValue(Number(state.delayTime) || 0, 0, 1);
                         state.delayFB = _clampLoopValue(Number(state.delayFB) || 0, 0, 0.95);
+                        state.delayMix = _clampLoopValue(Number(state.delayMix) ?? 0.5, 0, 1);
                         state.verbMix = _clampLoopValue(Number(state.verbMix) || 0, 0, 3);
+                        state.eqHpFreq = _clampLoopValue(Number(state.eqHpFreq) || 20, 20, 800);
+                        state.eqLpFreq = _clampLoopValue(Number(state.eqLpFreq) || 20000, 200, 20000);
+                        const eqDef = { eq1: 80, eq2: 200, eq3: 800, eq4: 4000 };
+                        for (const k of ['eq1', 'eq2', 'eq3', 'eq4']) {
+                            if (!state[k] || typeof state[k] !== 'object') state[k] = {};
+                            state[k].freq = _clampLoopValue(Number(state[k].freq) || eqDef[k], 20, 20000);
+                            state[k].gain = _clampLoopValue(Number(state[k].gain) || 0, -18, 18);
+                            state[k].q = _clampLoopValue(Number(state[k].q) || 1, 0.1, 12);
+                        }
                         state.filterFreq = _clampLoopValue(Number(state.filterFreq) || _loopFilterMaxHz, _loopFilterMinHz, _loopFilterMaxHz);
                         state.filterType = ['lowpass', 'highpass', 'bandpass'].includes(state.filterType) ? state.filterType : 'lowpass';
                         window._loopFxState = state;
@@ -12039,18 +12238,124 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             samples[samples.length - 1 - i] *= g;
                         }
                     };
+                    // ---- Per-instance FX state helpers ----
+                    const _getInstFxState = (inst) => {
+                        if (!inst) return _getLoopFxState();
+                        const d = _getLoopFxState();
+                        const st = {};
+                        st.delayTime = _clampLoopValue(Number(inst.delayTime) || 0, 0, 1);
+                        st.delayFB = _clampLoopValue(Number(inst.delayFB) || 0, 0, 0.95);
+                        st.delayMix = _clampLoopValue((inst.delayMix != null) ? Number(inst.delayMix) : (d.delayMix ?? 0.5), 0, 1);
+                        st.verbMix = _clampLoopValue(Number(inst.verbMix) || 0, 0, 3);
+                        st.eqHpFreq = _clampLoopValue(Number(inst.eqHpFreq) || (d.eqHpFreq || 20), 20, 800);
+                        st.eqLpFreq = _clampLoopValue(Number(inst.eqLpFreq) || (d.eqLpFreq || 20000), 200, 20000);
+                        const eqDef = { eq1: 80, eq2: 200, eq3: 800, eq4: 4000 };
+                        for (const k of ['eq1', 'eq2', 'eq3', 'eq4']) {
+                            const src = (inst[k] && typeof inst[k] === 'object') ? inst[k] : (d[k] || {});
+                            st[k] = {
+                                freq: _clampLoopValue(Number(src.freq) || eqDef[k], 20, 20000),
+                                gain: _clampLoopValue(Number(src.gain) || 0, -18, 18),
+                                q: _clampLoopValue(Number(src.q) || 1, 0.1, 12)
+                            };
+                        }
+                        return st;
+                    };
+                    const _applyInstFxState = (inst, immediate = false, glideSec = 0.012) => {
+                        const fxb = inst && inst._fxBus;
+                        const ac = window.autoharp && window.autoharp.audioContext;
+                        if (!fxb || !ac) return;
+                        const st = _getInstFxState(inst);
+                        const now = ac.currentTime;
+                        try { _setLoopAudioParamValue(fxb.delay.node.delayTime, st.delayTime, now, immediate, glideSec); } catch (_) { }
+                        try { _setLoopAudioParamValue(fxb.delay.feedback.gain, st.delayFB, now, immediate, glideSec); } catch (_) { }
+                        try {
+                            _setLoopAudioParamValue(fxb.delay.wet.gain, st.delayMix, now, immediate, glideSec);
+                            _setLoopAudioParamValue(fxb.delay.dry.gain, 1 - st.delayMix, now, immediate, glideSec);
+                        } catch (_) { }
+                        try { _setLoopAudioParamValue(fxb.verbSend.gain, st.verbMix, now, immediate, glideSec); } catch (_) { }
+                        try { _setLoopAudioParamValue(fxb.eqHp.frequency, st.eqHpFreq, now, immediate, glideSec); } catch (_) { }
+                        try { _setLoopAudioParamValue(fxb.eqLp.frequency, st.eqLpFreq, now, immediate, glideSec); } catch (_) { }
+                        for (const k of ['eq1', 'eq2', 'eq3', 'eq4']) {
+                            const node = fxb[k];
+                            const band = st[k];
+                            if (!node || !band) continue;
+                            try { _setLoopAudioParamValue(node.frequency, band.freq, now, immediate, glideSec); } catch (_) { }
+                            try { _setLoopAudioParamValue(node.gain, band.gain, now, immediate, glideSec); } catch (_) { }
+                            try { _setLoopAudioParamValue(node.Q, band.q, now, immediate, glideSec); } catch (_) { }
+                        }
+                    };
+                    const _ensureInstFxBus = (inst) => {
+                        if (inst._fxBus) return inst._fxBus;
+                        const bus = _ensureLoopBus();
+                        if (!bus) return null;
+                        const ac = window.autoharp && window.autoharp.audioContext;
+                        if (!ac) return null;
+                        const st = _getInstFxState(inst);
+                        const mkP = (f, g, q) => {
+                            const n = ac.createBiquadFilter();
+                            n.type = 'peaking';
+                            n.frequency.value = f;
+                            n.gain.value = g;
+                            n.Q.value = q;
+                            return n;
+                        };
+                        const fxb = {
+                            input: ac.createGain(),
+                            eqHp: ac.createBiquadFilter(),
+                            eq1: mkP(st.eq1.freq, st.eq1.gain, st.eq1.q),
+                            eq2: mkP(st.eq2.freq, st.eq2.gain, st.eq2.q),
+                            eq3: mkP(st.eq3.freq, st.eq3.gain, st.eq3.q),
+                            eq4: mkP(st.eq4.freq, st.eq4.gain, st.eq4.q),
+                            eqLp: ac.createBiquadFilter(),
+                            delay: { node: ac.createDelay(8.0), feedback: ac.createGain(), wet: ac.createGain(), dry: ac.createGain(), mix: ac.createGain() },
+                            verbSend: ac.createGain(),
+                            out: ac.createGain()
+                        };
+                        fxb.eqHp.type = 'highpass';
+                        fxb.eqHp.frequency.value = st.eqHpFreq;
+                        fxb.eqHp.Q.value = 0.707;
+                        fxb.eqLp.type = 'lowpass';
+                        fxb.eqLp.frequency.value = st.eqLpFreq;
+                        fxb.eqLp.Q.value = 0.707;
+                        fxb.input.connect(fxb.eqHp);
+                        fxb.eqHp.connect(fxb.eq1);
+                        fxb.eq1.connect(fxb.eq2);
+                        fxb.eq2.connect(fxb.eq3);
+                        fxb.eq3.connect(fxb.eq4);
+                        fxb.eq4.connect(fxb.eqLp);
+                        fxb.eqLp.connect(fxb.delay.dry);
+                        fxb.eqLp.connect(fxb.delay.node);
+                        fxb.delay.node.connect(fxb.delay.feedback);
+                        fxb.delay.feedback.connect(fxb.delay.node);
+                        fxb.delay.feedback.gain.value = st.delayFB;
+                        fxb.delay.node.delayTime.value = st.delayTime;
+                        fxb.delay.node.connect(fxb.delay.wet);
+                        fxb.delay.wet.gain.value = st.delayMix;
+                        fxb.delay.dry.gain.value = 1 - st.delayMix;
+                        fxb.delay.dry.connect(fxb.delay.mix);
+                        fxb.delay.wet.connect(fxb.delay.mix);
+                        fxb.delay.mix.connect(fxb.out);
+                        fxb.delay.mix.connect(fxb.verbSend);
+                        fxb.verbSend.gain.value = st.verbMix;
+                        fxb.verbSend.connect(bus.verbNode);
+                        fxb.out.connect(bus.out);
+                        inst._fxBus = fxb;
+                        return fxb;
+                    };
+                    const _disconnectInstFxBus = (inst) => {
+                        const fxb = inst && inst._fxBus;
+                        if (!fxb) return;
+                        [fxb.input, fxb.eqHp, fxb.eq1, fxb.eq2, fxb.eq3, fxb.eq4, fxb.eqLp,
+                        fxb.delay.node, fxb.delay.feedback, fxb.delay.wet, fxb.delay.dry, fxb.delay.mix,
+                        fxb.verbSend, fxb.out].forEach(n => { try { if (n) n.disconnect(); } catch (_) { } });
+                        inst._fxBus = null;
+                    };
                     const _applyLoopFxState = () => {
                         const state = _getLoopFxState();
-                        const bus = window._loopBus;
-                        if (!bus) return state;
-                        try { bus.delay.node.delayTime.value = state.delayTime; } catch (_) { }
-                        try { bus.delay.feedback.gain.value = state.delayFB; } catch (_) { }
-                        try { bus.delay.wet.gain.value = state.delayFB > 0 ? 1 : 0; } catch (_) { }
-                        try { bus.verbSend.gain.value = state.verbMix; } catch (_) { }
-                        try { bus.filter.type = state.filterType; } catch (_) { }
-                        try { bus.filter.frequency.value = state.filterFreq; } catch (_) { }
+                        (window._loopInstances || []).forEach(inst => _applyInstFxState(inst, false, 0.014));
                         return state;
                     };
+                    window._applyLoopFxState = _applyLoopFxState;
 
                     // ---- Lazy loop audio bus (created once, on demand) ----
                     const _getLoopOutputMasterValue = () => {
@@ -12142,12 +12447,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         if (window._loopBus) return window._loopBus;
                         const omni = window.autoharp; if (!omni || !omni.audioContext) return null;
                         const ac = omni.audioContext;
-                        const state = _getLoopFxState();
                         const bus = {
-                            input: ac.createGain(),
-                            filter: ac.createBiquadFilter(),
-                            delay: { node: ac.createDelay(8.0), feedback: ac.createGain(), wet: ac.createGain(), dry: ac.createGain(), mix: ac.createGain() },
-                            verbSend: ac.createGain(),
                             verbNode: ac.createConvolver(),
                             verbWet: ac.createGain(),
                             out: ac.createGain(),
@@ -12156,30 +12456,21 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         bus.dcBlock.type = 'highpass';
                         bus.dcBlock.frequency.value = 18;
                         bus.dcBlock.Q.value = 0.707;
-                        bus.filter.type = state.filterType; bus.filter.frequency.value = state.filterFreq;
-                        bus.input.connect(bus.filter);
-                        bus.filter.connect(bus.delay.dry); bus.filter.connect(bus.delay.node);
-                        bus.delay.node.connect(bus.delay.feedback); bus.delay.feedback.connect(bus.delay.node);
-                        bus.delay.feedback.gain.value = state.delayFB;
-                        bus.delay.node.delayTime.value = state.delayTime;
-                        bus.delay.node.connect(bus.delay.wet); bus.delay.wet.gain.value = state.delayFB > 0 ? 1 : 0;
-                        bus.delay.dry.connect(bus.delay.mix); bus.delay.wet.connect(bus.delay.mix);
-                        bus.delay.mix.connect(bus.out);
-                        bus.delay.mix.connect(bus.verbSend); bus.verbSend.gain.value = state.verbMix;
-                        bus.verbSend.connect(bus.verbNode);
-                        // Build small reverb impulse
                         try {
                             const len = Math.floor(ac.sampleRate * 1.2);
                             const imp = ac.createBuffer(2, len, ac.sampleRate);
-                            for (let ch = 0; ch < 2; ch++) { const d = imp.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow((len - i) / len, 0.5); }
+                            for (let ch = 0; ch < 2; ch++) {
+                                const d = imp.getChannelData(ch);
+                                for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow((len - i) / len, 0.5);
+                            }
                             bus.verbNode.buffer = imp;
                         } catch (_) { }
-                        bus.verbNode.connect(bus.verbWet); bus.verbWet.gain.value = 0.5;
+                        bus.verbNode.connect(bus.verbWet);
+                        bus.verbWet.gain.value = 0.5;
                         bus.verbWet.connect(bus.out);
                         bus.out.connect(bus.dcBlock);
                         bus.dcBlock.connect(_getLoopOutputTargetNode(ac));
                         window._loopBus = bus;
-                        _applyLoopFxState();
                         return bus;
                     };
 
@@ -12546,12 +12837,15 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         const b = inst._stripBtn;
                         const en = !!inst.enabled;
                         const pe = inst.pendingEnabled != null ? !!inst.pendingEnabled : null;
+                        const arrangerMuted = !!(window._arrangerEnabled && inst._arrangerMuted);
                         let tc = en ? 'traffic-green' : 'traffic-red';
                         if (pe != null) {
                             if (en && pe === false) tc = 'traffic-orange';
                             else if (!en && pe === true) tc = 'traffic-yellow';
                             else tc = pe ? 'traffic-green' : 'traffic-red';
                         }
+                        // ARR override: if enabled but arranger-muted, show red
+                        if (arrangerMuted && en) tc = 'traffic-red';
                         ['traffic-green', 'traffic-red', 'traffic-orange', 'traffic-yellow'].forEach(c => b.classList.remove(c));
                         b.classList.add(tc);
                         if (inst.oneShot) b.classList.add('oneshot-armed'); else b.classList.remove('oneshot-armed');
@@ -12597,15 +12891,18 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     };
                     const _setLoopAudioParamValue = (param, value, now, immediate = false, glideSec = 0.02) => {
                         if (!param) return;
+                        const targetValue = Number(value);
+                        if (!Number.isFinite(targetValue)) return;
                         const current = Number(param.value);
-                        const startValue = Number.isFinite(current) ? current : Number(value) || 0;
+                        const startValue = Number.isFinite(current) ? current : targetValue;
+                        if (!immediate && Math.abs(startValue - targetValue) < 1e-6) return;
                         if (typeof param.cancelAndHoldAtTime === 'function') param.cancelAndHoldAtTime(now);
                         else {
                             param.cancelScheduledValues(now);
                             param.setValueAtTime(startValue, now);
                         }
-                        if (immediate || !(glideSec > 0.0005)) param.setValueAtTime(value, now);
-                        else param.linearRampToValueAtTime(value, now + glideSec);
+                        if (immediate || !(glideSec > 0.0005)) param.setValueAtTime(targetValue, now);
+                        else param.linearRampToValueAtTime(targetValue, now + glideSec);
                     };
                     const _applyLoopCompressorState = (inst, immediate = false) => {
                         const ac = window.autoharp && window.autoharp.audioContext;
@@ -12625,9 +12922,12 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         const gain = inst && inst._gainNode;
                         const ac = window.autoharp && window.autoharp.audioContext;
                         if (!gain || !ac) return;
-                        const target = inst && inst.enabled ? Math.max(0, Math.min(2, inst.volume || 1)) : 0;
+                        const arrangerMuted = !!(window._arrangerEnabled && inst._arrangerMuted);
+                        const effectiveEnabled = inst && inst.enabled && !arrangerMuted;
+                        const target = effectiveEnabled ? Math.max(0, Math.min(2, inst.volume || 1)) : 0;
                         _rampLoopGainTo(gain.gain, target, ac.currentTime, _loopOutputFadeSec, !!immediate);
                     };
+                    window._applyLoopOutputLevel = _applyLoopOutputLevel;
                     window._updateLoopInstanceButtonVisual = _updateLoopBtnVisual;
 
                     // ---- Global SOLO system for DRUM/PATTERN/LOOP strip buttons ----
@@ -12890,7 +13190,8 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         src.connect(comp);
                         comp.connect(compMakeupGain);
                         compMakeupGain.connect(gain);
-                        gain.connect(bus.input);
+                        const fxBus = _ensureInstFxBus(inst);
+                        gain.connect(fxBus ? fxBus.input : bus.out);
                         const now = ac.currentTime;
                         src.onended = () => {
                             try { src.disconnect(); } catch (_) { }
@@ -12914,6 +13215,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         inst._anchorContextTime = now;
                         inst._anchorOffsetSec = offsetSec;
                         inst._currentDetuneCents = detuneCents;
+                        _applyInstFxState(inst, true, 0.001);
                         _applyLoopCompressorState(inst, true);
                         _applyLoopOutputLevel(inst, false);
                         if (previousSource && previousGain) {
@@ -13125,6 +13427,23 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             ctx.fillRect(x, y1, 1, Math.max(1, y2 - y1));
                         }
                     };
+                    let _loopCtrlHeld = false;
+                    document.addEventListener('keydown', e => { if (e.key === 'Control') _loopCtrlHeld = true; });
+                    document.addEventListener('keyup', e => { if (e.key === 'Control') _loopCtrlHeld = false; });
+                    window.addEventListener('blur', () => { _loopCtrlHeld = false; });
+                    const _applyToAllLoops = (inst, propPath, value) => {
+                        (window._loopInstances || []).forEach(other => {
+                            if (other === inst) return;
+                            if (typeof propPath === 'string' && propPath.includes('.')) {
+                                const [obj, key] = propPath.split('.');
+                                if (!other[obj] || typeof other[obj] !== 'object') other[obj] = {};
+                                other[obj][key] = value;
+                            } else {
+                                other[propPath] = value;
+                            }
+                            _applyInstFxState(other, false, 0.014);
+                        });
+                    };
                     const _openLoopModal = (inst) => {
                         const modal = document.getElementById('loopModal'); if (!modal) return;
                         modal.style.display = 'block';
@@ -13140,9 +13459,8 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         const vol = document.getElementById('loopVolSlider');
                         const dt = document.getElementById('loopDelayTime');
                         const dfb = document.getElementById('loopDelayFB');
+                        const dmix = document.getElementById('loopDelayMix');
                         const verb = document.getElementById('loopVerbSlider');
-                        const ff = document.getElementById('loopFilterFreq');
-                        const ft = document.getElementById('loopFilterType');
                         const transpose = document.getElementById('loopTransposeToggle');
                         const os = document.getElementById('loopOneShotToggle');
                         const startOffset = document.getElementById('loopStartOffsetSlider');
@@ -13197,6 +13515,13 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 inst.compAmount = _clampLoopValue(parseInt(comp.value, 10) || 0, 0, 100);
                                 syncCompValue();
                                 _applyLoopCompressorState(inst, false);
+                                if (_loopCtrlHeld) {
+                                    (window._loopInstances || []).forEach(o => {
+                                        if (o === inst) return;
+                                        o.compAmount = inst.compAmount;
+                                        _applyLoopCompressorState(o, false);
+                                    });
+                                }
                             };
                             inst.compAmount = _getLoopCompressorAmount(inst);
                             comp.value = String(Math.round(inst.compAmount));
@@ -13204,52 +13529,144 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             comp.oninput = applyComp;
                             comp.onchange = applyComp;
                         }
-                        if (vol) { vol.value = String(Math.round((inst.volume || 1) * 100)); vol.oninput = () => { inst.volume = parseInt(vol.value, 10) / 100; _applyLoopOutputLevel(inst, true); }; }
+                        if (vol) {
+                            vol.value = String(Math.round((inst.volume || 1) * 100));
+                            vol.oninput = () => {
+                                inst.volume = parseInt(vol.value, 10) / 100;
+                                _applyLoopOutputLevel(inst, true);
+                                if (_loopCtrlHeld) {
+                                    (window._loopInstances || []).forEach(o => {
+                                        if (o === inst) return;
+                                        o.volume = inst.volume;
+                                        _applyLoopOutputLevel(o, true);
+                                    });
+                                }
+                            };
+                        }
                         if (dt) {
-                            const state = _getLoopFxState();
-                            dt.value = String(Math.round(state.delayTime * 1000));
+                            dt.value = String(Math.round(inst.delayTime * 1000));
                             dt.oninput = () => {
-                                const next = _getLoopFxState();
-                                next.delayTime = _clampLoopValue((parseInt(dt.value, 10) || 0) / 1000, 0, 1);
-                                _applyLoopFxState();
+                                inst.delayTime = _clampLoopValue((parseInt(dt.value, 10) || 0) / 1000, 0, 1);
+                                _applyInstFxState(inst, false, 0.014);
+                                if (_loopCtrlHeld) _applyToAllLoops(inst, 'delayTime', inst.delayTime);
                             };
                         }
                         if (dfb) {
-                            const state = _getLoopFxState();
-                            dfb.value = String(Math.round(state.delayFB * 100));
+                            dfb.value = String(Math.round(inst.delayFB * 100));
                             dfb.oninput = () => {
-                                const next = _getLoopFxState();
-                                next.delayFB = _clampLoopValue((parseInt(dfb.value, 10) || 0) / 100, 0, 0.95);
-                                _applyLoopFxState();
+                                inst.delayFB = _clampLoopValue((parseInt(dfb.value, 10) || 0) / 100, 0, 0.95);
+                                _applyInstFxState(inst, false, 0.014);
+                                if (_loopCtrlHeld) _applyToAllLoops(inst, 'delayFB', inst.delayFB);
+                            };
+                        }
+                        if (dmix) {
+                            dmix.value = String(Math.round((inst.delayMix != null ? inst.delayMix : 0.5) * 100));
+                            dmix.oninput = () => {
+                                inst.delayMix = _clampLoopValue((parseInt(dmix.value, 10) || 0) / 100, 0, 1);
+                                _applyInstFxState(inst, false, 0.014);
+                                if (_loopCtrlHeld) _applyToAllLoops(inst, 'delayMix', inst.delayMix);
                             };
                         }
                         if (verb) {
-                            const state = _getLoopFxState();
-                            verb.value = String(Math.round(state.verbMix * 100));
+                            verb.value = String(Math.round(inst.verbMix * 100));
                             verb.oninput = () => {
-                                const next = _getLoopFxState();
-                                next.verbMix = _clampLoopValue((parseInt(verb.value, 10) || 0) / 100, 0, 3);
-                                _applyLoopFxState();
+                                inst.verbMix = _clampLoopValue((parseInt(verb.value, 10) || 0) / 100, 0, 3);
+                                _applyInstFxState(inst, false, 0.014);
+                                if (_loopCtrlHeld) _applyToAllLoops(inst, 'verbMix', inst.verbMix);
                             };
                         }
-                        if (ff) {
-                            const state = _getLoopFxState();
-                            ff.value = String(_loopFilterHzToSlider(state.filterFreq));
-                            ff.oninput = () => {
-                                const next = _getLoopFxState();
-                                next.filterFreq = _loopSliderToFilterHz(parseFloat(ff.value));
-                                _applyLoopFxState();
-                            };
-                        }
-                        if (ft) {
-                            const state = _getLoopFxState();
-                            ft.value = state.filterType || 'lowpass';
-                            ft.onchange = () => {
-                                const next = _getLoopFxState();
-                                next.filterType = ft.value || 'lowpass';
-                                _applyLoopFxState();
-                            };
-                        }
+                        try {
+                            const eqState = _getInstFxState(inst);
+                            const _fmtHz = (hz) => hz >= 1000 ? (Math.round(hz / 100) / 10) + 'k' : String(Math.round(hz));
+                            const hpSlider = document.getElementById('loopEqHpFreq');
+                            const hpLabel = document.getElementById('loopEqHpLabel');
+                            const lpSlider = document.getElementById('loopEqLpFreq');
+                            const lpLabel = document.getElementById('loopEqLpLabel');
+                            if (hpSlider) {
+                                hpSlider.value = String(eqState.eqHpFreq);
+                                if (hpLabel) hpLabel.textContent = _fmtHz(eqState.eqHpFreq);
+                                hpSlider.oninput = () => {
+                                    inst.eqHpFreq = _clampLoopValue(parseInt(hpSlider.value, 10) || 20, 20, 800);
+                                    if (hpLabel) hpLabel.textContent = _fmtHz(inst.eqHpFreq);
+                                    _applyInstFxState(inst, false, 0.014);
+                                    if (_loopCtrlHeld) _applyToAllLoops(inst, 'eqHpFreq', inst.eqHpFreq);
+                                };
+                            }
+                            if (lpSlider) {
+                                lpSlider.value = String(eqState.eqLpFreq);
+                                if (lpLabel) lpLabel.textContent = _fmtHz(eqState.eqLpFreq);
+                                lpSlider.oninput = () => {
+                                    inst.eqLpFreq = _clampLoopValue(parseInt(lpSlider.value, 10) || 20000, 200, 20000);
+                                    if (lpLabel) lpLabel.textContent = _fmtHz(inst.eqLpFreq);
+                                    _applyInstFxState(inst, false, 0.014);
+                                    if (_loopCtrlHeld) _applyToAllLoops(inst, 'eqLpFreq', inst.eqLpFreq);
+                                };
+                            }
+                            for (const bIdx of [1, 2, 3, 4]) {
+                                const gSlider = document.getElementById('loopEqGain' + bIdx);
+                                const qSlider = document.getElementById('loopEqQ' + bIdx);
+                                const fLabel = document.getElementById('loopEqFreqLabel' + bIdx);
+                                const bKey = 'eq' + bIdx;
+                                const band = eqState[bKey];
+                                if (gSlider) {
+                                    gSlider.value = String(band.gain);
+                                    gSlider.oninput = () => {
+                                        if (!inst[bKey]) inst[bKey] = {};
+                                        inst[bKey].gain = _clampLoopValue(parseFloat(gSlider.value) || 0, -18, 18);
+                                        _applyInstFxState(inst, false, 0.014);
+                                        if (_loopCtrlHeld) _applyToAllLoops(inst, bKey + '.gain', inst[bKey].gain);
+                                    };
+                                }
+                                if (qSlider) {
+                                    qSlider.value = String(band.q);
+                                    qSlider.oninput = () => {
+                                        if (!inst[bKey]) inst[bKey] = {};
+                                        inst[bKey].q = _clampLoopValue(parseFloat(qSlider.value) || 1, 0.1, 12);
+                                        _applyInstFxState(inst, false, 0.014);
+                                        if (_loopCtrlHeld) _applyToAllLoops(inst, bKey + '.q', inst[bKey].q);
+                                    };
+                                }
+                                if (fLabel) {
+                                    fLabel.textContent = _fmtHz(band.freq);
+                                    fLabel._loopInst = inst;
+                                    fLabel._loopBandKey = bKey;
+                                    if (!fLabel._eqFreqWired) {
+                                        fLabel._eqFreqWired = true;
+                                        let dragStartX = null;
+                                        let dragStartFreq = null;
+                                        fLabel.addEventListener('pointerdown', (e) => {
+                                            e.preventDefault();
+                                            const activeInst = fLabel._loopInst;
+                                            const activeBandKey = fLabel._loopBandKey;
+                                            if (!activeInst || !activeBandKey) return;
+                                            dragStartX = e.clientX;
+                                            dragStartFreq = (activeInst[activeBandKey] && activeInst[activeBandKey].freq) || 200;
+                                            try { fLabel.setPointerCapture(e.pointerId); } catch (_) { }
+                                        });
+                                        fLabel.addEventListener('pointermove', (e) => {
+                                            if (dragStartX == null) return;
+                                            const activeInst = fLabel._loopInst;
+                                            const activeBandKey = fLabel._loopBandKey;
+                                            if (!activeInst || !activeBandKey) return;
+                                            e.preventDefault();
+                                            const dx = e.clientX - dragStartX;
+                                            const logMin = Math.log(20), logMax = Math.log(20000);
+                                            const logStart = Math.log(Math.max(20, dragStartFreq));
+                                            const logNext = _clampLoopValue(logStart + dx * 0.01, logMin, logMax);
+                                            if (!activeInst[activeBandKey]) activeInst[activeBandKey] = {};
+                                            activeInst[activeBandKey].freq = _clampLoopValue(Math.round(Math.exp(logNext)), 20, 20000);
+                                            fLabel.textContent = _fmtHz(activeInst[activeBandKey].freq);
+                                            _applyInstFxState(activeInst, false, 0.014);
+                                            if (_loopCtrlHeld) _applyToAllLoops(activeInst, activeBandKey + '.freq', activeInst[activeBandKey].freq);
+                                        });
+                                        const finishFreqDrag = () => { dragStartX = null; dragStartFreq = null; };
+                                        fLabel.addEventListener('pointerup', finishFreqDrag);
+                                        fLabel.addEventListener('pointercancel', finishFreqDrag);
+                                        fLabel.addEventListener('lostpointercapture', finishFreqDrag);
+                                    }
+                                }
+                            }
+                        } catch (_) { }
                         if (transpose) {
                             const currentBypass = _getLoopTransposeBypassState(inst);
                             inst.transposeBypass = currentBypass;
@@ -13274,6 +13691,44 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             startOffset.onchange = applyStartOffset;
                         }
                         if (del) { del.onclick = () => { _deleteLoop(inst); modal.style.display = 'none'; }; }
+                        // Wire Loop ARR toggle button
+                        try {
+                            const arrBtn = document.getElementById('loopArrToggleBtn');
+                            if (arrBtn) {
+                                if (!arrBtn._arrWired) {
+                                    arrBtn._arrWired = true;
+                                    arrBtn.addEventListener('click', (ev) => {
+                                        try { ev.preventDefault(); ev.stopPropagation(); } catch (_) { }
+                                        const drawer = document.getElementById('loopArrDrawer');
+                                        if (!drawer) return;
+                                        const isOpen = (drawer.style.display !== 'none');
+                                        if (isOpen) {
+                                            drawer.style.display = 'none';
+                                            arrBtn.style.background = '#214051';
+                                            arrBtn.style.color = '#e8f5ff';
+                                            window._unregisterArrangerDrawer && window._unregisterArrangerDrawer(drawer);
+                                        } else {
+                                            drawer.style.display = 'block';
+                                            arrBtn.style.background = '#2ecc71';
+                                            arrBtn.style.color = '#0a1014';
+                                            const activeInst = (window._loopInstances || []).find(i => i && i.id === window._activeLoopInstanceId);
+                                            if (activeInst) {
+                                                window._ensureArrangerConfig && window._ensureArrangerConfig(activeInst);
+                                                window._buildArrangerDrawer && window._buildArrangerDrawer(drawer, activeInst, 'loop');
+                                                window._registerArrangerDrawer && window._registerArrangerDrawer(drawer, activeInst, 'loop');
+                                            }
+                                        }
+                                    });
+                                }
+                                // Re-sync drawer content when switching loop instances
+                                const drawer = document.getElementById('loopArrDrawer');
+                                if (drawer && drawer.style.display !== 'none') {
+                                    window._ensureArrangerConfig && window._ensureArrangerConfig(inst);
+                                    window._buildArrangerDrawer && window._buildArrangerDrawer(drawer, inst, 'loop');
+                                    window._registerArrangerDrawer && window._registerArrangerDrawer(drawer, inst, 'loop');
+                                }
+                            }
+                        } catch (_) { }
                         // Close button
                         const closeBtn = document.getElementById('loopModalClose');
                         if (closeBtn) closeBtn.onclick = () => { modal.style.display = 'none'; };
@@ -13297,6 +13752,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     // ---- Delete loop ----
                     const _deleteLoop = (inst) => {
                         _stopLoop(inst);
+                        _disconnectInstFxBus(inst);
                         if (inst._stripBtn) inst._stripBtn.remove();
                         const idx = (window._loopInstances || []).indexOf(inst);
                         if (idx >= 0) window._loopInstances.splice(idx, 1);
@@ -13341,9 +13797,30 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             delayFB: (saved && Number.isFinite(Number(saved.delayFB)))
                                 ? _clampLoopValue(Number(saved.delayFB) || 0, 0, 0.95)
                                 : 0,
+                            delayMix: (saved && saved.delayMix != null && Number.isFinite(Number(saved.delayMix)))
+                                ? _clampLoopValue(Number(saved.delayMix), 0, 1)
+                                : 0.5,
                             verbMix: (saved && Number.isFinite(Number(saved.verbMix)))
                                 ? _clampLoopValue(Number(saved.verbMix) || 0, 0, 3)
                                 : 0,
+                            eqHpFreq: (saved && Number.isFinite(Number(saved.eqHpFreq)))
+                                ? _clampLoopValue(Number(saved.eqHpFreq) || 20, 20, 800)
+                                : 20,
+                            eqLpFreq: (saved && Number.isFinite(Number(saved.eqLpFreq)))
+                                ? _clampLoopValue(Number(saved.eqLpFreq) || 20000, 200, 20000)
+                                : 20000,
+                            eq1: (saved && saved.eq1 && typeof saved.eq1 === 'object')
+                                ? { freq: _clampLoopValue(Number(saved.eq1.freq) || 80, 20, 20000), gain: _clampLoopValue(Number(saved.eq1.gain) || 0, -18, 18), q: _clampLoopValue(Number(saved.eq1.q) || 1, 0.1, 12) }
+                                : { freq: 80, gain: 0, q: 1 },
+                            eq2: (saved && saved.eq2 && typeof saved.eq2 === 'object')
+                                ? { freq: _clampLoopValue(Number(saved.eq2.freq) || 200, 20, 20000), gain: _clampLoopValue(Number(saved.eq2.gain) || 0, -18, 18), q: _clampLoopValue(Number(saved.eq2.q) || 1, 0.1, 12) }
+                                : { freq: 200, gain: 0, q: 1 },
+                            eq3: (saved && saved.eq3 && typeof saved.eq3 === 'object')
+                                ? { freq: _clampLoopValue(Number(saved.eq3.freq) || 800, 20, 20000), gain: _clampLoopValue(Number(saved.eq3.gain) || 0, -18, 18), q: _clampLoopValue(Number(saved.eq3.q) || 1, 0.1, 12) }
+                                : { freq: 800, gain: 0, q: 1 },
+                            eq4: (saved && saved.eq4 && typeof saved.eq4 === 'object')
+                                ? { freq: _clampLoopValue(Number(saved.eq4.freq) || 4000, 20, 20000), gain: _clampLoopValue(Number(saved.eq4.gain) || 0, -18, 18), q: _clampLoopValue(Number(saved.eq4.q) || 1, 0.1, 12) }
+                                : { freq: 4000, gain: 0, q: 1 },
                             filterFreq: (saved && Number.isFinite(Number(saved.filterFreq)))
                                 ? _clampLoopValue(Number(saved.filterFreq) || _loopFilterMaxHz, _loopFilterMinHz, _loopFilterMaxHz)
                                 : _loopFilterMaxHz,
@@ -13352,7 +13829,10 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 : 'lowpass',
                             _oneShotStopCycle: !!(saved && saved._oneShotStopCycle),
                             _autoMutedForSectionId: null,
-                            _sourceNode: null, _gainNode: null, _stripBtn: null, _labelEl: null, _previewCanvas: null
+                            _fxBus: null,
+                            _sourceNode: null, _gainNode: null, _stripBtn: null, _labelEl: null, _previewCanvas: null,
+                            arrangerConfig: (typeof window._buildDefaultArrangerConfig === 'function') ? window._buildDefaultArrangerConfig() : [{ chordEnabled: {} }],
+                            _arrangerMuted: false,
                         };
                         window._loopInstances.push(inst);
                         _wireLoopBtn(inst, label);
@@ -13501,13 +13981,16 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                     _applyLoopOutputLevel(inst, false);
                                     _updateLoopBtnVisual(inst);
                                 }
+                                // Arranger mute: suppress output if ARR system has muted this loop
+                                const arrangerMuted = !!(window._arrangerEnabled && inst._arrangerMuted);
+                                const effectiveEnabled = inst.enabled && !arrangerMuted;
                                 if (inst.buffer) {
                                     const ac = window.autoharp && window.autoharp.audioContext;
                                     const desiredOffsetSec = _getLoopPlaybackOffsetSec(inst, absTick, tickMs);
                                     if (inst._sourceNode && ac) {
                                         const syncErrorSec = _getLoopSyncErrorSec(inst, desiredOffsetSec, ac.currentTime);
                                         if (syncErrorSec > _loopResyncDriftThresholdSec) {
-                                            if (inst.enabled) {
+                                            if (effectiveEnabled) {
                                                 _ensureLoopBus();
                                                 _scheduleLoop(inst, { offsetSec: desiredOffsetSec, detuneCents: targetDetuneCents, crossfade: true });
                                             } else {
@@ -13609,7 +14092,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             _loopLatencyRtProbe.active = false;
                             _loopLatencyRtProbe = null;
                         }
-                        (window._loopInstances || []).forEach(inst => { _stopLoop(inst); if (inst._stripBtn) inst._stripBtn.remove(); });
+                        (window._loopInstances || []).forEach(inst => { _stopLoop(inst); _disconnectInstFxBus(inst); if (inst._stripBtn) inst._stripBtn.remove(); });
                         window._loopInstances = [];
                         window._loopInstanceCounter = 0;
                         window._loopCycleJustStarted = false;
@@ -13628,7 +14111,14 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     const _getLoopDefaultFxState = () => ({
                         delayTime: 0,
                         delayFB: 0,
+                        delayMix: 0.5,
                         verbMix: 0,
+                        eqHpFreq: 20,
+                        eqLpFreq: 20000,
+                        eq1: { freq: 80, gain: 0, q: 1 },
+                        eq2: { freq: 200, gain: 0, q: 1 },
+                        eq3: { freq: 800, gain: 0, q: 1 },
+                        eq4: { freq: 4000, gain: 0, q: 1 },
                         filterFreq: _loopFilterMaxHz,
                         filterType: 'lowpass'
                     });
@@ -13639,7 +14129,17 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         };
                         merged.delayTime = _clampLoopValue(Number(merged.delayTime) || 0, 0, 1);
                         merged.delayFB = _clampLoopValue(Number(merged.delayFB) || 0, 0, 0.95);
+                        merged.delayMix = _clampLoopValue(Number(merged.delayMix) ?? 0.5, 0, 1);
                         merged.verbMix = _clampLoopValue(Number(merged.verbMix) || 0, 0, 3);
+                        merged.eqHpFreq = _clampLoopValue(Number(merged.eqHpFreq) || 20, 20, 800);
+                        merged.eqLpFreq = _clampLoopValue(Number(merged.eqLpFreq) || 20000, 200, 20000);
+                        const eqDef = { eq1: 80, eq2: 200, eq3: 800, eq4: 4000 };
+                        for (const k of ['eq1', 'eq2', 'eq3', 'eq4']) {
+                            if (!merged[k] || typeof merged[k] !== 'object') merged[k] = {};
+                            merged[k].freq = _clampLoopValue(Number(merged[k].freq) || eqDef[k], 20, 20000);
+                            merged[k].gain = _clampLoopValue(Number(merged[k].gain) || 0, -18, 18);
+                            merged[k].q = _clampLoopValue(Number(merged[k].q) || 1, 0.1, 12);
+                        }
                         merged.filterFreq = _clampLoopValue(Number(merged.filterFreq) || _loopFilterMaxHz, _loopFilterMinHz, _loopFilterMaxHz);
                         merged.filterType = ['lowpass', 'highpass', 'bandpass'].includes(merged.filterType) ? merged.filterType : 'lowpass';
                         return merged;
@@ -13738,7 +14238,14 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                     volume: _clampLoopValue(Number(inst.volume) || 0, 0, 2),
                                     delayTime: _clampLoopValue(Number(inst.delayTime) || 0, 0, 1),
                                     delayFB: _clampLoopValue(Number(inst.delayFB) || 0, 0, 0.95),
+                                    delayMix: _clampLoopValue((inst.delayMix != null) ? Number(inst.delayMix) : 0.5, 0, 1),
                                     verbMix: _clampLoopValue(Number(inst.verbMix) || 0, 0, 3),
+                                    eqHpFreq: _clampLoopValue(Number(inst.eqHpFreq) || 20, 20, 800),
+                                    eqLpFreq: _clampLoopValue(Number(inst.eqLpFreq) || 20000, 200, 20000),
+                                    eq1: inst.eq1 ? { freq: inst.eq1.freq, gain: inst.eq1.gain, q: inst.eq1.q } : { freq: 80, gain: 0, q: 1 },
+                                    eq2: inst.eq2 ? { freq: inst.eq2.freq, gain: inst.eq2.gain, q: inst.eq2.q } : { freq: 200, gain: 0, q: 1 },
+                                    eq3: inst.eq3 ? { freq: inst.eq3.freq, gain: inst.eq3.gain, q: inst.eq3.q } : { freq: 800, gain: 0, q: 1 },
+                                    eq4: inst.eq4 ? { freq: inst.eq4.freq, gain: inst.eq4.gain, q: inst.eq4.q } : { freq: 4000, gain: 0, q: 1 },
                                     filterFreq: _clampLoopValue(Number(inst.filterFreq) || _loopFilterMaxHz, _loopFilterMinHz, _loopFilterMaxHz),
                                     filterType: ['lowpass', 'highpass', 'bandpass'].includes(inst.filterType) ? inst.filterType : 'lowpass',
                                     _oneShotStopCycle: !!inst._oneShotStopCycle,
@@ -13826,6 +14333,382 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             }
                         }
                         return restored;
+                    };
+                })();
+
+                // ===== ARRANGER SYSTEM: per-chord mute/unmute across cycles =====
+                (() => {
+                    // --- Global arranger state ---
+                    window._arrangerCycleCount = window._arrangerCycleCount || 1;
+                    window._arrangerCycleIndex = 0;
+                    window._arrangerEnabled = true;
+                    window._arrangerOpenDrawers = window._arrangerOpenDrawers || [];
+
+                    // Read startup default from settings
+                    try {
+                        const settingsEl = document.getElementById('settingsStartupArrEnabled');
+                        const transportEl = document.getElementById('arrangerToggle');
+                        if (settingsEl) {
+                            const def = !!settingsEl.checked;
+                            window._arrangerEnabled = def;
+                            if (transportEl) transportEl.checked = def;
+                        }
+                    } catch (_) { }
+
+                    // Wire transport ARR toggle
+                    try {
+                        const el = document.getElementById('arrangerToggle');
+                        if (el && !el._arrangerWired) {
+                            el._arrangerWired = true;
+                            el.addEventListener('change', () => { window._arrangerEnabled = !!el.checked; });
+                        }
+                    } catch (_) { }
+
+                    // --- Helpers ---
+
+                    // Get list of real chord columns (skip repeat markers, separators)
+                    window._getArrangerChordList = function () {
+                        try {
+                            const omni = window.autoharp;
+                            const exts = (omni && Array.isArray(omni.chordExtensions)) ? omni.chordExtensions : [];
+                            const list = [];
+                            exts.forEach((ext, idx) => {
+                                if (!ext || ext.isRepeatMarker || ext.isSeparator || ext.name === '|') return;
+                                list.push({ index: idx, name: ext.name || ('?'), id: ext.id || String(idx) });
+                            });
+                            return list;
+                        } catch (_) { return []; }
+                    };
+
+                    // Build default arrangerConfig for an instance (1 cycle, all chords enabled)
+                    window._buildDefaultArrangerConfig = function () {
+                        const chords = window._getArrangerChordList();
+                        const enabled = {};
+                        chords.forEach(c => { enabled[String(c.index)] = true; });
+                        return [{ chordEnabled: enabled }];
+                    };
+
+                    // Ensure arrangerConfig exists and has the right number of cycles
+                    window._ensureArrangerConfig = function (inst) {
+                        if (!inst) return;
+                        if (!Array.isArray(inst.arrangerConfig) || inst.arrangerConfig.length === 0) {
+                            inst.arrangerConfig = window._buildDefaultArrangerConfig();
+                        }
+                        const count = Math.max(1, window._arrangerCycleCount || 1);
+                        // Pad up to current cycle count
+                        while (inst.arrangerConfig.length < count) {
+                            const last = inst.arrangerConfig[inst.arrangerConfig.length - 1];
+                            const dup = { chordEnabled: Object.assign({}, last.chordEnabled) };
+                            inst.arrangerConfig.push(dup);
+                        }
+                        // Ensure all current chords have keys in each cycle
+                        const chords = window._getArrangerChordList();
+                        inst.arrangerConfig.forEach(cycle => {
+                            if (!cycle.chordEnabled) cycle.chordEnabled = {};
+                            chords.forEach(c => {
+                                const k = String(c.index);
+                                if (cycle.chordEnabled[k] === undefined) cycle.chordEnabled[k] = true;
+                            });
+                        });
+                    };
+
+                    // Add a new cycle to ALL instances (duplicates last cycle per instance)
+                    window._addArrangerCycle = function () {
+                        window._arrangerCycleCount = Math.max(1, (window._arrangerCycleCount || 1)) + 1;
+                        const allInstances = [
+                            ...(Array.isArray(window._patternInstances) ? window._patternInstances : []),
+                            ...(Array.isArray(window._drumInstances) ? window._drumInstances : []),
+                            ...(Array.isArray(window._loopInstances) ? window._loopInstances : [])
+                        ];
+                        // Also include base pattern modal
+                        try {
+                            const baseModal = document.getElementById('patternModal');
+                            if (baseModal) {
+                                window._ensureArrangerConfig(baseModal);
+                                const last = baseModal.arrangerConfig[baseModal.arrangerConfig.length - 1];
+                                baseModal.arrangerConfig.push({ chordEnabled: Object.assign({}, last.chordEnabled) });
+                            }
+                        } catch (_) { }
+                        allInstances.forEach(inst => {
+                            if (!inst) return;
+                            // For pattern instances, config is on the modal
+                            const target = inst.modal || inst;
+                            window._ensureArrangerConfig(target);
+                            const last = target.arrangerConfig[target.arrangerConfig.length - 1];
+                            target.arrangerConfig.push({ chordEnabled: Object.assign({}, last.chordEnabled) });
+                        });
+                        window._rebuildAllArrangerDrawers();
+                    };
+
+                    // Remove a cycle from ALL instances
+                    window._removeArrangerCycle = function (cycleIdx) {
+                        if ((window._arrangerCycleCount || 1) <= 1) return;
+                        window._arrangerCycleCount = Math.max(1, (window._arrangerCycleCount || 1) - 1);
+                        const removeFrom = (target) => {
+                            if (!target || !Array.isArray(target.arrangerConfig)) return;
+                            if (cycleIdx >= 0 && cycleIdx < target.arrangerConfig.length && target.arrangerConfig.length > 1) {
+                                target.arrangerConfig.splice(cycleIdx, 1);
+                            }
+                        };
+                        try {
+                            const baseModal = document.getElementById('patternModal');
+                            if (baseModal) removeFrom(baseModal);
+                        } catch (_) { }
+                        (Array.isArray(window._patternInstances) ? window._patternInstances : []).forEach(inst => {
+                            removeFrom(inst && inst.modal ? inst.modal : inst);
+                        });
+                        (Array.isArray(window._drumInstances) ? window._drumInstances : []).forEach(inst => removeFrom(inst));
+                        (Array.isArray(window._loopInstances) ? window._loopInstances : []).forEach(inst => removeFrom(inst));
+                        // Clamp cycle index if needed
+                        if (window._arrangerCycleIndex >= window._arrangerCycleCount) {
+                            window._arrangerCycleIndex = 0;
+                        }
+                        window._rebuildAllArrangerDrawers();
+                    };
+
+                    // Check if an instance should be arranger-muted for a given chord column index
+                    // chordColIdx is the index into the chordExtensions array (matching _getArrangerChordList keys)
+                    window._isArrangerMuted = function (target, chordColIdx) {
+                        if (!window._arrangerEnabled) return false;
+                        if (!target || !Array.isArray(target.arrangerConfig)) return false;
+                        const cycleIdx = Math.max(0, window._arrangerCycleIndex || 0) % Math.max(1, target.arrangerConfig.length);
+                        const cycle = target.arrangerConfig[cycleIdx];
+                        if (!cycle || !cycle.chordEnabled) return false;
+                        const k = String(chordColIdx);
+                        if (cycle.chordEnabled[k] === undefined) return false; // unknown chord = play
+                        return !cycle.chordEnabled[k];
+                    };
+
+                    // Compute arranger mute flags for ALL instances based on current chord
+                    // sequenceIdx is the index into allCols (DOM column array, includes markers/separators).
+                    // We must resolve it to a chordExtensions index for the arranger key lookup.
+                    window._computeArrangerMutes = function (sequenceIdx) {
+                        // Resolve allCols sequenceIdx → chordExtensions array index
+                        let chordColIdx = -1;
+                        try {
+                            const tr = window.autoharp && window.autoharp._arpTransport;
+                            const allCols = tr && tr._seqAllCols;
+                            if (allCols && allCols[sequenceIdx]) {
+                                const col = allCols[sequenceIdx];
+                                const colChordId = col.dataset && col.dataset.chordId ? String(col.dataset.chordId) : '';
+                                if (colChordId) {
+                                    const exts = (window.autoharp && Array.isArray(window.autoharp.chordExtensions)) ? window.autoharp.chordExtensions : [];
+                                    for (let i = 0; i < exts.length; i++) {
+                                        const ext = exts[i];
+                                        if (ext && !ext.isRepeatMarker && !ext.isSeparator && ext.name !== '|') {
+                                            if (String(ext.id || '') === colChordId) {
+                                                chordColIdx = i;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (_) { }
+                        // If we couldn't resolve via chordId, this is a non-chord column (marker/separator) — skip
+                        if (chordColIdx < 0) return;
+
+                        if (!window._arrangerEnabled) {
+                            // Clear all arranger mutes and update visuals
+                            try {
+                                const baseModal = document.getElementById('patternModal');
+                                if (baseModal) baseModal._arrangerMuted = false;
+                            } catch (_) { }
+                            (Array.isArray(window._patternInstances) ? window._patternInstances : []).forEach(inst => {
+                                if (inst && inst.modal) { inst.modal._arrangerMuted = false; try { window._updatePatternInstanceButtonVisual && window._updatePatternInstanceButtonVisual(inst.modal); } catch (_) { } }
+                            });
+                            (Array.isArray(window._drumInstances) ? window._drumInstances : []).forEach(inst => {
+                                if (inst) { inst._arrangerMuted = false; try { window._updateDrumInstanceButtonVisual && window._updateDrumInstanceButtonVisual(inst); } catch (_) { } }
+                            });
+                            (Array.isArray(window._loopInstances) ? window._loopInstances : []).forEach(inst => {
+                                if (inst) { inst._arrangerMuted = false; try { window._applyLoopOutputLevel && window._applyLoopOutputLevel(inst, false); } catch (_) { } try { window._updateLoopInstanceButtonVisual && window._updateLoopInstanceButtonVisual(inst); } catch (_) { } }
+                            });
+                            return;
+                        }
+                        // Base pattern
+                        try {
+                            const baseModal = document.getElementById('patternModal');
+                            if (baseModal) {
+                                window._ensureArrangerConfig(baseModal);
+                                baseModal._arrangerMuted = window._isArrangerMuted(baseModal, chordColIdx);
+                            }
+                        } catch (_) { }
+                        // Pattern instances
+                        (Array.isArray(window._patternInstances) ? window._patternInstances : []).forEach(inst => {
+                            if (!inst || !inst.modal) return;
+                            window._ensureArrangerConfig(inst.modal);
+                            inst.modal._arrangerMuted = window._isArrangerMuted(inst.modal, chordColIdx);
+                            try { window._updatePatternInstanceButtonVisual && window._updatePatternInstanceButtonVisual(inst.modal); } catch (_) { }
+                        });
+                        // Drum instances
+                        (Array.isArray(window._drumInstances) ? window._drumInstances : []).forEach(inst => {
+                            if (!inst) return;
+                            window._ensureArrangerConfig(inst);
+                            inst._arrangerMuted = window._isArrangerMuted(inst, chordColIdx);
+                            try { window._updateDrumInstanceButtonVisual && window._updateDrumInstanceButtonVisual(inst); } catch (_) { }
+                        });
+                        // Loop instances
+                        (Array.isArray(window._loopInstances) ? window._loopInstances : []).forEach(inst => {
+                            if (!inst) return;
+                            window._ensureArrangerConfig(inst);
+                            inst._arrangerMuted = window._isArrangerMuted(inst, chordColIdx);
+                            try { window._applyLoopOutputLevel && window._applyLoopOutputLevel(inst, false); } catch (_) { }
+                            try { window._updateLoopInstanceButtonVisual && window._updateLoopInstanceButtonVisual(inst); } catch (_) { }
+                        });
+                    };
+
+                    // --- ARR Drawer UI ---
+
+                    window._buildArrangerDrawer = function (containerEl, target, instanceType) {
+                        if (!containerEl) return;
+                        window._ensureArrangerConfig(target);
+                        containerEl.innerHTML = '';
+                        const chords = window._getArrangerChordList();
+                        const cycleCount = Math.max(1, window._arrangerCycleCount || 1);
+
+                        // Wrapper with horizontal scroll
+                        const wrapper = document.createElement('div');
+                        wrapper.style.cssText = 'overflow-x:auto;overflow-y:auto;max-height:220px;font-size:11px;color:#e8f5ff;';
+
+                        // Table
+                        const table = document.createElement('table');
+                        table.style.cssText = 'border-collapse:collapse;min-width:100%;';
+                        table.dataset.arrangerTable = '1';
+
+                        // Header row
+                        const thead = document.createElement('thead');
+                        const hrow = document.createElement('tr');
+                        const thCycle = document.createElement('th');
+                        thCycle.textContent = 'Cycle';
+                        thCycle.style.cssText = 'padding:2px 6px;font-size:10px;color:#8ab4c8;text-align:center;position:sticky;left:0;background:#0d1b24;z-index:1;';
+                        hrow.appendChild(thCycle);
+                        chords.forEach(c => {
+                            const th = document.createElement('th');
+                            th.textContent = c.name;
+                            th.title = c.name;
+                            th.style.cssText = 'padding:2px 4px;font-size:10px;color:#8ab4c8;text-align:center;white-space:nowrap;max-width:60px;overflow:hidden;text-overflow:ellipsis;';
+                            hrow.appendChild(th);
+                        });
+                        const thDel = document.createElement('th');
+                        thDel.style.cssText = 'padding:2px 4px;width:24px;';
+                        hrow.appendChild(thDel);
+                        thead.appendChild(hrow);
+                        table.appendChild(thead);
+
+                        // Body rows (one per cycle)
+                        const tbody = document.createElement('tbody');
+                        for (let ci = 0; ci < cycleCount; ci++) {
+                            const cycle = target.arrangerConfig[ci];
+                            const row = document.createElement('tr');
+                            row.dataset.cycleIdx = String(ci);
+                            // Highlight active cycle during playback
+                            if (ci === (window._arrangerCycleIndex || 0)) {
+                                row.style.background = 'rgba(46,204,113,0.12)';
+                            }
+                            // Cycle number label
+                            const tdNum = document.createElement('td');
+                            tdNum.textContent = String(ci + 1);
+                            tdNum.style.cssText = 'padding:2px 6px;text-align:center;font-weight:700;position:sticky;left:0;background:#0d1b24;z-index:1;';
+                            row.appendChild(tdNum);
+                            // Checkboxes per chord
+                            chords.forEach(c => {
+                                const td = document.createElement('td');
+                                td.style.cssText = 'padding:2px 4px;text-align:center;';
+                                const cb = document.createElement('input');
+                                cb.type = 'checkbox';
+                                cb.style.cssText = 'transform:scale(1.1);cursor:pointer;';
+                                const k = String(c.index);
+                                cb.checked = !!(cycle && cycle.chordEnabled && cycle.chordEnabled[k] !== false);
+                                cb.addEventListener('change', () => {
+                                    if (cycle && cycle.chordEnabled) {
+                                        cycle.chordEnabled[k] = !!cb.checked;
+                                    }
+                                });
+                                td.appendChild(cb);
+                                row.appendChild(td);
+                            });
+                            // Delete button
+                            const tdDel = document.createElement('td');
+                            tdDel.style.cssText = 'padding:2px 4px;text-align:center;';
+                            if (cycleCount > 1) {
+                                const delBtn = document.createElement('button');
+                                delBtn.textContent = '×';
+                                delBtn.title = 'Remove this cycle';
+                                delBtn.style.cssText = 'width:20px;height:20px;background:#5a2020;color:#ff8888;border:1px solid #884444;border-radius:4px;font-size:12px;cursor:pointer;line-height:1;padding:0;';
+                                const capturedCi = ci;
+                                delBtn.addEventListener('click', () => { window._removeArrangerCycle(capturedCi); });
+                                tdDel.appendChild(delBtn);
+                            }
+                            row.appendChild(tdDel);
+                            tbody.appendChild(row);
+                        }
+                        table.appendChild(tbody);
+                        wrapper.appendChild(table);
+
+                        // Footer: + button
+                        const footer = document.createElement('div');
+                        footer.style.cssText = 'display:flex;align-items:center;justify-content:flex-start;padding:4px 0;gap:8px;';
+                        const addBtn = document.createElement('button');
+                        addBtn.textContent = '+ Cycle';
+                        addBtn.title = 'Add a new arrangement cycle';
+                        addBtn.style.cssText = 'background:#214051;color:#e8f5ff;border:1px solid #4a6870;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;';
+                        addBtn.addEventListener('click', () => { window._addArrangerCycle(); });
+                        footer.appendChild(addBtn);
+                        // Show active cycle indicator
+                        const cycleLabel = document.createElement('span');
+                        cycleLabel.className = 'arr-cycle-indicator';
+                        cycleLabel.style.cssText = 'font-size:10px;opacity:.7;';
+                        cycleLabel.textContent = `Active: Cycle ${(window._arrangerCycleIndex || 0) + 1} / ${cycleCount}`;
+                        footer.appendChild(cycleLabel);
+
+                        containerEl.appendChild(wrapper);
+                        containerEl.appendChild(footer);
+                    };
+
+                    // Rebuild all currently open ARR drawers
+                    window._rebuildAllArrangerDrawers = function () {
+                        try {
+                            const drawers = window._arrangerOpenDrawers || [];
+                            drawers.forEach(entry => {
+                                if (!entry || !entry.container || !entry.target) return;
+                                // Check container is still in DOM
+                                if (!document.body.contains(entry.container)) return;
+                                window._buildArrangerDrawer(entry.container, entry.target, entry.type);
+                            });
+                            // Clean up stale entries
+                            window._arrangerOpenDrawers = drawers.filter(e => e && e.container && document.body.contains(e.container));
+                        } catch (_) { }
+                    };
+
+                    // Sync arranger configs for ALL instances (adds new chord keys) and rebuild open drawers
+                    window._syncArrangerOnChordChange = function () {
+                        try {
+                            const baseModal = document.getElementById('patternModal');
+                            if (baseModal && Array.isArray(baseModal.arrangerConfig)) window._ensureArrangerConfig(baseModal);
+                            (Array.isArray(window._patternInstances) ? window._patternInstances : []).forEach(inst => {
+                                if (inst && inst.modal && Array.isArray(inst.modal.arrangerConfig)) window._ensureArrangerConfig(inst.modal);
+                            });
+                            (Array.isArray(window._drumInstances) ? window._drumInstances : []).forEach(inst => {
+                                if (inst && Array.isArray(inst.arrangerConfig)) window._ensureArrangerConfig(inst);
+                            });
+                            (Array.isArray(window._loopInstances) ? window._loopInstances : []).forEach(inst => {
+                                if (inst && Array.isArray(inst.arrangerConfig)) window._ensureArrangerConfig(inst);
+                            });
+                        } catch (_) { }
+                        window._rebuildAllArrangerDrawers();
+                    };
+
+                    // Register a drawer for rebuild tracking
+                    window._registerArrangerDrawer = function (container, target, type) {
+                        window._arrangerOpenDrawers = window._arrangerOpenDrawers || [];
+                        // Remove existing entry for same container
+                        window._arrangerOpenDrawers = window._arrangerOpenDrawers.filter(e => e && e.container !== container);
+                        window._arrangerOpenDrawers.push({ container, target, type });
+                    };
+
+                    // Unregister a drawer
+                    window._unregisterArrangerDrawer = function (container) {
+                        window._arrangerOpenDrawers = (window._arrangerOpenDrawers || []).filter(e => e && e.container !== container);
                     };
                 })();
 
@@ -17026,7 +17909,8 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         return {
                             key,
                             enabled: !!modal._patternEnabled,
-                            pendingEnabled: (modal._patternPendingEnabled != null) ? !!modal._patternPendingEnabled : null
+                            pendingEnabled: (modal._patternPendingEnabled != null) ? !!modal._patternPendingEnabled : null,
+                            arrangerConfig: modal.arrangerConfig || null
                         };
                     }).filter(Boolean);
 
@@ -17038,7 +17922,24 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 if (!inst || !inst.id) return;
                                 out[String(inst.id)] = {
                                     enabled: !!inst.enabled,
-                                    pendingEnabled: (inst.pendingEnabled != null) ? !!inst.pendingEnabled : null
+                                    pendingEnabled: (inst.pendingEnabled != null) ? !!inst.pendingEnabled : null,
+                                    arrangerConfig: inst.arrangerConfig || null
+                                };
+                            });
+                        } catch (_) { }
+                        return out;
+                    })();
+
+                    const loopMuteById = (() => {
+                        const out = {};
+                        try {
+                            const list = Array.isArray(window._loopInstances) ? window._loopInstances : [];
+                            list.forEach(inst => {
+                                if (!inst || !inst.id) return;
+                                out[String(inst.id)] = {
+                                    enabled: !!inst.enabled,
+                                    pendingEnabled: (inst.pendingEnabled != null) ? !!inst.pendingEnabled : null,
+                                    arrangerConfig: inst.arrangerConfig || null
                                 };
                             });
                         } catch (_) { }
@@ -17051,7 +17952,9 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         basePatternEnabled,
                         loopRange: captureLoopRange(),
                         patternInstances: patternInstancesState,
-                        drumMuteById
+                        drumMuteById,
+                        loopMuteById,
+                        arrangerCycleCount: window._arrangerCycleCount || 1
                     };
                 };
 
@@ -17168,6 +18071,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             const st = byKey[key];
                             modal._patternEnabled = !!st.enabled;
                             modal._patternPendingEnabled = (st.pendingEnabled != null) ? !!st.pendingEnabled : null;
+                            if (st.arrangerConfig) modal.arrangerConfig = cloneJson(st.arrangerConfig);
                             try { window._updatePatternInstanceButtonVisual && window._updatePatternInstanceButtonVisual(modal); } catch (_) { }
                         });
                     } catch (_) { }
@@ -17182,8 +18086,37 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 if (!st) return;
                                 inst.enabled = !!st.enabled;
                                 inst.pendingEnabled = (st.pendingEnabled != null) ? !!st.pendingEnabled : null;
+                                if (st.arrangerConfig) inst.arrangerConfig = cloneJson(st.arrangerConfig);
                                 try { window._updateDrumInstanceButtonVisual && window._updateDrumInstanceButtonVisual(inst); } catch (_) { }
                             });
+                        }
+                    } catch (_) { }
+
+                    // Restore loop instance enabled/pending/arranger configs (like drums)
+                    try {
+                        const loopMutes = (state && state.loopMuteById && typeof state.loopMuteById === 'object') ? state.loopMuteById : null;
+                        if (loopMutes) {
+                            const loops = Array.isArray(window._loopInstances) ? window._loopInstances : [];
+                            const loopSetter = (typeof window._setLoopInstanceEnabled === 'function') ? window._setLoopInstanceEnabled : null;
+                            loops.forEach(inst => {
+                                if (!inst || !inst.id) return;
+                                const st = loopMutes[String(inst.id)];
+                                if (!st) return;
+                                if (typeof st.enabled === 'boolean') {
+                                    if (loopSetter) loopSetter(inst, st.enabled, { clearPending: true });
+                                    else inst.enabled = st.enabled;
+                                }
+                                if (st.pendingEnabled != null) inst.pendingEnabled = !!st.pendingEnabled;
+                                if (st.arrangerConfig) inst.arrangerConfig = cloneJson(st.arrangerConfig);
+                                try { window._updateLoopInstanceButtonVisual && window._updateLoopInstanceButtonVisual(inst); } catch (_) { }
+                            });
+                        }
+                    } catch (_) { }
+
+                    // Restore arranger cycle count
+                    try {
+                        if (Number.isFinite(state.arrangerCycleCount) && state.arrangerCycleCount >= 1) {
+                            window._arrangerCycleCount = state.arrangerCycleCount | 0;
                         }
                     } catch (_) { }
                 };
@@ -17206,7 +18139,17 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     };
                     const _applySectionLoopAutoMute = (stateOrSection, sectionId) => {
                         try {
-                            // Check "Mute Loops on Section Change" setting — if enabled, mute ALL loops
+                            // Only auto-mute loops when actively recording a loop.
+                            // During regular playback, loop enabled states are saved/restored
+                            // per section just like drums and patterns.
+                            let isRecording = false;
+                            try {
+                                const btn = document.getElementById('newLoopBtn');
+                                if (btn && btn.classList && (btn.classList.contains('loop-recording') || btn.classList.contains('loop-armed'))) isRecording = true;
+                            } catch (_) { }
+                            if (!isRecording) return; // normal playback: states already restored by applySectionState
+
+                            // Recording in progress — auto-mute loops from incompatible sections
                             let muteAll = true; // default on
                             try {
                                 if (typeof window._getAppSettings === 'function') {
@@ -18806,6 +19749,8 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                         }
                                     }
                                     if (!inst.enabled) continue;
+                                    // Arranger mute: skip this drum if ARR system has muted it for the current chord
+                                    if (window._arrangerEnabled && inst._arrangerMuted) continue;
 
                                     const st = inst.state;
                                     const lanes = (st && Array.isArray(st.lanes)) ? st.lanes : [];
@@ -20445,6 +21390,41 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                 });
                             } catch (_) { }
 
+                            // Wire ARR drawer toggle (Pattern modal) - scoped per modal to support multiple instances
+                            try {
+                                const arrBtns = Array.from(document.querySelectorAll('#patternArrToggleBtn, [data-role="patternArrToggleBtn"]'));
+                                arrBtns.forEach((arrBtn) => {
+                                    if (!arrBtn || arrBtn._arrWired) return;
+                                    arrBtn._arrWired = true;
+                                    arrBtn.addEventListener('click', (ev) => {
+                                        try { ev.preventDefault(); ev.stopPropagation(); } catch (_) { }
+                                        const root = arrBtn.closest('.floating-modal') || document;
+                                        const drawer = root.querySelector
+                                            ? (root.querySelector('[data-role="patternArrDrawer"]') || root.querySelector('#patternArrDrawer'))
+                                            : document.getElementById('patternArrDrawer');
+                                        if (!drawer) return;
+                                        const isOpen = (drawer.style.display !== 'none');
+                                        if (isOpen) {
+                                            drawer.style.display = 'none';
+                                            arrBtn.style.background = '#214051';
+                                            window._unregisterArrangerDrawer && window._unregisterArrangerDrawer(drawer);
+                                        } else {
+                                            drawer.style.display = 'block';
+                                            arrBtn.style.background = '#2ecc71';
+                                            arrBtn.style.color = '#0a1014';
+                                            // Determine the target (base modal or clone modal)
+                                            const modal = root.closest ? root : document.getElementById('patternModal');
+                                            if (!modal.arrangerConfig) {
+                                                modal.arrangerConfig = (typeof window._buildDefaultArrangerConfig === 'function') ? window._buildDefaultArrangerConfig() : [{ chordEnabled: {} }];
+                                            }
+                                            window._ensureArrangerConfig && window._ensureArrangerConfig(modal);
+                                            window._buildArrangerDrawer && window._buildArrangerDrawer(drawer, modal, 'pattern');
+                                            window._registerArrangerDrawer && window._registerArrangerDrawer(drawer, modal, 'pattern');
+                                        }
+                                    });
+                                });
+                            } catch (_) { }
+
                             // Speaker on/off button (always visible)
                             try {
                                 const speakerBtn = document.getElementById('patternSpeakerBtn');
@@ -21515,6 +22495,38 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             };
                         }
                     } catch (_) { }
+
+                    // Wire Drum ARR toggle button
+                    try {
+                        const arrBtn = document.getElementById('drumArrToggleBtn');
+                        if (arrBtn && !arrBtn._arrWired) {
+                            arrBtn._arrWired = true;
+                            arrBtn.addEventListener('click', (ev) => {
+                                try { ev.preventDefault(); ev.stopPropagation(); } catch (_) { }
+                                const drawer = document.getElementById('drumArrDrawer');
+                                if (!drawer) return;
+                                const isOpen = (drawer.style.display !== 'none');
+                                if (isOpen) {
+                                    drawer.style.display = 'none';
+                                    arrBtn.style.background = '#214051';
+                                    arrBtn.style.color = '#e8f5ff';
+                                    window._unregisterArrangerDrawer && window._unregisterArrangerDrawer(drawer);
+                                } else {
+                                    drawer.style.display = 'block';
+                                    arrBtn.style.background = '#2ecc71';
+                                    arrBtn.style.color = '#0a1014';
+                                    // Get active drum instance
+                                    const inst = (window._drumInstances || []).find(i => i && i.id === window._activeDrumInstanceId);
+                                    if (inst) {
+                                        window._ensureArrangerConfig && window._ensureArrangerConfig(inst);
+                                        window._buildArrangerDrawer && window._buildArrangerDrawer(drawer, inst, 'drum');
+                                        window._registerArrangerDrawer && window._registerArrangerDrawer(drawer, inst, 'drum');
+                                    }
+                                }
+                            });
+                        }
+                    } catch (_) { }
+
                     // Build PATTERN grid (harmonic/arpeggio + bass) once
                     (function () {
                         const patternGrid = document.getElementById('patternGrid');
@@ -26101,6 +27113,9 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
 
                     // Keep ruler in sync after regeneration
                     try { if (typeof window.renderChordRuler === 'function') window.renderChordRuler(); } catch (_) { }
+
+                    // Sync arranger drawers with updated chord list
+                    try { if (typeof window._syncArrangerOnChordChange === 'function') window._syncArrangerOnChordChange(); } catch (_) { }
 
                     // Add click handlers and restore locked chord states after rendering
                     setTimeout(() => {
@@ -38072,6 +39087,9 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         sections: cloneJson(window._sections || []),
                         activeSectionId: window._activeSectionId || null,
                         pendingSectionId: window._pendingSectionId || null,
+                        // Arranger state
+                        arrangerCycleCount: window._arrangerCycleCount || 1,
+                        arrangerEnabled: !!window._arrangerEnabled,
 
                         // ==== PIANO LOCK DATA - COMPLETE PRESERVATION ====
                         pianoLockedChords: this.pianoLockedChords ? Array.from(this.pianoLockedChords.entries()) : [],
@@ -38701,6 +39719,18 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                                 try { applySectionState(sec.state); } catch (_) { }
                                             }
                                         }
+                                    }
+                                } catch (_) { }
+
+                                // ==== ARRANGER STATE ====
+                                try {
+                                    if (Number.isFinite(sessionData.arrangerCycleCount) && sessionData.arrangerCycleCount >= 1) {
+                                        window._arrangerCycleCount = sessionData.arrangerCycleCount | 0;
+                                    }
+                                    if (sessionData.arrangerEnabled !== undefined) {
+                                        window._arrangerEnabled = !!sessionData.arrangerEnabled;
+                                        const toggle = document.getElementById('arrangerToggle');
+                                        if (toggle) toggle.checked = !!window._arrangerEnabled;
                                     }
                                 } catch (_) { }
 
@@ -39639,9 +40669,20 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                             'loopVolSlider',
                                             'loopDelayTime',
                                             'loopDelayFB',
+                                            'loopDelayMix',
                                             'loopVerbSlider',
                                             'loopFilterFreq',
                                             'loopFilterType',
+                                            'loopEqHpFreq',
+                                            'loopEqLpFreq',
+                                            'loopEqGain1',
+                                            'loopEqGain2',
+                                            'loopEqGain3',
+                                            'loopEqGain4',
+                                            'loopEqQ1',
+                                            'loopEqQ2',
+                                            'loopEqQ3',
+                                            'loopEqQ4',
                                             'loopTransposeToggle',
                                             'loopOneShotToggle',
                                             'loopStartOffsetSlider',
@@ -40382,6 +41423,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         // Update the data model
                         this.chordExtensions = newExtensions;
                         this.saveChordConfiguration();
+                        try { if (typeof window._syncArrangerOnChordChange === 'function') window._syncArrangerOnChordChange(); } catch (_) { }
 
                         console.log('🎵 Updated bracket positions in data model');
                     } catch (e) {
@@ -42500,6 +43542,9 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                             this.currentActiveColumnEl = ordered[0] || null;
                         }
                     } catch (_) { }
+
+                    // Sync arranger drawers with updated chord list
+                    try { if (typeof window._syncArrangerOnChordChange === 'function') window._syncArrangerOnChordChange(); } catch (_) { }
 
                     // Add click handlers after rendering
                     setTimeout(() => {
@@ -58976,6 +60021,8 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                                         autoharp._arp.pendingSwitch = null;
                                                         autoharp._arp.active = false;
                                                     }
+                                                    // Reset arranger cycle tracking
+                                                    try { window._arrangerCycleIndex = 0; window._arrangerPlaybackStarted = false; } catch (_) { }
                                                     // Clear tick-driven scheduling state
                                                     try {
                                                         if (autoharp._arpTransport) {
@@ -59091,6 +60138,25 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                                             }
 
                                             // At this point, sequenceIndex is the CURRENT chord to schedule (unless end-hold mode)
+
+                                            // ─── Arranger cycle tracking & mute computation ───
+                                            try {
+                                                const arrIsCycleStart = ((planPos | 0) === 0);
+                                                // On cycle wrap-around (not the very first chord of playback), advance the arranger cycle index
+                                                if (arrIsCycleStart && window._arrangerCycleCount > 0) {
+                                                    // Detect if this is a wrap-around vs the initial start
+                                                    if (window._arrangerPlaybackStarted) {
+                                                        window._arrangerCycleIndex = ((window._arrangerCycleIndex || 0) + 1) % window._arrangerCycleCount;
+                                                    } else {
+                                                        window._arrangerPlaybackStarted = true;
+                                                        window._arrangerCycleIndex = 0;
+                                                    }
+                                                }
+                                                // Compute mutes for all instances based on current cycle + chord column
+                                                if (typeof window._computeArrangerMutes === 'function') {
+                                                    window._computeArrangerMutes(sequenceIndex);
+                                                }
+                                            } catch (_) { }
                                             console.log('🎵 Scheduling CURRENT chord at index (from plan):', sequenceIndex, 'endHoldMode=', endHoldMode);
 
                                             // Continue with chord switching logic for CURRENT chord
@@ -60790,6 +61856,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     startupTimeSignature: '4/4',
                     startupMasterVolume: 10,
                     startupLoopEnabled: true,
+                    startupArrEnabled: true,
                     colorScheme: 'roygbiv',
                     harpRangeLow: 1,
                     harpRangeHigh: 8,
@@ -60832,6 +61899,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         startupTimeSignature: normalizeTimeSignature(src.startupTimeSignature),
                         startupMasterVolume: Math.round(clamp(src.startupMasterVolume, 0, 10, DEFAULT_SETTINGS.startupMasterVolume) * 10) / 10,
                         startupLoopEnabled: (src.startupLoopEnabled == null) ? DEFAULT_SETTINGS.startupLoopEnabled : !!src.startupLoopEnabled,
+                        startupArrEnabled: (src.startupArrEnabled == null) ? DEFAULT_SETTINGS.startupArrEnabled : !!src.startupArrEnabled,
                         colorScheme: ['roygbiv', 'piano', 'metallic', 'roots_only', 'roots_metallic'].includes(String(src.colorScheme || '').toLowerCase())
                             ? String(src.colorScheme || '').toLowerCase()
                             : DEFAULT_SETTINGS.colorScheme,
@@ -60997,6 +62065,13 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         dispatchInputAndChange(loopEl);
                     }
 
+                    const arrEl = byId('arrangerToggle');
+                    if (arrEl) {
+                        const arrOn = (st.startupArrEnabled !== false);
+                        arrEl.checked = arrOn;
+                        window._arrangerEnabled = arrOn;
+                    }
+
                     setMidiMode(!!st.startupMidiMode);
                 };
 
@@ -61011,6 +62086,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     const startupTs = byId('settingsStartupTimeSig');
                     const startupVol = byId('settingsStartupMasterVolume');
                     const startupLoop = byId('settingsStartupLoopEnabled');
+                    const startupArr = byId('settingsStartupArrEnabled');
                     const colorScheme = byId('settingsColorScheme');
                     const harpRangeLow = byId('settingsHarpRangeLow');
                     const harpRangeHigh = byId('settingsHarpRangeHigh');
@@ -61025,6 +62101,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                     if (startupTs) startupTs.value = st.startupTimeSignature;
                     if (startupVol) startupVol.value = String(st.startupMasterVolume);
                     if (startupLoop) startupLoop.checked = !!st.startupLoopEnabled;
+                    if (startupArr) startupArr.checked = (st.startupArrEnabled !== false);
                     if (colorScheme) colorScheme.value = st.colorScheme;
                     if (harpRangeLow) harpRangeLow.value = String(st.harpRangeLow);
                     if (harpRangeHigh) harpRangeHigh.value = String(st.harpRangeHigh);
@@ -61045,6 +62122,7 @@ registerProcessor('${_loopWorkletProcessorName}', ChromoToneLoopCaptureProcessor
                         startupTimeSignature: byId('settingsStartupTimeSig') ? byId('settingsStartupTimeSig').value : current.startupTimeSignature,
                         startupMasterVolume: byId('settingsStartupMasterVolume') ? byId('settingsStartupMasterVolume').value : current.startupMasterVolume,
                         startupLoopEnabled: !!(byId('settingsStartupLoopEnabled') && byId('settingsStartupLoopEnabled').checked),
+                        startupArrEnabled: !!(byId('settingsStartupArrEnabled') && byId('settingsStartupArrEnabled').checked),
                         colorScheme: byId('settingsColorScheme') ? byId('settingsColorScheme').value : current.colorScheme,
                         harpRangeLow: byId('settingsHarpRangeLow') ? parseInt(byId('settingsHarpRangeLow').value, 10) : current.harpRangeLow,
                         harpRangeHigh: byId('settingsHarpRangeHigh') ? parseInt(byId('settingsHarpRangeHigh').value, 10) : current.harpRangeHigh,
